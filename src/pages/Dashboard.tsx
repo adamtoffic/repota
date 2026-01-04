@@ -24,6 +24,7 @@ export function Dashboard({
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-300">
       <StudentList
         students={students}
+        settings={settings}
         onAddStudent={onAddStudent}
         onDeleteStudent={onDeleteStudent}
         onEditStudent={(s) => setEditingStudent(s)}

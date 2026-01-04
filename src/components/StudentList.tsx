@@ -1,15 +1,24 @@
 import { useState } from "react";
-import { Plus, Search, Trash2, Edit, User } from "lucide-react";
-import type { ProcessedStudent, StudentRecord } from "../types";
+import { Plus, Search, Trash2, Edit, User, Edit2, FileText, Download } from "lucide-react";
+import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { PDFReportDocument } from "./PDFReportDocument";
 
 interface Props {
   students: ProcessedStudent[];
+  settings: SchoolSettings;
   onAddStudent: (student: StudentRecord) => void;
   onDeleteStudent: (id: string) => void;
   onEditStudent: (student: ProcessedStudent) => void;
 }
 
-export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStudent }: Props) {
+export function StudentList({
+  students,
+  settings,
+  onAddStudent,
+  onDeleteStudent,
+  onEditStudent,
+}: Props) {
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -161,6 +170,33 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                       >
                         <Edit className="h-4 w-4" />
                       </button>
+
+                      <button
+                        onClick={() => onEditStudent(student)}
+                        className="rounded-lg p-2 text-blue-600 transition-colors hover:bg-blue-100"
+                        title="Edit Scores"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+
+                      <PDFDownloadLink
+                        document={<PDFReportDocument student={student} settings={settings} />}
+                        fileName={`${student.name}_Report.pdf`}
+                      >
+                        {({ loading }) => (
+                          <button
+                            className="rounded-lg p-2 text-purple-600 transition-colors hover:bg-purple-100"
+                            title="Download PDF"
+                          >
+                            {loading ? (
+                              <span className="animate-pulse text-[10px] font-bold">...</span>
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                      </PDFDownloadLink>
+
                       <button
                         onClick={() => onDeleteStudent(student.id)}
                         className="rounded p-1.5 text-red-600 hover:bg-red-50"
