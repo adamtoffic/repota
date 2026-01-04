@@ -1,5 +1,6 @@
+// src/hooks/useSchoolData.ts
 import { useState, useEffect, useMemo } from "react";
-import type { StudentRecord, SavedSubject, SchoolSettings } from "../types";
+import type { StudentRecord, SavedSubject, SchoolSettings, ReportExtras } from "../types";
 import { processStudent, assignPositions } from "../utils/gradeCalculator";
 
 const STORAGE_KEYS = {
@@ -36,30 +37,44 @@ export function useSchoolData() {
 
   const processedStudents = useMemo(() => {
     const processed = students.map((student) => processStudent(student, settings.level));
-
     return assignPositions(processed);
   }, [students, settings.level]);
 
   const addStudent = (student: StudentRecord) => {
     setStudents((prev) => [...prev, student]);
   };
+
   const deleteStudent = (id: string) => {
     if (confirm("Are you sure you want to delete this student?")) {
       setStudents((prev) => prev.filter((s) => s.id !== id));
     }
   };
 
-  const updateStudentScores = (id: string, newSubjects: SavedSubject[]) => {
+  // ✅ RENAMED THIS TO updateStudentScores (It replaces the old one completely)
+  const updateStudentScores = (
+    studentId: string,
+    newSubjects: SavedSubject[],
+    extras?: ReportExtras, // ✅ Correctly typed optional extras
+  ) => {
     setStudents((prev) =>
-      prev.map((student) => (student.id === id ? { ...student, subjects: newSubjects } : student)),
+      prev.map((s) =>
+        s.id === studentId
+          ? {
+              ...s,
+              subjects: newSubjects,
+              ...extras, // Spread the attendance/remarks into the student object
+            }
+          : s,
+      ),
     );
   };
+
   return {
     settings,
     setSettings,
     students: processedStudents,
     addStudent,
     deleteStudent,
-    updateStudentScores,
+    updateStudentScores, // ✅ No mapping needed, the name matches
   };
 }

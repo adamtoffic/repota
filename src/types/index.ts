@@ -26,6 +26,7 @@ export interface StudentRecord {
   dateOfBirth?: string;
   attendanceTotal?: number;
   attendancePresent?: number;
+  teacherRemark?: string;
   conduct?: string;
   pictureUrl?: string;
 
@@ -58,4 +59,12 @@ export interface ProcessedStudent extends Omit<StudentRecord, "subjects"> {
   averageScore: number;
   totalScore: number;
   classPosition: string;
+  teacherRemark?: string;
+}
+
+export interface ReportExtras {
+  attendancePresent?: number;
+  attendanceTotal?: number;
+  conduct?: string;
+  teacherRemark?: string;
 }
