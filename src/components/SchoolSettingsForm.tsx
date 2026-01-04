@@ -29,7 +29,7 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
             value={formData.name}
             onChange={(e) => handleChange("name", e.target.value)}
             className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. Anglican Primary"
+            placeholder="e.g. Anglican PRIMARY"
           />
         </div>
 
@@ -72,11 +72,11 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="radio"
-                checked={formData.level === "Primary"}
-                onChange={() => handleChange("level", "Primary")}
+                checked={formData.level === "PRIMARY"}
+                onChange={() => handleChange("level", "PRIMARY")}
                 className="h-4 w-4 text-blue-600"
               />
-              <span className="text-sm">Primary (1-6)</span>
+              <span className="text-sm">PRIMARY (1-6)</span>
             </label>
 
             <label className="flex cursor-pointer items-center gap-2">

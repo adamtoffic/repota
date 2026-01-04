@@ -18,7 +18,7 @@ export function useSchoolData() {
     return saved
       ? JSON.parse(saved)
       : {
-          name: "Anglican Primary",
+          name: "Anglican PRIMARY",
           academicYear: "2025/2026",
           term: "First Term",
           level: "KG",
@@ -49,7 +49,7 @@ export function useSchoolData() {
     }
   };
 
-  const updatStudentScores = (id: string, newSubjects: SavedSubject[]) => {
+  const updateStudentScores = (id: string, newSubjects: SavedSubject[]) => {
     setStudents((prev) =>
       prev.map((student) => (student.id === id ? { ...student, subjects: newSubjects } : student)),
     );
@@ -60,6 +60,6 @@ export function useSchoolData() {
     students: processedStudents,
     addStudent,
     deleteStudent,
-    updatStudentScores,
+    updateStudentScores,
   };
 }

@@ -153,7 +153,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                     {student.averageScore > 0 ? student.averageScore + "%" : "-"}
                   </td>
                   <td className="p-3 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex justify-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                       <button
                         onClick={() => onEditStudent(student)}
                         className="rounded p-1.5 text-blue-600 hover:bg-blue-50"

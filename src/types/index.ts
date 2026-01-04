@@ -1,16 +1,16 @@
-export type SchoolLevel = "KG" | "Primary" | "JHS" | "SHS";
+export type SchoolLevel = "KG" | "PRIMARY" | "JHS" | "SHS";
 
 export type SHSGrade = "A1" | "B2" | "B3" | "C4" | "C5" | "C6" | "D7" | "E8" | "F9";
 export type JHSGrade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type KGGrade = "GOLD" | "SILVER" | "BRONZE";
-export type PrimaryGrade = 1 | 2 | 3 | 4 | 5;
+export type PRIMARYGrade = 1 | 2 | 3 | 4 | 5;
 
 export type TermSystem = "First Term" | "Second Term" | "Third Term";
 export type SemesterSystem = "First Semester" | "Second Semester";
 export type AcademicPeriod = TermSystem | SemesterSystem;
 
-export type Grade = KGGrade | PrimaryGrade | JHSGrade | SHSGrade;
+export type Grade = KGGrade | PRIMARYGrade | JHSGrade | SHSGrade;
 
 export interface SavedSubject {
   id: string;

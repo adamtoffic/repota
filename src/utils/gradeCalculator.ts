@@ -14,7 +14,7 @@ export const calculateGrade = (
   switch (level) {
     case "KG":
       return calculateKGGrade(total);
-    case "Primary":
+    case "PRIMARY":
       return calculatePrimaryGrade(total);
     case "JHS":
       return calculateJHSGrade(total);
@@ -81,7 +81,7 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
 
   const averageScore =
     ProcessedSubjects.length > 0
-      ? parseFloat((totalScoreSum / ProcessedSubjects.length).toFixed(2))
+      ? parseFloat((totalScore / ProcessedSubjects.length).toFixed(2))
       : 0;
 
   let age = 0;

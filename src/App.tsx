@@ -7,7 +7,8 @@ import { Settings } from "./pages/Settings";
 
 function App() {
   // 1. Load Data (The Brain)
-  const { settings, setSettings, students, addStudent, deleteStudent } = useSchoolData();
+  const { settings, setSettings, students, addStudent, deleteStudent, updateStudentScores } =
+    useSchoolData();
 
   // 2. Local View State
   const [activeTab, setActiveTab] = useState<"dashboard" | "settings">("dashboard");
@@ -20,6 +21,7 @@ function App() {
           settings={settings}
           onAddStudent={addStudent}
           onDeleteStudent={deleteStudent}
+          onUpdateScores={updateStudentScores}
         />
       ) : (
         <Settings
