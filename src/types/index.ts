@@ -60,6 +60,7 @@ export interface ProcessedStudent extends Omit<StudentRecord, "subjects"> {
   totalScore: number;
   classPosition: string;
   teacherRemark?: string;
+  aggregate: number | null;
 }
 
 export interface ReportExtras {

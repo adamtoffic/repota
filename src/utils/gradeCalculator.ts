@@ -63,26 +63,148 @@ const calculateSHSGrade = (total: number): { grade: Grade; remark: string } => {
   return { grade: "F9", remark: "Fail" };
 };
 
-export const processStudent = (student: StudentRecord, level: SchoolLevel): ProcessedStudent => {
-  let totalScore = 0;
-  const ProcessedSubjects: ProcessedSubject[] = student.subjects.map((sub: SavedSubject) => {
-    const total = sub.classScore + sub.examScore;
-    totalScore += total;
+const isCoreSubject = (name: string, level: SchoolLevel): boolean => {
+  const n = name.toLowerCase();
 
-    const { grade, remark } = calculateGrade(total, level);
+  if (level === "PRIMARY") {
+    return (
+      n.includes("english") || n.includes("math") || n.includes("science") // Covers "Integrated Science" or just "Science"
+    );
+  }
+
+  if (level === "JHS") {
+    return (
+      n.includes("english") || n.includes("math") || n.includes("science") || n.includes("social")
+    );
+  }
+
+  if (level === "SHS") {
+    // SHS Cores: Core Math, Int Science, English, Social
+    return (
+      (n.includes("math") && n.includes("core")) ||
+      n.includes("english") ||
+      (n.includes("science") && n.includes("integrated")) ||
+      n.includes("social")
+    );
+  }
+
+  return false; // Primary/KG don't use this logic
+};
+
+const gradeToNumber = (grade: Grade): number => {
+  if (typeof grade === "number") return grade; // JHS/Primary (1-9)
+
+  // SHS Conversion (WASSCE Standard)
+  const map: Record<string, number> = {
+    A1: 1,
+    B2: 2,
+    B3: 3,
+    C4: 4,
+    C5: 5,
+    C6: 6,
+    D7: 7,
+    E8: 8,
+    F9: 9,
+  };
+  return map[grade as string] || 9; // Default to 9 (Fail) if unknown
+};
+
+const calculateAggregate = (subjects: ProcessedSubject[], level: SchoolLevel): number | null => {
+  // KG and Primary DO NOT use aggregate
+  if (level === "KG") return null;
+
+  // 1. Separate Cores and Electives
+  const cores = subjects.filter((s) => isCoreSubject(s.name, level));
+  const electives = subjects.filter((s) => !isCoreSubject(s.name, level));
+
+  // Helper to sort by numeric grade (Ascending: 1 is best)
+  const byGrade = (a: ProcessedSubject, b: ProcessedSubject) =>
+    gradeToNumber(a.grade) - gradeToNumber(b.grade);
+
+  let totalAggregate = 0;
+
+  if (level === "PRIMARY") {
+    // 1. Add specific Cores (English, Math, Science)
+    // We filter to ensure we don't accidentally add "Social Studies" if it slipped into cores array
+    const primaryCores = cores.filter((s) => {
+      const n = s.name.toLowerCase();
+      return n.includes("english") || n.includes("math") || n.includes("science");
+    });
+
+    primaryCores.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
+
+    // 2. Add Best 3 Electives
+    const bestElectives = electives.sort(byGrade).slice(0, 3);
+    bestElectives.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
+
+    // If student has absolutely no subjects, return null (hide aggregate)
+    if (primaryCores.length === 0 && bestElectives.length === 0) return null;
+
+    return totalAggregate;
+  }
+
+  // --- JHS ALGORITHM (Core 4 + Best 2) ---
+  if (level === "JHS") {
+    // We strictly need the 4 specific cores.
+    // If they are missing, we can't calculate a valid aggregate (or we assume 9).
+    // For v0.1, we'll just sum whatever cores exist + best electives.
+
+    cores.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
+
+    // Add Best 2 Electives
+    const bestElectives = electives.sort(byGrade).slice(0, 2);
+    bestElectives.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
+
+    return totalAggregate;
+  }
+
+  // --- SHS ALGORITHM (Core 3 + Best 3) ---
+  if (level === "SHS") {
+    // 1. Mandatory: English + Math
+    const english = cores.find((s) => s.name.toLowerCase().includes("english"));
+    const math = cores.find((s) => s.name.toLowerCase().includes("math"));
+
+    // 2. Best of Science vs Social
+    const others = cores.filter((s) => s !== english && s !== math).sort(byGrade);
+    const bestThirdCore = others[0];
+
+    // Add Core Points
+    if (english) totalAggregate += gradeToNumber(english.grade);
+    if (math) totalAggregate += gradeToNumber(math.grade);
+    if (bestThirdCore) totalAggregate += gradeToNumber(bestThirdCore.grade);
+
+    // 3. Best 3 Electives
+    const bestElectives = electives.sort(byGrade).slice(0, 3);
+    bestElectives.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
+
+    return totalAggregate;
+  }
+
+  return null;
+};
+
+export const processStudent = (student: StudentRecord, level: SchoolLevel): ProcessedStudent => {
+  let totalScoreSum = 0;
+  const subjectsSafe = student.subjects || [];
+  const processedSubjects: ProcessedSubject[] = subjectsSafe.map((sub: SavedSubject) => {
+    const total = (sub.classScore || 0) + (sub.examScore || 0);
+    totalScoreSum += total;
+    const result = calculateGrade(total, level);
 
     return {
       ...sub,
       totalScore: total,
-      grade: grade as Grade,
-      remark,
+      grade: result.grade as Grade,
+      remark: result.remark,
     };
   });
 
   const averageScore =
-    ProcessedSubjects.length > 0
-      ? parseFloat((totalScore / ProcessedSubjects.length).toFixed(2))
+    processedSubjects.length > 0
+      ? parseFloat((totalScoreSum / processedSubjects.length).toFixed(2))
       : 0;
+
+  const aggregate = calculateAggregate(processedSubjects, level);
 
   let age = 0;
   if (student.dateOfBirth) {
@@ -97,9 +219,10 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
   return {
     ...student,
     age,
-    subjects: ProcessedSubjects,
-    totalScore,
+    subjects: processedSubjects,
+    totalScore: totalScoreSum,
     averageScore,
+    aggregate,
     classPosition: "pending...",
   };
 };

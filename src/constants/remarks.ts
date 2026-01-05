@@ -131,3 +131,62 @@ export const REMARK_BANK: Record<string, Record<RemarkCategory, string[]>> = {
     ],
   },
 };
+
+// src/constants/remarks.ts
+
+// ... (Keep existing REMARK_BANK for teachers) ...
+
+export const HEADMASTER_BANK = {
+  // 🗓️ TERM 1 & 2 (General Performance)
+  GENERAL: {
+    EXCELLENT: [
+      "An outstanding performance. Keep this momentum for the next term.",
+      "Excellent results! You are a credit to the school.",
+      "Highly commended. Continue to work hard to maintain this standard.",
+      "A fantastic set of results. Do not get complacent.",
+    ],
+    GOOD: [
+      "Good progress made. Aim for excellence in the next term.",
+      "A satisfactory performance. Put in more effort to reach the top.",
+      "Good results. With more focus, you can achieve distinctions.",
+      "Commendable. Encourage him/her to read more during the holidays.",
+    ],
+    AVERAGE: [
+      "Performance is average. Needs to buckle up for the next term.",
+      "More seriousness is required. The next term will be tougher.",
+      "There is room for improvement. Please monitor home studies closely.",
+      "Results are mixed. Needs to focus on weak subjects immediately.",
+    ],
+    POOR: [
+      "Performance is below standard. Immediate improvement is needed.",
+      "Very weak results. Parents must visit the school for a meeting.",
+      "Not serious with academic work. Needs a change of attitude.",
+      "Critical warning. If this continues, promotion will be difficult.",
+    ],
+  },
+
+  // 🚀 TERM 3 (Promotional Remarks)
+  PROMOTIONAL: {
+    Pass: [
+      // Average >= 50
+      "PROMOTED to the next class. Keep up the good work.",
+      "PROMOTED. An excellent finish to the academic year.",
+      "PROMOTED to the next class. Attitude to work is commendable.",
+      "PROMOTED. Has shown great maturity and academic growth.",
+    ],
+    Probation: [
+      // Average 40-49
+      "PROMOTED ON PROBATION. Must improve performance next term.",
+      "PROMOTED ON TRIAL. Academic weakness needs urgent attention.",
+      "PROMOTED. However, parents must ensure more supervision at home.",
+      "PROMOTED. Needs to attend holiday classes to catch up.",
+    ],
+    Fail: [
+      // Average < 40
+      "REPEATED. Performance is below the required standard for promotion.",
+      "REPEATED. Did not meet the minimum grade requirements.",
+      "REPEATED. Advised to take the class again to build a better foundation.",
+      "RETAINED in current class due to poor performance.",
+    ],
+  },
+};
