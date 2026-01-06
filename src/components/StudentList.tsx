@@ -38,12 +38,24 @@ export function StudentList({
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ✅ 1. CREATE SUBJECTS FROM SETTINGS
+    // We look at settings.defaultSubjects. If it's empty, they get []
+    const startingSubjects = (settings.defaultSubjects || []).map((subName) => ({
+      id: crypto.randomUUID(),
+      name: subName,
+      classScore: 0,
+      examScore: 0,
+    }));
+
+    // ✅ 2. CREATE STUDENT WITH THOSE SUBJECTS
     onAddStudent({
       id: crypto.randomUUID(),
       name: newName,
       className: newClass,
-      subjects: [],
+      subjects: startingSubjects, // <--- THIS IS THE FIX
     });
+
     setNewName("");
     setIsAddOpen(false);
   };

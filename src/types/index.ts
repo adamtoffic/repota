@@ -44,6 +44,8 @@ export interface SchoolSettings {
   level: SchoolLevel;
   nextTermStarts?: string;
   headTeacherName?: string;
+
+  defaultSubjects: string[];
 }
 
 export interface ProcessedSubject extends SavedSubject {
