@@ -5,6 +5,7 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { PDFReportDocument } from "./PDFReportDocument";
 import type { ProcessedStudent, StudentRecord, SchoolSettings } from "../types";
 import { CLASS_OPTIONS } from "../constants/classes";
+import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 
 interface Props {
   students: ProcessedStudent[];
@@ -39,21 +40,29 @@ export function StudentList({
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ 1. CREATE SUBJECTS FROM SETTINGS
-    // We look at settings.defaultSubjects. If it's empty, they get []
-    const startingSubjects = (settings.defaultSubjects || []).map((subName) => ({
+    // 1. DETERMINE THE SUBJECT LIST
+    // Priority 1: Use the Custom List from Settings
+    // Priority 2: Use the Hardcoded Default for the current level
+    let subjectNames = settings.defaultSubjects || [];
+
+    if (subjectNames.length === 0) {
+      subjectNames = DEFAULT_SUBJECTS[settings.level] || [];
+    }
+
+    // 2. Create the objects
+    const startingSubjects = subjectNames.map((subName) => ({
       id: crypto.randomUUID(),
       name: subName,
       classScore: 0,
       examScore: 0,
     }));
 
-    // ✅ 2. CREATE STUDENT WITH THOSE SUBJECTS
+    // 3. Add Student
     onAddStudent({
       id: crypto.randomUUID(),
       name: newName,
       className: newClass,
-      subjects: startingSubjects, // <--- THIS IS THE FIX
+      subjects: startingSubjects,
     });
 
     setNewName("");

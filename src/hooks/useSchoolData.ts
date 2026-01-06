@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { StudentRecord, SavedSubject, SchoolSettings, ReportExtras } from "../types";
 import { processStudent, assignPositions } from "../utils/gradeCalculator";
+import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 
 const STORAGE_KEYS = {
   STUDENTS: "ges_v1_students",
@@ -16,15 +17,16 @@ export function useSchoolData() {
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return saved
-      ? JSON.parse(saved)
-      : {
-          name: "Anglican PRIMARY",
-          academicYear: "2025/2026",
-          term: "First Term",
-          level: "KG",
-          address: "P.O. Box AN 123, Kumasi",
-        };
+    if (saved) return JSON.parse(saved);
+
+    // NEW DEFAULT: Use the imported constant
+    return {
+      name: "My School Name",
+      academicYear: "2025/2026",
+      term: "First Term",
+      level: "JHS",
+      defaultSubjects: DEFAULT_SUBJECTS["JHS"], // <--- Uses the shared constant
+    };
   });
 
   useEffect(() => {
