@@ -1,39 +1,25 @@
 // src/App.tsx
 import { useState } from "react";
-import { useSchoolData } from "./hooks/useSchoolData";
-import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Settings } from "./pages/Settings";
 
-function App() {
-  // 1. Load Data (The Brain)
-  const { settings, setSettings, students, addStudent, deleteStudent, updateStudentScores } =
-    useSchoolData();
+// Define the valid views
+type ViewState = "dashboard" | "settings";
 
-  // 2. Local View State
-  const [activeTab, setActiveTab] = useState<"dashboard" | "settings">("dashboard");
+function App() {
+  // State to track which page is visible
+  const [currentView, setCurrentView] = useState<ViewState>("dashboard");
 
   return (
-    <Layout schoolName={settings.name} activeTab={activeTab} onTabChange={setActiveTab}>
-      {activeTab === "dashboard" ? (
-        <Dashboard
-          students={students}
-          settings={settings}
-          onAddStudent={addStudent}
-          onDeleteStudent={deleteStudent}
-          onUpdateScores={updateStudentScores}
-        />
-      ) : (
-        <Settings
-          settings={settings}
-          onSave={(newSettings) => {
-            setSettings(newSettings);
-            alert("Settings Saved Successfully!");
-            setActiveTab("dashboard");
-          }}
-        />
+    <>
+      {/* VIEW 1: DASHBOARD */}
+      {currentView === "dashboard" && (
+        <Dashboard onOpenSettings={() => setCurrentView("settings")} />
       )}
-    </Layout>
+
+      {/* VIEW 2: SETTINGS */}
+      {currentView === "settings" && <Settings onBack={() => setCurrentView("dashboard")} />}
+    </>
   );
 }
 

@@ -1,106 +1,99 @@
 // src/components/SubjectRow.tsx
 import { Trash2 } from "lucide-react";
-import type { SavedSubject, SchoolLevel } from "../types"; // Removed Grade import, not needed explicitly
+import type { SavedSubject, SchoolLevel } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
 
 interface Props {
   subject: SavedSubject;
   level: SchoolLevel;
-  onChange: (updatedSubject: SavedSubject) => void;
+  onChange: (updated: SavedSubject) => void;
   onDelete: () => void;
 }
 
 export function SubjectRow({ subject, level, onChange, onDelete }: Props) {
-  // 1. DERIVED STATE (No useState, No useEffect!)
-  // Just calculate it right here. It recalculates instantly whenever props change.
-  const total = (Number(subject.classScore) || 0) + (Number(subject.examScore) || 0);
-  const gradeInfo = calculateGrade(total, level);
+  // Calculate grade dynamically for visual feedback
+  const total = (subject.classScore || 0) + (subject.examScore || 0);
+  const { grade, remark } = calculateGrade(total, level);
 
-  // Helper to handle input changes
-  const handleInputChange = (field: "classScore" | "examScore", value: string) => {
-    // 1. Handle empty deletion (user backspaces everything) -> set to 0
-    if (value === "") {
-      onChange({ ...subject, [field]: 0 });
-      return;
-    }
-
-    // 2. Parse the number (handles decimals better than Number())
-    const numValue = parseFloat(value);
-
-    // 3. CRITICAL SAFETY: If user types "12abc", numValue is NaN.
-    // We must NOT save NaN to the database, or math will crash later.
-    if (isNaN(numValue)) return;
-
-    // 4. Boundary Checks (Optional but good)
-    if (numValue < 0) return; // No negative scores
-    // if (field === "classScore" && numValue > 50) return; // Strict Class Score limit (optional)
-    // if (field === "examScore" && numValue > 100) return; // Strict Exam limit (optional)
-
+  const handleChange = (field: "classScore" | "examScore", value: string) => {
+    const numValue = Math.min(Math.max(Number(value), 0), 100); // Clamp between 0-100
     onChange({ ...subject, [field]: numValue });
   };
 
   return (
-    <div className="grid grid-cols-12 items-center gap-4 rounded-lg border border-gray-100 bg-gray-50 p-3 transition-colors hover:border-blue-200">
-      {/* 1. Subject Name */}
-      <div className="col-span-4">
-        <input
-          type="text"
-          value={subject.name}
-          onChange={(e) => onChange({ ...subject, name: e.target.value })}
-          className="w-full border-none bg-transparent p-0 font-medium text-gray-800 focus:ring-0"
-          placeholder="Subject Name"
-        />
-      </div>
+    <div className="group rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-blue-300 sm:p-4">
+      {/* FLEX CONTAINER: Stacks on mobile (flex-col), Row on desktop (sm:flex-row) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        {/* 1. SUBJECT NAME (Grows to fill space) */}
+        <div className="flex flex-1 items-center justify-between">
+          <div>
+            <span className="text-sm font-bold text-gray-800 sm:text-base">{subject.name}</span>
+            {/* Mobile-only Helper Text */}
+            <p className="text-[10px] text-gray-400 sm:hidden">
+              {remark} ({grade})
+            </p>
+          </div>
 
-      {/* 2. Class Score */}
-      <div className="col-span-2">
-        <input
-          type="number"
-          value={subject.classScore === 0 ? "" : subject.classScore} // Show empty if 0 for easier typing
-          onChange={(e) => handleInputChange("classScore", e.target.value)}
-          className="w-full rounded border p-2 text-center outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="0"
-        />
-      </div>
-
-      {/* 3. Exam Score */}
-      <div className="col-span-2">
-        <input
-          type="number"
-          value={subject.examScore === 0 ? "" : subject.examScore}
-          onChange={(e) => handleInputChange("examScore", e.target.value)}
-          className="w-full rounded border p-2 text-center outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="0"
-        />
-      </div>
-
-      {/* 4. Total & Grade (Visual Feedback) */}
-      <div className="col-span-3 flex flex-col items-center justify-center rounded border bg-white py-1">
-        <span className="text-[10px] font-bold text-gray-400 uppercase">Total</span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-blue-700">{total}</span>
-          <span
-            className={`rounded px-1.5 py-0.5 text-xs font-bold ${
-              // Simple color logic based on the remark
-              ["Fail", "Lowest", "Lower", "Low"].includes(gradeInfo.remark)
-                ? "bg-red-100 text-red-700"
-                : "bg-green-100 text-green-700"
-            }`}
-          >
-            {gradeInfo.grade}
-          </span>
+          {/* Mobile-only Delete Button (Easier to reach on thumb) */}
+          <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-500 sm:hidden">
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
-      </div>
 
-      {/* 5. Delete Button */}
-      <div className="col-span-1 text-right">
-        <button
-          onClick={onDelete}
-          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
-          title="Remove Subject"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        {/* 2. INPUTS AREA (Grid for perfect alignment on mobile) */}
+        <div className="grid grid-cols-6 gap-2 sm:flex sm:w-auto sm:items-center">
+          {/* Class Score Input */}
+          <div className="col-span-2 sm:w-20">
+            <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
+              Class (30)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={subject.classScore || ""} // Empty string handles 0 better for typing
+              onChange={(e) => handleChange("classScore", e.target.value)}
+              className="w-full rounded border border-gray-300 p-2 text-center text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0"
+            />
+          </div>
+
+          {/* Exam Score Input */}
+          <div className="col-span-2 sm:w-20">
+            <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
+              Exam (70)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={subject.examScore || ""}
+              onChange={(e) => handleChange("examScore", e.target.value)}
+              className="w-full rounded border border-gray-300 p-2 text-center text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0"
+            />
+          </div>
+
+          {/* Grade Badge (Hidden on Mobile inputs row since we moved it to title) */}
+          <div className="hidden justify-center sm:flex sm:w-16">
+            <span
+              className={`rounded px-2 py-1 text-xs font-bold ${
+                total < 50 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+              }`}
+            >
+              {grade}
+            </span>
+          </div>
+
+          {/* Desktop Delete Button */}
+          <button
+            onClick={onDelete}
+            className="hidden rounded p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:block"
+            title="Remove Subject"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

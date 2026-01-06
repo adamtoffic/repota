@@ -1,8 +1,10 @@
+// src/components/StudentList.tsx
 import { useState } from "react";
-import { Plus, Search, Trash2, Edit, User, Edit2, FileText, Download } from "lucide-react";
-import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
+import { Edit2, Trash2, FileText, UserPlus, X } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { PDFReportDocument } from "./PDFReportDocument";
+import type { ProcessedStudent, StudentRecord, SchoolSettings } from "../types";
+import { CLASS_OPTIONS } from "../constants/classes";
 
 interface Props {
   students: ProcessedStudent[];
@@ -19,188 +21,115 @@ export function StudentList({
   onDeleteStudent,
   onEditStudent,
 }: Props) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  // STATE
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newClass, setNewClass] = useState("");
 
-  const [newStudent, setNewStudent] = useState({
-    name: "",
-    className: "",
-    dateOfBirth: "",
-  });
-
-  const handleChange = (field: keyof typeof newStudent, value: string) => {
-    setNewStudent((prev) => ({ ...prev, [field]: value }));
+  // ✅ FIX: No useEffect. We set defaults when the user clicks "Open".
+  const handleOpenModal = () => {
+    const options = CLASS_OPTIONS[settings.level] || [];
+    // Set default class to the first option (e.g., "Class 1")
+    if (options.length > 0) {
+      setNewClass(options[0]);
+    }
+    setIsAddOpen(true);
   };
 
-  const handleAddSubmit = () => {
-    if (!newStudent.name || !newStudent.className) return;
-
-    const StudentRecord: StudentRecord = {
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddStudent({
       id: crypto.randomUUID(),
-      name: newStudent.name,
-      className: newStudent.className,
-      dateOfBirth: newStudent.dateOfBirth,
+      name: newName,
+      className: newClass,
       subjects: [],
-    };
-
-    onAddStudent(StudentRecord);
-
-    setNewStudent({ name: "", className: "", dateOfBirth: "" });
-    setIsAdding(false);
+    });
+    setNewName("");
+    setIsAddOpen(false);
   };
-
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.className.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
 
   return (
-    <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
-      {/* HEADER SECTION */}
-      <div className="mb-6 flex flex-col items-center justify-between gap-4 md:flex-row">
-        <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800">
-          <User className="text-blue-600" />
-          Student List{" "}
-          <span className="text-sm font-normal text-gray-400">({students.length})</span>
-        </h2>
+    // Removed 'overflow-hidden' to prevent any CSS clipping issues with modals
+    <div className="relative rounded-xl border border-gray-200 bg-white shadow-sm">
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-6">
+        <h2 className="text-lg font-bold text-gray-800">Student Records</h2>
 
-        <div className="flex w-full gap-2 md:w-auto">
-          {/* Search Input */}
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search students..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border py-2 pr-4 pl-9 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Add Button */}
-          <button
-            onClick={() => setIsAdding(!isAdding)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            {isAdding ? "Close" : "Add Student"}
-          </button>
-        </div>
+        <button
+          onClick={handleOpenModal} // <--- Calls our safe opener
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+        >
+          <UserPlus className="h-4 w-4" /> Add Student
+        </button>
       </div>
 
-      {/* ADD STUDENT FORM (Collapsible) */}
-      {isAdding && (
-        <div className="animate-in fade-in slide-in-from-top-4 mb-6 rounded-lg border border-blue-100 bg-blue-50 p-4 duration-200">
-          <h3 className="mb-3 font-bold text-blue-800">Register New Student</h3>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={newStudent.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              className="rounded border bg-white p-2"
-            />
-            <input
-              type="text"
-              placeholder="Class (e.g. JHS 2)"
-              value={newStudent.className}
-              onChange={(e) => handleChange("className", e.target.value)}
-              className="rounded border bg-white p-2"
-            />
-            <input
-              type="date"
-              value={newStudent.dateOfBirth}
-              onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-              className="rounded border bg-white p-2"
-            />
-          </div>
-          <button
-            onClick={handleAddSubmit}
-            className="mt-3 rounded bg-blue-600 px-6 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Save Student
-          </button>
-        </div>
-      )}
-
-      {/* THE TABLE */}
+      {/* TABLE */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="bg-gray-50 text-sm tracking-wider text-gray-600 uppercase">
-              <th className="border-b p-3">Position</th>
-              <th className="border-b p-3">Name</th>
-              <th className="border-b p-3">Class</th>
-              <th className="border-b p-3 text-center">Subjects</th>
-              <th className="border-b p-3 text-center">Avg. Score</th>
-              <th className="border-b p-3 text-right">Actions</th>
+        <table className="w-full text-left text-sm">
+          <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
+            <tr>
+              <th className="px-6 py-4">Name / ID</th>
+              <th className="px-6 py-4">Class</th>
+              <th className="px-6 py-4">Subjects</th>
+              <th className="px-6 py-4">Avg. Score</th>
+              <th className="px-6 py-4">Position</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredStudents.length === 0 ? (
+            {students.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-400">
-                  {searchTerm ? "No students match your search." : "No students added yet."}
+                <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
+                  No students found. Click "Add Student" to start.
                 </td>
               </tr>
             ) : (
-              filteredStudents.map((student) => (
-                <tr key={student.id} className="group transition-colors hover:bg-gray-50">
-                  <td className="p-3 font-bold text-blue-600">
-                    {/* Position is calculated in utils, so we just display it! */}
-                    {student.classPosition || "-"}
+              students.map((student) => (
+                <tr key={student.id} className="group transition-colors hover:bg-blue-50/50">
+                  <td className="px-6 py-4">
+                    <p className="font-bold text-gray-900">{student.name}</p>
                   </td>
-                  <td className="p-3 font-medium text-gray-900">{student.name}</td>
-                  <td className="p-3 text-gray-500">{student.className}</td>
-                  <td className="p-3 text-center">
-                    <span className="rounded bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
-                      {student.subjects.length}
+                  <td className="px-6 py-4 text-gray-600">{student.className}</td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                      {student.subjects.length} Subjects
                     </span>
                   </td>
-                  <td className="p-3 text-center font-mono">
-                    {student.averageScore > 0 ? student.averageScore + "%" : "-"}
+                  <td className="px-6 py-4 font-bold text-gray-800">
+                    {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="px-6 py-4">
+                    {student.classPosition !== "Pending..." && (
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700">
+                        {student.classPosition}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                       <button
                         onClick={() => onEditStudent(student)}
-                        className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
-                        title="Enter Scores"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-
-                      <button
-                        onClick={() => onEditStudent(student)}
-                        className="rounded-lg p-2 text-blue-600 transition-colors hover:bg-blue-100"
-                        title="Edit Scores"
+                        className="rounded-lg p-2 text-blue-600 hover:bg-blue-100"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
 
-                      <PDFDownloadLink
-                        document={<PDFReportDocument student={student} settings={settings} />}
-                        fileName={`${student.name}_Report.pdf`}
-                      >
-                        {({ loading }) => (
-                          <button
-                            className="rounded-lg p-2 text-purple-600 transition-colors hover:bg-purple-100"
-                            title="Download PDF"
-                          >
-                            {loading ? (
-                              <span className="animate-pulse text-[10px] font-bold">...</span>
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                          </button>
-                        )}
-                      </PDFDownloadLink>
+                      {student.subjects.length > 0 && (
+                        <PDFDownloadLink
+                          document={<PDFReportDocument student={student} settings={settings} />}
+                          fileName={`${student.name}_Report.pdf`}
+                        >
+                          {({ loading }) => (
+                            <button className="rounded-lg p-2 text-purple-600 hover:bg-purple-100">
+                              {loading ? "..." : <FileText className="h-4 w-4" />}
+                            </button>
+                          )}
+                        </PDFDownloadLink>
+                      )}
 
                       <button
                         onClick={() => onDeleteStudent(student.id)}
-                        className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                        title="Delete Student"
+                        className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -212,6 +141,72 @@ export function StudentList({
           </tbody>
         </table>
       </div>
+
+      {/* MODAL */}
+      {isAddOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={() => setIsAddOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800">Add New Student</h3>
+              <button onClick={() => setIsAddOpen(false)}>
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="space-y-4">
+              {/* Name Input */}
+              <div>
+                <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
+                  Full Name
+                </label>
+                <input
+                  autoFocus
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Kwame Mensah"
+                />
+              </div>
+
+              {/* Class Dropdown */}
+              <div>
+                <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
+                  Class
+                </label>
+                <select
+                  value={newClass}
+                  onChange={(e) => setNewClass(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white p-2"
+                >
+                  {(CLASS_OPTIONS[settings.level] || []).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[10px] text-gray-400">
+                  Based on School Level: {settings.level}
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-blue-600 py-2 font-bold text-white hover:bg-blue-700"
+              >
+                Save Student
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

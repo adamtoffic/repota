@@ -9,6 +9,7 @@ import { generateTeacherRemark, generateConduct } from "../utils/remarkGenerator
 interface Props {
   student: ProcessedStudent;
   level: SchoolLevel;
+  isOpen: boolean;
   onClose: () => void;
   // Updated Prop Type to match the Hook
   onUpdateScores: (id: string, subjects: SavedSubject[], extras?: ReportExtras) => void;
