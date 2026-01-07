@@ -13,7 +13,6 @@ export const DEFAULT_SUBJECTS: Record<SchoolLevel, string[]> = {
     "Creative Arts",
     "Computing",
     "Ghanaian Language",
-    "French",
   ],
   JHS: [
     "English Language",

@@ -24,10 +24,13 @@ export interface StudentRecord {
   name: string;
   className: string;
   dateOfBirth?: string;
-  attendanceTotal?: number;
-  attendancePresent?: number;
+  attendance?: {
+    present: number;
+    total: number;
+  };
   teacherRemark?: string;
   conduct?: string;
+  interest?: string;
   pictureUrl?: string;
 
   subjects: SavedSubject[];
@@ -63,6 +66,10 @@ export interface ProcessedStudent extends Omit<StudentRecord, "subjects"> {
   classPosition: string;
   teacherRemark?: string;
   aggregate: number | null;
+  attendance?: {
+    present: number;
+    total: number;
+  };
 }
 
 export interface ReportExtras {

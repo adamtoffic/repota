@@ -1,5 +1,5 @@
 // src/utils/remarkGenerator.ts
-import type { ProcessedStudent, SchoolLevel } from "../types";
+import type { ProcessedStudent, SchoolLevel, AcademicPeriod } from "../types";
 import { REMARK_BANK, HEADMASTER_BANK } from "../constants/remarks";
 
 const getRandom = (arr: string[]) =>
@@ -17,7 +17,7 @@ export const generateTeacherRemark = (
 
   // 1. SELECT THE CORRECT BANK BASED ON LEVEL
   // Fallback to "Primary" if level matches nothing
-  const LEVEL_BANK = REMARK_BANK[level] || REMARK_BANK["Primary"];
+  const LEVEL_BANK = REMARK_BANK[level] || REMARK_BANK["PRIMARY"];
 
   // 2. PICK THE CATEGORY
   if (average >= 80 && attendancePercentage >= 90) return getRandom(LEVEL_BANK.EXCELLENT);

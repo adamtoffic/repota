@@ -35,7 +35,7 @@ export const REMARK_BANK: Record<string, Record<RemarkCategory, string[]>> = {
   },
 
   // 🎒 PRIMARY (Focus: Foundation, Reading, Playfulness)
-  Primary: {
+  PRIMARY: {
     // Note: Matching your "Primary" spelling
     EXCELLENT: [
       "An outstanding pupil! Reads fluently and writes beautifully.",

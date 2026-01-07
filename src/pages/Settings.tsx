@@ -130,7 +130,7 @@ export function Settings({ onBack }: Props) {
                   className="w-full rounded-lg border border-gray-300 bg-white p-2"
                 >
                   <option value="KG">KG</option>
-                  <option value="Primary">Primary</option>
+                  <option value="PRIMARY">PRIMARY</option>
                   <option value="JHS">JHS</option>
                   <option value="SHS">SHS</option>
                 </select>
@@ -140,12 +140,30 @@ export function Settings({ onBack }: Props) {
 
           {/* 3. ✅ NEW: SUBJECT PRESETS MANAGER */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-2 text-base font-bold tracking-wide text-gray-800 uppercase">
-              Class Subjects
-            </h2>
-            <p className="mb-4 text-sm text-gray-500">
-              Define the subjects once. New students will automatically get this list.
-            </p>
+            {/* 👇 REPLACE THIS HEADER SECTION 👇 */}
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+                  Class Subjects
+                </h2>
+                <p className="text-sm text-gray-500">New students automatically get this list.</p>
+              </div>
+
+              {/* ✅ THE CLEAR BUTTON IS HERE */}
+              {(formData.defaultSubjects || []).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Are you sure? This removes all default subjects.")) {
+                      handleChange("defaultSubjects", []);
+                    }
+                  }}
+                  className="rounded px-2 py-1 text-xs font-bold text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
 
             {/* Input Row */}
             <div className="mb-4 flex gap-2">

@@ -24,8 +24,8 @@ export function useSchoolData() {
       name: "My School Name",
       academicYear: "2025/2026",
       term: "First Term",
-      level: "JHS",
-      defaultSubjects: DEFAULT_SUBJECTS["JHS"], // <--- Uses the shared constant
+      level: "PRIMARY",
+      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"], // <--- Uses the shared constant
     };
   });
 

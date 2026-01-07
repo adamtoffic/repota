@@ -25,10 +25,17 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
       const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
 
       let matchesFilter = true;
+
+      // ✅ LOGIC FIX:
+      // A student is "Pending" if they have subjects but their average is 0
+      // (or if they have no subjects at all).
+      const isPending = student.subjects.length === 0 || student.averageScore === 0;
+
       if (activeFilter === "PENDING") {
-        matchesFilter = student.subjects.length === 0;
+        matchesFilter = isPending;
       } else if (activeFilter === "FAILING") {
-        matchesFilter = student.averageScore < 50 && student.subjects.length > 0;
+        // Only show failing if they have actually been graded (Average > 0)
+        matchesFilter = student.averageScore > 0 && student.averageScore < 50;
       }
 
       return matchesSearch && matchesFilter;
