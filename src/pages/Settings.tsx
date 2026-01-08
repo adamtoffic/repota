@@ -3,7 +3,7 @@ import { ArrowLeft, Save, Upload, Image as ImageIcon, X } from "lucide-react";
 import { useState, useRef } from "react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import type { SchoolSettings, SchoolLevel, AcademicPeriod } from "../types";
-
+import { useNavigate, Link } from "@tanstack/react-router";
 // --- HELPER COMPONENT: IMAGE UPLOADER ---
 // This handles the complexity of file reading and previews
 interface ImageUploaderProps {
@@ -82,11 +82,8 @@ function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: ImageUplo
 }
 
 // --- MAIN SETTINGS COMPONENT ---
-interface Props {
-  onBack: () => void;
-}
 
-export function Settings({ onBack }: Props) {
+export function Settings() {
   const { settings, setSettings } = useSchoolData();
 
   const [formData, setFormData] = useState<SchoolSettings>({
@@ -107,12 +104,12 @@ export function Settings({ onBack }: Props) {
       input.value = "";
     }
   };
-
+  const navigate = useNavigate({ from: "/settings" });
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSettings(formData);
     alert("Configuration Saved Successfully!");
-    onBack();
+    navigate({ to: "/" });
   };
 
   return (
@@ -121,9 +118,9 @@ export function Settings({ onBack }: Props) {
       <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center gap-4">
-            <button onClick={onBack} className="rounded-full p-2 text-gray-600 hover:bg-gray-100">
+            <Link to="/" className="rounded-full p-2 text-gray-600 hover:bg-gray-100">
               <ArrowLeft className="h-5 w-5" />
-            </button>
+            </Link>
             <h1 className="text-lg font-bold text-gray-900">School Configuration</h1>
           </div>
         </div>
@@ -352,7 +349,7 @@ export function Settings({ onBack }: Props) {
               </button>
             </div>
 
-            <div className="flex min-h-[40px] flex-wrap gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+            <div className="flex min-h-10 flex-wrap gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
               {(!formData.defaultSubjects || formData.defaultSubjects.length === 0) && (
                 <span className="text-sm text-gray-400 italic">
                   No subjects added yet. Type above to start.
@@ -381,18 +378,16 @@ export function Settings({ onBack }: Props) {
             </div>
           </div>
 
+          {/* Footer Buttons */}
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onBack}
-              className="rounded-lg px-6 py-2 font-medium text-gray-700 hover:bg-gray-100"
+            {/* ✅ UPDATED: Cancel Button */}
+            <Link
+              to="/"
+              className="flex items-center justify-center rounded-lg px-6 py-2 font-medium text-gray-700 hover:bg-gray-100"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 font-bold text-white shadow-sm hover:bg-blue-700"
-            >
+            </Link>
+            <button type="submit" className="...">
               <Save className="h-4 w-4" /> Save Configuration
             </button>
           </div>
