@@ -1,8 +1,14 @@
 // src/components/tabs/DetailsTab.tsx
 import { useState } from "react";
-import { Save } from "lucide-react";
+import { Save, RefreshCw, Wand2 } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../../types";
 import { useSchoolData } from "../../hooks/useSchoolData";
+// ✅ Import from the correct file
+import {
+  generateTeacherRemark,
+  getRandomConductTrait,
+  getRandomInterest,
+} from "../../utils/remarkGenerator";
 
 interface Props {
   student: ProcessedStudent;
@@ -12,30 +18,26 @@ interface Props {
 export function DetailsTab({ student, onUpdate }: Props) {
   const { settings } = useSchoolData();
 
-  // Initialize state with new fields
   const [formData, setFormData] = useState({
     name: student.name,
     className: student.className,
-    dateOfBirth: student.dateOfBirth || "", // ✅ NEW
-    attendancePresent: student.attendancePresent || 0, // ✅ UPDATED
+    dateOfBirth: student.dateOfBirth || "",
+    attendancePresent: student.attendancePresent || 0,
     conduct: student.conduct || "",
     interest: student.interest || "",
     teacherRemark: student.teacherRemark || "",
-    promotionStatus: student.promotionStatus || "", // ✅ NEW
+    promotionStatus: student.promotionStatus || "",
   });
 
   const handleSave = () => {
     const updatedRecord: StudentRecord = {
       ...student,
-      // Strip processed subject data
       subjects: student.subjects.map((s) => ({
         id: s.id,
         name: s.name,
         classScore: s.classScore,
         examScore: s.examScore,
       })),
-
-      // ✅ Save new fields
       name: formData.name,
       className: formData.className,
       dateOfBirth: formData.dateOfBirth,
@@ -94,7 +96,6 @@ export function DetailsTab({ student, onUpdate }: Props) {
       <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h3 className="text-sm font-bold tracking-wide text-gray-800 uppercase">Status</h3>
         <div className="grid grid-cols-2 gap-4">
-          {/* Attendance: Only asking for Present days now */}
           <div>
             <label className="mb-1 block text-xs font-bold text-gray-500">Days Present</label>
             <div className="flex items-center gap-2">
@@ -111,8 +112,6 @@ export function DetailsTab({ student, onUpdate }: Props) {
               </span>
             </div>
           </div>
-
-          {/* Promotion: Only useful for 3rd term, but always editable for now */}
           <div>
             <label className="mb-1 block text-xs font-bold text-gray-500">Promotion Status</label>
             <select
@@ -121,7 +120,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               className="w-full rounded border bg-white p-2"
             >
               <option value="">-- Select Status --</option>
-              <option value={`Promoted to Next Class`}>Promoted</option>
+              <option value="Promoted to Next Class">Promoted</option>
               <option value={`Repeated ${student.className}`}>Repeated</option>
               <option value="Promoted on Probation">Probation</option>
               <option value="Withdrawn">Withdrawn</option>
@@ -133,8 +132,19 @@ export function DetailsTab({ student, onUpdate }: Props) {
       {/* 3. REMARKS */}
       <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h3 className="text-sm font-bold tracking-wide text-gray-800 uppercase">Remarks</h3>
+
+        {/* CONDUCT SHUFFLER */}
         <div>
-          <label className="mb-1 block text-xs font-bold text-gray-500">Conduct / Character</label>
+          <label className="mb-1 block flex justify-between text-xs font-bold text-gray-500">
+            <span>Conduct / Character</span>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, conduct: getRandomConductTrait() })}
+              className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+            >
+              <RefreshCw className="h-3 w-3" /> Shuffle
+            </button>
+          </label>
           <input
             type="text"
             placeholder="e.g. Respectful and neat"
@@ -143,18 +153,50 @@ export function DetailsTab({ student, onUpdate }: Props) {
             className="w-full rounded border p-2"
           />
         </div>
+
+        {/* INTEREST SHUFFLER */}
         <div>
-          <label className="mb-1 block text-xs font-bold text-gray-500">Interest / Talent</label>
+          <label className="mb-1 block flex justify-between text-xs font-bold text-gray-500">
+            <span>Interest / Talent</span>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, interest: getRandomInterest() })}
+              className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+            >
+              <RefreshCw className="h-3 w-3" /> Shuffle
+            </button>
+          </label>
           <input
             type="text"
-            placeholder="e.g. Football, Reading"
+            placeholder="e.g. Football"
             value={formData.interest}
             onChange={(e) => setFormData({ ...formData, interest: e.target.value })}
             className="w-full rounded border p-2"
           />
         </div>
+
+        {/* TEACHER REMARK GENERATOR */}
         <div>
-          <label className="mb-1 block text-xs font-bold text-gray-500">Teacher's Remark</label>
+          <label className="mb-1 block flex justify-between text-xs font-bold text-gray-500">
+            <span>Teacher's Remark</span>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData({
+                  ...formData,
+                  teacherRemark: generateTeacherRemark(
+                    student,
+                    formData.attendancePresent,
+                    settings.totalAttendanceDays || 60,
+                    settings.level,
+                  ),
+                })
+              }
+              className="flex items-center gap-1 text-[10px] text-purple-600 hover:underline"
+            >
+              <Wand2 className="h-3 w-3" /> Smart Generate
+            </button>
+          </label>
           <textarea
             rows={2}
             placeholder="Write a custom remark..."

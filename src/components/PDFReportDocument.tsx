@@ -283,7 +283,7 @@ export function PDFReportDocument({ student, settings }: Props) {
             <View style={styles.box}>
               <Text style={styles.label}>ATTENDANCE</Text>
               <Text style={styles.value}>
-                {student.attendancePresent || "-"} / {student.attendanceTotal || "-"}
+                {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
               </Text>
             </View>
             <View style={styles.box}>

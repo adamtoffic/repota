@@ -190,3 +190,31 @@ export const HEADMASTER_BANK = {
     ],
   },
 };
+
+export const CONDUCT_TRAITS = [
+  "Respectful and punctual.",
+  "Humble and diligent.",
+  "Polite but sometimes talkative.",
+  "Neat and organized.",
+  "Hardworking and helpful.",
+  "Calm and attentive in class.",
+  "Active and participatory.",
+  "Needs to work on punctuality.",
+  "Very disciplined and honest.",
+  "Friendly and plays well with others.",
+];
+
+export const INTERESTS = [
+  "Football",
+  "Reading",
+  "Drawing/Art",
+  "Athletics",
+  "Music/Dance",
+  "Computing",
+  "Science Experiments",
+  "Storytelling",
+  "Debating",
+  "Keep Fit",
+  "Volleyball",
+  "Drumming",
+];

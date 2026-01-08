@@ -48,6 +48,9 @@ export interface SchoolSettings {
   classTeacherName?: string;
   totalAttendanceDays?: number;
 
+  headTeacherSignature?: string;
+  teacherSignature?: string;
+
   defaultSubjects: string[];
 }
 
