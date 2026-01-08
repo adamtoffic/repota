@@ -1,3 +1,4 @@
+// src/components/ReportTemplate.tsx
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { generateHeadmasterRemark, generateAttendanceRating } from "../utils/remarkGenerator";
 
@@ -7,221 +8,225 @@ interface Props {
 }
 
 export function ReportTemplate({ student, settings }: Props) {
-  // Generate on the fly
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
-  const attendanceRating = generateAttendanceRating(
+
+  // Calculate attendance percentage safely
+  const attendancePct =
     settings.totalAttendanceDays && settings.totalAttendanceDays > 0
       ? ((student.attendancePresent || 0) / settings.totalAttendanceDays) * 100
-      : 100,
-  );
+      : 100;
+
+  const attendanceRating = generateAttendanceRating(attendancePct);
 
   return (
-    <div className="report-page font-serif text-gray-900">
-      {/* 🛡️ WATERMARK (Background Layer) */}
-      <div className="watermark print:absolute print:inset-0 print:z-0 print:bg-[url('/assets/coat-of-arms.png')] print:bg-[length:50%] print:bg-center print:bg-no-repeat" />
+    <div className="report-page leading-tight text-black">
+      {/* 🛡️ WATERMARK (For Print) */}
+      <div className="watermark print:absolute print:inset-0 print:z-0 print:bg-[url('/assets/coat-of-arms.png')] print:bg-[length:60%] print:bg-center print:bg-no-repeat" />
 
-      {/* 📄 CONTENT (Foreground Layer) */}
+      {/* 📄 CONTENT */}
       <div className="relative z-10 flex h-full flex-col justify-between">
         {/* --- HEADER --- */}
-        <header className="mb-4 border-b-4 border-blue-900 pb-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* School Crest (Left) */}
-            <div className="h-24 w-24 flex-shrink-0">
+        <header className="mb-4 border-b-[3px] border-black pb-4">
+          <div className="flex items-start justify-between gap-4">
+            {/* Left: School Crest */}
+            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center">
               {settings.logoUrl ? (
-                <img
-                  src={settings.logoUrl}
-                  alt="School Crest"
-                  className="h-full w-full object-contain"
-                />
+                <img src={settings.logoUrl} alt="Crest" className="h-full w-full object-contain" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center border border-gray-300 bg-gray-100 text-center text-xs text-gray-400">
+                <div className="flex h-16 w-16 items-center justify-center rounded border-2 border-dashed border-gray-300 text-[10px] text-gray-400">
                   No Logo
                 </div>
               )}
             </div>
 
-            {/* School Info (Center) */}
-            <div className="flex-1 text-center">
-              <h1 className="mb-1 text-2xl font-bold tracking-wider text-blue-900 uppercase">
-                {settings.name || "Ghana Education Service"}
+            {/* Center: School Details */}
+            <div className="flex-1 pt-2 text-center">
+              <h1 className="mb-1 font-serif text-3xl font-bold tracking-wide text-black uppercase">
+                {settings.name || "School Name"}
               </h1>
-              <p className="mb-1 text-sm font-medium text-gray-600">
-                {settings.address || "Address Not Set"}
+              <p className="mb-1 text-sm font-medium uppercase">
+                {settings.address || "Location Address"}
               </p>
-              <div className="flex justify-center gap-3 text-xs font-bold text-gray-500 uppercase">
-                <span>{settings.email}</span>
-                {settings.email && <span>•</span>}
-                <span>{settings.academicYear} Academic Year</span>
+              <div className="mt-1 flex inline-block justify-center gap-4 border-t border-black px-4 pt-1 text-xs font-bold uppercase">
+                <span>{settings.academicYear}</span>
+                <span>•</span>
+                <span>{settings.term}</span>
               </div>
             </div>
 
-            {/* GES Logo (Right) */}
-            <div className="h-24 w-24 flex-shrink-0">
-              {/* Make sure this file exists in /public/assets/ */}
-              <img
-                src="/assets/ges-logo.png"
-                alt="GES Logo"
-                className="h-full w-full object-contain"
-              />
+            {/* Right: GES Logo */}
+            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center">
+              <img src="/assets/ges-logo.png" alt="GES" className="h-full w-full object-contain" />
             </div>
           </div>
 
-          {/* Title Bar */}
-          <div className="mt-4 bg-blue-900 py-1 text-center text-sm font-bold tracking-widest text-white uppercase">
-            Term Report • {settings.term}
+          <div className="mt-2 text-center">
+            <span className="rounded-full bg-black px-6 py-1 text-sm font-bold tracking-widest text-white uppercase">
+              Term Report
+            </span>
           </div>
         </header>
 
-        {/* --- STUDENT DETAILS GRID --- */}
-        <section className="mb-6 grid grid-cols-4 gap-4 border border-gray-200 bg-gray-50 p-3 text-sm">
-          <div>
-            <span className="block text-xs font-bold text-gray-400 uppercase">Name</span>
-            <span className="font-bold">{student.name}</span>
+        {/* --- STUDENT INFO GRID (Clean Lines) --- */}
+        <section className="mb-6 border border-black">
+          <div className="grid grid-cols-[1fr_100px_80px_100px] divide-x divide-black">
+            {/* Row 1 */}
+            <div className="border-b border-black p-2">
+              <span className="block text-[10px] font-bold text-gray-600 uppercase">
+                Name of Student
+              </span>
+              <span className="block truncate text-lg font-bold uppercase">{student.name}</span>
+            </div>
+            <div className="border-b border-black p-2">
+              <span className="block text-[10px] font-bold text-gray-600 uppercase">Class</span>
+              <span className="text-lg font-bold">{student.className}</span>
+            </div>
+            <div className="border-b border-black p-2 text-center">
+              <span className="block text-[10px] font-bold text-gray-600 uppercase">Roll No.</span>
+              <span className="text-lg font-bold">-</span>
+            </div>
+            <div className="border-b border-black bg-gray-50 p-2 text-center">
+              <span className="block text-[10px] font-bold text-gray-600 uppercase">Position</span>
+              <span className="text-lg font-bold">{student.classPosition || "-"}</span>
+            </div>
           </div>
-          <div>
-            <span className="block text-xs font-bold text-gray-400 uppercase">Class</span>
-            <span className="font-bold">{student.className}</span>
-          </div>
-          <div>
-            <span className="block text-xs font-bold text-gray-400 uppercase">No. on Roll</span>
-            <span className="font-bold">--</span> {/* Placeholder for now */}
-          </div>
-          <div>
-            {/* Show Position only if calculated */}
-            <span className="block text-xs font-bold text-gray-400 uppercase">Position</span>
-            <span className="font-bold text-blue-700">{student.classPosition || "-"}</span>
+
+          {/* Row 2: Status */}
+          <div className="grid grid-cols-4 divide-x divide-black bg-gray-50">
+            <div className="flex items-center justify-between p-2">
+              <span className="text-[10px] font-bold text-gray-600 uppercase">Attendance</span>
+              <span className="font-bold">
+                {student.attendancePresent || 0} / {settings.totalAttendanceDays || 0}
+              </span>
+            </div>
+            <div className="col-span-2 flex items-center justify-between p-2">
+              <span className="text-[10px] font-bold text-gray-600 uppercase">
+                Next Term Begins
+              </span>
+              <span className="font-bold">{settings.nextTermStarts || "TBA"}</span>
+            </div>
+            <div className="p-2 text-center">
+              <span className="text-xs font-bold">{attendanceRating}</span>
+            </div>
           </div>
         </section>
 
-        {/* --- ACADEMIC TABLE --- */}
+        {/* --- ACADEMIC TABLE (Fixed Borders) --- */}
         <section className="flex-1">
-          <table className="w-full border-collapse border border-gray-800 text-sm">
-            <thead className="bg-gray-100 text-gray-700">
-              <tr className="divide-x divide-gray-800 border-b border-gray-800">
-                <th className="w-5/12 p-2 text-left">Subject</th>
-                <th className="w-2/12 p-2 text-center">Class (30%)</th>
-                <th className="w-2/12 p-2 text-center">Exam (70%)</th>
-                <th className="w-1/12 p-2 text-center">Total</th>
-                <th className="w-1/12 p-2 text-center">Grade</th>
-                <th className="w-3/12 p-2 text-left">Remark</th>
+          <table className="w-full border-collapse border border-black text-sm">
+            <thead className="bg-gray-100">
+              <tr className="divide-x divide-black border-b border-black">
+                <th className="w-5/12 p-2 text-left text-xs font-bold uppercase">Subject</th>
+                <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">
+                  Class
+                  <br />
+                  (30)
+                </th>
+                <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">
+                  Exam
+                  <br />
+                  (70)
+                </th>
+                <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">
+                  Total
+                  <br />
+                  (100)
+                </th>
+                <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">Grade</th>
+                <th className="w-3/12 p-2 text-left text-xs font-bold uppercase">Remark</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-400">
+            <tbody className="divide-y divide-black border-b border-black">
               {student.subjects.map((sub) => (
-                <tr key={sub.id} className="divide-x divide-gray-400 hover:bg-gray-50">
-                  <td className="p-2 font-medium">{sub.name}</td>
-                  <td className="p-2 text-center text-gray-600">{sub.classScore || "-"}</td>
-                  <td className="p-2 text-center text-gray-600">{sub.examScore || "-"}</td>
-                  <td className="p-2 text-center font-bold">{sub.totalScore}</td>
-                  <td className="p-2 text-center font-bold text-blue-800">{sub.grade}</td>
-                  <td className="p-2 text-xs text-gray-500 italic">{sub.remark}</td>
+                <tr key={sub.id} className="divide-x divide-black hover:bg-gray-50/50">
+                  <td className="p-2 text-xs font-medium uppercase">{sub.name}</td>
+                  <td className="p-2 text-center font-mono">{sub.classScore || "-"}</td>
+                  <td className="p-2 text-center font-mono">{sub.examScore || "-"}</td>
+                  <td className="p-2 text-center font-mono font-bold">{sub.totalScore}</td>
+                  <td
+                    className={`p-2 text-center font-bold ${sub.grade === "F9" || sub.grade === 9 ? "text-red-600" : "text-black"}`}
+                  >
+                    {sub.grade}
+                  </td>
+                  <td className="p-2 text-[10px] font-medium uppercase">{sub.remark}</td>
                 </tr>
               ))}
-              {/* Empty Rows Filler (Optional: Keeps table height consistent) */}
-              {Array.from({ length: Math.max(0, 8 - student.subjects.length) }).map((_, i) => (
-                <tr key={`empty-${i}`} className="h-8 divide-x divide-gray-200">
+              {/* Filler rows to maintain height if few subjects */}
+              {Array.from({ length: Math.max(0, 9 - student.subjects.length) }).map((_, i) => (
+                <tr key={`empty-${i}`} className="h-8 divide-x divide-black">
                   <td colSpan={6}></td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="border-t border-gray-800 bg-gray-100 font-bold">
-              <tr>
-                <td className="p-2 text-right" colSpan={3}>
-                  AVERAGE SCORE:
+            <tfoot>
+              <tr className="bg-black font-bold text-white">
+                <td className="p-2 text-right text-xs uppercase" colSpan={3}>
+                  Overall Average Score
                 </td>
-                <td className="p-2 text-center text-lg text-blue-900">{student.averageScore}%</td>
+                <td className="p-2 text-center text-lg">{student.averageScore}%</td>
                 <td className="p-2" colSpan={2}></td>
               </tr>
             </tfoot>
           </table>
         </section>
 
-        {/* --- FOOTER SECTION (Remarks & Signatures) --- */}
-        <footer className="mt-4 space-y-4">
-          {/* Status Grid */}
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="border border-gray-400 p-2">
-              <span className="block text-xs font-bold text-gray-500 uppercase">Attendance</span>
-              <div className="flex items-end justify-between">
-                <span className="text-lg font-bold">
-                  {student.attendancePresent || 0}{" "}
-                  <span className="text-xs font-normal text-gray-400">
-                    / {settings.totalAttendanceDays || 0}
-                  </span>
-                </span>
-                <span className="rounded bg-gray-100 px-2 text-xs font-medium">
-                  {attendanceRating}
-                </span>
+        {/* --- FOOTER (Remarks & Signatures) --- */}
+        <footer className="mt-6 space-y-4">
+          {/* Conduct / Remarks Box */}
+          <div className="border border-black p-0">
+            <div className="grid grid-cols-[120px_1fr] border-b border-black">
+              <div className="flex items-center border-r border-black bg-gray-100 p-2 text-xs font-bold uppercase">
+                Conduct
               </div>
+              <div className="p-2 text-sm italic">{student.conduct || "Satisfactory"}</div>
             </div>
-            <div className="border border-gray-400 p-2">
-              <span className="block text-xs font-bold text-gray-500 uppercase">Conduct</span>
-              <span className="font-bold">{student.conduct || "Satisfactory"}</span>
+            <div className="grid grid-cols-[120px_1fr] border-b border-black">
+              <div className="flex items-center border-r border-black bg-gray-100 p-2 text-xs font-bold uppercase">
+                Teacher's Remark
+              </div>
+              <div className="p-2 text-sm italic">{student.teacherRemark}</div>
             </div>
-            <div className="border border-gray-400 p-2">
-              <span className="block text-xs font-bold text-gray-500 uppercase">
-                Next Term Begins
-              </span>
-              <span className="font-bold">{settings.nextTermStarts || "TBA"}</span>
-            </div>
-          </div>
-
-          {/* Remarks */}
-          <div className="space-y-2">
-            <div className="border border-gray-300 bg-gray-50 p-2">
-              <span className="mb-1 block text-xs font-bold text-gray-500 uppercase">
-                Class Teacher's Remark
-              </span>
-              <p className="min-h-[1.5rem] text-sm font-medium text-gray-800 italic">
-                {student.teacherRemark}
-              </p>
-            </div>
-            <div className="border border-gray-300 bg-gray-50 p-2">
-              <span className="mb-1 block text-xs font-bold text-gray-500 uppercase">
-                Head Teacher's Remark
-              </span>
-              <p className="min-h-[1.5rem] text-sm font-medium text-gray-800 italic">
-                {headmasterRemark}
-              </p>
+            <div className="grid grid-cols-[120px_1fr]">
+              <div className="flex items-center border-r border-black bg-gray-100 p-2 text-xs font-bold uppercase">
+                Head's Remark
+              </div>
+              <div className="p-2 text-sm italic">{headmasterRemark}</div>
             </div>
           </div>
 
           {/* Signatures */}
-          <div className="flex items-end justify-between px-4 pt-8 pb-4">
-            {/* Class Teacher */}
-            <div className="flex w-48 flex-col items-center gap-2">
-              {settings.teacherSignature ? (
+          <div className="flex items-end justify-between px-8 pt-12">
+            <div className="text-center">
+              {settings.teacherSignature && (
                 <img
                   src={settings.teacherSignature}
-                  className="-mb-4 h-12 object-contain"
-                  alt="Signed"
+                  className="mx-auto -mb-2 block h-10"
+                  alt="Sign"
                 />
-              ) : (
-                <div className="h-8" />
               )}
-              <div className="w-full border-t border-black"></div>
-              <span className="text-xs font-bold text-gray-500 uppercase">Class Teacher</span>
+              <div className="w-48 border-t border-dashed border-black"></div>
+              <p className="mt-1 text-[10px] font-bold uppercase">Class Teacher's Signature</p>
             </div>
 
-            {/* Head Teacher */}
-            <div className="flex w-48 flex-col items-center gap-2">
-              {settings.headTeacherSignature ? (
+            <div className="text-center">
+              {settings.headTeacherSignature && (
                 <img
                   src={settings.headTeacherSignature}
-                  className="-mb-4 h-12 object-contain"
-                  alt="Signed"
+                  className="mx-auto -mb-4 block h-12"
+                  alt="Sign"
                 />
-              ) : (
-                <div className="h-8" />
               )}
-              <div className="w-full border-t border-black"></div>
-              <span className="text-xs font-bold text-gray-500 uppercase">Head Teacher</span>
+              {/* Only show stamp circle if image exists, otherwise empty space */}
+              <div className="relative w-48 border-t border-dashed border-black">
+                {/* Optional: Stamp Placeholder if needed */}
+              </div>
+              <p className="mt-1 text-[10px] font-bold uppercase">Head Teacher's Signature</p>
             </div>
           </div>
 
-          {/* Promo Status (Only for 3rd Term) */}
+          {/* Promotion Banner */}
           {student.promotionStatus && (
-            <div className="bg-black py-1 text-center text-xs font-bold tracking-widest text-white uppercase">
+            <div className="mt-4 border-2 border-black bg-gray-100 p-2 text-center text-sm font-bold uppercase">
               {student.promotionStatus}
             </div>
           )}

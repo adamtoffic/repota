@@ -1,1 +1,92 @@
 @import "tailwindcss";
+/* src/index.css */
+
+/* ... your existing tailwind directives ... */
+@layer utilities {
+  .print-only {
+    display: none;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0; /* Keeps printer from adding extra white space */
+  }
+
+  body {
+    background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide UI elements */
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  /* THE REPORT PAGE CONTAINER */
+  .report-page {
+    width: 210mm;
+    height: 297mm;
+    /* ✅ MORE BREATHABLE PADDING (15mm instead of 10mm) */
+    padding: 15mm;
+    margin: 0;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+    background: white;
+    font-family: "Times New Roman", Times, serif; /* Classic Report Font */
+  }
+
+  /* ✅ FORCE WATERMARK VISIBILITY */
+  .watermark {
+    opacity: 0.08 !important; /* Slightly lighter */
+    print-color-adjust: exact;
+  }
+  /* THE FIX: Remove page break for the very last report */
+  .report-wrapper:last-child .report-page {
+    page-break-after: auto !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure no margins interfere from the preview wrapper */
+  .report-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+}
+
+/* SCREEN PREVIEW STYLES */
+@media screen {
+  .report-page {
+    width: 210mm;
+    min-height: 297mm;
+    /* ✅ Breathable padding matches print */
+    padding: 15mm;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    position: relative;
+    /* Ensure text renders sharply */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .watermark {
+    position: absolute;
+    inset: 0;
+    /* ✅ Ensure URL is correct. Check public/assets folder! */
+    background-image: url("/assets/coat-of-arms.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 60%; /* Slightly larger */
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
