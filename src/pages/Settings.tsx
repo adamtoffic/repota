@@ -138,6 +138,71 @@ export function Settings({ onBack }: Props) {
             </div>
           </div>
 
+          {/* ... Academic Session Card above ... */}
+
+          {/* ✅ NEW SECTION: REPORT CARD DETAILS */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-bold tracking-wide text-gray-800 uppercase">
+              Report Card Details
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Head Teacher */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Head Teacher's Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Mrs. A. Mensah"
+                  value={formData.headTeacherName || ""}
+                  onChange={(e) => handleChange("headTeacherName", e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Class Teacher */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Class Teacher's Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Mr. John Doe"
+                  value={formData.classTeacherName || ""}
+                  onChange={(e) => handleChange("classTeacherName", e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Total Attendance */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Total Attendance Days
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 60"
+                  value={formData.totalAttendanceDays || ""}
+                  onChange={(e) => handleChange("totalAttendanceDays", Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Next Term Date */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Next Term Begins
+                </label>
+                <input
+                  type="date"
+                  value={formData.nextTermStarts || ""}
+                  onChange={(e) => handleChange("nextTermStarts", e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* 3. ✅ NEW: SUBJECT PRESETS MANAGER */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             {/* 👇 REPLACE THIS HEADER SECTION 👇 */}

@@ -1,8 +1,8 @@
 // src/hooks/useSchoolData.ts
-import { useState, useEffect, useMemo } from "react";
-import type { StudentRecord, SavedSubject, SchoolSettings, ReportExtras } from "../types";
-import { processStudent, assignPositions } from "../utils/gradeCalculator";
+import { useState, useEffect } from "react";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
+import { calculateGrade } from "../utils/gradeCalculator";
+import type { StudentRecord, SchoolSettings, ProcessedStudent } from "../types";
 
 const STORAGE_KEYS = {
   STUDENTS: "ges_v1_students",
@@ -18,17 +18,20 @@ export function useSchoolData() {
   const [settings, setSettings] = useState<SchoolSettings>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (saved) return JSON.parse(saved);
-
-    // NEW DEFAULT: Use the imported constant
     return {
       name: "My School Name",
       academicYear: "2025/2026",
       term: "First Term",
       level: "PRIMARY",
-      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"], // <--- Uses the shared constant
+      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
+      totalAttendanceDays: 70,
+      nextTermStarts: "",
+      headTeacherName: "",
+      classTeacherName: "",
     };
   });
 
+  // Persist changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
   }, [students]);
@@ -37,10 +40,7 @@ export function useSchoolData() {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   }, [settings]);
 
-  const processedStudents = useMemo(() => {
-    const processed = students.map((student) => processStudent(student, settings.level));
-    return assignPositions(processed);
-  }, [students, settings.level]);
+  // --- ACTIONS ---
 
   const addStudent = (student: StudentRecord) => {
     setStudents((prev) => [...prev, student]);
@@ -52,31 +52,47 @@ export function useSchoolData() {
     }
   };
 
-  // ✅ RENAMED THIS TO updateStudentScores (It replaces the old one completely)
-  const updateStudentScores = (
-    studentId: string,
-    newSubjects: SavedSubject[],
-    extras?: ReportExtras, // ✅ Correctly typed optional extras
-  ) => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === studentId
-          ? {
-              ...s,
-              subjects: newSubjects,
-              ...extras, // Spread the attendance/remarks into the student object
-            }
-          : s,
-      ),
-    );
+  // ✅ THE NEW MASTER UPDATER
+  // Replaces 'updateStudentScores'. Accepts the FULL object.
+  const updateStudent = (updatedStudent: StudentRecord) => {
+    setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
   };
 
+  // --- DERIVED STATE (Processing) ---
+
+  const processedStudents: ProcessedStudent[] = students.map((student) => {
+    // Calculate stats for each subject
+    const processedSubjects = student.subjects.map((sub) => {
+      const total = (sub.classScore || 0) + (sub.examScore || 0);
+      const { grade, remark } = calculateGrade(total, settings.level);
+      return { ...sub, totalScore: total, grade, remark };
+    });
+
+    // Calculate Average and Totals
+    const validSubjects = processedSubjects.filter((s) => s.totalScore > 0);
+    const totalScore = validSubjects.reduce((acc, s) => acc + s.totalScore, 0);
+    const averageScore =
+      validSubjects.length > 0 ? Math.round(totalScore / validSubjects.length) : 0;
+
+    // TODO: Implement "Position" logic later (sorting)
+
+    return {
+      ...student,
+      subjects: processedSubjects,
+      averageScore,
+      totalScore,
+      aggregate: 0,
+      age: 0,
+      classPosition: "Pending...", // Placeholder
+    };
+  });
+
   return {
+    students: processedStudents, // We return the processed version for UI
     settings,
     setSettings,
-    students: processedStudents,
     addStudent,
     deleteStudent,
-    updateStudentScores, // ✅ No mapping needed, the name matches
+    updateStudent, // ✅ Expose the new function
   };
 }
