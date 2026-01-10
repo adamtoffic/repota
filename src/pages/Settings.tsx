@@ -202,7 +202,7 @@ export function Settings() {
                   type="text"
                   value={formData.academicYear}
                   onChange={(e) => handleChange("academicYear", e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none"
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -249,7 +249,7 @@ export function Settings() {
                   type="text"
                   value={formData.headTeacherName || ""}
                   onChange={(e) => handleChange("headTeacherName", e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none"
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. Mrs. A. Mensah"
                 />
               </div>
@@ -261,7 +261,7 @@ export function Settings() {
                   type="text"
                   value={formData.classTeacherName || ""}
                   onChange={(e) => handleChange("classTeacherName", e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none"
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. Mr. John Doe"
                 />
               </div>
@@ -273,7 +273,7 @@ export function Settings() {
                   type="number"
                   value={formData.totalAttendanceDays || ""}
                   onChange={(e) => handleChange("totalAttendanceDays", Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none"
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -284,7 +284,7 @@ export function Settings() {
                   type="date"
                   value={formData.nextTermStarts || ""}
                   onChange={(e) => handleChange("nextTermStarts", e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none"
+                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -388,13 +388,13 @@ export function Settings() {
             {/* ✅ UPDATED: Cancel Button */}
             <Link
               to="/"
-              className="items-center justify-center rounded-lg px-6 py-2 font-medium text-gray-700 hover:bg-gray-100"
+              className="items-center justify-center rounded-lg px-6 py-2 font-medium text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               Cancel
             </Link>
             <button
               type="submit"
-              className="items-center gap-2 rounded-lg bg-blue-100 px-4 py-2 font-bold text-blue-700 transition-colors hover:bg-blue-200"
+              className="items-center gap-2 rounded-lg bg-blue-100 px-4 py-2 font-bold text-blue-700 transition-colors hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <Save className="h-4 w-4" /> Save
             </button>

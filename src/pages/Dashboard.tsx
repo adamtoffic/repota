@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 // ✅ 1. Import EmptyState
 import { EmptyState } from "../components/EmptyState";
 import type { StudentRecord } from "../types"; // Import type for safety
+import { Footer } from "../components/Footer";
 
 export function Dashboard() {
   const { students, settings, addStudent, deleteStudent, updateStudent, loadDemoData } =
@@ -54,7 +55,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+    <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
       {/* NAV (Keep exactly as is) */}
       <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -93,7 +94,7 @@ export function Dashboard() {
         </div>
       </nav>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {/* ✅ 3. CONDITIONAL RENDERING: Empty vs Content */}
         {students.length === 0 ? (
           <EmptyState onAddStudent={handleAddNew} onLoadDemo={loadDemoData} />
@@ -121,6 +122,7 @@ export function Dashboard() {
           </>
         )}
       </main>
+      <Footer />
 
       {/* MODAL (Keep as is) */}
       {editingStudent && (
