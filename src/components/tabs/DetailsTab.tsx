@@ -9,6 +9,7 @@ import {
   getRandomConductTrait,
   getRandomInterest,
 } from "../../utils/remarkGenerator";
+import { useToast } from "../../hooks/useToast";
 
 interface Props {
   student: ProcessedStudent;
@@ -17,6 +18,7 @@ interface Props {
 
 export function DetailsTab({ student, onUpdate }: Props) {
   const { settings } = useSchoolData();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     name: student.name,
@@ -49,7 +51,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
     };
 
     onUpdate(updatedRecord);
-    alert("Details Saved Successfully");
+    showToast(`Details for "${formData.name}" saved successfully!`, "success");
   };
 
   return (
@@ -135,7 +137,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
         {/* CONDUCT SHUFFLER */}
         <div>
-          <label className="mb-1 block flex justify-between text-xs font-bold text-gray-500">
+          <label className="mb-1 flex justify-between text-xs font-bold text-gray-500">
             <span>Conduct / Character</span>
             <button
               type="button"
@@ -156,7 +158,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
         {/* INTEREST SHUFFLER */}
         <div>
-          <label className="mb-1 block flex justify-between text-xs font-bold text-gray-500">
+          <label className="mb-1 flex justify-between text-xs font-bold text-gray-500">
             <span>Interest / Talent</span>
             <button
               type="button"
@@ -177,7 +179,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
         {/* TEACHER REMARK GENERATOR */}
         <div>
-          <label className="mb-1 block flex justify-between text-xs font-bold text-gray-500">
+          <label className="mb-1 flex justify-between text-xs font-bold text-gray-500">
             <span>Teacher's Remark</span>
             <button
               type="button"
