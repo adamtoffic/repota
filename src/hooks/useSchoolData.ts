@@ -1,8 +1,8 @@
 // src/hooks/useSchoolData.ts
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
-import { calculateGrade } from "../utils/gradeCalculator";
-import type { StudentRecord, SchoolSettings, ProcessedStudent } from "../types";
+import { processStudent, assignPositions } from "../utils/gradeCalculator";
+import type { StudentRecord, SchoolSettings } from "../types";
 
 const STORAGE_KEYS = {
   STUDENTS: "ges_v1_students",
@@ -77,9 +77,7 @@ export function useSchoolData() {
   };
 
   const deleteStudent = (id: string) => {
-    if (confirm("Are you sure you want to delete this student?")) {
-      setStudents((prev) => prev.filter((s) => s.id !== id));
-    }
+    setStudents((prev) => prev.filter((s) => s.id !== id));
   };
 
   // ✅ THE NEW MASTER UPDATER
@@ -90,32 +88,12 @@ export function useSchoolData() {
 
   // --- DERIVED STATE (Processing) ---
 
-  const processedStudents: ProcessedStudent[] = students.map((student) => {
-    // Calculate stats for each subject
-    const processedSubjects = student.subjects.map((sub) => {
-      const total = (sub.classScore || 0) + (sub.examScore || 0);
-      const { grade, remark } = calculateGrade(total, settings.level);
-      return { ...sub, totalScore: total, grade, remark };
-    });
+  const processedStudents = useMemo(() => {
+    const processed = students.map((student) => processStudent(student, settings.level));
 
-    // Calculate Average and Totals
-    const validSubjects = processedSubjects.filter((s) => s.totalScore > 0);
-    const totalScore = validSubjects.reduce((acc, s) => acc + s.totalScore, 0);
-    const averageScore =
-      validSubjects.length > 0 ? Math.round(totalScore / validSubjects.length) : 0;
-
-    // TODO: Implement "Position" logic later (sorting)
-
-    return {
-      ...student,
-      subjects: processedSubjects,
-      averageScore,
-      totalScore,
-      aggregate: 0,
-      age: 0,
-      classPosition: "Pending...", // Placeholder
-    };
-  });
+    // 2. Assign Class Positions based on the calculated averages
+    return assignPositions(processed);
+  }, [students, settings.level]);
 
   return {
     students: processedStudents, // We return the processed version for UI
