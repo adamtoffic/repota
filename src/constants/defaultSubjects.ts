@@ -7,7 +7,6 @@ export const DEFAULT_SUBJECTS: Record<SchoolLevel, string[]> = {
     "English Language",
     "Mathematics",
     "Science",
-    "Our World Our People",
     "History",
     "RME",
     "Creative Arts",

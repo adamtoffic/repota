@@ -66,7 +66,10 @@ export function PrintPreview() {
         {" "}
         {/* Prevent horizontal scrollbar on mobile */}
         {printableStudents.map((student) => (
-          <div key={student.id} className="report-wrapper mb-8 flex justify-center print:mb-0">
+          <div
+            key={student.id}
+            className="report-wrapper mb-4 flex h-[140mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:mb-0 print:h-auto print:overflow-visible"
+          >
             {/* MOBILE RESPONSIVE WRAPPER 
                 1. 'scale-[0.45]': Shrinks paper to 45% size on phones
                 2. 'origin-top': Anchors scaling to the top

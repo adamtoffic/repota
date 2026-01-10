@@ -7,7 +7,7 @@ interface Props {
   subject: SavedSubject;
   level: SchoolLevel;
   onChange: (updated: SavedSubject) => void;
-  onDelete: () => void;
+  onDelete?: () => void;
 }
 
 export function SubjectRow({ subject, level, onChange, onDelete }: Props) {
@@ -35,9 +35,11 @@ export function SubjectRow({ subject, level, onChange, onDelete }: Props) {
           </div>
 
           {/* Mobile-only Delete Button (Easier to reach on thumb) */}
-          <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-500 sm:hidden">
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {onDelete && (
+            <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-500 sm:hidden">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* 2. INPUTS AREA (Grid for perfect alignment on mobile) */}
