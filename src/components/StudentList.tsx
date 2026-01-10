@@ -1,8 +1,7 @@
 // src/components/StudentList.tsx
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Edit2, Trash2, FileText, UserPlus, X } from "lucide-react";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import { PDFReportDocument } from "./PDFReportDocument";
+import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
 import type { ProcessedStudent, StudentRecord, SchoolSettings } from "../types";
 import { CLASS_OPTIONS } from "../constants/classes";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
@@ -138,16 +137,14 @@ export function StudentList({
                       </button>
 
                       {student.subjects.length > 0 && (
-                        <PDFDownloadLink
-                          document={<PDFReportDocument student={student} settings={settings} />}
-                          fileName={`${student.name}_Report.pdf`}
+                        <Link
+                          to="/print"
+                          search={{ id: student.id }} // ✅ Pass the ID via search params
+                          className="rounded-lg p-2 text-purple-600 hover:bg-purple-100"
+                          title="Print Report"
                         >
-                          {({ loading }) => (
-                            <button className="rounded-lg p-2 text-purple-600 hover:bg-purple-100">
-                              {loading ? "..." : <FileText className="h-4 w-4" />}
-                            </button>
-                          )}
-                        </PDFDownloadLink>
+                          <Printer className="h-4 w-4" />
+                        </Link>
                       )}
 
                       <button

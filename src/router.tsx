@@ -31,6 +31,12 @@ const printRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/print",
   component: PrintPreview,
+  // This tells TypeScript: "Hey, we accept an optional 'id' in the URL"
+  validateSearch: (search: Record<string, unknown>): { id?: string } => {
+    return {
+      id: (search.id as string) || undefined,
+    };
+  },
 });
 
 // 4. Build the Tree

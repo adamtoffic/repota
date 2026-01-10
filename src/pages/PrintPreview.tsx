@@ -1,15 +1,16 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
+  const { id } = useSearch({ from: "/print" });
 
   // Filter out students who are "Pending" (No subjects or 0 score)
   // Optional: You might want to print everyone, but usually empty reports are waste.
   // For now, let's print everyone so you can see them.
-  const printableStudents = students;
+  const printableStudents = id ? students.filter((s) => s.id === id) : students;
 
   if (printableStudents.length === 0) {
     return (
