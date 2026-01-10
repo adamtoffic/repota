@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import type { SchoolSettings, SchoolLevel, AcademicPeriod } from "../types";
 import { useNavigate, Link } from "@tanstack/react-router";
+import { DataBackup } from "../components/DataBackup";
 // --- HELPER COMPONENT: IMAGE UPLOADER ---
 // This handles the complexity of file reading and previews
 interface ImageUploaderProps {
@@ -378,17 +379,22 @@ export function Settings() {
             </div>
           </div>
 
+          <DataBackup />
+
           {/* Footer Buttons */}
           <div className="flex justify-end gap-3 pt-4">
             {/* ✅ UPDATED: Cancel Button */}
             <Link
               to="/"
-              className="flex items-center justify-center rounded-lg px-6 py-2 font-medium text-gray-700 hover:bg-gray-100"
+              className="items-center justify-center rounded-lg px-6 py-2 font-medium text-gray-700 hover:bg-gray-100"
             >
               Cancel
             </Link>
-            <button type="submit" className="...">
-              <Save className="h-4 w-4" /> Save Configuration
+            <button
+              type="submit"
+              className="items-center gap-2 rounded-lg bg-blue-100 px-4 py-2 font-bold text-blue-700 transition-colors hover:bg-blue-200"
+            >
+              <Save className="h-4 w-4" /> Save
             </button>
           </div>
         </form>
