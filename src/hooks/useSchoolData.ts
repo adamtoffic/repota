@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { processStudent, assignPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings } from "../types";
+import { useToast } from "./useToast";
 
 const STORAGE_KEYS = {
   STUDENTS: "ges_v1_students",
@@ -40,10 +41,13 @@ export function useSchoolData() {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   }, [settings]);
 
+  const { showToast } = useToast();
+
   // --- ACTIONS ---
 
   const addStudent = (student: StudentRecord) => {
     setStudents((prev) => [...prev, student]);
+    showToast(`Student "${student.name}" added successfully!`, "success");
   };
 
   const loadDemoData = () => {
@@ -78,6 +82,7 @@ export function useSchoolData() {
 
   const deleteStudent = (id: string) => {
     setStudents((prev) => prev.filter((s) => s.id !== id));
+    showToast("Student deleted successfully.", "info");
   };
 
   // ✅ THE NEW MASTER UPDATER

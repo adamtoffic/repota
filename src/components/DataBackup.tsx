@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Download, Upload, Database, AlertTriangle, CheckCircle } from "lucide-react";
+import { useToast } from "../hooks/useToast";
 
 // Add this component to your Settings page
 export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const { showToast } = useToast();
 
   // Export all data as JSON file
   const handleExport = () => {
@@ -35,6 +37,7 @@ export function DataBackup() {
       URL.revokeObjectURL(url);
 
       setStatus("success");
+      showToast(`Backup downloaded: ${backup.students.length} students included.`, "info");
       setMessage(`Backup downloaded successfully! (${backup.students.length} students)`);
       setTimeout(() => setStatus("idle"), 3000);
     } catch (error) {
@@ -75,6 +78,7 @@ export function DataBackup() {
         localStorage.setItem("ges_v1_settings", JSON.stringify(backup.settings));
 
         setStatus("success");
+        showToast("Data restored successfully! Refreshing...", "success");
         setMessage(`Successfully restored ${studentCount} students. Refreshing...`);
 
         // Reload page to reflect changes

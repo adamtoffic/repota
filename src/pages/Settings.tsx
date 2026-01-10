@@ -5,6 +5,7 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import type { SchoolSettings, SchoolLevel, AcademicPeriod } from "../types";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { DataBackup } from "../components/DataBackup";
+import { useToast } from "../hooks/useToast";
 // --- HELPER COMPONENT: IMAGE UPLOADER ---
 // This handles the complexity of file reading and previews
 interface ImageUploaderProps {
@@ -86,6 +87,7 @@ function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: ImageUplo
 
 export function Settings() {
   const { settings, setSettings } = useSchoolData();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState<SchoolSettings>({
     ...settings,
@@ -109,7 +111,7 @@ export function Settings() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSettings(formData);
-    alert("Configuration Saved Successfully!");
+    showToast("Settings saved successfully!", "success");
     navigate({ to: "/" });
   };
 
