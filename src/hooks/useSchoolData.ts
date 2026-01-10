@@ -46,6 +46,36 @@ export function useSchoolData() {
     setStudents((prev) => [...prev, student]);
   };
 
+  const loadDemoData = () => {
+    if (confirm("This will add 3 sample students. Continue?")) {
+      const demoStudents: StudentRecord[] = [
+        {
+          id: "demo-1",
+          name: "Kwame Nkrumah",
+          className: "JHS 2",
+          attendancePresent: 58,
+          subjects: [
+            { id: "s1", name: "Mathematics", classScore: 28, examScore: 65 },
+            { id: "s2", name: "English Language", classScore: 25, examScore: 60 },
+            { id: "s3", name: "Integrated Science", classScore: 29, examScore: 68 },
+          ],
+        },
+        {
+          id: "demo-2",
+          name: "Yaa Asantewaa",
+          className: "JHS 2",
+          attendancePresent: 60,
+          subjects: [
+            { id: "s1", name: "Mathematics", classScore: 30, examScore: 68 },
+            { id: "s2", name: "English Language", classScore: 29, examScore: 66 },
+          ],
+        },
+      ];
+
+      setStudents((prev) => [...prev, ...demoStudents]);
+    }
+  };
+
   const deleteStudent = (id: string) => {
     if (confirm("Are you sure you want to delete this student?")) {
       setStudents((prev) => prev.filter((s) => s.id !== id));
@@ -94,5 +124,6 @@ export function useSchoolData() {
     addStudent,
     deleteStudent,
     updateStudent, // ✅ Expose the new function
+    loadDemoData, // Expose the new function
   };
 }

@@ -29,11 +29,11 @@ export function ReportTemplate({ student, settings }: Props) {
         <header className="mb-4 border-b-[3px] border-black pb-4">
           <div className="flex items-start justify-between gap-4">
             {/* Left: School Crest */}
-            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center">
               {settings.logoUrl ? (
                 <img src={settings.logoUrl} alt="Crest" className="h-full w-full object-contain" />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded border-2 border-dashed border-gray-300 text-[10px] text-gray-400">
+                <div className="flex h-16 w-16 items-center justify-center rounded border-2 border-dashed border-gray-300 text-[10px] text-gray-400 opacity-0">
                   No Logo
                 </div>
               )}
@@ -55,14 +55,14 @@ export function ReportTemplate({ student, settings }: Props) {
             </div>
 
             {/* Right: GES Logo */}
-            <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center">
               <img src="/assets/ges-logo.png" alt="GES" className="h-full w-full object-contain" />
             </div>
           </div>
 
           <div className="mt-2 text-center">
             <span className="rounded-full bg-black px-6 py-1 text-sm font-bold tracking-widest text-white uppercase">
-              Term Report
+              Student Report
             </span>
           </div>
         </header>

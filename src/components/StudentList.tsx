@@ -6,6 +6,7 @@ import { PDFReportDocument } from "./PDFReportDocument";
 import type { ProcessedStudent, StudentRecord, SchoolSettings } from "../types";
 import { CLASS_OPTIONS } from "../constants/classes";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface Props {
   students: ProcessedStudent[];
@@ -26,6 +27,7 @@ export function StudentList({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newClass, setNewClass] = useState("");
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
 
   // ✅ FIX: No useEffect. We set defaults when the user clicks "Open".
   const handleOpenModal = () => {
@@ -149,7 +151,7 @@ export function StudentList({
                       )}
 
                       <button
-                        onClick={() => onDeleteStudent(student.id)}
+                        onClick={() => setStudentToDelete(student.id)}
                         className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -162,6 +164,20 @@ export function StudentList({
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        isOpen={!!studentToDelete}
+        title="Delete Student?"
+        message="This action cannot be undone. All grades and remarks for this student will be permanently lost."
+        confirmText="Yes, Delete Student"
+        isDangerous={true}
+        onClose={() => setStudentToDelete(null)}
+        onConfirm={() => {
+          if (studentToDelete) {
+            onDeleteStudent(studentToDelete);
+          }
+        }}
+      />
 
       {/* MODAL */}
       {isAddOpen && (
