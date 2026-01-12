@@ -1,26 +1,44 @@
 @import "tailwindcss";
-/* src/index.css */
 
-/* ... your existing tailwind directives ... */
+:root {
+  /* Add custom font for the report card */
+  --font-serif: "Times New Roman", Times, serif;
+}
+
 @layer utilities {
   .print-only {
     display: none;
   }
+
+  /* Hide scrollbars for cleaner UI */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
+/* ✅ PRINT MEDIA QUERY */
 @media print {
   @page {
-    size: A4;
-    margin: 0; /* Keeps printer from adding extra white space */
+    size: A4 portrait;
+    margin: 0; /* CRITICAL: Kills browser hardware margins */
   }
 
+  html,
   body {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 !important;
+    padding: 0 !important;
     background: white;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Hide UI elements */
+  /* Hide UI */
   nav,
   button,
   .no-print {
@@ -30,62 +48,63 @@
     display: block !important;
   }
 
-  /* THE REPORT PAGE CONTAINER */
+  /* REPORT PAGE CONTAINER */
   .report-page {
     width: 210mm;
     height: 297mm;
-    /* ✅ MORE BREATHABLE PADDING (15mm instead of 10mm) */
-    padding: 15mm;
+    /* Reduced from 15mm to 10mm to reduce the "inward shift" feel */
+    padding: 10mm;
     margin: 0;
     page-break-after: always;
     position: relative;
     overflow: hidden;
     background: white;
-    font-family: "Times New Roman", Times, serif; /* Classic Report Font */
+    font-family: var(--font-serif);
   }
 
-  /* ✅ FORCE WATERMARK VISIBILITY */
+  /* Force background images (Watermark) */
   .watermark {
-    opacity: 0.08 !important; /* Slightly lighter */
+    opacity: 0.08 !important; /* More visible on print */
+    -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* THE FIX: Remove page break for the very last report */
+
+  /* Fix for the last page generating a blank sheet */
   .report-wrapper:last-child .report-page {
     page-break-after: auto !important;
     page-break-inside: avoid !important;
   }
 
-  /* Ensure no margins interfere from the preview wrapper */
+  /* Reset wrapper layout so it doesn't interfere */
   .report-wrapper {
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
+    display: block !important;
   }
 }
 
-/* SCREEN PREVIEW STYLES */
+/* SCREEN PREVIEW */
 @media screen {
   .report-page {
     width: 210mm;
     min-height: 297mm;
-    /* ✅ Breathable padding matches print */
-    padding: 15mm;
+    padding: 10mm; /* Match print padding */
     background: white;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    margin: 0 auto;
     position: relative;
-    /* Ensure text renders sharply */
-    -webkit-font-smoothing: antialiased;
+    color: black;
   }
 
   .watermark {
     position: absolute;
     inset: 0;
-    /* ✅ Ensure URL is correct. Check public/assets folder! */
-    background-image: url("/assets/coat-of-arms.png");
+    background-image: url("/assets/coat-of-arms.png"); /* Ensure this file exists! */
     background-position: center;
     background-repeat: no-repeat;
-    background-size: 60%; /* Slightly larger */
-    opacity: 0.08;
+    background-size: 60%;
+    opacity: 0.05; /* Faint on screen */
     pointer-events: none;
     z-index: 0;
   }

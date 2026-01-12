@@ -18,17 +18,38 @@ export function useSchoolData() {
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      // 🔄 MIGRATION LOGIC:
+      // If the saved data has 'name' but not 'schoolName', fix it.
+      if (parsed.name && !parsed.schoolName) {
+        return {
+          ...parsed,
+          schoolName: parsed.name, // Transfer old value
+          className: parsed.className || "Class Name", // Default if missing
+          name: undefined, // Remove old key
+        };
+      }
+      return parsed;
+    }
     return {
-      name: "My School Name",
+      schoolName: "My School Name",
       academicYear: "2025/2026",
       term: "First Term",
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
       totalAttendanceDays: 70,
+      classScoreMax: 30,
+      examScoreMax: 70,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
+      className: "",
+      phoneNumber: "",
+      address: "",
+      email: "",
+      schoolMotto: "",
     };
   });
 
@@ -91,6 +112,18 @@ export function useSchoolData() {
     setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
   };
 
+  // ... existing functions ...
+
+  // ✅ NEW: Mass Update Class Name
+  const updateClassNameForAll = (newClassName: string) => {
+    setStudents((prev) =>
+      prev.map((student) => ({
+        ...student,
+        className: newClassName, // Force update everyone
+      })),
+    );
+  };
+
   // --- DERIVED STATE (Processing) ---
 
   const processedStudents = useMemo(() => {
@@ -108,5 +141,6 @@ export function useSchoolData() {
     deleteStudent,
     updateStudent, // ✅ Expose the new function
     loadDemoData, // Expose the new function
+    updateClassNameForAll, // Expose the new mass update function
   };
 }

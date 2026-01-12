@@ -74,12 +74,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">Class</label>
-              <input
-                type="text"
-                value={formData.className}
-                onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                className="w-full rounded border p-2"
-              />
+              <p className="w-full rounded border p-2">{formData.className}</p>
             </div>
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">Date of Birth</label>

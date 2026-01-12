@@ -6,11 +6,20 @@ import { calculateGrade } from "../utils/gradeCalculator";
 interface Props {
   subject: SavedSubject;
   level: SchoolLevel;
+  maxClassScore: number;
+  maxExamScore: number;
   onChange: (updated: SavedSubject) => void;
   onDelete?: () => void;
 }
 
-export function SubjectRow({ subject, level, onChange, onDelete }: Props) {
+export function SubjectRow({
+  subject,
+  level,
+  maxClassScore,
+  maxExamScore,
+  onChange,
+  onDelete,
+}: Props) {
   // Calculate grade dynamically for visual feedback
   const total = (subject.classScore || 0) + (subject.examScore || 0);
   const { grade, remark } = calculateGrade(total, level);
@@ -47,32 +56,32 @@ export function SubjectRow({ subject, level, onChange, onDelete }: Props) {
           {/* Class Score Input */}
           <div className="col-span-2 sm:w-20">
             <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
-              Class (30)
+              Class ({maxClassScore})
             </label>
             <input
               type="number"
               min="0"
-              max="100"
-              value={subject.classScore || ""} // Empty string handles 0 better for typing
+              max={maxClassScore}
+              value={subject.classScore === 0 ? "" : subject.classScore} // Empty string handles 0 better for typing
               onChange={(e) => handleChange("classScore", e.target.value)}
               className="w-full rounded border border-gray-300 p-2 text-center text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0"
+              placeholder={`/${maxClassScore}`}
             />
           </div>
 
           {/* Exam Score Input */}
           <div className="col-span-2 sm:w-20">
             <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
-              Exam (70)
+              Exam ({maxExamScore})
             </label>
             <input
               type="number"
               min="0"
-              max="100"
-              value={subject.examScore || ""}
+              max={maxExamScore}
+              value={subject.examScore === 0 ? "" : subject.examScore} // Empty string handles 0 better for typing
               onChange={(e) => handleChange("examScore", e.target.value)}
               className="w-full rounded border border-gray-300 p-2 text-center text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0"
+              placeholder={`/${maxExamScore}`}
             />
           </div>
 

@@ -215,17 +215,9 @@ export function StudentList({
                 <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
                   Class
                 </label>
-                <select
-                  value={newClass}
-                  onChange={(e) => setNewClass(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white p-2"
-                >
-                  {(CLASS_OPTIONS[settings.level] || []).map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+                <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
+                  {settings.className}
+                </p>
                 <p className="mt-1 text-[10px] text-gray-400">
                   Based on School Level: {settings.level}
                 </p>

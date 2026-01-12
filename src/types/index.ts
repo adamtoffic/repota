@@ -35,7 +35,10 @@ export interface StudentRecord {
 }
 
 export interface SchoolSettings {
-  name: string;
+  schoolName: string;
+  className?: string;
+  schoolMotto?: string;
+  phoneNumber?: string;
   address?: string;
   email?: string;
   logoUrl?: string;
@@ -47,6 +50,8 @@ export interface SchoolSettings {
   headTeacherName?: string;
   classTeacherName?: string;
   totalAttendanceDays?: number;
+  classScoreMax: number;
+  examScoreMax: number;
 
   headTeacherSignature?: string;
   teacherSignature?: string;

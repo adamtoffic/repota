@@ -65,7 +65,9 @@ export function Dashboard() {
                 GES
               </div>
               <div>
-                <h1 className="text-lg leading-tight font-bold text-gray-900">{settings.name}</h1>
+                <h1 className="text-lg leading-tight font-bold text-gray-900">
+                  {settings.schoolName}
+                </h1>
                 <p className="text-xs text-gray-500">
                   {settings.term} • {settings.level}
                 </p>

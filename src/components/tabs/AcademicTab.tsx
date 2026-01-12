@@ -139,6 +139,8 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
                   subject={subject}
                   level={level}
                   onChange={handleScoreUpdate}
+                  maxClassScore={settings.classScoreMax}
+                  maxExamScore={settings.examScoreMax}
                   // ❌ NO onDelete passed here. We removed individual deletion.
                 />
                 {isObsolete && (

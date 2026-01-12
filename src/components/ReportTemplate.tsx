@@ -9,6 +9,9 @@ interface Props {
 
 export function ReportTemplate({ student, settings }: Props) {
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
+  const showAggregate =
+    (settings.level === "JHS" || settings.level === "SHS" || settings.level === "PRIMARY") &&
+    student.aggregate !== null;
 
   // Calculate attendance percentage safely
   const attendancePct =
@@ -21,7 +24,7 @@ export function ReportTemplate({ student, settings }: Props) {
   return (
     <div className="report-page leading-tight text-black">
       {/* 🛡️ WATERMARK (For Print) */}
-      <div className="watermark print:absolute print:inset-0 print:z-0 print:bg-[url('/assets/coat-of-arms.png')] print:bg-[length:60%] print:bg-center print:bg-no-repeat" />
+      <div className="watermark print:absolute print:inset-0 print:z-0 print:bg-[url('/assets/coat-of-arms.png')] print:bg-size-[60%] print:bg-center print:bg-no-repeat" />
 
       {/* 📄 CONTENT */}
       <div className="relative z-10 flex h-full flex-col justify-between">
@@ -42,12 +45,31 @@ export function ReportTemplate({ student, settings }: Props) {
             {/* Center: School Details */}
             <div className="flex-1 pt-2 text-center">
               <h1 className="mb-1 font-serif text-3xl font-bold tracking-wide text-black uppercase">
-                {settings.name || "School Name"}
+                {settings.schoolName || "School Name"}
               </h1>
-              <p className="mb-1 text-sm font-medium uppercase">
+
+              {/* ✅ NEW: Motto */}
+              {settings.schoolMotto && (
+                <p className="mb-2 text-xs font-bold text-gray-600 italic">
+                  "{settings.schoolMotto}"
+                </p>
+              )}
+
+              {/* Address Line */}
+              <p className="text-xs font-medium text-gray-700 uppercase">
                 {settings.address || "Location Address"}
               </p>
-              <div className="mt-1 flex inline-block justify-center gap-4 border-t border-black px-4 pt-1 text-xs font-bold uppercase">
+
+              {/* Contact Line (Only shows separators if data exists) */}
+              {(settings.phoneNumber || settings.email) && (
+                <p className="mt-0.5 text-[10px] text-gray-500">
+                  {settings.phoneNumber && <span>{settings.phoneNumber}</span>}
+                  {settings.phoneNumber && settings.email && <span className="mx-2">•</span>}
+                  {settings.email && <span>{settings.email}</span>}
+                </p>
+              )}
+
+              <div className="mt-1 flex justify-center gap-4 border-t border-black px-4 pt-1 text-xs font-bold uppercase">
                 <span>{settings.academicYear}</span>
                 <span>•</span>
                 <span>{settings.term}</span>
@@ -119,13 +141,11 @@ export function ReportTemplate({ student, settings }: Props) {
                 <th className="w-5/12 p-2 text-left text-xs font-bold uppercase">Subject</th>
                 <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">
                   Class
-                  <br />
-                  (30)
+                  <br />({settings.classScoreMax || 30})
                 </th>
                 <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">
                   Exam
-                  <br />
-                  (70)
+                  <br />({settings.examScoreMax || 70})
                 </th>
                 <th className="w-[10%] p-2 text-center text-xs font-bold uppercase">
                   Total
@@ -158,17 +178,23 @@ export function ReportTemplate({ student, settings }: Props) {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="bg-black font-bold text-white">
-                <td className="p-2 text-right text-xs uppercase" colSpan={3}>
-                  Overall Average Score
-                </td>
-                <td className="p-2 text-center text-lg">{student.averageScore}%</td>
-                <td className="p-2" colSpan={2}></td>
-              </tr>
-            </tfoot>
           </table>
         </section>
+        {/* Summary Stats Box */}
+        <div className="flex items-center justify-end gap-6 border-t-2 border-black pt-2 pr-4">
+          {showAggregate && (
+            <div className="text-right">
+              <span className="block text-[10px] font-bold text-gray-500 uppercase">Aggregate</span>
+              <span className="block text-xl font-black">{student.aggregate}</span>
+            </div>
+          )}
+          <div className="text-right">
+            <span className="block text-[10px] font-bold text-gray-500 uppercase">
+              Overall Average
+            </span>
+            <span className="block text-xl font-black text-blue-900">{student.averageScore}%</span>
+          </div>
+        </div>
 
         {/* --- FOOTER (Remarks & Signatures) --- */}
         <footer className="mt-6 space-y-4">
@@ -225,7 +251,7 @@ export function ReportTemplate({ student, settings }: Props) {
           </div>
 
           {/* Promotion Banner */}
-          {student.promotionStatus && (
+          {settings.term === "Third Term" && (
             <div className="mt-4 border-2 border-black bg-gray-100 p-2 text-center text-sm font-bold uppercase">
               {student.promotionStatus}
             </div>
