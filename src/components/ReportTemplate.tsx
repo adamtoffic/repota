@@ -30,6 +30,18 @@ export function ReportTemplate({ student, settings }: Props) {
       {/* 📄 CONTENT */}
       <div className="relative z-10 flex h-full flex-col justify-between">
         {/* --- HEADER --- */}
+
+        {/* ✅ NEW: ISLAMIC HEADER (BISMILLAH) */}
+        {isIslamic && (
+          <div className="mb-2 text-center">
+            <p className="font-serif text-[10px] font-bold tracking-widest text-black uppercase">
+              In the name of Allah, the Beneficent, the Merciful
+            </p>
+            {/* Optional: Add Arabic Bismillah if you want to look extra pro */}
+            <p className="font-arabic mt-0.5 text-sm text-black">بسم الله الرحمن الرحيم</p>
+          </div>
+        )}
+
         <header className="mb-4 border-b-[3px] border-black pb-4">
           <div className="flex items-start justify-between gap-4">
             {/* Left: School Crest */}
