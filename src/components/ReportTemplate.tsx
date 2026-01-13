@@ -8,6 +8,7 @@ interface Props {
 }
 
 export function ReportTemplate({ student, settings }: Props) {
+  const isIslamic = settings.schoolType === "ISLAMIC";
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
   const showAggregate =
     (settings.level === "JHS" || settings.level === "SHS" || settings.level === "PRIMARY") &&
@@ -22,7 +23,7 @@ export function ReportTemplate({ student, settings }: Props) {
   const attendanceRating = generateAttendanceRating(attendancePct);
 
   return (
-    <div className="report-page leading-tight text-black">
+    <div className={`report-page leading-tight text-black ${isIslamic ? "font-arabic" : ""}`}>
       {/* 🛡️ WATERMARK (For Print) */}
       <div className="watermark print:absolute print:inset-0 print:z-0 print:bg-[url('/assets/coat-of-arms.png')] print:bg-size-[60%] print:bg-center print:bg-no-repeat" />
 
@@ -226,7 +227,7 @@ export function ReportTemplate({ student, settings }: Props) {
               {settings.teacherSignature && (
                 <img
                   src={settings.teacherSignature}
-                  className="mx-auto -mb-2 block h-10"
+                  className="mx-auto -mb-2 block h-10 object-contain mix-blend-multiply dark:mix-blend-normal"
                   alt="Sign"
                 />
               )}
@@ -238,7 +239,7 @@ export function ReportTemplate({ student, settings }: Props) {
               {settings.headTeacherSignature && (
                 <img
                   src={settings.headTeacherSignature}
-                  className="mx-auto -mb-4 block h-12"
+                  className="mx-auto -mb-4 block h-12 object-contain mix-blend-multiply dark:mix-blend-normal"
                   alt="Sign"
                 />
               )}

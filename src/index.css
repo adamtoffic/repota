@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  /* Add custom font for the report card */
   --font-serif: "Times New Roman", Times, serif;
 }
 
@@ -9,8 +8,6 @@
   .print-only {
     display: none;
   }
-
-  /* Hide scrollbars for cleaner UI */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -20,11 +17,11 @@
   }
 }
 
-/* ✅ PRINT MEDIA QUERY */
+/* ✅ PRINT MEDIA QUERY (FIXED) */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 0; /* CRITICAL: Kills browser hardware margins */
+    margin: 0; /* Tells browser: "I'll handle the margins" */
   }
 
   html,
@@ -52,30 +49,39 @@
   .report-page {
     width: 210mm;
     height: 297mm;
-    /* Reduced from 15mm to 10mm to reduce the "inward shift" feel */
-    padding: 10mm;
-    margin: 0;
+
+    /* ⚡️ FIX 1: REDUCED PADDING */
+    /* 5mm is enough to clear the printer rollers, but tight enough to use the space. */
+    padding: 1mm !important;
+
+    margin: 0 auto; /* Centers it if printer paper is slightly wider */
     page-break-after: always;
     position: relative;
     overflow: hidden;
     background: white;
     font-family: var(--font-serif);
+
+    /* ⚡️ FIX 2: BORDER-BOX */
+    /* Ensures padding doesn't make the div wider than 210mm */
+    box-sizing: border-box;
   }
 
-  /* Force background images (Watermark) */
+  /* WATERMARK FIX */
   .watermark {
-    opacity: 0.08 !important; /* More visible on print */
+    /* ⚡️ FIX 3: VISIBILITY */
+    /* You had this at 0 (invisible). 0.05 (5%) is the sweet spot for B&W. */
+    opacity: 0.05 !important;
+    filter: grayscale(100%);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Fix for the last page generating a blank sheet */
+  /* Fix for the last page blank sheet */
   .report-wrapper:last-child .report-page {
     page-break-after: auto !important;
     page-break-inside: avoid !important;
   }
 
-  /* Reset wrapper layout so it doesn't interfere */
   .report-wrapper {
     margin: 0 !important;
     padding: 0 !important;
@@ -89,22 +95,23 @@
   .report-page {
     width: 210mm;
     min-height: 297mm;
-    padding: 10mm; /* Match print padding */
+    padding: 5mm; /* Match the print padding so preview is accurate */
     background: white;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     margin: 0 auto;
     position: relative;
     color: black;
+    box-sizing: border-box; /* Match print logic */
   }
 
   .watermark {
     position: absolute;
     inset: 0;
-    background-image: url("/assets/coat-of-arms.png"); /* Ensure this file exists! */
+    background-image: url("/assets/coat-of-arms.png");
     background-position: center;
     background-repeat: no-repeat;
     background-size: 60%;
-    opacity: 0.05; /* Faint on screen */
+    opacity: 0.05;
     pointer-events: none;
     z-index: 0;
   }

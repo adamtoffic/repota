@@ -46,6 +46,7 @@ export interface SchoolSettings {
   academicYear: string;
   term: AcademicPeriod;
   level: SchoolLevel;
+  schoolType: "STANDARD" | "ISLAMIC";
   nextTermStarts?: string;
   headTeacherName?: string;
   classTeacherName?: string;

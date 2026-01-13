@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Save,
   Plus,
-  Trash2,
   AlertCircle,
   School,
   BookOpen,
@@ -196,6 +195,39 @@ export function Settings() {
                     className="w-full rounded-lg border p-2 text-sm"
                     placeholder="school@gmail.com"
                   />
+                </div>
+
+                {/* School Type Toggle */}
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
+                    School Curriculum Type
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="schoolType"
+                        checked={formData.schoolType === "STANDARD"}
+                        onChange={() => setFormData({ ...formData, schoolType: "STANDARD" })}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-bold">Standard (GES)</span>
+                    </label>
+
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="schoolType"
+                        checked={formData.schoolType === "ISLAMIC"}
+                        onChange={() => setFormData({ ...formData, schoolType: "ISLAMIC" })}
+                        className="text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-bold">Islamic / Arabic</span>
+                    </label>
+                  </div>
+                  <p className="mt-1 text-[10px] text-gray-400">
+                    * Selecting 'Islamic' enables Arabic font support on reports.
+                  </p>
                 </div>
               </div>
             </div>
@@ -463,6 +495,54 @@ export function Settings() {
 
         {/* BACKUP SECTION (Restored) */}
         <DataBackup />
+
+        {/* ... Inside Settings.tsx, after the "Danger Zone" card ... */}
+
+        {/* ✅ ABOUT THE DEVELOPER CARD */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800">
+            <span>👨‍💻</span> About the Developer
+          </h2>
+
+          <div className="prose prose-sm text-gray-600">
+            <p>
+              Hi, I'm <strong>[Your Name]</strong>, a Level 200 IT student passionate about solving
+              real-world problems with code.
+            </p>
+            <p className="mt-2">
+              I built <strong>ClassSync</strong> to help Ghanaian teachers save time and reduce
+              errors. This is an open-source project designed specifically for our local education
+              system.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-4 border-t pt-4">
+            <a
+              href="https://wa.me/233XXXXXXXXX"
+              target="_blank"
+              className="flex items-center gap-2 text-xs font-bold text-green-600 hover:underline"
+            >
+              <span>💬 WhatsApp Me</span>
+            </a>
+            <a
+              href="mailto:your@email.com"
+              className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:underline"
+            >
+              <span>📧 Email Support</span>
+            </a>
+            <a
+              href="https://github.com/yourusername"
+              target="_blank"
+              className="flex items-center gap-2 text-xs font-bold text-gray-800 hover:underline"
+            >
+              <span>🐙 GitHub Profile</span>
+            </a>
+          </div>
+
+          <div className="mt-4 text-center text-[10px] text-gray-400">
+            Version 1.0.0 • Built with ❤️ in Ghana
+          </div>
+        </div>
       </main>
 
       {/* CONFIRMATION MODAL (For Ripple Effect) */}

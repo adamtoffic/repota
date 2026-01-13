@@ -53,6 +53,12 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
         </div>
       </div>
 
+      <p className="text-[10px] text-gray-400">
+        {label.includes("Signature")
+          ? "Tip: Sign on plain white paper and crop closely."
+          : "Tip: Use a transparent PNG logo for best results."}
+      </p>
+
       <input
         type="file"
         ref={inputRef}

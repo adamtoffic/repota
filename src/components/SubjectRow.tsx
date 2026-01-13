@@ -25,7 +25,25 @@ export function SubjectRow({
   const { grade, remark } = calculateGrade(total, level);
 
   const handleChange = (field: "classScore" | "examScore", value: string) => {
-    const numValue = Math.min(Math.max(Number(value), 0), 100); // Clamp between 0-100
+    // 1. Determine the limit based on which box they are typing in
+    const maxLimit = field === "classScore" ? maxClassScore : maxExamScore;
+
+    // 2. Allow empty string (so they can delete numbers)
+    if (value === "") {
+      onChange({ ...subject, [field]: 0 }); // Or keep as 0 or undefined based on your logic
+      return;
+    }
+
+    // 3. Convert to number
+    const numValue = Number(value);
+
+    // 4. 🛑 STRICT VALIDATION: If value is too high, DO NOT UPDATE
+    if (numValue > maxLimit) {
+      // Optional: You could show a toast warning here like "Max score is 30!"
+      return;
+    }
+
+    // 5. If it passes, update the state
     onChange({ ...subject, [field]: numValue });
   };
 

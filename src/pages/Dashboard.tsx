@@ -1,6 +1,6 @@
 // src/pages/Dashboard.tsx
 import { useState, useMemo } from "react";
-import { Settings as SettingsIcon } from "lucide-react";
+import { X, Settings as SettingsIcon } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
@@ -15,6 +15,20 @@ import { Footer } from "../components/Footer";
 export function Dashboard() {
   const { students, settings, addStudent, deleteStudent, updateStudent, loadDemoData } =
     useSchoolData();
+
+  // 1. State to control visibility
+  const [showWelcome, setShowWelcome] = useState(() => {
+    // Return TRUE only if the key does NOT exist
+    const hasSeen = localStorage.getItem("classSync_welcome_seen");
+    return !hasSeen;
+  });
+
+  // 3. Handle Dismiss
+  const handleDismiss = () => {
+    setShowWelcome(false);
+    // Save to storage so it never comes back
+    localStorage.setItem("classSync_welcome_seen", "true");
+  };
 
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,6 +68,13 @@ export function Dashboard() {
     setEditingStudentId(newId); // Immediately open modal to edit details
   };
 
+  const schoolInitials = settings.schoolName
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
       {/* NAV (Keep exactly as is) */}
@@ -61,8 +82,16 @@ export function Dashboard() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
-                GES
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">
+                {settings.logoUrl ? (
+                  <img
+                    src={settings.logoUrl}
+                    alt="Logo"
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <span>{schoolInitials || "GH"}</span> // Default to "GH" if no name set
+                )}
               </div>
               <div>
                 <h1 className="text-lg leading-tight font-bold text-gray-900">
@@ -97,6 +126,43 @@ export function Dashboard() {
       </nav>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        {/* ... Inside Dashboard ... */}
+
+        {/* ✅ TUTORIAL CARD */}
+        {/* CONDITIONAL RENDER: Only show if true */}
+        {showWelcome && (
+          <div className="animate-in fade-in slide-in-from-top-4 relative mb-6 rounded-xl bg-linear-to-r from-blue-900 to-blue-700 p-6 text-white shadow-lg">
+            {/* Close Button */}
+            <button
+              onClick={handleDismiss}
+              className="absolute top-2 right-2 rounded-full p-1 transition hover:bg-white/20"
+            >
+              <X size={20} className="text-white" />
+            </button>
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  Welcome to {settings.schoolName || "ClassSync"}! 🚀
+                </h2>
+                <p className="mt-1 max-w-xl text-blue-100">
+                  New here? Watch this quick 2-minute video to learn how to generate error-free
+                  reports instantly.
+                </p>
+                <div className="mt-4">
+                  <a
+                    href="YOUR_YOUTUBE_LINK"
+                    target="_blank"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-blue-900 hover:bg-gray-100"
+                  >
+                    ▶ Watch Tutorial
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ✅ 3. CONDITIONAL RENDERING: Empty vs Content */}
         {students.length === 0 ? (
           <EmptyState onAddStudent={handleAddNew} onLoadDemo={loadDemoData} />
