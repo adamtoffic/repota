@@ -252,3 +252,51 @@ const getOrdinalSuffix = (i: number): string => {
   if (j === 3 && k !== 13) return i + "rd";
   return i + "th";
 };
+
+// ✅ NEW: Helper to calculate Subject Positions
+export const assignSubjectPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
+  // 1. Get a list of all unique subject names across all students
+  const allSubjectNames = Array.from(
+    new Set(students.flatMap((s) => s.subjects.map((sub) => sub.name))),
+  );
+
+  // 2. Create a map of Subject -> Sorted Scores
+  // Example: "Mathematics" -> [{studentId: "1", score: 90}, {studentId: "2", score: 80}]
+  const subjectRankings: Record<string, { studentId: string; score: number }[]> = {};
+
+  allSubjectNames.forEach((subjectName) => {
+    const scores = students
+      .map((s) => {
+        const sub = s.subjects.find((sub) => sub.name === subjectName);
+        return sub ? { studentId: s.id, score: sub.totalScore } : null;
+      })
+      .filter((item): item is { studentId: string; score: number } => item !== null)
+      .sort((a, b) => b.score - a.score); // Sort High to Low
+
+    subjectRankings[subjectName] = scores;
+  });
+
+  // 3. Map back to students
+  return students.map((student) => {
+    const updatedSubjects = student.subjects.map((sub) => {
+      const ranks = subjectRankings[sub.name];
+      // Find index
+      const index = ranks.findIndex((r) => r.studentId === student.id);
+
+      // Handle Tie-Breaking (Same score = Same position)
+      let rank = index + 1;
+      if (index > 0 && ranks[index].score === ranks[index - 1].score) {
+        // Find the first occurrence of this score to get the true rank
+        const firstOccurrence = ranks.findIndex((r) => r.score === ranks[index].score);
+        rank = firstOccurrence + 1;
+      }
+
+      return {
+        ...sub,
+        subjectPosition: getOrdinalSuffix(rank), // Uses your existing ordinal function
+      };
+    });
+
+    return { ...student, subjects: updatedSubjects };
+  });
+};

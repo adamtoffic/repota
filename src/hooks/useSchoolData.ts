@@ -1,7 +1,7 @@
 // src/hooks/useSchoolData.ts
 import { useState, useEffect, useMemo } from "react";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
-import { processStudent, assignPositions } from "../utils/gradeCalculator";
+import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings } from "../types";
 import { useToast } from "./useToast";
 
@@ -129,8 +129,11 @@ export function useSchoolData() {
   const processedStudents = useMemo(() => {
     const processed = students.map((student) => processStudent(student, settings.level));
 
+    // NEW: Assign Subject Positions first
+    const withSubjectPositions = assignSubjectPositions(processed);
+
     // 2. Assign Class Positions based on the calculated averages
-    return assignPositions(processed);
+    return assignPositions(withSubjectPositions);
   }, [students, settings.level]);
 
   return {

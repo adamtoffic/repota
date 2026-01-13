@@ -29,6 +29,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
     interest: student.interest || "",
     teacherRemark: student.teacherRemark || "",
     promotionStatus: student.promotionStatus || "",
+    numberOnRoll: student.numberOnRoll || 0,
   });
 
   const handleSave = () => {
@@ -48,6 +49,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
       interest: formData.interest,
       teacherRemark: formData.teacherRemark,
       promotionStatus: formData.promotionStatus,
+      numberOnRoll: formData.numberOnRoll,
     };
 
     onUpdate(updatedRecord);
@@ -73,8 +75,13 @@ export function DetailsTab({ student, onUpdate }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-bold text-gray-500">Class</label>
-              <p className="w-full rounded border p-2">{formData.className}</p>
+              <label className="mb-1 block text-xs font-bold text-gray-500">Number On Roll</label>
+              <input
+                type="number"
+                value={formData.numberOnRoll}
+                onChange={(e) => setFormData({ ...formData, numberOnRoll: Number(e.target.value) })}
+                className="w-full rounded border p-2"
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">Date of Birth</label>

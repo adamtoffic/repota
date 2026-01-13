@@ -30,6 +30,7 @@ export interface StudentRecord {
   interest?: string;
   pictureUrl?: string;
   promotionStatus?: string;
+  numberOnRoll?: number;
 
   subjects: SavedSubject[];
 }
@@ -64,6 +65,7 @@ export interface ProcessedSubject extends SavedSubject {
   totalScore: number;
   grade: Grade;
   remark: string;
+  subjectPosition?: string;
 }
 
 export interface ProcessedStudent extends Omit<StudentRecord, "subjects"> {

@@ -47,7 +47,8 @@ export function PrintPreview() {
             <div>
               <h1 className="text-lg font-bold text-gray-900">Print Preview</h1>
               <p className="text-xs text-gray-500">
-                Generating {printableStudents.length} report cards for {settings.name || "Class"}
+                Generating {printableStudents.length} report cards for{" "}
+                {settings.className || "Class"}
               </p>
             </div>
           </div>
