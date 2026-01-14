@@ -6,7 +6,11 @@ import { Toast } from "../components/Toast";
 
 // Define the shape of our context
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType) => void;
+  showToast: (
+    message: string,
+    type?: ToastType,
+    action?: { label: string; onClick: () => void },
+  ) => void;
 }
 
 // 1. Create the Context
@@ -16,10 +20,13 @@ export const ToastContext = createContext<ToastContextType | undefined>(undefine
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const showToast = (message: string, type: ToastType = "success") => {
+  const showToast = (
+    message: string,
+    type: ToastType = "success",
+    action?: { label: string; onClick: () => void },
+  ) => {
     const id = Date.now().toString();
-    // Add new toast to the list
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => [...prev, { id, message, type, action }]);
   };
 
   const removeToast = (id: string) => {

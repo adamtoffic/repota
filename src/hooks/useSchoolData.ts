@@ -103,8 +103,22 @@ export function useSchoolData() {
   };
 
   const deleteStudent = (id: string) => {
+    // 1. Find the student before deleting (so we can restore them)
+    const studentToDelete = students.find((s) => s.id === id);
+    if (!studentToDelete) return;
+
+    // 2. Optimistic Delete (Remove immediately)
     setStudents((prev) => prev.filter((s) => s.id !== id));
-    showToast("Student deleted successfully.", "info");
+
+    // 3. Show Toast with Undo Action
+    showToast("Student moved to trash.", "info", {
+      label: "UNDO",
+      onClick: () => {
+        // Restore logic: Add them back to the list
+        setStudents((prev) => [...prev, studentToDelete]);
+        showToast("Student restored.", "success");
+      },
+    });
   };
 
   const updateStudent = (updatedStudent: StudentRecord) => {
