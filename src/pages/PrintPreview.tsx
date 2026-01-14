@@ -2,14 +2,73 @@ import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
+import { useEffect } from "react";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
   const { id } = useSearch({ from: "/print" });
 
-  // Filter out students who are "Pending" (No subjects or 0 score)
-  // Optional: You might want to print everyone, but usually empty reports are waste.
-  // For now, let's print everyone so you can see them.
+  // Inject AGGRESSIVE print styles to FORCE zero margins
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      @media print {
+        @page {
+          size: A4 portrait;
+          margin: 0mm !important;
+        }
+        
+        html {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 210mm !important;
+          height: 297mm !important;
+        }
+        
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 210mm !important;
+          min-height: 297mm !important;
+        }
+        
+        .report-wrapper {
+          width: 210mm !important;
+          height: 297mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+        }
+        
+        .report-wrapper:last-child {
+          page-break-after: auto !important;
+        }
+        
+        .report-page {
+          width: 210mm !important;
+          height: 297mm !important;
+          margin: 0 !important;
+          padding: 8mm !important;
+          box-sizing: border-box !important;
+          page-break-after: auto !important;
+          page-break-inside: avoid !important;
+        }
+        
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const printableStudents = id ? students.filter((s) => s.id === id) : students;
 
   if (printableStudents.length === 0) {
@@ -33,7 +92,7 @@ export function PrintPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans print:bg-white">
+    <div className="min-h-screen bg-gray-100 font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
       <div className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 p-4 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
@@ -63,22 +122,16 @@ export function PrintPreview() {
       </div>
 
       {/* 2. THE PREVIEW AREA */}
-      <div className="overflow-x-hidden print:w-full">
-        {" "}
-        {/* Prevent horizontal scrollbar on mobile */}
-        {printableStudents.map((student) => (
+      <div className="overflow-x-hidden print:m-0 print:w-full print:p-0">
+        {printableStudents.map((student, index) => (
           <div
             key={student.id}
-            className="report-wrapper mb-4 flex h-[140mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:mb-0 print:h-auto print:overflow-visible"
+            className="report-wrapper mb-4 flex h-[140mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:h-auto print:overflow-visible print:p-0"
+            style={{ pageBreakAfter: index < printableStudents.length - 1 ? "always" : "auto" }}
           >
-            {/* MOBILE RESPONSIVE WRAPPER 
-                1. 'scale-[0.45]': Shrinks paper to 45% size on phones
-                2. 'origin-top': Anchors scaling to the top
-                3. 'sm:scale-75': 75% size on tablets
-                4. 'lg:scale-100': Full size on desktop
-            */}
-            <div className="origin-top scale-[0.45] transform sm:scale-75 lg:scale-100 print:w-full print:transform-none">
-              <div className="shadow-2xl print:shadow-none">
+            {/* MOBILE RESPONSIVE WRAPPER */}
+            <div className="origin-top scale-[0.45] transform sm:scale-75 lg:scale-100 print:h-full print:w-full print:scale-100 print:transform-none">
+              <div className="shadow-2xl print:m-0 print:p-0 print:shadow-none">
                 <ReportTemplate student={student} settings={settings} />
               </div>
             </div>

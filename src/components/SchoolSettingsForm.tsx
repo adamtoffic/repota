@@ -26,8 +26,8 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
           <label className="mb-1 block text-sm font-medium text-gray-700">School Name</label>
           <input
             type="text"
-            value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
+            value={formData.schoolName}
+            onChange={(e) => handleChange("schoolName", e.target.value)}
             className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="e.g. Anglican PRIMARY"
           />
