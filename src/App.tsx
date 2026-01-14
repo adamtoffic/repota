@@ -1,14 +1,17 @@
-// src/App.tsx
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router";
 import { ToastProvider } from "./context/ToastContext";
-import { ErrorBoundary } from "./components/ErrorBoundary"; // ✅ Import
+import { SchoolProvider } from "./context/SchoolContext"; // ✅ Import this
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <RouterProvider router={router} />
+        {/* ✅ Wrap Router with SchoolProvider */}
+        <SchoolProvider>
+          <RouterProvider router={router} />
+        </SchoolProvider>
       </ToastProvider>
     </ErrorBoundary>
   );

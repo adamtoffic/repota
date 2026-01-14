@@ -1,13 +1,10 @@
-// src/hooks/useToast.ts
 import { useContext } from "react";
-import { ToastContext } from "../context/ToastContext";
+import { ToastContext } from "../context/ToastContextDefinition"; // ✅ Correct Import
 
 export function useToast() {
   const context = useContext(ToastContext);
-
   if (context === undefined) {
     throw new Error("useToast must be used within a ToastProvider");
   }
-
   return context;
 }

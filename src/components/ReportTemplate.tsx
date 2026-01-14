@@ -129,7 +129,7 @@ export function ReportTemplate({ student, settings }: Props) {
         <section className="flex border-2 border-blue-950 bg-white">
           {/* ✅ 1. STUDENT PHOTO (Only renders if exists) */}
           {student.pictureUrl && (
-            <div className="flex w-[110px] shrink-0 items-center justify-center border-r-2 border-blue-950 bg-slate-50 p-2">
+            <div className="flex w-27.5 shrink-0 items-center justify-center border-r-2 border-blue-950 bg-slate-50 p-2">
               <img
                 src={student.pictureUrl}
                 alt="Student"
