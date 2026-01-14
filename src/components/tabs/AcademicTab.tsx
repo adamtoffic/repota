@@ -1,11 +1,12 @@
-// src/components/tabs/AcademicTab.tsx
+import { useState } from "react";
 import { AlertCircle, AlertTriangle } from "lucide-react";
 import { SubjectRow } from "../SubjectRow";
 import type { ProcessedStudent, SavedSubject, SchoolLevel, StudentRecord } from "../../types";
 import { useSchoolData } from "../../hooks/useSchoolData";
+import { ConfirmModal } from "../ConfirmModal"; // ✅ Import Modal
 
 interface Props {
-  student: ProcessedStudent; // Uses Processed to show calculated grades
+  student: ProcessedStudent;
   level: SchoolLevel;
   onUpdate: (updatedRecord: StudentRecord) => void;
 }
@@ -14,31 +15,20 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
   const { settings } = useSchoolData();
   const masterList = settings.defaultSubjects || [];
 
-  // Logic: Find missing subjects
+  // State for Modal
+  const [showCleanModal, setShowCleanModal] = useState(false);
+
   const missingSubjects = masterList.filter(
     (masterName) => !student.subjects.some((sub) => sub.name === masterName),
   );
 
-  // 2. DETECT OBSOLETE (In Student, but not in Settings)
-  // These are "Zombie" subjects that were removed from the master list
   const obsoleteSubjects = student.subjects.filter((sub) => !masterList.includes(sub.name));
 
   const handleScoreUpdate = (updatedSubject: SavedSubject) => {
-    // Map to create new subject list
     const newSubjects = student.subjects.map((s) =>
       s.id === updatedSubject.id ? updatedSubject : s,
     );
-
-    // Send full raw record back
-    onUpdate({
-      ...student,
-      subjects: newSubjects,
-      attendancePresent: student.attendancePresent,
-      // Pass through other fields safely
-      conduct: student.conduct,
-      interest: student.interest,
-      teacherRemark: student.teacherRemark,
-    });
+    onUpdate({ ...student, subjects: newSubjects });
   };
 
   const handleAddMissing = () => {
@@ -48,39 +38,24 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
       classScore: 0,
       examScore: 0,
     }));
-
-    onUpdate({
-      ...student,
-      subjects: [...student.subjects, ...newSubjects],
-      attendancePresent: student.attendancePresent,
-      conduct: student.conduct,
-      interest: student.interest,
-      teacherRemark: student.teacherRemark,
-    });
+    onUpdate({ ...student, subjects: [...student.subjects, ...newSubjects] });
   };
 
-  const handleRemoveObsolete = () => {
-    // Filter OUT the obsolete ones
-    const cleanSubjects = student.subjects.filter((sub) => masterList.includes(sub.name));
+  // 🛑 CHANGED: Instead of confirm(), we just open the modal
+  const triggerRemoveObsolete = () => {
+    setShowCleanModal(true);
+  };
 
-    if (
-      confirm(
-        `This will permanently remove ${obsoleteSubjects.length} subjects and their scores. Continue?`,
-      )
-    ) {
-      onUpdate({
-        ...student,
-        subjects: cleanSubjects,
-        attendancePresent: student.attendancePresent,
-        conduct: student.conduct,
-        interest: student.interest,
-        teacherRemark: student.teacherRemark,
-      });
-    }
+  // ✅ EXECUTED via Modal
+  const executeRemoveObsolete = () => {
+    const cleanSubjects = student.subjects.filter((sub) => masterList.includes(sub.name));
+    onUpdate({ ...student, subjects: cleanSubjects });
+    setShowCleanModal(false);
   };
 
   return (
     <div className="space-y-4">
+      {/* ... (Missing Subjects Alert stays the same) ... */}
       {missingSubjects.length > 0 && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-center gap-2">
@@ -98,7 +73,7 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
         </div>
       )}
 
-      {/* ALERT 2: REMOVE OBSOLETE */}
+      {/* OBSOLETE SUBJECTS ALERT */}
       {obsoleteSubjects.length > 0 && (
         <div className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-4">
           <div className="flex items-center gap-3">
@@ -113,8 +88,9 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
               </p>
             </div>
           </div>
+          {/* Button triggers Modal */}
           <button
-            onClick={handleRemoveObsolete}
+            onClick={triggerRemoveObsolete}
             className="rounded-lg border border-orange-300 bg-white px-4 py-2 text-xs font-bold text-orange-700 shadow-sm hover:bg-orange-100"
           >
             Remove Old
@@ -130,9 +106,7 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
           </div>
         ) : (
           student.subjects.map((subject) => {
-            // Check if this subject is considered "Obsolete" to style it differently
             const isObsolete = !masterList.includes(subject.name);
-
             return (
               <div key={subject.id} className={isObsolete ? "opacity-50 grayscale" : ""}>
                 <SubjectRow
@@ -141,7 +115,6 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
                   onChange={handleScoreUpdate}
                   maxClassScore={settings.classScoreMax}
                   maxExamScore={settings.examScoreMax}
-                  // ❌ NO onDelete passed here. We removed individual deletion.
                 />
                 {isObsolete && (
                   <p className="mt-1 text-right text-[10px] font-bold text-red-500">
@@ -153,6 +126,17 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
           })
         )}
       </div>
+
+      {/* ✅ CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={showCleanModal}
+        title="Remove Old Subjects?"
+        message={`This will permanently remove ${obsoleteSubjects.length} subjects from this student. This action cannot be undone.`}
+        confirmText="Yes, Remove"
+        isDangerous={true}
+        onConfirm={executeRemoveObsolete}
+        onClose={() => setShowCleanModal(false)}
+      />
     </div>
   );
 }

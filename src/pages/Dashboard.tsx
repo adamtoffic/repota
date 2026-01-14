@@ -11,6 +11,7 @@ import { Link } from "@tanstack/react-router";
 import { EmptyState } from "../components/EmptyState";
 import type { StudentRecord } from "../types"; // Import type for safety
 import { Footer } from "../components/Footer";
+import { ConfirmModal } from "../components/ConfirmModal";
 
 export function Dashboard() {
   const { students, settings, addStudent, deleteStudent, updateStudent, loadDemoData } =
@@ -22,6 +23,8 @@ export function Dashboard() {
     const hasSeen = localStorage.getItem("classSync_welcome_seen");
     return !hasSeen;
   });
+
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   // 3. Handle Dismiss
   const handleDismiss = () => {
@@ -53,19 +56,23 @@ export function Dashboard() {
 
   const editingStudent = students.find((s) => s.id === editingStudentId);
 
-  // ✅ 2. HELPER: Create a blank student and open the modal
+  // 2. The Execution (called directly OR after confirming duplicate)
+
+  // 1. The Trigger
   const handleAddNew = () => {
-    const newId = Date.now().toString(); // Simple unique ID
+    const newId = Date.now().toString();
+
     const newStudent: StudentRecord = {
       id: newId,
-      name: "New Student", // Placeholder name
-      className: settings.level || "Class",
-      subjects: [],
+      name: "New Student", // Placeholder
+      className: settings.className || "Class",
+      subjects: [], // Will be filled by ScoreEntryModal based on settings
       attendancePresent: 0,
+      numberOnRoll: students.length + 1,
     };
 
-    addStudent(newStudent); // Add to database
-    setEditingStudentId(newId); // Immediately open modal to edit details
+    addStudent(newStudent); // 1. Create it
+    setEditingStudentId(newId); // 2. Open it immediately for editing
   };
 
   const schoolInitials = settings.schoolName
@@ -165,7 +172,7 @@ export function Dashboard() {
 
         {/* ✅ 3. CONDITIONAL RENDERING: Empty vs Content */}
         {students.length === 0 ? (
-          <EmptyState onAddStudent={handleAddNew} onLoadDemo={loadDemoData} />
+          <EmptyState onAddStudent={handleAddNew} onLoadDemo={() => setShowDemoModal(true)} />
         ) : (
           <>
             {/* 1. STATS */}
@@ -191,6 +198,19 @@ export function Dashboard() {
         )}
       </main>
       <Footer />
+
+      {/* ✅ DEMO DATA CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={showDemoModal}
+        title="Load Demo Data?"
+        message="This will add sample students to your database so you can test the report generation. You can delete them later."
+        confirmText="Load Samples"
+        onConfirm={() => {
+          loadDemoData();
+          setShowDemoModal(false);
+        }}
+        onClose={() => setShowDemoModal(false)}
+      />
 
       {/* MODAL (Keep as is) */}
       {editingStudent && (

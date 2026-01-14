@@ -7,7 +7,6 @@ export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
-
   // Export all data as JSON file
   const handleExport = () => {
     try {
@@ -26,10 +25,10 @@ export function DataBackup() {
       const link = document.createElement("a");
 
       // Create filename with school name and date
-      const schoolName = backup.settings.name || "School";
+      const schoolName = backup.settings.schoolName || "School";
       const date = new Date().toISOString().split("T")[0];
       link.href = url;
-      link.download = `${schoolName}_Backup_${date}.json`;
+      link.download = `${schoolName}_${backup.settings.className || "Class"}_Backup_${date}.json`;
 
       document.body.appendChild(link);
       link.click();
@@ -65,7 +64,7 @@ export function DataBackup() {
 
         // Confirm before overwriting
         const studentCount = backup.students.length;
-        const confirmMsg = `This will replace your current data with ${studentCount} students from ${backup.settings.name}. Continue?`;
+        const confirmMsg = `This will replace your current data with ${studentCount} students from ${backup.settings.schoolName}. Continue?`;
 
         if (!confirm(confirmMsg)) {
           setStatus("idle");
