@@ -1,4 +1,3 @@
-// src/pages/Dashboard.tsx
 import { useState, useMemo } from "react";
 import { X, Settings as SettingsIcon } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
@@ -7,40 +6,37 @@ import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { DashboardStats } from "../components/DashboardStats";
 import { DashboardToolbar } from "../components/DashboardToolbar";
 import { Link } from "@tanstack/react-router";
-// ✅ 1. Import EmptyState
 import { EmptyState } from "../components/EmptyState";
-import type { StudentRecord } from "../types"; // Import type for safety
+import type { StudentRecord } from "../types";
 import { Footer } from "../components/Footer";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { useDebounce } from "../hooks/useDebounce";
 
 export function Dashboard() {
   const { students, settings, addStudent, deleteStudent, updateStudent, loadDemoData } =
     useSchoolData();
 
-  // 1. State to control visibility
+  // Welcome Banner State
   const [showWelcome, setShowWelcome] = useState(() => {
-    // Return TRUE only if the key does NOT exist
-    const hasSeen = localStorage.getItem("classSync_welcome_seen");
-    return !hasSeen;
+    return !localStorage.getItem("classSync_welcome_seen");
   });
 
   const [showDemoModal, setShowDemoModal] = useState(false);
-
-  // 3. Handle Dismiss
-  const handleDismiss = () => {
-    setShowWelcome(false);
-    // Save to storage so it never comes back
-    localStorage.setItem("classSync_welcome_seen", "true");
-  };
-
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<"ALL" | "PENDING" | "FAILING">("ALL");
 
-  // Logic for filtering (Keep existing logic)
+  // Debounce Search Logic
+  const debounceSearch = useDebounce(searchQuery, 300);
+  const isSearching = searchQuery !== "" && debounceSearch !== searchQuery;
+
+  // Filter Logic
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
-      const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = student.name.toLowerCase().includes(debounceSearch.toLowerCase());
       const hasMissingSubjects = student.subjects.length === 0;
       const hasIncompleteScores = student.subjects.some(
         (sub) => sub.classScore === 0 || sub.examScore === 0,
@@ -52,27 +48,24 @@ export function Dashboard() {
       if (activeFilter === "FAILING") return matchesSearch && isFailing;
       return matchesSearch;
     });
-  }, [students, searchQuery, activeFilter]);
+  }, [students, debounceSearch, activeFilter]);
 
   const editingStudent = students.find((s) => s.id === editingStudentId);
 
-  // 2. The Execution (called directly OR after confirming duplicate)
-
-  // 1. The Trigger
+  // ✅ CLEAN ADD HANDLER (No Prompts, No Checks)
   const handleAddNew = () => {
     const newId = Date.now().toString();
-
     const newStudent: StudentRecord = {
       id: newId,
       name: "New Student", // Placeholder
       className: settings.className || "Class",
-      subjects: [], // Will be filled by ScoreEntryModal based on settings
+      subjects: [], // Will be populated by Modal logic
       attendancePresent: 0,
       numberOnRoll: students.length + 1,
     };
 
-    addStudent(newStudent); // 1. Create it
-    setEditingStudentId(newId); // 2. Open it immediately for editing
+    addStudent(newStudent); // Create it
+    setEditingStudentId(newId); // Open modal immediately for editing
   };
 
   const schoolInitials = settings.schoolName
@@ -82,9 +75,14 @@ export function Dashboard() {
     .slice(0, 2)
     .toUpperCase();
 
+  const handleDismiss = () => {
+    setShowWelcome(false);
+    localStorage.setItem("classSync_welcome_seen", "true");
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
-      {/* NAV (Keep exactly as is) */}
+      {/* NAV */}
       <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
@@ -97,7 +95,7 @@ export function Dashboard() {
                     className="h-full w-full rounded-lg object-cover"
                   />
                 ) : (
-                  <span>{schoolInitials || "GH"}</span> // Default to "GH" if no name set
+                  <span>{schoolInitials || "GH"}</span>
                 )}
               </div>
               <div>
@@ -110,7 +108,6 @@ export function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Only show Print button if we actually have students */}
               {students.length > 0 && (
                 <Link
                   to="/print"
@@ -119,7 +116,6 @@ export function Dashboard() {
                   Print Reports
                 </Link>
               )}
-
               <Link
                 to="/settings"
                 className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
@@ -133,20 +129,15 @@ export function Dashboard() {
       </nav>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        {/* ... Inside Dashboard ... */}
-
-        {/* ✅ TUTORIAL CARD */}
-        {/* CONDITIONAL RENDER: Only show if true */}
+        {/* WELCOME BANNER */}
         {showWelcome && (
           <div className="animate-in fade-in slide-in-from-top-4 relative mb-6 rounded-xl bg-linear-to-r from-blue-900 to-blue-700 p-6 text-white shadow-lg">
-            {/* Close Button */}
             <button
               onClick={handleDismiss}
               className="absolute top-2 right-2 rounded-full p-1 transition hover:bg-white/20"
             >
               <X size={20} className="text-white" />
             </button>
-
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div>
                 <h2 className="text-2xl font-bold">
@@ -170,40 +161,70 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* ✅ 3. CONDITIONAL RENDERING: Empty vs Content */}
+        {/* MAIN CONTENT AREA */}
         {students.length === 0 ? (
           <EmptyState onAddStudent={handleAddNew} onLoadDemo={() => setShowDemoModal(true)} />
         ) : (
           <>
-            {/* 1. STATS */}
             <DashboardStats students={students} />
 
-            {/* 2. TOOLBAR */}
-            <DashboardToolbar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-            />
+            <div className="relative">
+              <DashboardToolbar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+              />
 
-            {/* 3. LIST */}
-            <StudentList
-              students={filteredStudents}
-              settings={settings}
-              onAddStudent={addStudent}
-              onDeleteStudent={deleteStudent}
-              onEditStudent={(s) => setEditingStudentId(s.id)}
-            />
+              {/* ✅ SPINNER: Positioned correctly in search bar area */}
+              {isSearching && (
+                <div className="absolute top-2 left-80 z-10 hidden md:block">
+                  <LoadingSpinner size={20} className="text-blue-500" />
+                </div>
+              )}
+            </div>
+
+            {/* ✅ LOGIC: If filtered list is empty, show "No Results", else show List */}
+            {filteredStudents.length === 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-white py-16 text-center shadow-sm">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                  <X className="h-6 w-6 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">No students found</h3>
+                <p className="text-gray-500">
+                  No results for "{searchQuery}" in{" "}
+                  {activeFilter === "ALL" ? "all students" : activeFilter.toLowerCase()}.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setActiveFilter("ALL");
+                  }}
+                  className="mt-4 text-sm font-bold text-blue-600 hover:underline"
+                >
+                  Clear Search & Filters
+                </button>
+              </div>
+            ) : (
+              <StudentList
+                students={filteredStudents}
+                settings={settings}
+                onAddStudent={addStudent}
+                onDeleteStudent={deleteStudent}
+                onEditStudent={(s) => setEditingStudentId(s.id)}
+              />
+            )}
           </>
         )}
       </main>
+
       <Footer />
 
-      {/* ✅ DEMO DATA CONFIRMATION MODAL */}
+      {/* DEMO MODAL */}
       <ConfirmModal
         isOpen={showDemoModal}
         title="Load Demo Data?"
-        message="This will add sample students to your database so you can test the report generation. You can delete them later."
+        message="This will add sample students to your database..."
         confirmText="Load Samples"
         onConfirm={() => {
           loadDemoData();
@@ -212,7 +233,7 @@ export function Dashboard() {
         onClose={() => setShowDemoModal(false)}
       />
 
-      {/* MODAL (Keep as is) */}
+      {/* EDIT MODAL */}
       {editingStudent && (
         <ScoreEntryModal
           student={editingStudent}
