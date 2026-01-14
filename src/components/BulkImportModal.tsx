@@ -1,0 +1,134 @@
+import { useState } from "react";
+import { X, Upload, CheckCircle } from "lucide-react";
+import { useSchoolData } from "../hooks/useSchoolData";
+import type { StudentRecord } from "../types";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function BulkImportModal({ isOpen, onClose }: Props) {
+  const { addStudent, settings, students } = useSchoolData();
+  const [text, setText] = useState("");
+  const [preview, setPreview] = useState<string[]>([]);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+
+  if (!isOpen) return null;
+
+  // 1. Process Text Input
+  const handlePreview = () => {
+    if (!text.trim()) return;
+
+    // Split by newline, trim whitespace, remove empty lines
+    const names = text
+      .split(/\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    setPreview(names);
+    setIsPreviewing(true);
+  };
+
+  // 2. Commit to Database
+  const handleImport = () => {
+    let addedCount = 0;
+
+    preview.forEach((name, index) => {
+      // Basic duplicate check (optional, or just allow duplicates as per our new philosophy)
+      // For bulk, let's just add them. Unique IDs handle identity.
+
+      const newStudent: StudentRecord = {
+        id: `${Date.now()}-${index}`, // Ensure unique timestamp even in loop
+        name: name,
+        className: settings.className || "Class",
+        subjects: [],
+        attendancePresent: 0,
+        numberOnRoll: students.length + addedCount + 1,
+      };
+
+      addStudent(newStudent);
+      addedCount++;
+    });
+
+    onClose();
+    setText("");
+    setIsPreviewing(false);
+    setPreview([]);
+  };
+
+  return (
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 p-4">
+          <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+            <Upload className="h-5 w-5 text-blue-600" />
+            Bulk Import Students
+          </h3>
+          <button onClick={onClose}>
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6">
+          {!isPreviewing ? (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Paste your class list below. One student name per line.
+              </p>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Kwame Mensah&#10;Ama Serwaa&#10;John Doe"
+                className="h-64 w-full resize-none rounded-lg border border-gray-300 p-4 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handlePreview}
+                disabled={!text.trim()}
+                className="w-full rounded-lg bg-blue-600 py-2.5 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                Preview List
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800">
+                <CheckCircle className="h-5 w-5" />
+                <span>
+                  Found <strong>{preview.length}</strong> valid names ready to import.
+                </span>
+              </div>
+
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <ul className="divide-y divide-gray-200">
+                  {preview.map((name, i) => (
+                    <li key={i} className="px-3 py-2 text-sm font-medium text-gray-700">
+                      {i + 1}. {name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsPreviewing(false)}
+                  className="flex-1 rounded-lg border border-gray-300 py-2 font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleImport}
+                  className="flex-1 rounded-lg bg-blue-600 py-2 font-bold text-white hover:bg-blue-700"
+                >
+                  Import All
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

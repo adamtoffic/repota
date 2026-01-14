@@ -12,18 +12,30 @@ import { Footer } from "../components/Footer";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useDebounce } from "../hooks/useDebounce";
+import { exportToCSV } from "../utils/export";
+import { BulkImportModal } from "../components/BulkImportModal";
 
 export function Dashboard() {
-  const { students, settings, addStudent, deleteStudent, updateStudent, loadDemoData } =
-    useSchoolData();
+  const {
+    students,
+    settings,
+    addStudent,
+    deleteStudent,
+    updateStudent,
+    loadDemoData,
+    deletePendingStudents,
+  } = useSchoolData();
 
   // Welcome Banner State
   const [showWelcome, setShowWelcome] = useState(() => {
     return !localStorage.getItem("classSync_welcome_seen");
   });
 
+  const [confirmCleanModal, setConfirmCleanModal] = useState(false);
+
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -174,6 +186,14 @@ export function Dashboard() {
                 onSearchChange={setSearchQuery}
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
+                onExport={() =>
+                  exportToCSV(
+                    students,
+                    `Class_Broadsheet_${new Date().toISOString().split("T")[0]}`,
+                  )
+                }
+                onDeletePending={() => setConfirmCleanModal(true)}
+                onImport={() => setShowImportModal(true)}
               />
 
               {/* ✅ SPINNER: Positioned correctly in search bar area */}
@@ -243,6 +263,23 @@ export function Dashboard() {
           onUpdateStudent={updateStudent}
         />
       )}
+
+      {/* ✅ BULK IMPORT MODAL */}
+      <BulkImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
+
+      {/* ✅ CONFIRM CLEAN MODAL */}
+      <ConfirmModal
+        isOpen={confirmCleanModal}
+        title="Delete Incomplete Students?"
+        message="This will remove all students who have NO SUBJECTS or ZERO SCORES. This is useful for cleaning up 'New Student' entries."
+        confirmText="Yes, Clean Up"
+        isDangerous={true}
+        onClose={() => setConfirmCleanModal(false)}
+        onConfirm={() => {
+          deletePendingStudents();
+          setConfirmCleanModal(false);
+        }}
+      />
     </div>
   );
 }

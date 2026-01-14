@@ -86,8 +86,12 @@ export function StudentList({
       </div>
 
       {/* TABLE */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+      <div className="w-full overflow-x-auto">
+        {" "}
+        {/* ✅ Ensure this is here */}
+        <table className="w-full min-w-150 text-left text-sm">
+          {" "}
+          {/* ✅ Add min-w to force scroll */}
           <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
             <tr>
               <th className="px-6 py-4">Name / ID</th>

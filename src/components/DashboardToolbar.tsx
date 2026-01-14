@@ -1,5 +1,6 @@
 // src/components/DashboardToolbar.tsx
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Download, MoreVertical, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
 import type { ReactNode } from "react"; // Needed for the 'icon' type
 
 // 1. Define Props for the Main Toolbar
@@ -8,6 +9,9 @@ interface ToolbarProps {
   onSearchChange: (value: string) => void;
   activeFilter: "ALL" | "PENDING" | "FAILING";
   onFilterChange: (filter: "ALL" | "PENDING" | "FAILING") => void;
+  onExport: () => void;
+  onDeletePending: () => void;
+  onImport: () => void;
 }
 
 // 2. Define Props for the Helper Button (The Fix!)
@@ -25,7 +29,11 @@ export function DashboardToolbar({
   onSearchChange,
   activeFilter,
   onFilterChange,
+  onExport,
+  onDeletePending,
+  onImport,
 }: ToolbarProps) {
+  const [showMenu, setShowMenu] = useState(false);
   return (
     <div className="mb-6 flex flex-col items-center justify-between gap-4 md:flex-row">
       {/* Search Input */}
@@ -43,7 +51,7 @@ export function DashboardToolbar({
       </div>
 
       {/* Filter Buttons */}
-      <div className="flex w-full gap-2 overflow-x-auto pb-1 md:w-auto md:pb-0">
+      <div className="no-scrollbar flex w-full gap-2 overflow-x-auto pb-2 md:w-auto md:pb-0">
         <FilterButton
           label="All Students"
           isActive={activeFilter === "ALL"}
@@ -64,6 +72,55 @@ export function DashboardToolbar({
           activeColor="bg-red-500"
           hoverColor="hover:bg-red-50"
         />
+      </div>
+
+      {/* ✅ NEW: ACTIONS DROPDOWN */}
+      <div className="relative">
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+        >
+          Actions <MoreVertical size={16} />
+        </button>
+
+        {showMenu && (
+          <>
+            {/* Click outside closer */}
+            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+
+            <div className="absolute top-full right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+              <button
+                onClick={() => {
+                  onExport();
+                  setShowMenu(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Download size={16} className="text-blue-600" /> Export CSV
+              </button>
+
+              <button
+                onClick={() => {
+                  onImport();
+                  setShowMenu(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Upload size={16} className="text-green-600" /> Import Names
+              </button>
+              <div className="my-1 border-t border-gray-100" />
+              <button
+                onClick={() => {
+                  onDeletePending();
+                  setShowMenu(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                <Trash2 size={16} /> Clean Empty Rows
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

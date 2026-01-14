@@ -121,6 +121,27 @@ export function useSchoolData() {
     });
   };
 
+  // ✅ NEW: Bulk Delete
+  const deletePendingStudents = () => {
+    // Keep students who have subjects AND scores > 0
+    setStudents((prev) => {
+      const active = prev.filter(
+        (s) =>
+          s.subjects.length > 0 &&
+          s.subjects.some((sub) => sub.classScore > 0 || sub.examScore > 0),
+      );
+      const removedCount = prev.length - active.length;
+
+      if (removedCount > 0) {
+        showToast(`Cleaned up ${removedCount} incomplete student records.`, "success");
+      } else {
+        showToast("No pending students found.", "info");
+      }
+
+      return active;
+    });
+  };
+
   const updateStudent = (updatedStudent: StudentRecord) => {
     setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
   };
@@ -156,5 +177,6 @@ export function useSchoolData() {
     loadDemoData,
     updateClassNameForAll,
     checkDuplicateName,
+    deletePendingStudents,
   };
 }

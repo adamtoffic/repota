@@ -124,53 +124,68 @@ export function ReportTemplate({ student, settings }: Props) {
         </header>
 
         {/* =================================================================================
-            SECTION 2: STUDENT ID CARD (Slate/Navy Theme)
+            SECTION 2: STUDENT ID CARD (With Photo Support)
            ================================================================================= */}
-        <section className="border-2 border-blue-950 bg-white">
-          <div className="grid grid-cols-[1fr_120px_100px_100px] divide-x-2 divide-blue-950 border-b-2 border-blue-950">
-            <div className="p-2">
-              <span className="block text-[9px] font-black text-slate-500 uppercase">
-                Name of Student
-              </span>
-              <span className="block truncate text-lg leading-tight font-black tracking-tight text-slate-900 uppercase">
-                {student.name}
-              </span>
+        <section className="flex border-2 border-blue-950 bg-white">
+          {/* ✅ 1. STUDENT PHOTO (Only renders if exists) */}
+          {student.pictureUrl && (
+            <div className="flex w-[110px] shrink-0 items-center justify-center border-r-2 border-blue-950 bg-slate-50 p-2">
+              <img
+                src={student.pictureUrl}
+                alt="Student"
+                className="h-24 w-24 rounded-md object-cover shadow-sm grayscale-0 print:grayscale"
+              />
             </div>
-            <div className="bg-slate-50 p-2 text-center print:bg-gray-100">
-              <span className="block text-[9px] font-black text-slate-500 uppercase">Class</span>
-              <span className="block text-lg leading-tight font-black text-slate-900">
-                {settings.className || student.className}
-              </span>
-            </div>
-            <div className="p-2 text-center">
-              <span className="block text-[9px] font-black text-slate-500 uppercase">No. Roll</span>
-              <span className="block text-lg leading-tight font-black text-slate-900">
-                {student.numberOnRoll || "-"}
-              </span>
-            </div>
-            {/* Navy background - prints as dark gray/black */}
-            <div className="bg-blue-950 p-2 text-center text-white print:bg-black">
-              <span className="block text-[9px] font-black uppercase opacity-90">Position</span>
-              <span className="block text-xl leading-tight font-black">
-                {student.classPosition}
-              </span>
-            </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-2 divide-x-2 divide-blue-950">
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-[10px] font-black text-slate-500 uppercase">Attendance</span>
-              <span className="font-mono text-base font-black text-slate-900">
-                {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
-              </span>
+          {/* ✅ 2. DETAILS GRID (Takes remaining space) */}
+          <div className="flex-1">
+            {/* Row 1: Main Identity */}
+            <div className="grid grid-cols-[1fr_100px_80px_80px] divide-x-2 divide-blue-950 border-b-2 border-blue-950">
+              <div className="p-2">
+                <span className="block text-[9px] font-black text-slate-500 uppercase">
+                  Name of Student
+                </span>
+                <span className="block truncate text-lg leading-tight font-black tracking-tight text-slate-900 uppercase">
+                  {student.name}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-2 text-center print:bg-gray-100">
+                <span className="block text-[9px] font-black text-slate-500 uppercase">Class</span>
+                <span className="block text-lg leading-tight font-black text-slate-900">
+                  {settings.className || student.className}
+                </span>
+              </div>
+              <div className="p-2 text-center">
+                <span className="block text-[9px] font-black text-slate-500 uppercase">
+                  No. Roll
+                </span>
+                <span className="block text-lg leading-tight font-black text-slate-900">
+                  {student.numberOnRoll || "-"}
+                </span>
+              </div>
+              <div className="bg-blue-950 p-2 text-center text-white print:bg-black">
+                <span className="block text-[9px] font-black uppercase opacity-90">Pos.</span>
+                <span className="block text-xl leading-tight font-black">
+                  {student.classPosition}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-[10px] font-black text-slate-500 uppercase">
-                Next Term Begins
-              </span>
-              <span className="text-sm font-bold text-slate-900">
-                {settings.nextTermStarts || "TBA"}
-              </span>
+
+            {/* Row 2: Secondary Stats */}
+            <div className="grid grid-cols-2 divide-x-2 divide-blue-950">
+              <div className="flex items-center justify-between px-3 py-1.5">
+                <span className="text-[10px] font-black text-slate-500 uppercase">Attendance</span>
+                <span className="font-mono text-sm font-black text-slate-900">
+                  {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-1.5">
+                <span className="text-[10px] font-black text-slate-500 uppercase">Next Term</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {settings.nextTermStarts || "TBA"}
+                </span>
+              </div>
             </div>
           </div>
         </section>

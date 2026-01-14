@@ -10,6 +10,7 @@ import {
   getRandomInterest,
 } from "../../utils/remarkGenerator";
 import { useToast } from "../../hooks/useToast";
+import { ImageUploader } from "../ImageUploader";
 
 interface Props {
   student: ProcessedStudent;
@@ -30,6 +31,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
     teacherRemark: student.teacherRemark || "",
     promotionStatus: student.promotionStatus || "",
     numberOnRoll: student.numberOnRoll || 0,
+    pictureUrl: student.pictureUrl || "",
   });
 
   const handleSave = () => {
@@ -50,6 +52,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
       teacherRemark: formData.teacherRemark,
       promotionStatus: formData.promotionStatus,
       numberOnRoll: formData.numberOnRoll,
+      pictureUrl: formData.pictureUrl,
     };
 
     onUpdate(updatedRecord);
@@ -58,6 +61,17 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
+      {/* 1. NEW: PHOTO UPLOAD SECTION */}
+      <div className="flex justify-center">
+        <div className="w-32">
+          <ImageUploader
+            label="Student Photo"
+            value={formData.pictureUrl}
+            onChange={(val) => setFormData({ ...formData, pictureUrl: val || "" })}
+            maxHeight="h-32"
+          />
+        </div>
+      </div>
       {/* 1. PROFILE SECTION */}
       <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h3 className="text-sm font-bold tracking-wide text-gray-800 uppercase">
