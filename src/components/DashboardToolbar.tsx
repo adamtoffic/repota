@@ -1,5 +1,5 @@
 // src/components/DashboardToolbar.tsx
-import { Search, Filter, Download, MoreVertical, Trash2, Upload } from "lucide-react";
+import { Search, Download, MoreVertical, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react"; // Needed for the 'icon' type
 

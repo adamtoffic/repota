@@ -1,20 +1,18 @@
 import { useState, useRef } from "react";
-import { Download, Upload, Database, AlertTriangle, CheckCircle } from "lucide-react";
+import { Download, Upload, AlertTriangle, CheckCircle, Share2 } from "lucide-react"; // ✅ Added Share2 icon
 import { useToast } from "../hooks/useToast";
-import { ConfirmModal } from "./ConfirmModal"; // ✅ Import Modal
-import { safeGetItem, safeSetItem, STORAGE_KEYS } from "../utils/storage"; // ✅ Use Safe Storage
+import { ConfirmModal } from "./ConfirmModal";
+import { safeGetItem, safeSetItem, STORAGE_KEYS } from "../utils/storage";
 
 export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
 
-  // ✅ STATE FOR MODAL
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [importStats, setImportStats] = useState({ count: 0, school: "" });
 
-  // Ref to reset file input
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. EXPORT HANDLER
@@ -23,7 +21,6 @@ export function DataBackup() {
       const students = safeGetItem(STORAGE_KEYS.STUDENTS);
       const settings = safeGetItem(STORAGE_KEYS.SETTINGS);
 
-      // Parse safely
       const parsedSettings = settings ? JSON.parse(settings) : {};
       const parsedStudents = students ? JSON.parse(students) : [];
 
@@ -42,9 +39,9 @@ export function DataBackup() {
       const className = parsedSettings.className || "Class";
       const date = new Date().toISOString().split("T")[0];
 
-      // Filename: "Royal_School_JHS2_Backup_2025-10-20.json"
+      // Filename optimized for WhatsApp (e.g., "Class6_Data_2025.json")
       link.href = url;
-      link.download = `${schoolName}_${className}_Backup_${date}.json`.replace(/\s+/g, "_");
+      link.download = `${schoolName}_${className}_${date}.json`.replace(/\s+/g, "_");
 
       document.body.appendChild(link);
       link.click();
@@ -52,17 +49,17 @@ export function DataBackup() {
       URL.revokeObjectURL(url);
 
       setStatus("success");
-      showToast(`Backup created with ${parsedStudents.length} students.`, "success");
-      setMessage(`Backup downloaded! (${parsedStudents.length} students)`);
-      setTimeout(() => setStatus("idle"), 3000);
+      showToast("File saved! You can now send this via WhatsApp.", "success");
+      setMessage(`File downloaded. Check your 'Downloads' folder.`);
+      setTimeout(() => setStatus("idle"), 5000);
     } catch (error) {
       setStatus("error");
-      setMessage("Failed to export data.");
+      setMessage("Failed to save file.");
       console.error(error);
     }
   };
 
-  // 2. FILE SELECTION (Pre-Validation)
+  // 2. FILE SELECTION
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -73,28 +70,26 @@ export function DataBackup() {
         const content = e.target?.result as string;
         const backup = JSON.parse(content);
 
-        // Validate structure
         if (!backup.students || !backup.settings) {
           throw new Error("Invalid file format");
         }
 
-        // ✅ Save file to state and OPEN MODAL instead of window.confirm
         setPendingFile(file);
         setImportStats({
           count: backup.students.length,
           school: backup.settings.schoolName || "Unknown School",
         });
         setShowImportModal(true);
-      } catch (error) {
+      } catch {
         setStatus("error");
-        showToast("Invalid backup file.", "error");
-        if (fileInputRef.current) fileInputRef.current.value = ""; // Reset
+        showToast("Invalid file. Please select a valid ClassSync file.", "error");
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
     reader.readAsText(file);
   };
 
-  // 3. ACTUAL IMPORT (After Modal Confirmation)
+  // 3. IMPORT EXECUTION
   const executeImport = () => {
     if (!pendingFile) return;
 
@@ -103,15 +98,11 @@ export function DataBackup() {
       const content = e.target?.result as string;
       const backup = JSON.parse(content);
 
-      // Restore to LocalStorage
       safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(backup.students));
       safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(backup.settings));
 
       setStatus("success");
-      showToast("Data restored! Reloading...", "success");
-      setMessage("Restore complete. Refreshing app...");
-
-      // Reload to apply changes (Context needs to re-mount to pick up storage changes if purely relying on init)
+      showToast("Class data loaded successfully!", "success");
       setTimeout(() => window.location.reload(), 1000);
     };
     reader.readAsText(pendingFile);
@@ -121,15 +112,18 @@ export function DataBackup() {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
-        <Database className="h-5 w-5 text-blue-600" />
+        <div className="rounded-lg bg-blue-50 p-2">
+          <Share2 className="h-5 w-5 text-blue-600" />
+        </div>
         <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
-          Share Class Data
+          Share & Transfer Data
         </h2>
       </div>
 
       <p className="mb-6 text-sm leading-relaxed text-gray-600">
-        <strong>Going to the Cafe?</strong> Download your data here to take it with you. You can
-        also send this file to another teacher to input scores.
+        Need to switch from your phone to a laptop? Or send this class to another teacher?
+        <br />
+        Save this file and send it via <strong>WhatsApp (Document)</strong> or Bluetooth.
       </p>
 
       {/* Status Message */}
@@ -150,19 +144,17 @@ export function DataBackup() {
 
       {/* Action Buttons */}
       <div className="grid gap-3 sm:grid-cols-2">
-        {/* Export */}
         <button
           onClick={handleExport}
           className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 active:scale-95"
         >
           <Download className="h-4 w-4" />
-          Save to Device
+          Save Class File
         </button>
 
-        {/* Import */}
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 font-bold text-gray-700 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95">
           <Upload className="h-4 w-4" />
-          Load from Device
+          Load Class File
           <input
             ref={fileInputRef}
             type="file"
@@ -174,31 +166,31 @@ export function DataBackup() {
       </div>
 
       {/* Warning Notice */}
-      <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
+      <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3">
         <div className="flex gap-2">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600" />
-          <div className="text-xs text-orange-800">
-            <p className="font-bold">Team Work Tip:</p>
+          <AlertTriangle className="h-4 w-4 shrink-0 text-blue-600" />
+          <div className="text-xs text-blue-800">
+            <p className="font-bold">Working with other teachers?</p>
             <p className="mt-1">
-              If you share this file with another teacher, <strong>wait for them to finish</strong>{" "}
-              and send it back before you continue working. Otherwise, your changes might overwrite
-              theirs!
+              Pass this file like a baton. Finish your part, save it, and send it to the next
+              teacher.
+              <strong>Do not work on the same file at the same time</strong>, or someone's work will
+              be lost.
             </p>
           </div>
         </div>
       </div>
 
-      {/* ✅ CONFIRM IMPORT MODAL */}
       <ConfirmModal
         isOpen={showImportModal}
-        title="Overwrite Current Data?"
-        message={`You are about to load data for "${importStats.school}" containing ${importStats.count} students. This will REPLACE everything currently on this device.`}
-        confirmText="Yes, Overwrite Everything"
+        title="Load New Class Data?"
+        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will REPLACE the current data on this device.`}
+        confirmText="Yes, Load File"
         cancelText="Cancel"
         isDangerous={true}
         onClose={() => {
           setShowImportModal(false);
-          if (fileInputRef.current) fileInputRef.current.value = ""; // Reset input
+          if (fileInputRef.current) fileInputRef.current.value = "";
         }}
         onConfirm={executeImport}
       />
