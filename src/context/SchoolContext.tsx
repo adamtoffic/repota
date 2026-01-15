@@ -20,6 +20,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     if (saved) {
       return JSON.parse(saved); // (Simplified for brevity, keep your migration logic if needed)
     }
+
     return {
       schoolName: "My School Name",
       academicYear: "2025/2026",
@@ -44,6 +45,35 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   });
 
   const { showToast } = useToast();
+
+  // ✅ NEW: RESTORE DEFAULTS (Factory Reset for Settings only)
+  const restoreDefaults = () => {
+    const defaultSettings: SchoolSettings = {
+      schoolName: "My School Name",
+      academicYear: "2025/2026",
+      term: "First Term",
+      level: "PRIMARY",
+      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
+      totalAttendanceDays: 70,
+      classScoreMax: 30,
+      examScoreMax: 70,
+      nextTermStarts: "",
+      headTeacherName: "",
+      classTeacherName: "",
+      className: "",
+      phoneNumber: "",
+      address: "",
+      email: "",
+      schoolMotto: "",
+      logoUrl: "",
+      headTeacherSignature: "",
+      teacherSignature: "",
+      schoolType: "ISLAMIC",
+    };
+
+    setSettings(defaultSettings);
+    showToast("Settings restored to factory defaults.", "success");
+  };
 
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
@@ -147,6 +177,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         loadDemoData,
         updateClassNameForAll,
         checkDuplicateName,
+        restoreDefaults,
       }}
     >
       {children}

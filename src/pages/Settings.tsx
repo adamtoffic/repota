@@ -10,6 +10,7 @@ import {
   Users,
   Briefcase,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -21,7 +22,8 @@ import { CLASS_OPTIONS } from "../constants/classes";
 import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
 
 export function Settings() {
-  const { settings, setSettings, updateClassNameForAll, students } = useSchoolData();
+  const { settings, setSettings, updateClassNameForAll, students, restoreDefaults } =
+    useSchoolData();
   const { showToast } = useToast();
   const navigate = useNavigate({ from: "/settings" });
 
@@ -29,6 +31,7 @@ export function Settings() {
   const [formData, setFormData] = useState<SchoolSettings>(settings);
   const [newSubject, setNewSubject] = useState("");
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // --- SMART LOGIC: LEVEL CHANGE ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
@@ -496,6 +499,25 @@ export function Settings() {
         {/* BACKUP SECTION (Restored) */}
         <DataBackup />
 
+        {/* ✅ DANGER ZONE: FACTORY RESET */}
+        <div className="rounded-xl border border-red-100 bg-red-50 p-6 shadow-sm">
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-red-900">
+            <RotateCcw className="h-5 w-5" /> Reset Configuration
+          </h2>
+          <p className="mb-4 text-sm text-red-700">
+            Messed up your settings? This will restore the default subject lists, grading limits,
+            and school details.
+            <br />
+            <strong>Note:</strong> This will NOT delete your students.
+          </p>
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-100"
+          >
+            Restore Factory Defaults
+          </button>
+        </div>
+
         {/* ... Inside Settings.tsx, after the "Danger Zone" card ... */}
 
         {/* ✅ ABOUT THE DEVELOPER CARD */}
@@ -556,6 +578,22 @@ export function Settings() {
         onConfirm={() => {
           setShowClassUpdateModal(false);
           finalizeSave(true);
+        }}
+      />
+
+      {/* ✅ RESET CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={showResetModal}
+        title="Restore Default Settings?"
+        message="Are you sure? This will overwrite your School Name, Logo, and Default Subjects. Your student data will remain safe."
+        confirmText="Yes, Restore Defaults"
+        isDangerous={true}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={() => {
+          restoreDefaults();
+          setShowResetModal(false);
+          // Optional: Reload page to ensure clean state
+          setTimeout(() => window.location.reload(), 1000);
         }}
       />
     </div>

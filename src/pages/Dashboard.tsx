@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, Settings as SettingsIcon } from "lucide-react";
+import { X, Printer, Settings as SettingsIcon } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
@@ -95,11 +95,14 @@ export function Dashboard() {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
       {/* NAV */}
-      <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white">
+      <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">
+            {/* LEFT SIDE: Logo & Name */}
+            <div className="flex items-center gap-3 overflow-hidden">
+              {" "}
+              {/* Added overflow-hidden */}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">
                 {settings.logoUrl ? (
                   <img
                     src={settings.logoUrl}
@@ -110,30 +113,35 @@ export function Dashboard() {
                   <span>{schoolInitials || "GH"}</span>
                 )}
               </div>
-              <div>
-                <h1 className="text-lg leading-tight font-bold text-gray-900">
-                  {settings.schoolName}
+              <div className="min-w-0 flex-1">
+                {" "}
+                {/* min-w-0 is CRITICAL for text truncation in flex */}
+                <h1 className="truncate text-base leading-tight font-bold text-gray-900 sm:text-lg">
+                  {settings.schoolName || "My School"}
                 </h1>
-                <p className="text-xs text-gray-500">
+                <p className="truncate text-xs text-gray-500">
                   {settings.term} • {settings.level}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* RIGHT SIDE: Buttons (Icon only on Mobile) */}
+            <div className="flex items-center gap-2 pl-2">
               {students.length > 0 && (
                 <Link
                   to="/print"
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                  className="flex items-center justify-center rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700 sm:px-4 sm:py-2"
                 >
-                  Print Reports
+                  <Printer className="h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" /> {/* Icon only on mobile */}
+                  <span className="hidden text-sm font-medium sm:inline">Print</span>
                 </Link>
               )}
               <Link
                 to="/settings"
-                className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                className="flex items-center justify-center rounded-lg bg-gray-100 p-2 text-gray-700 hover:bg-gray-200 sm:px-4 sm:py-2"
               >
-                <SettingsIcon className="h-4 w-4" />{" "}
-                <span className="hidden sm:inline">Settings</span>
+                <SettingsIcon className="h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
+                <span className="hidden text-sm font-medium sm:inline">Settings</span>
               </Link>
             </div>
           </div>

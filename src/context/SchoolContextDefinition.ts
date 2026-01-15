@@ -12,6 +12,7 @@ export interface SchoolContextType {
   loadDemoData: () => void;
   updateClassNameForAll: (newClassName: string) => void;
   checkDuplicateName: (name: string) => boolean;
+  restoreDefaults: () => void;
 }
 
 export const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
