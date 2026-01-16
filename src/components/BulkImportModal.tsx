@@ -81,7 +81,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Kwame Mensah&#10;Ama Serwaa&#10;John Doe"
+                placeholder="Kwame Mensah&#10;Ama Serwaa&#10;Aiman Adam&#10;...etc"
                 className="h-64 w-full resize-none rounded-lg border border-gray-300 p-4 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
