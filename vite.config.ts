@@ -1,29 +1,65 @@
+// vite.config.ts - PRODUCTION OPTIMIZED
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate", // Auto-update the app when you push new code
-      includeAssets: ["favicon.svg", "logo.svg", "apple-touch-icon.png"],
+      registerType: "autoUpdate",
+      includeAssets: [
+        "favicon.svg",
+        "favicon.ico",
+        "logo.svg",
+        "apple-touch-icon.png",
+        "og-image.png",
+      ],
+
+      workbox: {
+        // Cache strategy for assets
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "cdn-cache",
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
+      },
+
       manifest: {
         name: "Repota - GES Report Generator",
         short_name: "Repota",
-        description: "Offline-first report card generator for Ghanaian teachers.",
-        theme_color: "#1E3A8A", // Your Navy Blue
+        description:
+          "Free, offline-first report card generator for Ghanaian teachers. Generate GES-compliant reports in minutes.",
+        theme_color: "#1E3A8A",
         background_color: "#ffffff",
-        display: "standalone", // Removes browser address bar
+        display: "standalone",
         orientation: "portrait",
         scope: "/",
         start_url: "/",
+        categories: ["education", "productivity", "utilities"],
+
         icons: [
           {
-            src: "pwa-192x192.png", // We will create these in Step 4
+            src: "pwa-64x64.png",
+            sizes: "64x64",
+            type: "image/png",
+          },
+          {
+            src: "pwa-192x192.png",
             sizes: "192x192",
             type: "image/png",
           },
@@ -36,10 +72,46 @@ export default defineConfig({
             src: "pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable", // Looks good on Android round icons
+            purpose: "any maskable",
+          },
+        ],
+
+        // Screenshots for app stores (optional but recommended)
+        screenshots: [
+          {
+            src: "screenshot-mobile.png",
+            sizes: "750x1334",
+            type: "image/png",
+            form_factor: "narrow",
+          },
+          {
+            src: "screenshot-desktop.png",
+            sizes: "1920x1080",
+            type: "image/png",
+            form_factor: "wide",
           },
         ],
       },
+
+      devOptions: {
+        enabled: true, // Enable PWA in development for testing
+      },
     }),
   ],
+
+  // Production optimizations
+  build: {
+    target: "es2015",
+    minify: "esbuild",
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          router: ["@tanstack/react-router"],
+          icons: ["lucide-react"],
+        },
+      },
+    },
+  },
 });
