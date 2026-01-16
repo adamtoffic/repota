@@ -1,7 +1,7 @@
 // src/components/DashboardToolbar.tsx
-import { Search, Download, MoreVertical, Trash2, Upload } from "lucide-react";
+import { Search, Download, MoreVertical, Trash2, Upload, Wand2 } from "lucide-react"; // ✅ Added Wand2
 import { useState } from "react";
-import type { ReactNode } from "react"; // Needed for the 'icon' type
+import type { ReactNode } from "react";
 
 // 1. Define Props for the Main Toolbar
 interface ToolbarProps {
@@ -12,19 +12,18 @@ interface ToolbarProps {
   onExport: () => void;
   onDeletePending: () => void;
   onImport: () => void;
+  onAutoRemarks: () => void; // ✅ NEW PROP
 }
 
-// 2. Define Props for the Helper Button (The Fix!)
+// 2. Define Props for the Helper Button
 interface FilterButtonProps {
   label: string;
   isActive: boolean;
   onClick: () => void;
-  icon?: ReactNode; // Optional icon
-  activeColor?: string; // Optional class string
-  hoverColor?: string; // Optional class string
+  icon?: ReactNode;
+  activeColor?: string;
+  hoverColor?: string;
 }
-
-// ... imports
 
 export function DashboardToolbar({
   searchQuery,
@@ -34,6 +33,7 @@ export function DashboardToolbar({
   onExport,
   onDeletePending,
   onImport,
+  onAutoRemarks, // ✅ Destructure new prop
 }: ToolbarProps) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -88,7 +88,20 @@ export function DashboardToolbar({
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute top-full right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+              <div className="absolute top-full right-0 z-20 mt-2 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                {/* ✅ NEW: Auto-Generate Remarks Button */}
+                <button
+                  onClick={() => {
+                    onAutoRemarks();
+                    setShowMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 bg-purple-50 px-4 py-3 text-sm font-bold text-purple-700 hover:bg-purple-100"
+                >
+                  <Wand2 size={16} className="text-purple-600" /> Auto-Fill Remarks
+                </button>
+
+                <div className="my-1 border-t border-gray-100" />
+
                 <button
                   onClick={() => {
                     onImport();
@@ -107,7 +120,9 @@ export function DashboardToolbar({
                 >
                   <Download size={16} className="text-blue-600" /> Export CSV
                 </button>
+
                 <div className="my-1 border-t border-gray-100" />
+
                 <button
                   onClick={() => {
                     onDeletePending();
@@ -126,9 +141,7 @@ export function DashboardToolbar({
   );
 }
 
-// ... FilterButton remains the same
-
-// 3. The Helper Component (Now Strictly Typed)
+// 3. The Helper Component
 function FilterButton({
   label,
   icon,
@@ -137,7 +150,6 @@ function FilterButton({
   activeColor = "bg-primary",
   hoverColor = "hover:bg-background",
 }: FilterButtonProps) {
-  // <--- Replaced 'any' with 'FilterButtonProps'
   return (
     <button
       onClick={onClick}

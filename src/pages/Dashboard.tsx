@@ -24,6 +24,7 @@ export function Dashboard() {
     updateStudent,
     loadDemoData,
     deletePendingStudents,
+    autoGenerateRemarks,
   } = useSchoolData();
 
   // Welcome Banner State
@@ -181,6 +182,7 @@ export function Dashboard() {
                 }
                 onDeletePending={() => setConfirmCleanModal(true)}
                 onImport={() => setShowImportModal(true)}
+                onAutoRemarks={() => autoGenerateRemarks()}
               />
 
               {/* ✅ SPINNER: Positioned correctly in search bar area */}

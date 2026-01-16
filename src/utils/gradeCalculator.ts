@@ -228,18 +228,23 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
 };
 
 export const assignPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
+  // 1. Sort High to Low
   const sorted = [...students].sort((a, b) => b.averageScore - a.averageScore);
 
   return sorted.map((student, index) => {
     let rank = index + 1;
+
+    // 2. Handle Tie-Breaking (Same logic as Subject Position)
+    // If this student has the same average as the previous one...
     if (index > 0 && student.averageScore === sorted[index - 1].averageScore) {
-      rank = parseInt(sorted[index - 1].classPosition);
+      // Find the first student who had this score to get the true rank
+      const firstOccurrence = sorted.findIndex((s) => s.averageScore === student.averageScore);
+      rank = firstOccurrence + 1;
     }
 
-    const position = getOrdinalSuffix(rank);
     return {
       ...student,
-      classPosition: position,
+      classPosition: getOrdinalSuffix(rank),
     };
   });
 };

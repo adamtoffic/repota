@@ -13,6 +13,7 @@ export interface SchoolContextType {
   updateClassNameForAll: (newClassName: string) => void;
   checkDuplicateName: (name: string) => boolean;
   restoreDefaults: () => void;
+  autoGenerateRemarks: () => void;
 }
 
 export const SchoolContext = createContext<SchoolContextType | undefined>(undefined);

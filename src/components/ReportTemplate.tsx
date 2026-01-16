@@ -389,7 +389,7 @@ export function ReportTemplate({ student, settings }: Props) {
               {settings.teacherSignature && (
                 <img
                   src={settings.teacherSignature}
-                  className="mb-[-10px] block h-12 object-contain mix-blend-multiply"
+                  className="-mb-2.5 block h-12 object-contain mix-blend-multiply"
                   alt="Sign"
                 />
               )}
@@ -403,7 +403,7 @@ export function ReportTemplate({ student, settings }: Props) {
               {settings.headTeacherSignature && (
                 <img
                   src={settings.headTeacherSignature}
-                  className="mb-[-15px] block h-14 object-contain mix-blend-multiply"
+                  className="-mb-3.75 block h-14 object-contain mix-blend-multiply"
                   alt="Sign"
                 />
               )}

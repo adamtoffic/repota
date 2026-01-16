@@ -30,7 +30,7 @@ export function AboutModal({ isOpen, onClose }: Props) {
               <h3 className="text-main font-bold">Built for Teachers</h3>
               <p className="mt-1 text-sm text-gray-600">
                 This tool was designed to help Ghanaian teachers generate professional reports in
-                minutes, not days. It is currently in <strong>Beta (v0.1.0)</strong>.
+                minutes, not days. It is currently in <strong>Beta (v1.0.0)</strong>.
               </p>
             </div>
           </div>

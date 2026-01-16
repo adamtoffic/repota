@@ -7,6 +7,13 @@ import { useToast } from "../hooks/useToast";
 import { safeSetItem, safeGetItem, STORAGE_KEYS } from "../utils/storage";
 // ✅ Import definition
 import { SchoolContext } from "./SchoolContextDefinition";
+import {
+  generateHeadmasterRemark,
+  generateTeacherRemark,
+  generateAttendanceRating,
+  getRandomConductTrait,
+  getRandomInterest,
+} from "../utils/remarkGenerator";
 
 export function SchoolProvider({ children }: { children: ReactNode }) {
   // ... (State initialization stays exactly the same) ...
@@ -68,7 +75,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       logoUrl: "",
       headTeacherSignature: "",
       teacherSignature: "",
-      schoolType: "ISLAMIC",
+      schoolType: "STANDARD",
     };
 
     setSettings(defaultSettings);
@@ -164,6 +171,62 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     return assignPositions(withSubjectPositions);
   }, [students, settings.level]);
 
+  // 8. AUTO-GENERATE REMARKS (Smart Batching)
+  const autoGenerateRemarks = () => {
+    // A. Temporary memory for this operation only
+    // This ensures we know what was used by Student 1 when we get to Student 2
+    const usedHeadmasterRemarks: string[] = [];
+    const usedTeacherRemarks: string[] = [];
+
+    // B. Loop through all students
+    const updatedStudents = students.map((student) => {
+      // Need processed stats (average, etc.) for accurate remarks
+      const processed = processStudent(student, settings.level);
+
+      // 1. Generate Unique Headmaster Remark
+      const hRemark = generateHeadmasterRemark(
+        processed.averageScore,
+        settings.term,
+        usedHeadmasterRemarks, // "Don't use these!"
+      );
+      usedHeadmasterRemarks.push(hRemark); // Add to used pile
+
+      // 2. Generate Unique Teacher Remark
+      const tRemark = generateTeacherRemark(
+        processed,
+        student.attendancePresent ?? 0,
+        settings.totalAttendanceDays ?? 0,
+        settings.level,
+        usedTeacherRemarks, // "Don't use these!"
+      );
+      usedTeacherRemarks.push(tRemark); // Add to used pile
+
+      // 3. Generate Attendance Rating (Standard logic)
+      const attendancePercent =
+        (settings.totalAttendanceDays ?? 0 > 0)
+          ? ((student.attendancePresent ?? 0) / (settings.totalAttendanceDays ?? 0)) * 100
+          : 100;
+      const attRating = generateAttendanceRating(attendancePercent);
+
+      // 4. Fill Conduct/Interest ONLY if empty (Optional - remove checks to overwrite all)
+      const conduct = student.conduct || getRandomConductTrait();
+      const interest = student.interest || getRandomInterest();
+
+      return {
+        ...student,
+        headMasterRemark: hRemark,
+        teacherRemark: tRemark,
+        attendanceRemark: attRating,
+        conduct: conduct,
+        interest: interest,
+      };
+    });
+
+    // C. Save everyone at once
+    setStudents(updatedStudents);
+    showToast("Remarks auto-generated and distributed uniquely!", "success");
+  };
+
   return (
     <SchoolContext.Provider
       value={{
@@ -178,6 +241,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         updateClassNameForAll,
         checkDuplicateName,
         restoreDefaults,
+        autoGenerateRemarks,
       }}
     >
       {children}

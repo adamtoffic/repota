@@ -6,12 +6,28 @@ import { REMARK_BANK, HEADMASTER_BANK, CONDUCT_TRAITS, INTERESTS } from "../cons
 const getRandom = (arr: string[]) =>
   arr && arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : "Good effort.";
 
+const getSmartRandom = (pool: string[], excludeList: string[] = []): string => {
+  if (!pool || pool.length === 0) return "Good effort.";
+
+  // A. Find remarks we haven't used yet
+  const available = pool.filter((r) => !excludeList.includes(r));
+
+  // B. If we have fresh ones, pick one!
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  // C. If deck is empty (all used), reshuffle and pick any
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
 // 1. TEACHER REMARK
 export const generateTeacherRemark = (
   student: ProcessedStudent,
   attendancePresent: number,
   attendanceTotal: number,
   level: SchoolLevel,
+  excludeList: string[] = [],
 ): string => {
   const average = student.averageScore;
   const attendancePercentage =
@@ -21,29 +37,37 @@ export const generateTeacherRemark = (
   const safeLevel = REMARK_BANK[level] ? level : "PRIMARY";
   const LEVEL_BANK = REMARK_BANK[safeLevel];
 
-  if (average >= 80 && attendancePercentage >= 90) return getRandom(LEVEL_BANK.EXCELLENT);
-  if (average >= 60) return getRandom(LEVEL_BANK.GOOD);
-  if (average >= 50) return getRandom(LEVEL_BANK.AVERAGE);
-  return getRandom(LEVEL_BANK.POOR);
+  let pool: string[] = LEVEL_BANK.POOR;
+  if (average >= 80 && attendancePercentage >= 90) pool = LEVEL_BANK.EXCELLENT;
+  else if (average >= 60) pool = LEVEL_BANK.GOOD;
+  else if (average >= 50) pool = LEVEL_BANK.AVERAGE;
+
+  return getSmartRandom(pool, excludeList);
 };
 
 // 2. HEADMASTER REMARK
-export const generateHeadmasterRemark = (averageScore: number, term: AcademicPeriod): string => {
-  // Handle "Third Term", "3rd Term", "Third Semester"
+export const generateHeadmasterRemark = (
+  averageScore: number,
+  term: AcademicPeriod,
+  excludeList: string[] = [], // 🆕 Added Param
+): string => {
   const isPromotionalTerm =
     term.toLowerCase().includes("third") || term.toLowerCase().includes("3rd");
 
+  let pool = HEADMASTER_BANK.GENERAL.POOR;
+
   if (isPromotionalTerm) {
-    if (averageScore >= 50) return getRandom(HEADMASTER_BANK.PROMOTIONAL.Pass);
-    if (averageScore >= 40) return getRandom(HEADMASTER_BANK.PROMOTIONAL.Probation);
-    return getRandom(HEADMASTER_BANK.PROMOTIONAL.Fail);
+    if (averageScore >= 50) pool = HEADMASTER_BANK.PROMOTIONAL.Pass;
+    else if (averageScore >= 40) pool = HEADMASTER_BANK.PROMOTIONAL.Probation;
+    else pool = HEADMASTER_BANK.PROMOTIONAL.Fail;
+  } else {
+    // Normal Terms
+    if (averageScore >= 80) pool = HEADMASTER_BANK.GENERAL.EXCELLENT;
+    else if (averageScore >= 60) pool = HEADMASTER_BANK.GENERAL.GOOD;
+    else if (averageScore >= 50) pool = HEADMASTER_BANK.GENERAL.AVERAGE;
   }
 
-  // Normal Terms
-  if (averageScore >= 80) return getRandom(HEADMASTER_BANK.GENERAL.EXCELLENT);
-  if (averageScore >= 60) return getRandom(HEADMASTER_BANK.GENERAL.GOOD);
-  if (averageScore >= 50) return getRandom(HEADMASTER_BANK.GENERAL.AVERAGE);
-  return getRandom(HEADMASTER_BANK.GENERAL.POOR);
+  return getSmartRandom(pool, excludeList);
 };
 
 // 3. ATTENDANCE RATING (For the "Attendance" box on the report)
