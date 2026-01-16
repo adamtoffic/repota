@@ -23,7 +23,7 @@ import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <label className="mb-1 block text-xs font-bold tracking-wide text-gray-500 uppercase">
+  <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
     {children}
   </label>
 );
@@ -93,7 +93,7 @@ export function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+    <div className="bg-background min-h-screen pb-20 font-sans">
       {/* HEADER */}
       <div className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
@@ -104,11 +104,11 @@ export function Settings() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-lg font-bold text-gray-900 sm:text-xl">Settings</h1>
+            <h1 className="text-main text-lg font-bold sm:text-xl">Settings</h1>
           </div>
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95"
+            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-md transition-all active:scale-95"
           >
             <Save className="h-4 w-4" /> Save
           </button>
@@ -142,7 +142,7 @@ export function Settings() {
                   required
                   value={formData.schoolName}
                   onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                  className={`${inputClass} font-bold text-gray-900`}
+                  className={`${inputClass} text-main font-bold`}
                   placeholder="e.g. Royal International School"
                 />
               </div>
@@ -195,7 +195,7 @@ export function Settings() {
               {/* School Type */}
               <div>
                 <Label>Curriculum Type</Label>
-                <div className="flex flex-wrap gap-4 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <div className="bg-background flex flex-wrap gap-4 rounded-lg border border-gray-100 p-3">
                   <label className="flex cursor-pointer items-center gap-2">
                     <input
                       type="radio"
@@ -424,7 +424,7 @@ export function Settings() {
             <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
               Class Subjects
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-muted text-xs">
               These subjects will be added to all new students automatically.
             </p>
           </div>

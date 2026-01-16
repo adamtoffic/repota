@@ -49,7 +49,7 @@ export function ReportTemplate({ student, settings }: Props) {
 
   return (
     <div
-      className={`report-page h-full w-full bg-white text-slate-900 ${isIslamic ? "font-arabic" : ""}`}
+      className={`report-page text-main h-full w-full bg-white ${isIslamic ? "font-arabic" : ""}`}
     >
       {/* 🛡️ WATERMARK - Subtle for both color and B&W */}
       <div className="watermark print:absolute print:inset-0 print:z-0 print:bg-[url('/assets/coat-of-arms.png')] print:bg-size-[50%] print:bg-center print:bg-no-repeat print:opacity-[0.04]" />
@@ -62,7 +62,7 @@ export function ReportTemplate({ student, settings }: Props) {
         <header className="border-b-[3px] border-blue-950 pb-2">
           {isIslamic && (
             <div className="mb-1 text-center">
-              <p className="font-arabic text-sm font-bold text-slate-900">بسم الله الرحمن الرحيم</p>
+              <p className="font-arabic text-main text-sm font-bold">بسم الله الرحمن الرحيم</p>
             </div>
           )}
 
@@ -84,7 +84,7 @@ export function ReportTemplate({ student, settings }: Props) {
 
             {/* School Details */}
             <div className="flex-1 text-center">
-              <h1 className="font-serif text-3xl leading-none font-black tracking-wide text-slate-900 uppercase">
+              <h1 className="text-main font-serif text-3xl leading-none font-black tracking-wide uppercase">
                 {settings.schoolName || "SCHOOL NAME"}
               </h1>
               {settings.address && (
@@ -117,7 +117,7 @@ export function ReportTemplate({ student, settings }: Props) {
 
           {/* Badge: Navy in color, Black in B&W */}
           <div className="mt-2 text-center">
-            <span className="inline-block rounded-sm bg-blue-950 px-8 py-1.5 text-[11px] font-black tracking-[0.25em] text-white uppercase shadow-sm print:bg-black">
+            <span className="bg-primary inline-block rounded-sm px-8 py-1.5 text-[11px] font-black tracking-[0.25em] text-white uppercase shadow-sm print:bg-black">
               STUDENT REPORT
             </span>
           </div>
@@ -143,28 +143,26 @@ export function ReportTemplate({ student, settings }: Props) {
             {/* Row 1: Main Identity */}
             <div className="grid grid-cols-[1fr_100px_80px_80px] divide-x-2 divide-blue-950 border-b-2 border-blue-950">
               <div className="p-2">
-                <span className="block text-[9px] font-black text-slate-500 uppercase">
+                <span className="text-muted block text-[9px] font-black uppercase">
                   Name of Student
                 </span>
-                <span className="block truncate text-lg leading-tight font-black tracking-tight text-slate-900 uppercase">
+                <span className="text-main block truncate text-lg leading-tight font-black tracking-tight uppercase">
                   {student.name}
                 </span>
               </div>
               <div className="bg-slate-50 p-2 text-center print:bg-gray-100">
-                <span className="block text-[9px] font-black text-slate-500 uppercase">Class</span>
-                <span className="block text-lg leading-tight font-black text-slate-900">
+                <span className="text-muted block text-[9px] font-black uppercase">Class</span>
+                <span className="text-main block text-lg leading-tight font-black">
                   {settings.className || student.className}
                 </span>
               </div>
               <div className="p-2 text-center">
-                <span className="block text-[9px] font-black text-slate-500 uppercase">
-                  No. Roll
-                </span>
-                <span className="block text-lg leading-tight font-black text-slate-900">
+                <span className="text-muted block text-[9px] font-black uppercase">No. Roll</span>
+                <span className="text-main block text-lg leading-tight font-black">
                   {student.numberOnRoll || "-"}
                 </span>
               </div>
-              <div className="bg-blue-950 p-2 text-center text-white print:bg-black">
+              <div className="bg-primary p-2 text-center text-white print:bg-black">
                 <span className="block text-[9px] font-black uppercase opacity-90">Pos.</span>
                 <span className="block text-xl leading-tight font-black">
                   {student.classPosition}
@@ -175,14 +173,14 @@ export function ReportTemplate({ student, settings }: Props) {
             {/* Row 2: Secondary Stats */}
             <div className="grid grid-cols-2 divide-x-2 divide-blue-950">
               <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-[10px] font-black text-slate-500 uppercase">Attendance</span>
-                <span className="font-mono text-sm font-black text-slate-900">
+                <span className="text-muted text-[10px] font-black uppercase">Attendance</span>
+                <span className="text-main font-mono text-sm font-black">
                   {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
                 </span>
               </div>
               <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-[10px] font-black text-slate-500 uppercase">Next Term</span>
-                <span className="text-sm font-bold text-slate-900">
+                <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
+                <span className="text-main text-sm font-bold">
                   {settings.nextTermStarts || "TBA"}
                 </span>
               </div>
@@ -242,10 +240,10 @@ export function ReportTemplate({ student, settings }: Props) {
               {student.subjects.map((sub, idx) => (
                 <tr
                   key={sub.id}
-                  className={`divide-x-2 divide-blue-950 ${density.padding} ${idx % 2 === 1 ? "bg-slate-50 print:bg-gray-50" : "bg-white"}`}
+                  className={`divide-x-2 divide-blue-950 ${density.padding} ${idx % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
                 >
                   <td
-                    className={`px-2 font-black text-slate-900 uppercase ${density.textSize} truncate`}
+                    className={`text-main px-2 font-black uppercase ${density.textSize} truncate`}
                   >
                     {sub.name}
                   </td>
@@ -260,14 +258,12 @@ export function ReportTemplate({ student, settings }: Props) {
                   >
                     {sub.examScore || "-"}
                   </td>
-                  <td
-                    className={`text-center font-mono font-black text-slate-900 ${density.textSize}`}
-                  >
+                  <td className={`text-main text-center font-mono font-black ${density.textSize}`}>
                     {sub.totalScore}
                   </td>
 
                   <td
-                    className={`bg-slate-100 text-center font-mono font-black text-slate-900 print:bg-gray-100 ${density.textSize}`}
+                    className={`text-main bg-slate-100 text-center font-mono font-black print:bg-gray-100 ${density.textSize}`}
                   >
                     {sub.subjectPosition || "-"}
                   </td>
@@ -277,7 +273,7 @@ export function ReportTemplate({ student, settings }: Props) {
                     className={`text-center font-black ${density.textSize} ${
                       String(sub.grade).includes("9") || sub.grade === "F9"
                         ? "text-red-600 underline decoration-2 underline-offset-2 print:text-black"
-                        : "text-slate-900"
+                        : "text-main"
                     }`}
                   >
                     {sub.grade}
@@ -295,7 +291,7 @@ export function ReportTemplate({ student, settings }: Props) {
               {Array.from({ length: fillersNeeded }).map((_, i) => (
                 <tr
                   key={`empty-${i}`}
-                  className={`divide-x-2 divide-blue-950 ${density.padding} ${(student.subjects.length + i) % 2 === 1 ? "bg-slate-50 print:bg-gray-50" : "bg-white"}`}
+                  className={`divide-x-2 divide-blue-950 ${density.padding} ${(student.subjects.length + i) % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
                 >
                   <td colSpan={7}>&nbsp;</td>
                 </tr>
@@ -310,19 +306,19 @@ export function ReportTemplate({ student, settings }: Props) {
         <section className="grid grid-cols-[1fr_auto] border-2 border-blue-950 bg-slate-100 print:bg-gray-100">
           <div className="flex divide-x-2 divide-blue-950">
             <div className="flex flex-col justify-center px-4 py-2">
-              <span className="text-[9px] font-black text-slate-500 uppercase">Overall Score</span>
-              <span className="text-2xl leading-none font-black text-slate-900">
+              <span className="text-muted text-[9px] font-black uppercase">Overall Score</span>
+              <span className="text-main text-2xl leading-none font-black">
                 {student.totalScore}
               </span>
             </div>
             <div className="flex flex-col justify-center px-4 py-2">
-              <span className="text-[9px] font-black text-slate-500 uppercase">Average</span>
-              <span className="text-2xl leading-none font-black text-slate-900">
+              <span className="text-muted text-[9px] font-black uppercase">Average</span>
+              <span className="text-main text-2xl leading-none font-black">
                 {student.averageScore}%
               </span>
             </div>
             {showAggregate && (
-              <div className="flex flex-col justify-center bg-blue-950 px-4 py-2 text-white print:bg-black">
+              <div className="bg-primary flex flex-col justify-center px-4 py-2 text-white print:bg-black">
                 <span className="text-[9px] font-black uppercase">Aggregate</span>
                 <span className="text-center text-2xl leading-none font-black">
                   {student.aggregate}
@@ -334,7 +330,7 @@ export function ReportTemplate({ student, settings }: Props) {
           {settings.term === "Third Term" && student.promotionStatus && (
             <div className="flex items-center border-l-2 border-blue-950 px-6 py-2">
               <div className="text-right">
-                <span className="block text-[9px] font-black text-slate-500 uppercase">Status</span>
+                <span className="text-muted block text-[9px] font-black uppercase">Status</span>
                 <span className="block text-base font-black text-blue-900 uppercase underline decoration-2 underline-offset-2 print:text-black">
                   {student.promotionStatus}
                 </span>
@@ -353,7 +349,7 @@ export function ReportTemplate({ student, settings }: Props) {
               <div className="flex items-center border-r-2 border-blue-950 bg-slate-100 p-2 text-[10px] font-black text-slate-700 uppercase print:bg-gray-200">
                 Conduct
               </div>
-              <div className="p-2 text-xs font-semibold text-slate-900">
+              <div className="text-main p-2 text-xs font-semibold">
                 {student.conduct || "Satisfactory"}
               </div>
             </div>
@@ -363,7 +359,7 @@ export function ReportTemplate({ student, settings }: Props) {
               <div className="flex items-center border-r-2 border-blue-950 bg-slate-100 p-2 text-[10px] font-black text-slate-700 uppercase print:bg-gray-200">
                 Interest
               </div>
-              <div className="p-2 text-xs font-semibold text-slate-900">
+              <div className="text-main p-2 text-xs font-semibold">
                 {student.interest || "Reading, Sports"}
               </div>
             </div>
@@ -373,7 +369,7 @@ export function ReportTemplate({ student, settings }: Props) {
               <div className="flex items-center border-r-2 border-blue-950 bg-slate-100 p-2 text-[10px] font-black text-slate-700 uppercase print:bg-gray-200">
                 Class Teacher
               </div>
-              <div className="p-2 text-xs font-semibold text-slate-900 italic">
+              <div className="text-main p-2 text-xs font-semibold italic">
                 {student.teacherRemark}
               </div>
             </div>
@@ -383,9 +379,7 @@ export function ReportTemplate({ student, settings }: Props) {
               <div className="flex items-center border-r-2 border-blue-950 bg-slate-100 p-2 text-[10px] font-black text-slate-700 uppercase print:bg-gray-200">
                 Head Teacher
               </div>
-              <div className="p-2 text-xs font-semibold text-slate-900 italic">
-                {headmasterRemark}
-              </div>
+              <div className="text-main p-2 text-xs font-semibold italic">{headmasterRemark}</div>
             </div>
           </div>
 

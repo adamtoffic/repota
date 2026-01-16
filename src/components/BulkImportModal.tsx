@@ -62,7 +62,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
       <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
-          <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+          <h3 className="text-main flex items-center gap-2 text-lg font-bold">
             <Upload className="h-5 w-5 text-blue-600" />
             Bulk Import Students
           </h3>
@@ -87,7 +87,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               <button
                 onClick={handlePreview}
                 disabled={!text.trim()}
-                className="w-full rounded-lg bg-blue-600 py-2.5 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+                className="bg-primary w-full rounded-lg py-2.5 font-bold text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 Preview List
               </button>
@@ -101,7 +101,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
                 </span>
               </div>
 
-              <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
+              <div className="bg-background max-h-60 overflow-y-auto rounded-lg border border-gray-200 p-2">
                 <ul className="divide-y divide-gray-200">
                   {preview.map((name, i) => (
                     <li key={i} className="px-3 py-2 text-sm font-medium text-gray-700">
@@ -114,13 +114,13 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsPreviewing(false)}
-                  className="flex-1 rounded-lg border border-gray-300 py-2 font-bold text-gray-700 hover:bg-gray-50"
+                  className="hover:bg-background flex-1 rounded-lg border border-gray-300 py-2 font-bold text-gray-700"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleImport}
-                  className="flex-1 rounded-lg bg-blue-600 py-2 font-bold text-white hover:bg-blue-700"
+                  className="bg-primary flex-1 rounded-lg py-2 font-bold text-white hover:bg-primary/90"
                 >
                   Import All
                 </button>

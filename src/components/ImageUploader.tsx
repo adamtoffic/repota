@@ -45,11 +45,11 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-bold text-gray-500 uppercase">{label}</span>
+      <span className="text-muted text-xs font-bold uppercase">{label}</span>
 
       <div
         onClick={() => inputRef.current?.click()}
-        className={`w-full ${maxHeight} group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-blue-400`}
+        className={`w-full ${maxHeight} group bg-background relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-blue-400`}
       >
         {value ? (
           // ✅ SHOW IMAGE

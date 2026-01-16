@@ -10,14 +10,14 @@ interface Props {
 
 export function Layout({ children, schoolName, activeTab, onTabChange }: Props) {
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="text-main bg-background min-h-screen font-sans">
       {/* NAVIGATION */}
       <nav className="sticky top-0 z-50 bg-blue-900 text-white shadow-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <GraduationCap className="h-8 w-8 text-yellow-400" />
             <div>
-              <h1 className="text-xl leading-tight font-bold">GES Report System</h1>
+              <h1 className="text-xl leading-tight font-bold">Repota</h1>
               <p className="text-xs text-blue-200 opacity-80">
                 {schoolName || "Configure School Name"}
               </p>

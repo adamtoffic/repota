@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+@theme {
+  /* 🔵 BRAND: Navy Blue (#1E3A8A) */
+  --color-primary: #1e3a8a;
+  --color-primary-foreground: #ffffff;
+
+  /* 🟡 ACCENT: Ghana Gold (#FCD34D) */
+  --color-accent: #fcd34d;
+  --color-accent-foreground: #1e3a8a; /* Navy text on gold background looks best */
+
+  /* 🔴 DANGER: Ghana Red (#DC2626) */
+  --color-danger: #dc2626;
+  --color-danger-foreground: #ffffff;
+
+  /* 🟢 SUCCESS: Green (#16A34A) */
+  --color-success: #16a34a;
+  --color-success-foreground: #ffffff;
+
+  /* ⚫ SURFACE COLORS */
+  --color-background: #f9fafb; /* gray-50 */
+  --color-surface: #ffffff; /* white */
+  --color-main: #0f172a; /* slate-900 */
+  --color-muted: #64748b; /* slate-500 */
+
+  /* 🔤 FONT STACK */
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
 :root {
   --font-serif: "Times New Roman", Times, serif;
 }

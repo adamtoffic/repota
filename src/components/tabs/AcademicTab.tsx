@@ -66,7 +66,7 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
           </div>
           <button
             onClick={handleAddMissing}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+            className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-xs font-bold text-white"
           >
             Add Missing
           </button>

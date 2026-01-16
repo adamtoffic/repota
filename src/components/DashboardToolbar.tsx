@@ -80,7 +80,7 @@ export function DashboardToolbar({
         <div className="relative shrink-0">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="flex h-9 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm hover:bg-gray-50 active:scale-95 sm:text-sm"
+            className="hover:bg-background flex h-9 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm active:scale-95 sm:text-sm"
           >
             Actions <MoreVertical size={14} />
           </button>
@@ -94,7 +94,7 @@ export function DashboardToolbar({
                     onImport();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
                 >
                   <Upload size={16} className="text-green-600" /> Import Names
                 </button>
@@ -103,7 +103,7 @@ export function DashboardToolbar({
                     onExport();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
                 >
                   <Download size={16} className="text-blue-600" /> Export CSV
                 </button>
@@ -134,8 +134,8 @@ function FilterButton({
   icon,
   isActive,
   onClick,
-  activeColor = "bg-gray-900",
-  hoverColor = "hover:bg-gray-50",
+  activeColor = "bg-primary",
+  hoverColor = "hover:bg-background",
 }: FilterButtonProps) {
   // <--- Replaced 'any' with 'FilterButtonProps'
   return (

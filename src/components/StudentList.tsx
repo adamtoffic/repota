@@ -74,12 +74,12 @@ export function StudentList({
     // Removed 'overflow-hidden' to prevent any CSS clipping issues with modals
     <div className="relative rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* HEADER */}
-      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-6">
+      <div className="bg-background flex items-center justify-between border-b border-gray-200 p-6">
         <h2 className="text-lg font-bold text-gray-800">Student Records</h2>
 
         <button
           onClick={handleOpenModal} // <--- Calls our safe opener
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+          className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 font-bold text-white shadow-sm transition-colors"
         >
           <UserPlus className="h-4 w-4" /> Add Student
         </button>
@@ -94,7 +94,7 @@ export function StudentList({
           {/* ✅ Add min-w to force scroll */}
           <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
             <tr>
-              <th className="px-6 py-4">Name / ID</th>
+              <th className="px-6 py-4">Name</th>
               <th className="px-6 py-4">Class</th>
               <th className="px-6 py-4">Subjects</th>
               <th className="px-6 py-4">Avg. Score</th>
@@ -113,7 +113,7 @@ export function StudentList({
               students.map((student) => (
                 <tr key={student.id} className="group transition-colors hover:bg-blue-50/50">
                   <td className="px-6 py-4">
-                    <p className="font-bold text-gray-900">{student.name}</p>
+                    <p className="text-main font-bold">{student.name}</p>
                   </td>
                   <td className="px-6 py-4 text-gray-600">{student.className}</td>
                   <td className="px-6 py-4">
@@ -193,14 +193,14 @@ export function StudentList({
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-800">Add New Student</h3>
               <button onClick={() => setIsAddOpen(false)}>
-                <X className="h-5 w-5 text-gray-500" />
+                <X className="text-muted h-5 w-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-4">
               {/* Name Input */}
               <div>
-                <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">
                   Full Name
                 </label>
                 <input
@@ -216,9 +216,7 @@ export function StudentList({
 
               {/* Class Dropdown */}
               <div>
-                <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
-                  Class
-                </label>
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">Class</label>
                 <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
                   {settings.className}
                 </p>
@@ -229,7 +227,7 @@ export function StudentList({
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-blue-600 py-2 font-bold text-white hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2 font-bold text-white"
               >
                 Save Student
               </button>

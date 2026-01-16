@@ -73,16 +73,16 @@ export function PrintPreview() {
 
   if (printableStudents.length === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8 text-center">
+      <div className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center">
         <div className="max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-orange-500" />
-          <h2 className="mb-2 text-xl font-bold text-gray-900">No Students Found</h2>
+          <h2 className="text-main mb-2 text-xl font-bold">No Students Found</h2>
           <p className="mb-6 text-gray-600">
             Add students and enter their grades before generating reports.
           </p>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 font-bold text-white hover:bg-blue-700"
+            className="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white"
           >
             <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Link>
@@ -104,8 +104,8 @@ export function PrintPreview() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Print Preview</h1>
-              <p className="text-xs text-gray-500">
+              <h1 className="text-main text-lg font-bold">Print Preview</h1>
+              <p className="text-muted text-xs">
                 Generating {printableStudents.length} report cards for{" "}
                 {settings.className || "Class"}
               </p>
@@ -114,7 +114,7 @@ export function PrintPreview() {
 
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
           >
             <Printer className="h-4 w-4" /> Print All Reports
           </button>

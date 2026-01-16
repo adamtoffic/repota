@@ -76,21 +76,19 @@ export function DetailsTab({ student, onUpdate }: Props) {
           {/* DETAILS COLUMN (Right on Desktop) */}
           <div className="flex-1 space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
-                Full Name
-              </label>
+              <label className="text-muted mb-1 block text-xs font-bold uppercase">Full Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 p-2.5 font-bold text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="text-main w-full rounded-lg border border-gray-300 p-2.5 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 placeholder="e.g. Kwame Mensah"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">
                   Roll No.
                 </label>
                 <input
@@ -103,7 +101,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-bold text-gray-500 uppercase">
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">
                   Date of Birth
                 </label>
                 <input
@@ -120,12 +118,12 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
       {/* 2. ACADEMIC STATUS */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-xs font-bold tracking-wider text-gray-500 uppercase">
+        <h3 className="text-muted mb-4 text-xs font-bold tracking-wider uppercase">
           Academic Status
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-bold text-gray-500">Days Present</label>
+            <label className="text-muted mb-1 block text-xs font-bold">Days Present</label>
             <div className="relative">
               <input
                 type="number"
@@ -141,7 +139,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-bold text-gray-500">Promotion</label>
+            <label className="text-muted mb-1 block text-xs font-bold">Promotion</label>
             <select
               value={formData.promotionStatus}
               onChange={(e) => setFormData({ ...formData, promotionStatus: e.target.value })}
@@ -159,13 +157,13 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
       {/* 3. QUALITATIVE ASSESSMENT (Remarks) */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-xs font-bold tracking-wider text-gray-500 uppercase">
+        <h3 className="text-muted mb-4 text-xs font-bold tracking-wider uppercase">
           Qualitative Assessment
         </h3>
         <div className="space-y-4">
           {/* CONDUCT */}
           <div>
-            <label className="mb-1 flex justify-between text-xs font-bold text-gray-500">
+            <label className="text-muted mb-1 flex justify-between text-xs font-bold">
               <span>Conduct / Character</span>
               <button
                 type="button"
@@ -186,7 +184,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
           {/* INTEREST */}
           <div>
-            <label className="mb-1 flex justify-between text-xs font-bold text-gray-500">
+            <label className="text-muted mb-1 flex justify-between text-xs font-bold">
               <span>Interest / Talent</span>
               <button
                 type="button"
@@ -207,7 +205,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
           {/* TEACHER REMARK */}
           <div>
-            <label className="mb-1 flex justify-between text-xs font-bold text-gray-500">
+            <label className="text-muted mb-1 flex justify-between text-xs font-bold">
               <span>Teacher's Remark</span>
               <button
                 type="button"
@@ -240,7 +238,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
       <button
         onClick={handleSave}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95"
+        className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95"
       >
         <Save className="h-5 w-5" /> Save Student Details
       </button>

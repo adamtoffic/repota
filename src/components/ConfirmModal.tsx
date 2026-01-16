@@ -36,8 +36,8 @@ export function ConfirmModal({
             />
           </div>
           <div>
-            <h3 className="text-lg leading-tight font-bold text-gray-900">{title}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">{message}</p>
+            <h3 className="text-main text-lg leading-tight font-bold">{title}</h3>
+            <p className="text-muted mt-1 text-sm leading-relaxed">{message}</p>
           </div>
         </div>
 
@@ -45,7 +45,7 @@ export function ConfirmModal({
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="hover:bg-background rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors"
           >
             {cancelText}
           </button>
@@ -55,7 +55,7 @@ export function ConfirmModal({
               onClose();
             }}
             className={`rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors ${
-              isDangerous ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+              isDangerous ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"
             }`}
           >
             {confirmText}

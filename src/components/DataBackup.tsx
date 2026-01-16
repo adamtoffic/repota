@@ -82,7 +82,7 @@ export function DataBackup() {
         setShowImportModal(true);
       } catch {
         setStatus("error");
-        showToast("Invalid file. Please select a valid ClassSync file.", "error");
+        showToast("Invalid file. Please select a valid Repota file.", "error");
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
@@ -146,13 +146,13 @@ export function DataBackup() {
       <div className="grid gap-3 sm:grid-cols-2">
         <button
           onClick={handleExport}
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 active:scale-95"
+          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95"
         >
           <Download className="h-4 w-4" />
           Save Class File
         </button>
 
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 font-bold text-gray-700 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95">
+        <label className="bg-background flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95">
           <Upload className="h-4 w-4" />
           Load Class File
           <input

@@ -32,7 +32,6 @@ export function Dashboard() {
   });
 
   const [confirmCleanModal, setConfirmCleanModal] = useState(false);
-
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -80,47 +79,29 @@ export function Dashboard() {
     setEditingStudentId(newId); // Open modal immediately for editing
   };
 
-  const schoolInitials = settings.schoolName
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   const handleDismiss = () => {
     setShowWelcome(false);
     localStorage.setItem("classSync_welcome_seen", "true");
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 font-sans">
+    <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
       <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
-            {/* LEFT SIDE: Logo & Name */}
+            {/* LEFT SIDE: Brand Identity (SaaS Style) */}
             <div className="flex items-center gap-3 overflow-hidden">
-              {" "}
-              {/* Added overflow-hidden */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">
-                {settings.logoUrl ? (
-                  <img
-                    src={settings.logoUrl}
-                    alt="Logo"
-                    className="h-full w-full rounded-lg object-cover"
-                  />
-                ) : (
-                  <span>{schoolInitials || "GH"}</span>
-                )}
+              {/* 1. Fixed Repota Logo */}
+              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-sm transition-transform hover:scale-105">
+                <img src="/logo.svg" alt="Repota" className="h-full w-full p-1" />
               </div>
+
+              {/* 2. App Name + School Context */}
               <div className="min-w-0 flex-1">
-                {" "}
-                {/* min-w-0 is CRITICAL for text truncation in flex */}
-                <h1 className="truncate text-base leading-tight font-bold text-gray-900 sm:text-lg">
-                  {settings.schoolName || "My School"}
-                </h1>
-                <p className="truncate text-xs text-gray-500">
-                  {settings.term} • {settings.level}
+                <h1 className="text-main text-lg leading-none font-black tracking-tight">REPOTA</h1>
+                <p className="text-muted truncate text-xs font-medium">
+                  {settings.schoolName || "No School Selected"}
                 </p>
               </div>
             </div>
@@ -130,7 +111,7 @@ export function Dashboard() {
               {students.length > 0 && (
                 <Link
                   to="/print"
-                  className="flex items-center justify-center rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700 sm:px-4 sm:py-2"
+                  className="bg-primary hover:bg-primary/90 flex items-center justify-center rounded-lg p-2 text-white transition-colors sm:px-4 sm:py-2"
                 >
                   <Printer className="h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" /> {/* Icon only on mobile */}
                   <span className="hidden text-sm font-medium sm:inline">Print</span>
@@ -138,7 +119,7 @@ export function Dashboard() {
               )}
               <Link
                 to="/settings"
-                className="flex items-center justify-center rounded-lg bg-gray-100 p-2 text-gray-700 hover:bg-gray-200 sm:px-4 sm:py-2"
+                className="flex items-center justify-center rounded-lg bg-gray-100 p-2 text-gray-700 transition-colors hover:bg-gray-200 sm:px-4 sm:py-2"
               >
                 <SettingsIcon className="h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
                 <span className="hidden text-sm font-medium sm:inline">Settings</span>
@@ -151,7 +132,7 @@ export function Dashboard() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {/* WELCOME BANNER */}
         {showWelcome && (
-          <div className="animate-in fade-in slide-in-from-top-4 relative mb-6 rounded-xl bg-linear-to-r from-blue-900 to-blue-700 p-6 text-white shadow-lg">
+          <div className="animate-in fade-in slide-in-from-top-4 relative mb-6 rounded-xl bg-linear-to-r from-blue-950 to-blue-800 p-6 text-white shadow-lg">
             <button
               onClick={handleDismiss}
               className="absolute top-2 right-2 rounded-full p-1 transition hover:bg-white/20"
@@ -160,9 +141,7 @@ export function Dashboard() {
             </button>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div>
-                <h2 className="text-2xl font-bold">
-                  Welcome to {settings.schoolName || "ClassSync"}! 🚀
-                </h2>
+                <h2 className="text-2xl font-bold">Welcome to Repota! 🚀</h2>
                 <p className="mt-1 max-w-xl text-blue-100">
                   New here? Watch this quick 2-minute video to learn how to generate error-free
                   reports instantly.
@@ -171,7 +150,7 @@ export function Dashboard() {
                   <a
                     href="YOUR_YOUTUBE_LINK"
                     target="_blank"
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-blue-900 hover:bg-gray-100"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-blue-900 transition-colors hover:bg-gray-100"
                   >
                     ▶ Watch Tutorial
                   </a>
@@ -218,8 +197,8 @@ export function Dashboard() {
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                   <X className="h-6 w-6 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">No students found</h3>
-                <p className="text-gray-500">
+                <h3 className="text-main text-lg font-bold">No students found</h3>
+                <p className="text-muted">
                   No results for "{searchQuery}" in{" "}
                   {activeFilter === "ALL" ? "all students" : activeFilter.toLowerCase()}.
                 </p>

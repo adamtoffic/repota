@@ -105,7 +105,7 @@ function StatCard({ label, value, icon, colorClass, alert }: StatCardProps) {
       className={`flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
     >
       <div>
-        <p className="text-xs font-bold tracking-wide text-gray-500 uppercase">{label}</p>
+        <p className="text-muted text-xs font-bold tracking-wide uppercase">{label}</p>
         <div className="mt-1 flex items-center gap-2">
           <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
           {alert && (

@@ -12,9 +12,9 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
         <BookOpen className="h-8 w-8 text-blue-600" />
       </div>
 
-      <h2 className="mb-2 text-xl font-bold text-gray-900">Welcome to your new Class Dashboard!</h2>
+      <h2 className="text-main mb-2 text-xl font-bold">Welcome to your new Class Dashboard!</h2>
 
-      <p className="mb-8 max-w-md text-gray-500">
+      <p className="text-muted mb-8 max-w-md">
         You haven't added any students yet. Get started by adding your first student manually, or
         load some demo data to see how the reports look.
       </p>
@@ -22,7 +22,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
       <div className="flex flex-col gap-4 sm:flex-row">
         <button
           onClick={onAddStudent}
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold text-white shadow-sm transition-all active:scale-95"
         >
           <UserPlus className="h-5 w-5" />
           Add First Student

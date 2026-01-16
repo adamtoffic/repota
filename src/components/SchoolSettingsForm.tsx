@@ -103,7 +103,7 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
       </div>
       <button
         onClick={() => onSave(formData)}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+        className="bg-primary hover:bg-primary/90 mt-6 flex w-full items-center justify-center gap-2 rounded px-4 py-2 text-white transition-colors"
       >
         <Save className="h-4 w-4" />
         Save Configuration

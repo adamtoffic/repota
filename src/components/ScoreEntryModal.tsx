@@ -28,10 +28,10 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between rounded-t-xl border-b border-gray-100 bg-gray-50 p-6">
+        <div className="bg-background flex items-center justify-between rounded-t-xl border-b border-gray-100 p-6">
           <div>
             <h2 className="text-xl font-bold text-gray-800">{student.name}</h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-muted text-sm">
               {level} • {student.className}
             </p>
           </div>
@@ -39,7 +39,7 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
             onClick={onClose}
             className="rounded-full p-2 transition-colors hover:bg-gray-200"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="text-muted h-5 w-5" />
           </button>
         </div>
 
@@ -50,7 +50,7 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
               activeTab === "ACADEMIC"
                 ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "text-muted border-transparent hover:text-gray-700"
             }`}
           >
             <BookOpen className="h-4 w-4" /> Academic Scores
@@ -60,7 +60,7 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
               activeTab === "DETAILS"
                 ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "text-muted border-transparent hover:text-gray-700"
             }`}
           >
             <User className="h-4 w-4" /> Student Details
@@ -68,7 +68,7 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
         </div>
 
         {/* CONTENT */}
-        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-6">
+        <div className="bg-background/50 flex-1 overflow-y-auto p-6">
           {/* ✅ VITAL FIX: The 'key' prop.
             By passing student.id as a key, React completely destroys and recreates
             these components when you switch students. This ensures 'DetailsTab'
