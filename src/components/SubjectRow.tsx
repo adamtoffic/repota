@@ -1,3 +1,4 @@
+// src/components/SubjectRow.tsx - MOBILE OPTIMIZED
 import { Trash2, AlertCircle } from "lucide-react";
 import type { SavedSubject, SchoolLevel } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
@@ -24,7 +25,6 @@ export function SubjectRow({
   const { grade, remark } = calculateGrade(total, level);
   const { showToast } = useToast();
 
-  // ✅ VISUAL VALIDATION HELPERS
   const isClassInvalid = (subject.classScore || 0) > maxClassScore;
   const isExamInvalid = (subject.examScore || 0) > maxExamScore;
 
@@ -38,11 +38,8 @@ export function SubjectRow({
 
     const numValue = Number(value);
 
-    // ✅ TOAST WARNING (Logic from your code)
     if (numValue > maxLimit) {
       showToast(`Maximum allowed score is ${maxLimit}.`, "error");
-      // We still allow the update so they see the wrong number,
-      // but the red border will scream at them.
     }
 
     onChange({ ...subject, [field]: numValue });
@@ -52,8 +49,8 @@ export function SubjectRow({
     <div
       className={`group rounded-lg border bg-white p-3 shadow-sm transition-colors sm:p-4 ${
         isClassInvalid || isExamInvalid
-          ? "border-red-300 ring-1 ring-red-100" // 🔴 Error State
-          : "border-gray-200 hover:border-blue-300" // ⚪️ Normal State
+          ? "border-red-300 ring-1 ring-red-100"
+          : "border-gray-200 hover:border-blue-300"
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -65,7 +62,6 @@ export function SubjectRow({
               {remark} ({grade})
             </p>
 
-            {/* 🔴 Inline Error Message */}
             {(isClassInvalid || isExamInvalid) && (
               <p className="mt-0.5 flex animate-pulse items-center gap-1 text-[10px] font-bold text-red-600">
                 <AlertCircle size={10} />
@@ -74,27 +70,31 @@ export function SubjectRow({
             )}
           </div>
 
+          {/* ✅ FIX: Increased touch target to 44px */}
           {onDelete && (
-            <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-500 sm:hidden">
-              <Trash2 className="h-4 w-4" />
+            <button
+              onClick={onDelete}
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 active:scale-95 sm:hidden"
+            >
+              <Trash2 className="h-5 w-5" />
             </button>
           )}
         </div>
 
         {/* 2. INPUTS AREA */}
         <div className="grid grid-cols-6 gap-2 sm:flex sm:w-auto sm:items-center">
-          {/* Class Score Input */}
+          {/* Class Score Input - ✅ Increased height for easier tapping */}
           <div className="col-span-2 sm:w-20">
             <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
               Class ({maxClassScore})
             </label>
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               value={subject.classScore === 0 ? "" : subject.classScore}
               onChange={(e) => handleChange("classScore", e.target.value)}
-              // 🔴 Conditional Class: Red background if invalid
-              className={`w-full rounded border p-2 text-center text-sm font-bold outline-none focus:ring-2 ${
+              className={`w-full rounded border p-2.5 text-center text-base font-bold outline-none focus:ring-2 ${
                 isClassInvalid
                   ? "border-red-500 bg-red-50 text-red-900 focus:ring-red-200"
                   : "border-gray-300 focus:ring-blue-500"
@@ -110,11 +110,11 @@ export function SubjectRow({
             </label>
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               value={subject.examScore === 0 ? "" : subject.examScore}
               onChange={(e) => handleChange("examScore", e.target.value)}
-              // 🔴 Conditional Class
-              className={`w-full rounded border p-2 text-center text-sm font-bold outline-none focus:ring-2 ${
+              className={`w-full rounded border p-2.5 text-center text-base font-bold outline-none focus:ring-2 ${
                 isExamInvalid
                   ? "border-red-500 bg-red-50 text-red-900 focus:ring-red-200"
                   : "border-gray-300 focus:ring-blue-500"
@@ -134,10 +134,10 @@ export function SubjectRow({
             </span>
           </div>
 
-          {/* Desktop Delete */}
+          {/* Desktop Delete - ✅ Proper size */}
           <button
             onClick={onDelete}
-            className="hidden rounded p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:block"
+            className="hidden rounded-lg p-2.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:block"
           >
             <Trash2 className="h-4 w-4" />
           </button>

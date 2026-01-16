@@ -39,6 +39,12 @@ export function Toast({ toast, onClose }: Props) {
     info: <Info className="h-5 w-5 text-blue-400" />,
   };
 
+  const actionButtonClass = {
+    success: "bg-green-600 text-white hover:bg-green-700 shadow-sm",
+    error: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
+    info: "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm", // Fixed visibility
+  };
+
   return (
     <div
       className={`animate-in slide-in-from-bottom-5 fade-in mb-3 flex min-w-75 items-center gap-3 rounded-lg border px-4 py-3 shadow-xl shadow-black/10 duration-300 ${styles[toast.type]} `}
@@ -53,7 +59,7 @@ export function Toast({ toast, onClose }: Props) {
             toast.action?.onClick();
             onClose(toast.id);
           }}
-          className="mr-2 flex items-center gap-1 rounded bg-white/10 px-3 py-1 text-xs font-bold text-white hover:bg-white/20 active:scale-95"
+          className={`mr-2 flex items-center gap-1 rounded px-3 py-1.5 text-xs font-bold transition-all active:scale-95 ${actionButtonClass[toast.type]}`}
         >
           <RotateCcw className="h-3 w-3" />
           {toast.action.label}
