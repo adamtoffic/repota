@@ -25,7 +25,7 @@ export const SUBJECT_PRESETS: Record<SchoolLevel, string[]> = {
     "Computing",
     "Ghanaian Language",
     "French",
-    "Arabic",
+    "Arabic Language",
   ],
   SHS: [
     "Core Mathematics",
