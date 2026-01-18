@@ -87,7 +87,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               <button
                 onClick={handlePreview}
                 disabled={!text.trim()}
-                className="bg-primary w-full rounded-lg py-2.5 font-bold text-white hover:bg-primary/90 disabled:opacity-50"
+                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2.5 font-bold text-white disabled:opacity-50"
               >
                 Preview List
               </button>
@@ -120,7 +120,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
                 </button>
                 <button
                   onClick={handleImport}
-                  className="bg-primary flex-1 rounded-lg py-2 font-bold text-white hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 flex-1 rounded-lg py-2 font-bold text-white"
                 >
                   Import All
                 </button>
