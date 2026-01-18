@@ -70,6 +70,11 @@ export function Footer() {
             </div>
           </div>
         </div>
+
+        {/* Copyright */}
+        <div className="mt-4 text-center text-xs text-gray-400">
+          © {new Date().getFullYear()} Repota. Built with ❤️ for Ghanaian Teachers.
+        </div>
       </footer>
 
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />

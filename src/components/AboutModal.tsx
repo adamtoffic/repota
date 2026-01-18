@@ -50,7 +50,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
           {/* Developer Contact (NEW SECTION) */}
           <div className="flex gap-4">
-            <div className="h-fit rounded-full bg-purple-50 p-3">
+            <div className="h-fit rounded-full bg-blue-50 p-3">
               <User className="text-primary h-6 w-6" />
             </div>
             <div>

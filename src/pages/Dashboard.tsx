@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, Printer, Settings as SettingsIcon } from "lucide-react";
+import { HelpCircle, X, Printer, Settings as SettingsIcon } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
@@ -88,7 +88,7 @@ export function Dashboard() {
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
-      <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
+      <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             {/* LEFT SIDE: Brand Identity (SaaS Style) */}
@@ -112,17 +112,17 @@ export function Dashboard() {
               {students.length > 0 && (
                 <Link
                   to="/print"
-                  className="bg-primary hover:bg-primary/90 flex items-center justify-center rounded-lg p-2 text-white transition-colors sm:px-4 sm:py-2"
+                  className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
                 >
-                  <Printer className="h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" /> {/* Icon only on mobile */}
+                  <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
                   <span className="hidden text-sm font-medium sm:inline">Print</span>
                 </Link>
               )}
               <Link
                 to="/settings"
-                className="flex items-center justify-center rounded-lg bg-gray-100 p-2 text-gray-700 transition-colors hover:bg-gray-200 sm:px-4 sm:py-2"
+                className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
               >
-                <SettingsIcon className="h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
+                <SettingsIcon className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="hidden text-sm font-medium sm:inline">Settings</span>
               </Link>
             </div>
@@ -132,33 +132,79 @@ export function Dashboard() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {/* WELCOME BANNER */}
-        {showWelcome && (
-          <div className="animate-in fade-in slide-in-from-top-4 relative mb-6 rounded-xl bg-linear-to-r from-blue-950 to-blue-800 p-6 text-white shadow-lg">
+        {showWelcome ? (
+          <div className="animate-in fade-in slide-in-from-top-4 bg-primary relative mb-6 overflow-hidden rounded-xl p-6 text-white shadow-lg duration-300">
             <button
               onClick={handleDismiss}
-              className="absolute top-2 right-2 rounded-full p-1 transition hover:bg-white/20"
+              className="absolute top-3 right-3 rounded-full p-1.5 transition-colors hover:bg-white/20 active:scale-95"
             >
-              <X size={20} className="text-white" />
+              <X size={18} className="text-white" />
             </button>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-2xl font-bold">Welcome to Repota! 🚀</h2>
-                <p className="mt-1 max-w-xl text-blue-100">
+                <h2 className="text-2xl font-bold tracking-tight">Welcome to Repota! 🚀</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-blue-50">
                   New here? Watch this quick 2-minute video to learn how to generate error-free
-                  reports instantly.
+                  reports instantly, or chat with us if you need help.
                 </p>
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap gap-3">
                   <a
                     href="YOUR_YOUTUBE_LINK"
                     target="_blank"
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-blue-900 transition-colors hover:bg-gray-100"
+                    rel="noopener noreferrer"
+                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold shadow-sm transition-all active:scale-95"
                   >
                     ▶ Watch Tutorial
+                  </a>
+
+                  <a
+                    href="https://wa.me/233248140806?text=Hi!%20I%20am%20new%20to%20Repota"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-foreground hover:bg-primary-foreground/10 inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-bold backdrop-blur-sm transition-all active:scale-95"
+                  >
+                    💬 Chat Support
                   </a>
                 </div>
               </div>
             </div>
           </div>
+        ) : (
+          /* Quick Help Card - Shows for first-time users */
+          students.length === 0 && (
+            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                  <HelpCircle className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-main font-bold">Ready to start?</h3>
+                  <p className="text-muted mt-1 text-sm leading-relaxed">
+                    You don't have any students yet. Add your first student or chat with us if
+                    you're stuck.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <a
+                      href="https://wa.me/233248140806?text=Hi!%20I%20need%20help%20starting"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-success hover:text-success/80 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:underline"
+                    >
+                      💬 Ask for help on WhatsApp →
+                    </a>
+                    <a
+                      href="https://youtu.be/..."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-primary hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+                    >
+                      ▶ Watch Video
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {/* MAIN CONTENT AREA */}
@@ -196,11 +242,11 @@ export function Dashboard() {
             {/* ✅ LOGIC: If filtered list is empty, show "No Results", else show List */}
             {filteredStudents.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white py-16 text-center shadow-sm">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                  <X className="h-6 w-6 text-gray-400" />
+                <div className="bg-background mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                  <X className="text-muted h-7 w-7" />
                 </div>
                 <h3 className="text-main text-lg font-bold">No students found</h3>
-                <p className="text-muted">
+                <p className="text-muted mt-1 text-sm">
                   No results for "{searchQuery}" in{" "}
                   {activeFilter === "ALL" ? "all students" : activeFilter.toLowerCase()}.
                 </p>
@@ -209,7 +255,7 @@ export function Dashboard() {
                     setSearchQuery("");
                     setActiveFilter("ALL");
                   }}
-                  className="mt-4 text-sm font-bold text-blue-600 hover:underline"
+                  className="text-primary hover:text-primary/80 mt-4 text-sm font-bold transition-colors hover:underline"
                 >
                   Clear Search & Filters
                 </button>

@@ -63,7 +63,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold">
-            <Upload className="h-5 w-5 text-blue-600" />
+            <Upload className="text-primary h-5 w-5" />
             Bulk Import Students
           </h3>
           <button onClick={onClose}>

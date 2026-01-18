@@ -45,13 +45,13 @@ export function DashboardStats({ students }: Props) {
   }, [students]);
 
   return (
-    <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
       {/* CARD 1: TOTAL STUDENTS */}
       <StatCard
         label="Total Students"
         value={stats.total}
-        icon={<Users className="h-5 w-5 text-blue-600" />}
-        colorClass="bg-blue-50 border-blue-100"
+        icon={<Users className="text-primary h-5 w-5" />}
+        colorClass="bg-blue-50/50 border-blue-100"
       />
 
       {/* CARD 2: PENDING ENTRY (Actionable) */}
@@ -59,8 +59,8 @@ export function DashboardStats({ students }: Props) {
         label="Pending Entry"
         value={stats.pending}
         icon={<Clock className="h-5 w-5 text-orange-600" />}
-        colorClass="bg-orange-50 border-orange-100"
-        alert={stats.pending > 0} // Visual pulse if action needed
+        colorClass="bg-orange-50/50 border-orange-100"
+        alert={stats.pending > 0}
       />
 
       {/* CARD 3: CLASS AVERAGE (Performance) */}
@@ -68,7 +68,7 @@ export function DashboardStats({ students }: Props) {
         label="Class Average"
         value={`${stats.classAverage}%`}
         icon={<BarChart3 className="h-5 w-5 text-purple-600" />}
-        colorClass="bg-purple-50 border-purple-100"
+        colorClass="bg-purple-50/50 border-purple-100"
       />
 
       {/* CARD 4: PASS RATE (Success Metric) */}
@@ -77,13 +77,13 @@ export function DashboardStats({ students }: Props) {
         value={`${stats.passRate}%`}
         icon={
           stats.passRate >= 50 ? (
-            <TrendingUp className="h-5 w-5 text-green-600" />
+            <TrendingUp className="text-success h-5 w-5" />
           ) : (
-            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <AlertTriangle className="text-danger h-5 w-5" />
           )
         }
         colorClass={
-          stats.passRate >= 50 ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"
+          stats.passRate >= 50 ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"
         }
       />
     </div>
@@ -102,12 +102,12 @@ interface StatCardProps {
 function StatCard({ label, value, icon, colorClass, alert }: StatCardProps) {
   return (
     <div
-      className={`flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
+      className={`group flex items-center justify-between rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${colorClass}`}
     >
-      <div>
+      <div className="flex-1">
         <p className="text-muted text-xs font-bold tracking-wide uppercase">{label}</p>
-        <div className="mt-1 flex items-center gap-2">
-          <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+        <div className="mt-1.5 flex items-center gap-2">
+          <h3 className="text-main text-2xl font-black">{value}</h3>
           {alert && (
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
@@ -116,7 +116,9 @@ function StatCard({ label, value, icon, colorClass, alert }: StatCardProps) {
           )}
         </div>
       </div>
-      <div className="rounded-lg border border-gray-100 bg-white p-2 shadow-sm">{icon}</div>
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white shadow-sm transition-transform group-hover:scale-105">
+        {icon}
+      </div>
     </div>
   );
 }

@@ -6,5 +6,5 @@ interface Props {
 }
 
 export function LoadingSpinner({ className = "", size = 24 }: Props) {
-  return <Loader2 className={`animate-spin text-blue-600 ${className}`} size={size} />;
+  return <Loader2 className={`text-primary animate-spin ${className}`} size={size} />;
 }
