@@ -43,7 +43,7 @@ export function Footer() {
               {/* Email */}
               <a
                 /* 🔴 EDIT THIS: Put your real email below */
-                href="mailto:support@protonmail.com"
+                href="mailto:repota.team@proton.me"
                 className="hover:text-primary flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
               >
                 <span>📧</span>

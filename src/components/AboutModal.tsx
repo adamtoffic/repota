@@ -71,7 +71,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 </a>
                 <a
                   /* 🔴 EDIT THIS */
-                  href="mailto:support@protonmail.com"
+                  href="mailto:repota.team@proton.me"
                   className="text-primary inline-flex items-center gap-1.5 text-sm font-bold hover:underline"
                 >
                   📧 Email
