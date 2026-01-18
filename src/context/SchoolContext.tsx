@@ -35,8 +35,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
       totalAttendanceDays: 70,
-      classScoreMax: 30,
-      examScoreMax: 70,
+      classScoreMax: 50,
+      examScoreMax: 50,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
@@ -48,6 +48,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       logoUrl: "",
       headTeacherSignature: "",
       teacherSignature: "",
+      schoolType: "STANDARD",
     };
   });
 
@@ -62,8 +63,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
       totalAttendanceDays: 70,
-      classScoreMax: 30,
-      examScoreMax: 70,
+      classScoreMax: 50,
+      examScoreMax: 50,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
