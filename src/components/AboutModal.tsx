@@ -1,4 +1,4 @@
-import { X, Shield, Code, Heart, User } from "lucide-react"; // 👈 Added User icon
+import { X, Shield, Code, Heart } from "lucide-react"; // 👈 Added User icon
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -50,14 +50,17 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
           {/* Developer Contact (NEW SECTION) */}
           <div className="flex gap-4">
-            <div className="h-fit rounded-full bg-blue-50 p-3">
-              <User className="text-primary h-6 w-6" />
-            </div>
+            <img
+              src="/developer.jpg"
+              alt="Developer Profile"
+              className="h-14 w-14 rounded-full border-2 border-purple-100 object-cover shadow-sm"
+            />
             <div>
               <h3 className="text-main font-bold">Questions or Feedback?</h3>
               <p className="text-muted mt-1 text-sm">
-                I'm a passionate developer building tools for Ghanaian education. Need help or have
-                suggestions? Reach out!
+                Hi, I'm <span className="font-semibold text-gray-900">Adam Toffic</span>. I build
+                software for Ghanaian schools and businesses. Need help or have suggestions? Reach
+                out!
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 <a
