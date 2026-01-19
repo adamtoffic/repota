@@ -2,39 +2,26 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
-import type { ProcessedStudent, StudentRecord, SchoolSettings } from "../types";
-import { CLASS_OPTIONS } from "../constants/classes";
+import type { ProcessedStudent, StudentRecord } from "../types";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { ConfirmModal } from "./ConfirmModal";
+import { useSchoolData } from "../hooks/useSchoolData";
 
 interface Props {
   students: ProcessedStudent[];
-  settings: SchoolSettings;
   onAddStudent: (student: StudentRecord) => void;
   onDeleteStudent: (id: string) => void;
   onEditStudent: (student: ProcessedStudent) => void;
 }
 
-export function StudentList({
-  students,
-  settings,
-  onAddStudent,
-  onDeleteStudent,
-  onEditStudent,
-}: Props) {
+export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStudent }: Props) {
   // STATE
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newClass, setNewClass] = useState("");
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
-
+  const { settings } = useSchoolData();
   // ✅ FIX: No useEffect. We set defaults when the user clicks "Open".
   const handleOpenModal = () => {
-    const options = CLASS_OPTIONS[settings.level] || [];
-    // Set default class to the first option (e.g., "Class 1")
-    if (options.length > 0) {
-      setNewClass(options[0]);
-    }
     setIsAddOpen(true);
   };
 
@@ -62,7 +49,7 @@ export function StudentList({
     onAddStudent({
       id: crypto.randomUUID(),
       name: newName,
-      className: newClass,
+      className: settings.className || "Class",
       subjects: startingSubjects,
     });
 

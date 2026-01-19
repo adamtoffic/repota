@@ -263,7 +263,6 @@ export function Dashboard() {
             ) : (
               <StudentList
                 students={filteredStudents}
-                settings={settings}
                 onAddStudent={addStudent}
                 onDeleteStudent={deleteStudent}
                 onEditStudent={(s) => setEditingStudentId(s.id)}

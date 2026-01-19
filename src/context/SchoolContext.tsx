@@ -35,8 +35,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
       totalAttendanceDays: 70,
-      classScoreMax: 30,
-      examScoreMax: 70,
+      classScoreMax: 50,
+      examScoreMax: 50,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
@@ -48,6 +48,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       logoUrl: "",
       headTeacherSignature: "",
       teacherSignature: "",
+      schoolType: "STANDARD",
     };
   });
 
@@ -62,8 +63,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
       totalAttendanceDays: 70,
-      classScoreMax: 30,
-      examScoreMax: 70,
+      classScoreMax: 50,
+      examScoreMax: 50,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
@@ -148,15 +149,142 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 6. DEMO DATA
   const loadDemoData = () => {
-    // ... (Your demo data array) ...
     const demoStudents: StudentRecord[] = [
-      // ... put your demo data here
+      {
+        id: "demo-1",
+        name: "Kwame Mensah",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 20) + 35,
+          examScore: Math.floor(Math.random() * 20) + 35,
+        })),
+        attendancePresent: 65,
+        numberOnRoll: students.length + 1,
+      },
+      {
+        id: "demo-2",
+        name: "Ama Asante",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 15) + 38,
+          examScore: Math.floor(Math.random() * 15) + 40,
+        })),
+        attendancePresent: 68,
+        numberOnRoll: students.length + 2,
+      },
+      {
+        id: "demo-3",
+        name: "Kofi Owusu",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 10) + 28,
+          examScore: Math.floor(Math.random() * 10) + 30,
+        })),
+        attendancePresent: 60,
+        numberOnRoll: students.length + 3,
+      },
+      {
+        id: "demo-4",
+        name: "Abena Boateng",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 15) + 40,
+          examScore: Math.floor(Math.random() * 15) + 42,
+        })),
+        attendancePresent: 70,
+        numberOnRoll: students.length + 4,
+      },
+      {
+        id: "demo-5",
+        name: "Yaw Adomako",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 12) + 25,
+          examScore: Math.floor(Math.random() * 12) + 28,
+        })),
+        attendancePresent: 55,
+        numberOnRoll: students.length + 5,
+      },
+      {
+        id: "demo-6",
+        name: "Efua Appiah",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 18) + 40,
+          examScore: Math.floor(Math.random() * 18) + 38,
+        })),
+        attendancePresent: 67,
+        numberOnRoll: students.length + 6,
+      },
+      {
+        id: "demo-7",
+        name: "Kwabena Darko",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 20) + 42,
+          examScore: Math.floor(Math.random() * 20) + 40,
+        })),
+        attendancePresent: 69,
+        numberOnRoll: students.length + 7,
+      },
+      {
+        id: "demo-8",
+        name: "Akosua Frimpong",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 10) + 45,
+          examScore: Math.floor(Math.random() * 10) + 43,
+        })),
+        attendancePresent: 70,
+        numberOnRoll: students.length + 8,
+      },
+      {
+        id: "demo-9",
+        name: "Kwesi Osei",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 15) + 32,
+          examScore: Math.floor(Math.random() * 15) + 35,
+        })),
+        attendancePresent: 63,
+        numberOnRoll: students.length + 9,
+      },
+      {
+        id: "demo-10",
+        name: "Adwoa Agyeman",
+        className: settings.className || "Primary 5A",
+        subjects: settings.defaultSubjects.map((subName) => ({
+          id: crypto.randomUUID(),
+          name: subName,
+          classScore: Math.floor(Math.random() * 8) + 47,
+          examScore: Math.floor(Math.random() * 8) + 46,
+        })),
+        attendancePresent: 70,
+        numberOnRoll: students.length + 10,
+      },
     ];
 
     if (demoStudents.length > 0) {
-      // Safety check
       setStudents((prev) => [...prev, ...demoStudents]);
-      showToast("Demo data loaded.", "info");
+      showToast(`${demoStudents.length} demo students loaded with Ghanaian names!`, "success");
     }
   };
 

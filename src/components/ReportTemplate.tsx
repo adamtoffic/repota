@@ -133,7 +133,7 @@ export function ReportTemplate({ student, settings }: Props) {
               <img
                 src={student.pictureUrl}
                 alt="Student"
-                className="h-24 w-24 rounded-md object-cover shadow-sm grayscale-0 print:grayscale"
+                className="h-24 w-24 rounded-md object-cover mix-blend-multiply shadow-sm"
               />
             </div>
           )}
