@@ -157,8 +157,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 20) + 35,
-          examScore: Math.floor(Math.random() * 20) + 35,
+          classScore: Math.floor(Math.random() * 11) + 35, // 35-45 (max 50)
+          examScore: Math.floor(Math.random() * 11) + 35, // 35-45 (max 50)
         })),
         attendancePresent: 65,
         numberOnRoll: students.length + 1,
@@ -170,8 +170,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 15) + 38,
-          examScore: Math.floor(Math.random() * 15) + 40,
+          classScore: Math.floor(Math.random() * 11) + 38, // 38-48 (max 50)
+          examScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
         })),
         attendancePresent: 68,
         numberOnRoll: students.length + 2,
@@ -196,8 +196,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 15) + 40,
-          examScore: Math.floor(Math.random() * 15) + 42,
+          classScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
+          examScore: Math.floor(Math.random() * 9) + 42, // 42-50 (max 50)
         })),
         attendancePresent: 70,
         numberOnRoll: students.length + 4,
@@ -222,8 +222,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 18) + 40,
-          examScore: Math.floor(Math.random() * 18) + 38,
+          classScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
+          examScore: Math.floor(Math.random() * 13) + 38, // 38-50 (max 50)
         })),
         attendancePresent: 67,
         numberOnRoll: students.length + 6,
@@ -235,8 +235,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 20) + 42,
-          examScore: Math.floor(Math.random() * 20) + 40,
+          classScore: Math.floor(Math.random() * 9) + 42, // 42-50 (max 50)
+          examScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
         })),
         attendancePresent: 69,
         numberOnRoll: students.length + 7,
@@ -248,8 +248,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 10) + 45,
-          examScore: Math.floor(Math.random() * 10) + 43,
+          classScore: Math.floor(Math.random() * 6) + 45, // 45-50 (max 50)
+          examScore: Math.floor(Math.random() * 8) + 43, // 43-50 (max 50)
         })),
         attendancePresent: 70,
         numberOnRoll: students.length + 8,
@@ -274,8 +274,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
-          classScore: Math.floor(Math.random() * 8) + 47,
-          examScore: Math.floor(Math.random() * 8) + 46,
+          classScore: Math.floor(Math.random() * 4) + 47, // 47-50 (max 50)
+          examScore: Math.floor(Math.random() * 5) + 46, // 46-50 (max 50)
         })),
         attendancePresent: 70,
         numberOnRoll: students.length + 10,
