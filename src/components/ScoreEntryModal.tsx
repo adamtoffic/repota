@@ -10,7 +10,7 @@ interface Props {
   level: SchoolLevel;
   isOpen: boolean;
   onClose: () => void;
-  onUpdateStudent: (updated: StudentRecord) => void;
+  onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
 }
 
 export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStudent }: Props) {
@@ -79,7 +79,7 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
               key={student.id}
               student={student}
               level={level}
-              onUpdate={onUpdateStudent}
+              onUpdate={(updated) => onUpdateStudent(updated, true)} // Silent mode - tab shows its own toast
             />
           )}
 

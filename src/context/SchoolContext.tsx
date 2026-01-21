@@ -94,9 +94,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   // --- ACTIONS ---
 
   // 1. ADD
-  const addStudent = (student: StudentRecord) => {
+  const addStudent = (student: StudentRecord, silent = false) => {
     setStudents((prev) => [...prev, student]);
-    if (student.name !== "New Student") {
+    if (!silent && student.name !== "New Student") {
       showToast(`Student "${student.name}" added successfully!`, "success");
     }
   };
@@ -138,8 +138,44 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   };
 
   // 4. UPDATE
-  const updateStudent = (updatedStudent: StudentRecord) => {
+  const updateStudent = (updatedStudent: StudentRecord, silent = false) => {
     setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+    if (!silent) {
+      showToast(`Changes saved successfully!`, "success");
+    }
+  };
+
+  // 4B. CLEAR ALL SCORES (keeps students, zeros their scores)
+  const clearAllScores = () => {
+    setStudents((prev) =>
+      prev.map((student) => ({
+        ...student,
+        subjects: student.subjects.map((sub) => ({
+          ...sub,
+          classScore: 0,
+          examScore: 0,
+        })),
+      })),
+    );
+    showToast(`All scores cleared for ${students.length} students!`, "success");
+  };
+
+  // 4C. CLEAR SINGLE STUDENT SCORES
+  const clearStudentScores = (id: string) => {
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === id
+          ? {
+              ...student,
+              subjects: student.subjects.map((sub) => ({
+                ...sub,
+                classScore: 0,
+                examScore: 0,
+              })),
+            }
+          : student,
+      ),
+    );
   };
 
   // 5. MASS UPDATE
@@ -365,6 +401,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         deleteStudent,
         deletePendingStudents,
         updateStudent,
+        clearAllScores,
+        clearStudentScores,
         loadDemoData,
         updateClassNameForAll,
         checkDuplicateName,

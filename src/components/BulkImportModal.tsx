@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Upload, CheckCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { useToast } from "../hooks/useToast";
 import type { StudentRecord } from "../types";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 
 export function BulkImportModal({ isOpen, onClose }: Props) {
   const { addStudent, settings, students } = useSchoolData();
+  const { showToast } = useToast();
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<string[]>([]);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -47,9 +49,17 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
         numberOnRoll: students.length + addedCount + 1,
       };
 
-      addStudent(newStudent);
+      addStudent(newStudent, true); // 🔥 SILENT MODE - no individual toasts
       addedCount++;
     });
+
+    // 🎯 Single batch notification
+    if (addedCount > 0) {
+      showToast(
+        `Successfully imported ${addedCount} student${addedCount > 1 ? "s" : ""}!`,
+        "success",
+      );
+    }
 
     onClose();
     setText("");

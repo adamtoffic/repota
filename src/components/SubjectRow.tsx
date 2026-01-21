@@ -1,8 +1,8 @@
 // src/components/SubjectRow.tsx - MOBILE OPTIMIZED
-import { Trash2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Trash2, AlertCircle, Check } from "lucide-react";
 import type { SavedSubject, SchoolLevel } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
-import { useToast } from "../hooks/useToast";
 
 interface Props {
   subject: SavedSubject;
@@ -23,10 +23,22 @@ export function SubjectRow({
 }: Props) {
   const total = (subject.classScore || 0) + (subject.examScore || 0);
   const { grade, remark } = calculateGrade(total, level);
-  const { showToast } = useToast();
+
+  const [showClassSaved, setShowClassSaved] = useState(false);
+  const [showExamSaved, setShowExamSaved] = useState(false);
+  const classTimerRef = useRef<number | null>(null);
+  const examTimerRef = useRef<number | null>(null);
 
   const isClassInvalid = (subject.classScore || 0) > maxClassScore;
   const isExamInvalid = (subject.examScore || 0) > maxExamScore;
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (classTimerRef.current) clearTimeout(classTimerRef.current);
+      if (examTimerRef.current) clearTimeout(examTimerRef.current);
+    };
+  }, []);
 
   const handleChange = (field: "classScore" | "examScore", value: string) => {
     const maxLimit = field === "classScore" ? maxClassScore : maxExamScore;
@@ -38,19 +50,34 @@ export function SubjectRow({
 
     const numValue = Number(value);
 
-    if (numValue > maxLimit) {
-      showToast(`Maximum allowed score is ${maxLimit}.`, "error");
-    }
+    // Silently clamp to max value instead of showing error toast
+    const clampedValue = Math.min(numValue, maxLimit);
+    onChange({ ...subject, [field]: clampedValue });
+  };
 
-    onChange({ ...subject, [field]: numValue });
+  // Save on blur with instant visual feedback
+  const handleBlur = (field: "classScore" | "examScore") => {
+    const setShow = field === "classScore" ? setShowClassSaved : setShowExamSaved;
+    const timerRef = field === "classScore" ? classTimerRef : examTimerRef;
+
+    // Clear existing timer
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    // Show checkmark
+    setShow(true);
+
+    // Hide after 2 seconds
+    timerRef.current = window.setTimeout(() => {
+      setShow(false);
+    }, 2000);
   };
 
   return (
     <div
-      className={`group rounded-lg border bg-white p-3 shadow-sm transition-colors sm:p-4 ${
+      className={`group rounded-lg border bg-white p-4 shadow-sm transition-all duration-200 sm:p-4 ${
         isClassInvalid || isExamInvalid
-          ? "border-red-300 ring-1 ring-red-100"
-          : "border-gray-200 hover:border-blue-300"
+          ? "border-red-300 bg-red-50/50 ring-2 ring-red-100"
+          : "border-gray-200 hover:border-blue-300 hover:shadow-md"
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -88,19 +115,31 @@ export function SubjectRow({
             <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
               Class ({maxClassScore})
             </label>
-            <input
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={subject.classScore === 0 ? "" : subject.classScore}
-              onChange={(e) => handleChange("classScore", e.target.value)}
-              className={`w-full rounded border p-2.5 text-center text-base font-bold outline-none focus:ring-2 ${
-                isClassInvalid
-                  ? "border-red-500 bg-red-50 text-red-900 focus:ring-red-200"
-                  : "border-gray-300 focus:ring-blue-500"
-              }`}
-              placeholder={`/${maxClassScore}`}
-            />
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                max={maxClassScore}
+                value={subject.classScore === 0 ? "" : subject.classScore}
+                onChange={(e) => handleChange("classScore", e.target.value)}
+                onBlur={() => handleBlur("classScore")}
+                className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none focus:ring-2 sm:p-2.5 sm:text-base ${
+                  isClassInvalid
+                    ? "border-red-400 bg-red-50 text-red-900 ring-2 ring-red-200"
+                    : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
+                }`}
+                placeholder={`/${maxClassScore}`}
+              />
+              {showClassSaved && (
+                <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
+                  <Check size={16} className="text-green-600" strokeWidth={3} />
+                </div>
+              )}
+            </div>
+            {isClassInvalid && (
+              <p className="mt-1 text-[10px] font-bold text-red-600">Max: {maxClassScore}</p>
+            )}
           </div>
 
           {/* Exam Score Input */}
@@ -108,26 +147,40 @@ export function SubjectRow({
             <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
               Exam ({maxExamScore})
             </label>
-            <input
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={subject.examScore === 0 ? "" : subject.examScore}
-              onChange={(e) => handleChange("examScore", e.target.value)}
-              className={`w-full rounded border p-2.5 text-center text-base font-bold outline-none focus:ring-2 ${
-                isExamInvalid
-                  ? "border-red-500 bg-red-50 text-red-900 focus:ring-red-200"
-                  : "border-gray-300 focus:ring-blue-500"
-              }`}
-              placeholder={`/${maxExamScore}`}
-            />
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                max={maxExamScore}
+                value={subject.examScore === 0 ? "" : subject.examScore}
+                onChange={(e) => handleChange("examScore", e.target.value)}
+                onBlur={() => handleBlur("examScore")}
+                className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none focus:ring-2 sm:p-2.5 sm:text-base ${
+                  isExamInvalid
+                    ? "border-red-400 bg-red-50 text-red-900 ring-2 ring-red-200"
+                    : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
+                }`}
+                placeholder={`/${maxExamScore}`}
+              />
+              {showExamSaved && (
+                <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
+                  <Check size={16} className="text-green-600" strokeWidth={3} />
+                </div>
+              )}
+            </div>
+            {isExamInvalid && (
+              <p className="mt-1 text-[10px] font-bold text-red-600">Max: {maxExamScore}</p>
+            )}
           </div>
 
           {/* Grade Badge */}
           <div className="hidden justify-center sm:flex sm:w-16">
             <span
-              className={`rounded px-2 py-1 text-xs font-bold ${
-                total < 50 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+              className={`rounded-lg px-2 py-1 text-xs font-bold shadow-sm ${
+                total < 50
+                  ? "bg-red-100 text-red-700 ring-1 ring-red-200"
+                  : "bg-green-100 text-green-700 ring-1 ring-green-200"
               }`}
             >
               {grade}
@@ -137,7 +190,7 @@ export function SubjectRow({
           {/* Desktop Delete - ✅ Proper size */}
           <button
             onClick={onDelete}
-            className="hidden rounded-lg p-2.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:block"
+            className="hidden rounded-lg p-2.5 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 active:scale-95 sm:block"
           >
             <Trash2 className="h-4 w-4" />
           </button>

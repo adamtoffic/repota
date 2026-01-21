@@ -25,6 +25,7 @@ export function Dashboard() {
     loadDemoData,
     deletePendingStudents,
     autoGenerateRemarks,
+    clearAllScores,
   } = useSchoolData();
 
   // Welcome Banner State
@@ -33,6 +34,7 @@ export function Dashboard() {
   });
 
   const [confirmCleanModal, setConfirmCleanModal] = useState(false);
+  const [confirmClearScoresModal, setConfirmClearScoresModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -229,6 +231,18 @@ export function Dashboard() {
                 onDeletePending={() => setConfirmCleanModal(true)}
                 onImport={() => setShowImportModal(true)}
                 onAutoRemarks={() => autoGenerateRemarks()}
+                onClearScores={() => setConfirmClearScoresModal(true)}
+                onExportStudentList={() => {
+                  // Export simple student names list as text file
+                  const studentList = students.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
+                  const blob = new Blob([studentList], { type: "text/plain" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${settings.className || "Class"}_Students_${new Date().toISOString().split("T")[0]}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
               />
 
               {/* ✅ SPINNER: Positioned correctly in search bar area */}
@@ -312,6 +326,20 @@ export function Dashboard() {
         onConfirm={() => {
           deletePendingStudents();
           setConfirmCleanModal(false);
+        }}
+      />
+
+      {/* ✅ CONFIRM CLEAR SCORES MODAL */}
+      <ConfirmModal
+        isOpen={confirmClearScoresModal}
+        title="Clear All Student Scores?"
+        message={`This will reset ALL class and exam scores to 0 for all ${students.length} students. Student names and details will be preserved. This action cannot be undone.`}
+        confirmText="Yes, Clear All Scores"
+        isDangerous={true}
+        onClose={() => setConfirmClearScoresModal(false)}
+        onConfirm={() => {
+          clearAllScores();
+          setConfirmClearScoresModal(false);
         }}
       />
     </div>

@@ -7,7 +7,6 @@ import {
   getRandomConductTrait,
   getRandomInterest,
 } from "../../utils/remarkGenerator";
-import { useToast } from "../../hooks/useToast";
 import { ImageUploader } from "../ImageUploader";
 
 interface Props {
@@ -17,7 +16,8 @@ interface Props {
 
 export function DetailsTab({ student, onUpdate }: Props) {
   const { settings } = useSchoolData();
-  const { showToast } = useToast();
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [formData, setFormData] = useState({
     name: student.name,
@@ -50,7 +50,12 @@ export function DetailsTab({ student, onUpdate }: Props) {
     };
 
     onUpdate(updatedRecord);
-    showToast(`Details for "${formData.name}" saved successfully!`, "success");
+    setHasUnsavedChanges(false);
+  };
+
+  const handleFormChange = (updates: Partial<typeof formData>) => {
+    setFormData({ ...formData, ...updates });
+    setHasUnsavedChanges(true);
   };
 
   return (
@@ -64,13 +69,10 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <ImageUploader
                 label="Student Photo"
                 value={formData.pictureUrl}
-                onChange={(val) => setFormData({ ...formData, pictureUrl: val || "" })}
+                onChange={(val) => handleFormChange({ pictureUrl: val || "" })}
                 maxHeight="h-32 sm:h-40"
               />
             </div>
-            <p className="text-center font-mono text-[10px] text-gray-400">
-              ID: {student.id.slice(-6)}
-            </p>
           </div>
 
           {/* DETAILS COLUMN (Right on Desktop) */}
@@ -80,8 +82,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="text-main w-full rounded-lg border border-gray-300 p-2.5 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                onChange={(e) => handleFormChange({ name: e.target.value })}
+                className="text-main w-full rounded-lg border border-gray-300 p-3 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2.5"
                 placeholder="e.g. Kwame Mensah"
               />
             </div>
@@ -93,11 +95,12 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 </label>
                 <input
                   type="number"
-                  value={formData.numberOnRoll}
-                  onChange={(e) =>
-                    setFormData({ ...formData, numberOnRoll: Number(e.target.value) })
-                  }
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  inputMode="numeric"
+                  min="1"
+                  value={formData.numberOnRoll === 0 ? "" : formData.numberOnRoll}
+                  onChange={(e) => handleFormChange({ numberOnRoll: Number(e.target.value) || 0 })}
+                  className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
+                  placeholder="1"
                 />
               </div>
               <div>
@@ -107,8 +110,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 <input
                   type="date"
                   value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
                 />
               </div>
             </div>
@@ -127,11 +130,15 @@ export function DetailsTab({ student, onUpdate }: Props) {
             <div className="relative">
               <input
                 type="number"
-                value={formData.attendancePresent}
+                inputMode="numeric"
+                min="0"
+                max={settings.totalAttendanceDays || 60}
+                value={formData.attendancePresent === 0 ? "" : formData.attendancePresent}
                 onChange={(e) =>
-                  setFormData({ ...formData, attendancePresent: Number(e.target.value) })
+                  handleFormChange({ attendancePresent: Number(e.target.value) || 0 })
                 }
-                className="w-full rounded-lg border border-gray-300 p-2 pr-16 font-mono font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-gray-300 p-3 pr-16 font-mono font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2 sm:pr-16"
+                placeholder="0"
               />
               <span className="pointer-events-none absolute top-2.5 right-3 text-xs text-gray-400">
                 / {settings.totalAttendanceDays || 60}
@@ -142,8 +149,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
             <label className="text-muted mb-1 block text-xs font-bold">Promotion</label>
             <select
               value={formData.promotionStatus}
-              onChange={(e) => setFormData({ ...formData, promotionStatus: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 bg-white p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              onChange={(e) => handleFormChange({ promotionStatus: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 bg-white p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
             >
               <option value="">-- Select Status --</option>
               <option value="Promoted to Next Class">Promoted</option>
@@ -167,8 +174,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <span>Conduct / Character</span>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, conduct: getRandomConductTrait() })}
-                className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+                onClick={() => handleFormChange({ conduct: getRandomConductTrait() })}
+                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
               >
                 <RefreshCw className="h-3 w-3" /> Shuffle
               </button>
@@ -177,8 +184,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
               type="text"
               placeholder="e.g. Respectful and neat"
               value={formData.conduct}
-              onChange={(e) => setFormData({ ...formData, conduct: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              onChange={(e) => handleFormChange({ conduct: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
             />
           </div>
 
@@ -188,8 +195,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <span>Interest / Talent</span>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, interest: getRandomInterest() })}
-                className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+                onClick={() => handleFormChange({ interest: getRandomInterest() })}
+                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
               >
                 <RefreshCw className="h-3 w-3" /> Shuffle
               </button>
@@ -198,8 +205,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
               type="text"
               placeholder="e.g. Football"
               value={formData.interest}
-              onChange={(e) => setFormData({ ...formData, interest: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              onChange={(e) => handleFormChange({ interest: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
             />
           </div>
 
@@ -210,8 +217,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <button
                 type="button"
                 onClick={() =>
-                  setFormData({
-                    ...formData,
+                  handleFormChange({
                     teacherRemark: generateTeacherRemark(
                       student,
                       formData.attendancePresent,
@@ -220,7 +226,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                     ),
                   })
                 }
-                className="flex items-center gap-1 text-[10px] text-purple-600 hover:underline"
+                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-purple-600 hover:bg-purple-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
               >
                 <Wand2 className="h-3 w-3" /> Smart Generate
               </button>
@@ -229,19 +235,32 @@ export function DetailsTab({ student, onUpdate }: Props) {
               rows={2}
               placeholder="Write a custom remark..."
               value={formData.teacherRemark}
-              onChange={(e) => setFormData({ ...formData, teacherRemark: e.target.value })}
-              className="w-full resize-none rounded-lg border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              onChange={(e) => handleFormChange({ teacherRemark: e.target.value })}
+              className="w-full resize-none rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
             />
           </div>
         </div>
       </div>
 
-      <button
-        onClick={handleSave}
-        className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95"
-      >
-        <Save className="h-5 w-5" /> Save Student Details
-      </button>
+      {/* Sticky Save Bar - Mobile Optimized */}
+      <div className="sticky bottom-0 -mx-6 mt-6 -mb-6 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        {hasUnsavedChanges && (
+          <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-orange-600">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+            <span className="font-medium">You have unsaved changes</span>
+          </p>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={!hasUnsavedChanges}
+          className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95 ${
+            hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "cursor-not-allowed bg-gray-300"
+          }`}
+        >
+          <Save className="h-5 w-5" />
+          {hasUnsavedChanges ? "Save Student Details" : "All Changes Saved"}
+        </button>
+      </div>
     </div>
   );
 }

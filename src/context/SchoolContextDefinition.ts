@@ -5,10 +5,12 @@ export interface SchoolContextType {
   students: ProcessedStudent[];
   settings: SchoolSettings;
   setSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
-  addStudent: (student: StudentRecord) => void;
+  addStudent: (student: StudentRecord, silent?: boolean) => void;
   deleteStudent: (id: string) => void;
   deletePendingStudents: () => void;
-  updateStudent: (updatedStudent: StudentRecord) => void;
+  updateStudent: (updatedStudent: StudentRecord, silent?: boolean) => void;
+  clearAllScores: () => void;
+  clearStudentScores: (id: string) => void;
   loadDemoData: () => void;
   updateClassNameForAll: (newClassName: string) => void;
   checkDuplicateName: (name: string) => boolean;

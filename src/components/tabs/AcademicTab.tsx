@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Eraser } from "lucide-react";
 import { SubjectRow } from "../SubjectRow";
 import type { ProcessedStudent, SavedSubject, SchoolLevel, StudentRecord } from "../../types";
 import { useSchoolData } from "../../hooks/useSchoolData";
-import { ConfirmModal } from "../ConfirmModal"; // ✅ Import Modal
+import { ConfirmModal } from "../ConfirmModal";
 
 interface Props {
   student: ProcessedStudent;
@@ -12,11 +12,12 @@ interface Props {
 }
 
 export function AcademicTab({ student, level, onUpdate }: Props) {
-  const { settings } = useSchoolData();
+  const { settings, clearStudentScores } = useSchoolData();
   const masterList = settings.defaultSubjects || [];
 
-  // State for Modal
+  // State for Modals
   const [showCleanModal, setShowCleanModal] = useState(false);
+  const [showClearScoresModal, setShowClearScoresModal] = useState(false);
 
   const missingSubjects = masterList.filter(
     (masterName) => !student.subjects.some((sub) => sub.name === masterName),
@@ -24,6 +25,7 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
 
   const obsoleteSubjects = student.subjects.filter((sub) => !masterList.includes(sub.name));
 
+  // Instant save on field blur - no debounce needed
   const handleScoreUpdate = (updatedSubject: SavedSubject) => {
     const newSubjects = student.subjects.map((s) =>
       s.id === updatedSubject.id ? updatedSubject : s,
@@ -53,8 +55,44 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
     setShowCleanModal(false);
   };
 
+  const handleClearScores = () => {
+    clearStudentScores(student.id);
+    setShowClearScoresModal(false);
+  };
+
   return (
     <div className="space-y-4">
+      {/* ✅ MOBILE-FRIENDLY STICKY HEADER */}
+      {student.subjects.length > 0 && (
+        <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-4 border-b border-gray-200 bg-white px-6 py-3 shadow-sm sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="flex items-center justify-between gap-3">
+            {/* Subject count & progress indicator */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-gray-700">
+                  {student.subjects.length} Subject{student.subjects.length !== 1 ? "s" : ""}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-blue-600">
+                  <span className="hidden sm:inline">•</span>
+                  <span className="hidden sm:inline">Auto-saves on blur</span>
+                  <span className="animate-pulse sm:hidden">• Auto-saves</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Clear button - more prominent on mobile */}
+            <button
+              onClick={() => setShowClearScoresModal(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-orange-700 transition-all hover:border-orange-300 hover:bg-orange-50 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              <Eraser size={14} className="sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Clear All Scores</span>
+              <span className="sm:hidden">Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ... (Missing Subjects Alert stays the same) ... */}
       {missingSubjects.length > 0 && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
@@ -100,6 +138,15 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
 
       {/* THE LIST */}
       <div className="space-y-3">
+        {/* Mobile tip - only show when there are subjects */}
+        {student.subjects.length > 0 && (
+          <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700 sm:hidden">
+            <p className="font-medium">
+              💡 Tip: Tap "Next" on your keyboard to jump between fields quickly!
+            </p>
+          </div>
+        )}
+
         {student.subjects.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-gray-200 py-10 text-center text-gray-400">
             No subjects found. Use the alerts above to sync with Settings.
@@ -136,6 +183,17 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
         isDangerous={true}
         onConfirm={executeRemoveObsolete}
         onClose={() => setShowCleanModal(false)}
+      />
+
+      {/* ✅ CLEAR SCORES MODAL */}
+      <ConfirmModal
+        isOpen={showClearScoresModal}
+        title="Clear All Scores?"
+        message={`This will reset all class and exam scores to 0 for ${student.name}. This action cannot be undone.`}
+        confirmText="Yes, Clear Scores"
+        isDangerous={true}
+        onConfirm={handleClearScores}
+        onClose={() => setShowClearScoresModal(false)}
       />
     </div>
   );

@@ -1,5 +1,14 @@
 // src/components/DashboardToolbar.tsx
-import { Search, Download, MoreVertical, Trash2, Upload, Wand2 } from "lucide-react"; // ✅ Added Wand2
+import {
+  Search,
+  Download,
+  MoreVertical,
+  Trash2,
+  Upload,
+  Wand2,
+  Eraser,
+  FileSpreadsheet,
+} from "lucide-react"; // ✅ Added new icons
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -12,7 +21,9 @@ interface ToolbarProps {
   onExport: () => void;
   onDeletePending: () => void;
   onImport: () => void;
-  onAutoRemarks: () => void; // ✅ NEW PROP
+  onAutoRemarks: () => void;
+  onClearScores: () => void; // ✅ NEW
+  onExportStudentList: () => void; // ✅ NEW
 }
 
 // 2. Define Props for the Helper Button
@@ -33,7 +44,9 @@ export function DashboardToolbar({
   onExport,
   onDeletePending,
   onImport,
-  onAutoRemarks, // ✅ Destructure new prop
+  onAutoRemarks,
+  onClearScores, // ✅ NEW
+  onExportStudentList, // ✅ NEW
 }: ToolbarProps) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -88,8 +101,8 @@ export function DashboardToolbar({
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute top-full right-0 z-20 mt-2 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
-                {/* ✅ NEW: Auto-Generate Remarks Button */}
+              <div className="absolute top-full right-0 z-20 mt-2 w-60 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                {/* ✅ Auto-Generate Remarks */}
                 <button
                   onClick={() => {
                     onAutoRemarks();
@@ -102,6 +115,7 @@ export function DashboardToolbar({
 
                 <div className="my-1 border-t border-gray-100" />
 
+                {/* ✅ Import/Export Actions */}
                 <button
                   onClick={() => {
                     onImport();
@@ -118,11 +132,30 @@ export function DashboardToolbar({
                   }}
                   className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
                 >
-                  <Download size={16} className="text-blue-600" /> Export CSV
+                  <Download size={16} className="text-blue-600" /> Export Full Data
+                </button>
+                <button
+                  onClick={() => {
+                    onExportStudentList();
+                    setShowMenu(false);
+                  }}
+                  className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                >
+                  <FileSpreadsheet size={16} className="text-indigo-600" /> Export Student List
                 </button>
 
                 <div className="my-1 border-t border-gray-100" />
 
+                {/* ✅ Destructive Actions */}
+                <button
+                  onClick={() => {
+                    onClearScores();
+                    setShowMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50"
+                >
+                  <Eraser size={16} /> Clear All Scores
+                </button>
                 <button
                   onClick={() => {
                     onDeletePending();
