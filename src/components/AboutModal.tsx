@@ -53,7 +53,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             <img
               src="/developer.jpg"
               alt="Developer Profile"
-              className="h-14 w-14 rounded-full border-2 border-purple-100 object-cover shadow-sm"
+              loading="lazy" // Lazy load for performance
+              className="h-14 w-14 rounded-full border-2 border-purple-100 bg-gray-200 object-cover shadow-sm"
             />
             <div>
               <h3 className="text-main font-bold">Questions or Feedback?</h3>

@@ -16,6 +16,7 @@ export default defineConfig({
         "logo.svg",
         "apple-touch-icon.png",
         "og-image.png",
+        "developer.jpg", // Developer profile image
       ],
 
       workbox: {

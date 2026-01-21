@@ -3,6 +3,7 @@ import { Download, Upload, AlertTriangle, CheckCircle, Share2 } from "lucide-rea
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "./ConfirmModal";
 import { safeGetItem, safeSetItem, STORAGE_KEYS } from "../utils/storage";
+import { recordBackup } from "../utils/dataProtection";
 
 export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -47,6 +48,8 @@ export function DataBackup() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      recordBackup(); // Track backup timestamp
 
       setStatus("success");
       showToast("File saved! You can now send this via WhatsApp.", "success");

@@ -14,6 +14,11 @@ import {
   getRandomConductTrait,
   getRandomInterest,
 } from "../utils/remarkGenerator";
+import {
+  createBackupHeartbeat,
+  requestPersistentStorage,
+  detectDataLoss,
+} from "../utils/dataProtection";
 
 export function SchoolProvider({ children }: { children: ReactNode }) {
   // ... (State initialization stays exactly the same) ...
@@ -85,11 +90,23 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+    createBackupHeartbeat(); // Update heartbeat when data changes
   }, [students]);
 
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    createBackupHeartbeat(); // Update heartbeat when settings change
   }, [settings]);
+
+  // Request persistent storage on mount (Android protection)
+  useEffect(() => {
+    requestPersistentStorage();
+
+    // Check for data loss (cleared by cleaner apps)
+    if (detectDataLoss()) {
+      showToast("⚠️ Data may have been cleared. Please restore from backup if needed.", "error");
+    }
+  }, [showToast]);
 
   // --- ACTIONS ---
 
