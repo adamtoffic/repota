@@ -15,6 +15,7 @@ When using Repota as a PWA on iOS Safari and the app has been offline or backgro
 ## Why This Happens
 
 iOS Safari has anti-bot protection that blocks automatic `window.print()` calls when:
+
 1. The PWA has been inactive/backgrounded
 2. iOS suspects the action isn't from a real user interaction
 3. The print() call isn't directly tied to a user gesture
@@ -49,19 +50,17 @@ export const createPrintHandler = (callback?: () => void) => {
 ### What Changed
 
 **BEFORE (Blocked by iOS)**
+
 ```tsx
-<button onClick={() => window.print()}>
-  Print All Reports
-</button>
+<button onClick={() => window.print()}>Print All Reports</button>
 ```
 
 **AFTER (iOS-Safe)**
+
 ```tsx
 const handlePrint = createPrintHandler();
 
-<button onClick={handlePrint}>
-  Print All Reports
-</button>
+<button onClick={handlePrint}>Print All Reports</button>;
 ```
 
 ## Why This Works
@@ -75,12 +74,14 @@ const handlePrint = createPrintHandler();
 ## Testing on iOS
 
 ### Before the Fix
+
 1. Add Repota to Home Screen
 2. Background the app for 30+ seconds (or go offline)
 3. Reopen and tap "Print All Reports"
 4. ❌ **Result**: "This website has been blocked..." dialog
 
 ### After the Fix
+
 1. Add Repota to Home Screen
 2. Background the app for 30+ seconds (or go offline)
 3. Reopen and tap "Print All Reports"
@@ -101,6 +102,7 @@ const handlePrint = createPrintHandler();
 ## Additional Notes
 
 ### Keyboard Accessibility
+
 The print handler also includes keyboard support:
 
 ```typescript
@@ -112,11 +114,12 @@ const handleKeyPress = createKeyboardPrintHandler();
 ```
 
 ### Pre-Print Analytics
+
 You can track print actions before printing:
 
 ```typescript
 const handlePrint = createPrintHandler(() => {
-  console.log('User is printing reports');
+  console.log("User is printing reports");
   // Send analytics event
 });
 ```

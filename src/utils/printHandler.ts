@@ -6,7 +6,7 @@ import { triggerHaptic } from "./iosInteraction";
 /**
  * Create a user-initiated print button handler for iOS PWA
  * Ensures iOS recognizes it as a legitimate user action (not bot)
- * 
+ *
  * @param haptic - Whether to provide haptic feedback before printing
  */
 export const createPrintHandler = (haptic: boolean = true) => {
