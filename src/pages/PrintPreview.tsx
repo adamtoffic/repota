@@ -3,10 +3,14 @@ import { ArrowLeft, Printer, AlertCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
 import { useEffect } from "react";
+import { createPrintHandler } from "../utils/printHandler";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
   const { id } = useSearch({ from: "/print" });
+
+  // iOS-safe print handler
+  const handlePrint = createPrintHandler();
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -113,8 +117,9 @@ export function PrintPreview() {
           </div>
 
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
+            aria-label="Print all report cards"
           >
             <Printer className="h-4 w-4" /> Print All Reports
           </button>

@@ -44,6 +44,33 @@
   }
 }
 
+/* ✅ PWA INTERACTION OPTIMIZATION (iOS + Android) */
+button,
+a[role="button"],
+[role="button"] {
+  /* Eliminate 300ms tap delay on mobile */
+  touch-action: manipulation;
+
+  /* Remove iOS tap highlight (we use our own active states) */
+  -webkit-tap-highlight-color: transparent;
+
+  /* Prevent iOS callout menu on long-press for buttons only */
+  -webkit-touch-callout: none;
+}
+
+/* Prevent text selection on buttons during interaction */
+button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Subtle active state feedback for touch devices */
+button:active,
+a[role="button"]:active {
+  opacity: 0.9;
+  transition: opacity 0.05s ease-out;
+}
+
 /* ✅ PRINT MEDIA QUERY (FIXED) */
 @media print {
   @page {

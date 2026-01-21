@@ -6,6 +6,7 @@ import type { ProcessedStudent, StudentRecord } from "../types";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { triggerHaptic } from "../utils/iosInteraction";
 
 interface Props {
   students: ProcessedStudent[];
@@ -162,6 +163,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
         onClose={() => setStudentToDelete(null)}
         onConfirm={() => {
           if (studentToDelete) {
+            triggerHaptic("heavy"); // Haptic feedback for destructive action
             onDeleteStudent(studentToDelete);
           }
         }}

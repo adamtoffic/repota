@@ -15,6 +15,8 @@ import { useDebounce } from "../hooks/useDebounce";
 import { exportToCSV } from "../utils/export";
 import { BulkImportModal } from "../components/BulkImportModal";
 
+import { triggerHaptic } from "../utils/iosInteraction";
+
 export function Dashboard() {
   const {
     students,
@@ -324,6 +326,7 @@ export function Dashboard() {
         isDangerous={true}
         onClose={() => setConfirmCleanModal(false)}
         onConfirm={() => {
+          triggerHaptic("heavy");
           deletePendingStudents();
           setConfirmCleanModal(false);
         }}
@@ -338,6 +341,7 @@ export function Dashboard() {
         isDangerous={true}
         onClose={() => setConfirmClearScoresModal(false)}
         onConfirm={() => {
+          triggerHaptic("heavy");
           clearAllScores();
           setConfirmClearScoresModal(false);
         }}
