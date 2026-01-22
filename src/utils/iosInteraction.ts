@@ -19,10 +19,14 @@ export const triggerHaptic = (style: "light" | "medium" | "heavy" = "medium") =>
 /**
  * Detect if running as iOS PWA (for print handler)
  */
+interface NavigatorStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 export const isIOSPWA = (): boolean => {
   return (
     "standalone" in window.navigator &&
-    (window.navigator as any).standalone === true &&
+    (window.navigator as NavigatorStandalone).standalone === true &&
     /iPad|iPhone|iPod/.test(navigator.userAgent)
   );
 };

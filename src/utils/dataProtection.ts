@@ -91,7 +91,7 @@ export const checkStoragePersistence = async (): Promise<boolean> => {
   try {
     const isPersisted = await navigator.storage.persisted();
     return isPersisted;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
