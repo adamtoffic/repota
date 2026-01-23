@@ -1,12 +1,16 @@
 // src/components/StudentList.tsx
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Edit2, Trash2, Printer, UserPlus, X, AlertCircle } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../types";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
+import { studentNameSchema } from "../schemas";
+import { z } from "zod";
 
 interface Props {
   students: ProcessedStudent[];
@@ -18,17 +22,32 @@ interface Props {
 export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStudent }: Props) {
   // STATE
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newName, setNewName] = useState("");
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const { settings } = useSchoolData();
-  // ✅ FIX: No useEffect. We set defaults when the user clicks "Open".
+
+  // 🛡️ REACT HOOK FORM + ZOD VALIDATION
+  const addStudentFormSchema = z.object({
+    name: studentNameSchema,
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm({
+    resolver: zodResolver(addStudentFormSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
   const handleOpenModal = () => {
+    reset(); // Clear form and errors
     setIsAddOpen(true);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = (data: { name: string }) => {
     // 1. DETERMINE THE SUBJECT LIST
     // Priority 1: Use the Custom List from Settings
     // Priority 2: Use the Hardcoded Default for the current level
@@ -46,15 +65,15 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
       examScore: 0,
     }));
 
-    // 3. Add Student
+    // 3. Add Student (name is already validated and sanitized by Zod)
     onAddStudent({
       id: crypto.randomUUID(),
-      name: newName,
+      name: data.name,
       className: settings.className || "Class",
       subjects: startingSubjects,
     });
 
-    setNewName("");
+    reset();
     setIsAddOpen(false);
   };
 
@@ -186,8 +205,8 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
               </button>
             </div>
 
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              {/* Name Input */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Name Input with Validation */}
               <div>
                 <label className="text-muted mb-1 block text-xs font-bold uppercase">
                   Full Name
@@ -195,18 +214,26 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                 <input
                   autoFocus
                   type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                  {...register("name")}
+                  className={`w-full rounded-lg border p-2 transition-colors outline-none ${
+                    errors.name
+                      ? "border-red-500 focus:ring-2 focus:ring-red-200"
+                      : "border-gray-300 focus:ring-2 focus:ring-blue-500"
+                  }`}
                   placeholder="e.g. Kwame Mensah"
                 />
+                {errors.name && (
+                  <div className="mt-1 flex items-center gap-1 text-xs text-red-600">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>{errors.name.message}</span>
+                  </div>
+                )}
               </div>
 
               {/* Class Dropdown */}
               <div>
                 <label className="text-muted mb-1 block text-xs font-bold uppercase">Class</label>
-                <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
+                <p className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-700">
                   {settings.className}
                 </p>
                 <p className="mt-1 text-[10px] text-gray-400">
@@ -216,9 +243,10 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
 
               <button
                 type="submit"
-                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2 font-bold text-white"
+                disabled={isSubmitting}
+                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2 font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Save Student
+                {isSubmitting ? "Adding..." : "Save Student"}
               </button>
             </form>
           </div>

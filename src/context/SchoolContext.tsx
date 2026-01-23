@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
-import type { StudentRecord, SchoolSettings } from "../types";
+import type { StudentRecord } from "../types";
 import { useToast } from "../hooks/useToast";
 import { safeSetItem, safeGetItem, STORAGE_KEYS } from "../utils/storage";
 // ✅ Import definition
@@ -19,43 +19,65 @@ import {
   requestPersistentStorage,
   detectDataLoss,
 } from "../utils/dataProtection";
+import { studentRecordSchema, schoolSettingsSchema, type SchoolSettings } from "../schemas";
+import { z } from "zod";
 
 export function SchoolProvider({ children }: { children: ReactNode }) {
-  // ... (State initialization stays exactly the same) ...
+  // 🛡️ VALIDATED STATE INITIALIZATION
   const [students, setStudents] = useState<StudentRecord[]>(() => {
     const saved = safeGetItem(STORAGE_KEYS.STUDENTS);
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+
+    try {
+      const parsed = JSON.parse(saved);
+
+      // Validate array of students
+      const studentsArraySchema = z.array(studentRecordSchema);
+      const result = studentsArraySchema.safeParse(parsed);
+
+      if (result.success) {
+        return result.data;
+      } else {
+        console.error("❌ Invalid student data in localStorage:", result.error);
+        return []; // Return empty array if data is corrupted
+      }
+    } catch (error) {
+      console.error("❌ Failed to parse student data:", error);
+      return [];
+    }
   });
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
     const saved = safeGetItem(STORAGE_KEYS.SETTINGS);
-    if (saved) {
-      return JSON.parse(saved); // (Simplified for brevity, keep your migration logic if needed)
-    }
 
-    return {
+    // Default settings
+    const defaultSettings: SchoolSettings = {
       schoolName: "My School Name",
       academicYear: "2025/2026",
       term: "First Term",
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-      totalAttendanceDays: 70,
-      classScoreMax: 50,
-      examScoreMax: 50,
-      classSize: 30,
-      nextTermStarts: "",
-      headTeacherName: "",
-      classTeacherName: "",
-      className: "",
-      phoneNumber: "",
-      address: "",
-      email: "",
-      schoolMotto: "",
-      logoUrl: "",
-      headTeacherSignature: "",
-      teacherSignature: "",
+      classScoreMax: 40,
+      examScoreMax: 60,
       schoolType: "STANDARD",
     };
+
+    if (!saved) return defaultSettings;
+
+    try {
+      const parsed = JSON.parse(saved);
+      const result = schoolSettingsSchema.safeParse(parsed);
+
+      if (result.success) {
+        return result.data;
+      } else {
+        console.error("❌ Invalid settings data in localStorage:", result.error);
+        return defaultSettings; // Return defaults if data is corrupted
+      }
+    } catch (error) {
+      console.error("❌ Failed to parse settings data:", error);
+      return defaultSettings;
+    }
   });
 
   const { showToast } = useToast();
@@ -68,21 +90,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       term: "First Term",
       level: "PRIMARY",
       defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-      totalAttendanceDays: 70,
-      classScoreMax: 50,
-      examScoreMax: 50,
-      classSize: 30,
-      nextTermStarts: "",
-      headTeacherName: "",
-      classTeacherName: "",
-      className: "",
-      phoneNumber: "",
-      address: "",
-      email: "",
-      schoolMotto: "",
-      logoUrl: "",
-      headTeacherSignature: "",
-      teacherSignature: "",
+      classScoreMax: 40,
+      examScoreMax: 60,
       schoolType: "STANDARD",
     };
 
@@ -112,11 +121,20 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // --- ACTIONS ---
 
-  // 1. ADD
+  // 1. ADD (With Validation)
   const addStudent = (student: StudentRecord, silent = false) => {
-    setStudents((prev) => [...prev, student]);
-    if (!silent && student.name !== "New Student") {
-      showToast(`Student "${student.name}" added successfully!`, "success");
+    // 🛡️ VALIDATE BEFORE ADDING
+    const result = studentRecordSchema.safeParse(student);
+
+    if (!result.success) {
+      console.error("❌ Invalid student data:", result.error);
+      showToast("Failed to add student: Invalid data", "error");
+      return;
+    }
+
+    setStudents((prev) => [...prev, result.data]);
+    if (!silent && result.data.name !== "New Student") {
+      showToast(`Student "${result.data.name}" added successfully!`, "success");
     }
   };
 
@@ -156,9 +174,18 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 4. UPDATE
+  // 4. UPDATE (With Validation)
   const updateStudent = (updatedStudent: StudentRecord, silent = false) => {
-    setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+    // 🛡️ VALIDATE BEFORE UPDATING
+    const result = studentRecordSchema.safeParse(updatedStudent);
+
+    if (!result.success) {
+      console.error("❌ Invalid student data:", result.error);
+      showToast("Failed to update student: Invalid data", "error");
+      return;
+    }
+
+    setStudents((prev) => prev.map((s) => (s.id === result.data.id ? result.data : s)));
     if (!silent) {
       showToast(`Changes saved successfully!`, "success");
     }
