@@ -34,9 +34,11 @@ export function SubjectRow({
 
   // Cleanup timers on unmount
   useEffect(() => {
+    // Capture current timer values at effect creation
+    const classTimer = classTimerRef.current;
+    const examTimer = examTimerRef.current;
+
     return () => {
-      const classTimer = classTimerRef.current;
-      const examTimer = examTimerRef.current;
       if (classTimer) clearTimeout(classTimer);
       if (examTimer) clearTimeout(examTimer);
     };
