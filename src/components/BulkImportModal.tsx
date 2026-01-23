@@ -48,9 +48,9 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   const handleImport = () => {
     let addedCount = 0;
 
-    preview.forEach((name, index) => {
+    preview.forEach((name) => {
       const newStudent: StudentRecord = {
-        id: `${Date.now()}-${index}`, // Ensure unique timestamp even in loop
+        id: crypto.randomUUID(), // Proper UUID generation
         name: name, // Already validated and sanitized
         className: settings.className || "Class",
         subjects: [],

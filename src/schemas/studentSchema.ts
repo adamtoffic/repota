@@ -6,7 +6,7 @@ import { z } from "zod";
  * Validates individual subject scores with strict bounds
  */
 export const subjectSchema = z.object({
-  id: z.string().min(1, "Subject ID required"), // Allow any non-empty string
+  id: z.string().uuid("Invalid subject ID"), // ✅ Restored strict UUID validation
   name: z
     .string()
     .min(1, "Subject name required")
@@ -47,7 +47,7 @@ export const studentNameSchema = z
  * Full validation for student data before localStorage
  */
 export const studentRecordSchema = z.object({
-  id: z.string().min(1, "Student ID required"), // Allow any non-empty string (not just UUID)
+  id: z.string().uuid("Invalid student ID"), // ✅ Restored strict UUID validation
   name: studentNameSchema,
   className: z
     .string()
