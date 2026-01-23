@@ -43,6 +43,22 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
             placeholder="e.g. 2025/2026"
           />
         </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Class Size (Number on Roll)
+          </label>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            max="200"
+            value={formData.classSize || ""}
+            onChange={(e) => handleChange("classSize", e.target.value)}
+            className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. 30"
+          />
+        </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Term</label>
           <select

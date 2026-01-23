@@ -28,7 +28,6 @@ export function DetailsTab({ student, onUpdate }: Props) {
     interest: student.interest || "",
     teacherRemark: student.teacherRemark || "",
     promotionStatus: student.promotionStatus || "",
-    numberOnRoll: student.numberOnRoll || 0,
     pictureUrl: student.pictureUrl || "",
   });
 
@@ -45,7 +44,6 @@ export function DetailsTab({ student, onUpdate }: Props) {
       interest: formData.interest,
       teacherRemark: formData.teacherRemark,
       promotionStatus: formData.promotionStatus,
-      numberOnRoll: formData.numberOnRoll,
       pictureUrl: formData.pictureUrl,
     };
 
@@ -88,32 +86,16 @@ export function DetailsTab({ student, onUpdate }: Props) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                  Roll No.
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  value={formData.numberOnRoll === 0 ? "" : formData.numberOnRoll}
-                  onChange={(e) => handleFormChange({ numberOnRoll: Number(e.target.value) || 0 })}
-                  className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-                  placeholder="1"
-                />
-              </div>
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-                />
-              </div>
+            <div>
+              <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
+              />
             </div>
           </div>
         </div>

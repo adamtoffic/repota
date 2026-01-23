@@ -77,7 +77,6 @@ export function Dashboard() {
       className: settings.className || "Class",
       subjects: [], // Will be populated by Modal logic
       attendancePresent: 0,
-      numberOnRoll: students.length + 1,
     };
 
     addStudent(newStudent); // Create it
@@ -216,7 +215,7 @@ export function Dashboard() {
           <EmptyState onAddStudent={handleAddNew} onLoadDemo={() => setShowDemoModal(true)} />
         ) : (
           <>
-            <DashboardStats students={students} />
+            <DashboardStats students={students} settings={settings} />
 
             <div className="relative">
               <DashboardToolbar

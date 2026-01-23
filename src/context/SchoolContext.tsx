@@ -42,6 +42,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       totalAttendanceDays: 70,
       classScoreMax: 50,
       examScoreMax: 50,
+      classSize: 30,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
@@ -70,6 +71,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       totalAttendanceDays: 70,
       classScoreMax: 50,
       examScoreMax: 50,
+      classSize: 30,
       nextTermStarts: "",
       headTeacherName: "",
       classTeacherName: "",
@@ -214,7 +216,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 11) + 35, // 35-45 (max 50)
         })),
         attendancePresent: 65,
-        numberOnRoll: students.length + 1,
       },
       {
         id: "demo-2",
@@ -227,7 +228,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
         })),
         attendancePresent: 68,
-        numberOnRoll: students.length + 2,
       },
       {
         id: "demo-3",
@@ -240,7 +240,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 10) + 30,
         })),
         attendancePresent: 60,
-        numberOnRoll: students.length + 3,
       },
       {
         id: "demo-4",
@@ -253,7 +252,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 9) + 42, // 42-50 (max 50)
         })),
         attendancePresent: 70,
-        numberOnRoll: students.length + 4,
       },
       {
         id: "demo-5",
@@ -266,7 +264,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 12) + 28,
         })),
         attendancePresent: 55,
-        numberOnRoll: students.length + 5,
       },
       {
         id: "demo-6",
@@ -279,7 +276,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 13) + 38, // 38-50 (max 50)
         })),
         attendancePresent: 67,
-        numberOnRoll: students.length + 6,
       },
       {
         id: "demo-7",
@@ -292,7 +288,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
         })),
         attendancePresent: 69,
-        numberOnRoll: students.length + 7,
       },
       {
         id: "demo-8",
@@ -305,7 +300,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 8) + 43, // 43-50 (max 50)
         })),
         attendancePresent: 70,
-        numberOnRoll: students.length + 8,
       },
       {
         id: "demo-9",
@@ -318,7 +312,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 15) + 35,
         })),
         attendancePresent: 63,
-        numberOnRoll: students.length + 9,
       },
       {
         id: "demo-10",
@@ -331,7 +324,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScore: Math.floor(Math.random() * 5) + 46, // 46-50 (max 50)
         })),
         attendancePresent: 70,
-        numberOnRoll: students.length + 10,
       },
     ];
 

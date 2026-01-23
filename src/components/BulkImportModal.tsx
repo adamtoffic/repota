@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function BulkImportModal({ isOpen, onClose }: Props) {
-  const { addStudent, settings, students } = useSchoolData();
+  const { addStudent, settings } = useSchoolData();
   const { showToast } = useToast();
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<string[]>([]);
@@ -46,7 +46,6 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
         className: settings.className || "Class",
         subjects: [],
         attendancePresent: 0,
-        numberOnRoll: students.length + addedCount + 1,
       };
 
       addStudent(newStudent, true); // 🔥 SILENT MODE - no individual toasts

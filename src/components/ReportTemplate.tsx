@@ -157,9 +157,11 @@ export function ReportTemplate({ student, settings }: Props) {
                 </span>
               </div>
               <div className="p-2 text-center">
-                <span className="text-muted block text-[9px] font-black uppercase">No. Roll</span>
+                <span className="text-muted block text-[9px] font-black uppercase">
+                  No. On Roll
+                </span>
                 <span className="text-main block text-lg leading-tight font-black">
-                  {student.numberOnRoll || "-"}
+                  {settings.classSize || "-"}
                 </span>
               </div>
               <div className="bg-primary p-2 text-center text-white print:bg-black">

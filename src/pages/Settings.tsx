@@ -236,18 +236,16 @@ export function Settings() {
             {/* LEVEL SELECTOR */}
             <div>
               <Label>School Level</Label>
-              {/* 🛑 CHANGE: grid-cols-2 by default, sm:grid-cols-4 on larger screens */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {" "}
                 {(["KG", "PRIMARY", "JHS", "SHS"] as SchoolLevel[]).map((lvl) => (
                   <button
                     key={lvl}
                     type="button"
                     onClick={() => handleLevelChange(lvl)}
-                    className={`rounded-lg border px-1 py-2.5 text-xs font-bold shadow-sm transition-all active:scale-95 ${
+                    className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 sm:px-4 sm:py-2.5 ${
                       formData.level === lvl
-                        ? "border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-200"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-blue-300"
+                        ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50/50"
                     }`}
                   >
                     {lvl}
@@ -256,7 +254,7 @@ export function Settings() {
               </div>
 
               {/* Context Hint */}
-              <div className="mt-3 flex gap-2 rounded-lg bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-800">
+              <div className="mt-3 flex gap-2 rounded-lg bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">
                 <AlertCircle className="h-4 w-4 shrink-0 text-blue-600" />
                 <p>
                   {formData.level === "KG" &&
@@ -280,47 +278,43 @@ export function Settings() {
                     value={formData.className || ""}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
                     className={`${inputClass} pl-9 font-bold`}
+                    placeholder="e.g. Class 3"
                   />
                   <Users className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
                 </div>
               </div>
               <div>
-                <Label>Attendance Days</Label>
+                <Label>Class Size (Number on Roll)</Label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="200"
+                  value={formData.classSize || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, classSize: Number(e.target.value) || undefined })
+                  }
+                  className={`${inputClass} font-bold`}
+                  placeholder="e.g. 30"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Total Attendance Days</Label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="365"
                   value={formData.totalAttendanceDays || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, totalAttendanceDays: Number(e.target.value) })
                   }
                   className={`${inputClass} font-bold`}
-                  placeholder="e.g. 60"
+                  placeholder="e.g. 70"
                 />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <Label>Academic Year</Label>
-                <input
-                  type="text"
-                  value={formData.academicYear}
-                  onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-                  className={`${inputClass} font-bold`}
-                />
-              </div>
-              <div>
-                <Label>Term</Label>
-                <select
-                  value={formData.term}
-                  onChange={(e) =>
-                    setFormData({ ...formData, term: e.target.value as AcademicPeriod })
-                  }
-                  className={`${inputClass} bg-white`}
-                >
-                  <option value="First Term">First Term</option>
-                  <option value="Second Term">Second Term</option>
-                  <option value="Third Term">Third Term</option>
-                </select>
               </div>
               <div>
                 <Label>Next Term Begins</Label>
@@ -333,39 +327,88 @@ export function Settings() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Academic Year</Label>
+                <input
+                  type="text"
+                  required
+                  value={formData.academicYear}
+                  onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
+                  className={`${inputClass} font-bold`}
+                  placeholder="e.g. 2025/2026"
+                />
+              </div>
+              <div>
+                <Label>Term / Semester</Label>
+                <select
+                  value={formData.term}
+                  onChange={(e) =>
+                    setFormData({ ...formData, term: e.target.value as AcademicPeriod })
+                  }
+                  className={`${inputClass} bg-white font-bold`}
+                >
+                  <option value="First Term">First Term</option>
+                  <option value="Second Term">Second Term</option>
+                  <option value="Third Term">Third Term</option>
+                </select>
+              </div>
+            </div>
+
             {/* GRADING CONFIG */}
-            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold text-yellow-800 uppercase">
-                <AlertCircle size={14} /> Grading Limits
+            <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
+              <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
+                <AlertCircle className="h-4 w-4" /> Grading Limits
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <Label>Class Score Max</Label>
                   <input
                     type="number"
-                    min="10"
+                    inputMode="numeric"
+                    min="0"
                     max="100"
-                    value={formData.classScoreMax ?? 30}
-                    onChange={(e) =>
-                      setFormData({ ...formData, classScoreMax: Number(e.target.value) })
-                    }
-                    className={`${inputClass} border-yellow-200 text-center font-bold focus:ring-yellow-400`}
+                    value={formData.classScoreMax || ""}
+                    onChange={(e) => {
+                      const classScore = Number(e.target.value) || 0;
+                      const examScore = 100 - classScore;
+                      setFormData({
+                        ...formData,
+                        classScoreMax: classScore,
+                        examScoreMax: examScore,
+                      });
+                    }}
+                    className={`${inputClass} border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300`}
+                    placeholder="30"
                   />
                 </div>
                 <div>
                   <Label>Exam Score Max</Label>
                   <input
                     type="number"
-                    min="10"
+                    inputMode="numeric"
+                    min="0"
                     max="100"
-                    value={formData.examScoreMax ?? 70}
-                    onChange={(e) =>
-                      setFormData({ ...formData, examScoreMax: Number(e.target.value) })
-                    }
-                    className={`${inputClass} border-yellow-200 text-center font-bold focus:ring-yellow-400`}
+                    value={formData.examScoreMax || ""}
+                    onChange={(e) => {
+                      const examScore = Number(e.target.value) || 0;
+                      const classScore = 100 - examScore;
+                      setFormData({
+                        ...formData,
+                        classScoreMax: classScore,
+                        examScoreMax: examScore,
+                      });
+                    }}
+                    className={`${inputClass} border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300`}
+                    placeholder="70"
                   />
                 </div>
               </div>
+              <p className="mt-3 text-xs leading-relaxed text-yellow-800">
+                <span className="font-bold">Total must equal 100.</span> Changing one value
+                automatically adjusts the other. (Current:{" "}
+                {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)})
+              </p>
             </div>
           </div>
         </div>

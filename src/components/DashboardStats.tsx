@@ -1,14 +1,17 @@
 import { Users, Clock, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
 import { useMemo } from "react";
-import type { ProcessedStudent } from "../types";
+import type { ProcessedStudent, SchoolSettings } from "../types";
 
 interface Props {
   students: ProcessedStudent[];
+  settings: SchoolSettings;
 }
 
-export function DashboardStats({ students }: Props) {
+export function DashboardStats({ students, settings }: Props) {
   const stats = useMemo(() => {
     const total = students.length;
+    const classSize = settings.classSize || 0;
+    const isOverCapacity = classSize > 0 && total > classSize;
 
     // 1. Calculate Pending (Exact same logic as the Filter)
     const pendingStudents = students.filter((s) => {
@@ -37,56 +40,90 @@ export function DashboardStats({ students }: Props) {
 
     return {
       total,
+      classSize,
+      isOverCapacity,
       pending: pendingStudents.length,
       failing: failingCount,
       passRate,
       classAverage,
     };
-  }, [students]);
+  }, [students, settings.classSize]);
 
   return (
-    <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-      {/* CARD 1: TOTAL STUDENTS */}
-      <StatCard
-        label="Total Students"
-        value={stats.total}
-        icon={<Users className="text-primary h-5 w-5" />}
-        colorClass="bg-blue-50/50 border-blue-100"
-      />
+    <>
+      {/* OVER CAPACITY WARNING BANNER */}
+      {stats.isOverCapacity && (
+        <div className="animate-in fade-in slide-in-from-top-2 mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm duration-300">
+          <div className="rounded-full bg-red-100 p-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="mb-1 text-sm font-bold text-red-900">
+              Class Over Capacity ({stats.total} / {stats.classSize})
+            </h3>
+            <p className="text-xs leading-relaxed text-red-700">
+              You have {stats.total - stats.classSize} more student
+              {stats.total - stats.classSize > 1 ? "s" : ""} than your set class size. Consider
+              updating the class size in Settings or reviewing your enrollment.
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/* CARD 2: PENDING ENTRY (Actionable) */}
-      <StatCard
-        label="Pending Entry"
-        value={stats.pending}
-        icon={<Clock className="h-5 w-5 text-orange-600" />}
-        colorClass="bg-orange-50/50 border-orange-100"
-        alert={stats.pending > 0}
-      />
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        {/* CARD 1: TOTAL STUDENTS (with Class Size Alert) */}
+        <StatCard
+          label="Total Students"
+          value={stats.classSize > 0 ? `${stats.total} / ${stats.classSize}` : stats.total}
+          icon={
+            <Users
+              className={stats.isOverCapacity ? "h-5 w-5 text-red-600" : "text-primary h-5 w-5"}
+            />
+          }
+          colorClass={
+            stats.isOverCapacity
+              ? "bg-red-50/70 border-red-300 ring-1 ring-red-200"
+              : "bg-blue-50/50 border-blue-100"
+          }
+          alert={stats.isOverCapacity}
+          alertColor="red"
+        />
 
-      {/* CARD 3: CLASS AVERAGE (Performance) */}
-      <StatCard
-        label="Class Average"
-        value={`${stats.classAverage}%`}
-        icon={<BarChart3 className="h-5 w-5 text-purple-600" />}
-        colorClass="bg-purple-50/50 border-purple-100"
-      />
+        {/* CARD 2: PENDING ENTRY (Actionable) */}
+        <StatCard
+          label="Pending Entry"
+          value={stats.pending}
+          icon={<Clock className="h-5 w-5 text-orange-600" />}
+          colorClass="bg-orange-50/50 border-orange-100"
+          alert={stats.pending > 0}
+          alertColor="orange"
+        />
 
-      {/* CARD 4: PASS RATE (Success Metric) */}
-      <StatCard
-        label="Pass Rate"
-        value={`${stats.passRate}%`}
-        icon={
-          stats.passRate >= 50 ? (
-            <TrendingUp className="text-success h-5 w-5" />
-          ) : (
-            <AlertTriangle className="text-danger h-5 w-5" />
-          )
-        }
-        colorClass={
-          stats.passRate >= 50 ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"
-        }
-      />
-    </div>
+        {/* CARD 3: CLASS AVERAGE (Performance) */}
+        <StatCard
+          label="Class Average"
+          value={`${stats.classAverage}%`}
+          icon={<BarChart3 className="h-5 w-5 text-purple-600" />}
+          colorClass="bg-purple-50/50 border-purple-100"
+        />
+
+        {/* CARD 4: PASS RATE (Success Metric) */}
+        <StatCard
+          label="Pass Rate"
+          value={`${stats.passRate}%`}
+          icon={
+            stats.passRate >= 50 ? (
+              <TrendingUp className="text-success h-5 w-5" />
+            ) : (
+              <AlertTriangle className="text-danger h-5 w-5" />
+            )
+          }
+          colorClass={
+            stats.passRate >= 50 ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"
+          }
+        />
+      </div>
+    </>
   );
 }
 
@@ -97,9 +134,23 @@ interface StatCardProps {
   icon: React.ReactNode;
   colorClass: string;
   alert?: boolean;
+  alertColor?: "orange" | "red";
 }
 
-function StatCard({ label, value, icon, colorClass, alert }: StatCardProps) {
+function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange" }: StatCardProps) {
+  const alertColors = {
+    orange: {
+      ping: "bg-orange-400",
+      dot: "bg-orange-500",
+    },
+    red: {
+      ping: "bg-red-400",
+      dot: "bg-red-500",
+    },
+  };
+
+  const colors = alertColors[alertColor];
+
   return (
     <div
       className={`group flex items-center justify-between rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${colorClass}`}
@@ -110,8 +161,10 @@ function StatCard({ label, value, icon, colorClass, alert }: StatCardProps) {
           <h3 className="text-main text-2xl font-black">{value}</h3>
           {alert && (
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
+              <span
+                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${colors.ping}`}
+              ></span>
+              <span className={`relative inline-flex h-2 w-2 rounded-full ${colors.dot}`}></span>
             </span>
           )}
         </div>

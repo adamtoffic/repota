@@ -30,7 +30,6 @@ export interface StudentRecord {
   interest?: string;
   pictureUrl?: string;
   promotionStatus?: string;
-  numberOnRoll?: number;
 
   subjects: SavedSubject[];
 }
@@ -54,6 +53,7 @@ export interface SchoolSettings {
   totalAttendanceDays?: number;
   classScoreMax: number;
   examScoreMax: number;
+  classSize?: number;
 
   headTeacherSignature?: string;
   teacherSignature?: string;
