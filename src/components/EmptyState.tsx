@@ -17,8 +17,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
       </h2>
 
       <p className="text-muted mb-8 max-w-md text-sm leading-relaxed">
-        You haven't added any students yet. Get started by adding your first student manually, or
-        load some demo data to see how the reports look.
+        Click below to add your first student and start creating reports.
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -27,7 +26,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
           className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold text-white shadow-md transition-all active:scale-95"
         >
           <UserPlus className="h-5 w-5" />
-          Add First Student
+          Add Student
         </button>
 
         <button
