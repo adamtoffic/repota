@@ -6,7 +6,7 @@ import { z } from "zod";
  * Validates individual subject scores with strict bounds
  */
 export const subjectSchema = z.object({
-  id: z.string().uuid("Invalid subject ID"),
+  id: z.string().min(1, "Subject ID required"), // Allow any non-empty string
   name: z
     .string()
     .min(1, "Subject name required")
@@ -47,14 +47,14 @@ export const studentNameSchema = z
  * Full validation for student data before localStorage
  */
 export const studentRecordSchema = z.object({
-  id: z.string().uuid("Invalid student ID"),
+  id: z.string().min(1, "Student ID required"), // Allow any non-empty string (not just UUID)
   name: studentNameSchema,
   className: z
     .string()
     .min(1, "Class name required")
     .max(50, "Class name too long")
     .transform((val) => val.trim()),
-  subjects: z.array(subjectSchema).min(1, "At least one subject required"),
+  subjects: z.array(subjectSchema), // Allow empty array for new students
   remark: z.string().max(500, "Remark too long").optional(),
   conduct: z.string().max(100, "Conduct too long").optional(),
   interest: z.string().max(100, "Interest too long").optional(),
