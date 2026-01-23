@@ -49,22 +49,25 @@ export const generateTeacherRemark = (
 export const generateHeadmasterRemark = (
   averageScore: number,
   term: AcademicPeriod,
-  excludeList: string[] = [], // 🆕 Added Param
+  excludeList: string[] = [],
 ): string => {
   const isPromotionalTerm =
     term.toLowerCase().includes("third") || term.toLowerCase().includes("3rd");
 
-  let pool = HEADMASTER_BANK.GENERAL.POOR;
+  let pool = HEADMASTER_BANK.GENERAL.AVERAGE;
 
   if (isPromotionalTerm) {
-    if (averageScore >= 50) pool = HEADMASTER_BANK.PROMOTIONAL.Pass;
-    else if (averageScore >= 40) pool = HEADMASTER_BANK.PROMOTIONAL.Probation;
-    else pool = HEADMASTER_BANK.PROMOTIONAL.Fail;
+    // Only show promotional remarks for students with passing grades
+    // Students with lower grades get encouraging remarks instead
+    if (averageScore >= 75) pool = HEADMASTER_BANK.PROMOTIONAL.Excellent;
+    else if (averageScore >= 50) pool = HEADMASTER_BANK.PROMOTIONAL.Good;
+    else pool = HEADMASTER_BANK.PROMOTIONAL.Encouraging;
   } else {
-    // Normal Terms
+    // Normal Terms - More positive tiering
     if (averageScore >= 80) pool = HEADMASTER_BANK.GENERAL.EXCELLENT;
-    else if (averageScore >= 60) pool = HEADMASTER_BANK.GENERAL.GOOD;
-    else if (averageScore >= 50) pool = HEADMASTER_BANK.GENERAL.AVERAGE;
+    else if (averageScore >= 65) pool = HEADMASTER_BANK.GENERAL.GOOD;
+    else if (averageScore >= 45) pool = HEADMASTER_BANK.GENERAL.AVERAGE;
+    else pool = HEADMASTER_BANK.PROMOTIONAL.Encouraging; // Use encouraging remarks even in normal terms
   }
 
   return getSmartRandom(pool, excludeList);
