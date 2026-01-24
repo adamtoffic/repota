@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { HelpCircle, X, Printer, Settings as SettingsIcon } from "lucide-react";
+import { HelpCircle, X, Printer, Settings as SettingsIcon, BarChart3 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
@@ -113,13 +113,22 @@ export function Dashboard() {
             {/* RIGHT SIDE: Buttons (Icon only on Mobile) */}
             <div className="flex items-center gap-2 pl-2">
               {students.length > 0 && (
-                <Link
-                  to="/print"
-                  className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
-                >
-                  <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
-                  <span className="hidden text-sm font-medium sm:inline">Print</span>
-                </Link>
+                <>
+                  <Link
+                    to="/analytics"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 sm:px-4"
+                  >
+                    <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
+                    <span className="hidden text-sm font-medium sm:inline">Analytics</span>
+                  </Link>
+                  <Link
+                    to="/print"
+                    className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
+                  >
+                    <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
+                    <span className="hidden text-sm font-medium sm:inline">Print</span>
+                  </Link>
+                </>
               )}
               <Link
                 to="/settings"

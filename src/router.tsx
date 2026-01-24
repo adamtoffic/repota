@@ -3,6 +3,7 @@ import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/re
 import { Dashboard } from "./pages/Dashboard";
 import { Settings } from "./pages/Settings";
 import { PrintPreview } from "./pages/PrintPreview";
+import { Analytics } from "./pages/Analytics";
 
 // 2. Define the Root Layout (The Shell)
 const rootRoute = createRootRoute({
@@ -39,8 +40,14 @@ const printRoute = createRoute({
   },
 });
 
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/analytics",
+  component: Analytics,
+});
+
 // 4. Build the Tree
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, printRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, printRoute, analyticsRoute]);
 
 // 5. Create the Router
 export const router = createRouter({ routeTree });

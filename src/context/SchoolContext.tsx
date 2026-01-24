@@ -209,6 +209,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-1",
         name: "Kwame Mensah",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -221,6 +222,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-2",
         name: "Ama Asante",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -233,6 +235,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-3",
         name: "Kofi Owusu",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -245,6 +248,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-4",
         name: "Abena Boateng",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -257,6 +261,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-5",
         name: "Yaw Adomako",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -269,6 +274,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-6",
         name: "Efua Appiah",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -281,6 +287,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-7",
         name: "Kwabena Darko",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -293,6 +300,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-8",
         name: "Akosua Frimpong",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -305,6 +313,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-9",
         name: "Kwesi Osei",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -317,6 +326,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-10",
         name: "Adwoa Agyeman",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
