@@ -217,8 +217,92 @@ export function Settings() {
                     />
                     <span className="text-sm font-bold text-gray-700">Islamic / Arabic</span>
                   </label>
+
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name="schoolType"
+                      checked={formData.schoolType === "PRIVATE"}
+                      onChange={() => setFormData({ ...formData, schoolType: "PRIVATE" })}
+                      className="text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-bold text-gray-700">Private School</span>
+                  </label>
                 </div>
               </div>
+
+              {/* Private School Fees */}
+              {formData.schoolType === "PRIVATE" && (
+                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                  <Label>
+                    <span className="text-purple-900">Fee Schedule (GH₵)</span>
+                  </Label>
+                  <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        School Fees <span className="text-[10px] text-slate-600">(Per Term)</span>
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min="0"
+                        value={formData.schoolGift || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            schoolGift: e.target.value ? parseFloat(e.target.value) : undefined,
+                          })
+                        }
+                        className={inputClass}
+                        placeholder="5.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        Canteen Fees <span className="text-[10px] text-purple-600">(Daily)</span>
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min="0"
+                        value={formData.canteenFees || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            canteenFees: e.target.value ? parseFloat(e.target.value) : undefined,
+                          })
+                        }
+                        className={inputClass}
+                        placeholder="10.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        First Aid <span className="text-[10px] text-green-700">(Per Term)</span>
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min="0"
+                        value={formData.firstAidFees || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            firstAidFees: e.target.value ? parseFloat(e.target.value) : undefined,
+                          })
+                        }
+                        className={inputClass}
+                        placeholder="5.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

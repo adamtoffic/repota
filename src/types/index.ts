@@ -47,7 +47,7 @@ export interface SchoolSettings {
   academicYear: string;
   term: AcademicPeriod;
   level: SchoolLevel;
-  schoolType: "STANDARD" | "ISLAMIC";
+  schoolType: "STANDARD" | "ISLAMIC" | "PRIVATE";
   nextTermStarts?: string;
   headTeacherName?: string;
   classTeacherName?: string;
@@ -60,6 +60,11 @@ export interface SchoolSettings {
   teacherSignature?: string;
 
   defaultSubjects: string[];
+
+  // Private school fees
+  schoolGift?: number; // Daily school fees
+  canteenFees?: number; // Daily canteen fees
+  firstAidFees?: number; // Termly first aid fees
 }
 
 export interface ProcessedSubject extends SavedSubject {

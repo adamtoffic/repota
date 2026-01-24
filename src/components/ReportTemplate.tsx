@@ -1,5 +1,6 @@
 // src/components/ReportTemplate.tsx
 import type { ProcessedStudent, SchoolSettings } from "../types";
+import { PrivateSchoolReport } from "./reports/PrivateSchoolReport";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 
 interface Props {
@@ -8,6 +9,12 @@ interface Props {
 }
 
 export function ReportTemplate({ student, settings }: Props) {
+  // Route to specialized template for private schools
+  if (settings.schoolType === "PRIVATE") {
+    return <PrivateSchoolReport student={student} settings={settings} />;
+  }
+
+  // Standard and Islamic schools use the existing template
   const isIslamic = settings.schoolType === "ISLAMIC";
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
 
@@ -96,6 +103,15 @@ export function ReportTemplate({ student, settings }: Props) {
                 <p className="mt-1 text-xs font-semibold text-blue-900 italic">
                   "{settings.schoolMotto}"
                 </p>
+              )}
+
+              {/* Contact Information */}
+              {(settings.phoneNumber || settings.email) && (
+                <div className="mt-1 flex justify-center gap-3 text-[9px] font-semibold text-slate-600">
+                  {settings.phoneNumber && <span>Tel: {settings.phoneNumber}</span>}
+                  {settings.phoneNumber && settings.email && <span>•</span>}
+                  {settings.email && <span>{settings.email}</span>}
+                </div>
               )}
 
               <div className="mt-2 flex justify-center gap-6 border-t-2 border-blue-950 pt-1 text-xs font-bold tracking-wider text-slate-800 uppercase">
