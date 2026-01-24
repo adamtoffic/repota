@@ -173,18 +173,35 @@ export function ReportTemplate({ student, settings }: Props) {
             </div>
 
             {/* Row 2: Secondary Stats */}
-            <div className="grid grid-cols-2 divide-x-2 divide-blue-950">
+            <div className="grid grid-cols-[1fr_2fr] divide-x-2 divide-blue-950">
               <div className="flex items-center justify-between px-3 py-1.5">
                 <span className="text-muted text-[10px] font-black uppercase">Attendance</span>
                 <span className="text-main font-mono text-sm font-black">
                   {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
                 </span>
               </div>
-              <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
-                <span className="text-main text-sm font-bold">
-                  {settings.nextTermStarts || "TBA"}
-                </span>
+              <div className="px-3 py-1.5">
+                {student.dateOfBirth ? (
+                  <div className="grid grid-cols-2 gap-4 divide-x-2 divide-blue-950">
+                    <div className="flex items-center justify-between pr-4">
+                      <span className="text-muted text-[10px] font-black uppercase">DOB</span>
+                      <span className="text-main text-sm font-bold">{student.dateOfBirth}</span>
+                    </div>
+                    <div className="flex items-center justify-between pl-4">
+                      <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
+                      <span className="text-main text-sm font-bold">
+                        {settings.nextTermStarts || "TBA"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
+                    <span className="text-main text-sm font-bold">
+                      {settings.nextTermStarts || "TBA"}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
