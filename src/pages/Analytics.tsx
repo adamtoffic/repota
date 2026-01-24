@@ -409,7 +409,7 @@ export const Analytics: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      <div className="flex h-[200px] items-center justify-center text-sm text-gray-400">
+                      <div className="flex h-50 items-center justify-center text-sm text-gray-400">
                         No grade data available
                       </div>
                     )}
@@ -477,7 +477,7 @@ export const Analytics: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      <div className="flex h-[180px] items-center justify-center text-sm text-gray-400">
+                      <div className="flex h-45 items-center justify-center text-sm text-gray-400">
                         No gender data available
                       </div>
                     )}
@@ -489,17 +489,17 @@ export const Analytics: React.FC = () => {
                       {topPerformers.slice(0, 5).map((student, index) => (
                         <div
                           key={student.id}
-                          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-gray-50 to-white p-2 sm:gap-3 sm:p-3"
+                          className="flex items-center gap-2 rounded-lg bg-linear-to-r from-gray-50 to-white p-2 sm:gap-3 sm:p-3"
                         >
                           <div
                             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white sm:h-8 sm:w-8 ${
                               index === 0
-                                ? "bg-gradient-to-br from-yellow-400 to-yellow-600"
+                                ? "bg-linear-to-br from-yellow-400 to-yellow-600"
                                 : index === 1
-                                  ? "bg-gradient-to-br from-gray-300 to-gray-500"
+                                  ? "bg-linear-to-br from-gray-300 to-gray-500"
                                   : index === 2
-                                    ? "bg-gradient-to-br from-orange-400 to-orange-600"
-                                    : "bg-gradient-to-br from-blue-400 to-blue-600"
+                                    ? "bg-linear-to-br from-orange-400 to-orange-600"
+                                    : "bg-linear-to-br from-blue-400 to-blue-600"
                             }`}
                           >
                             {index + 1}
@@ -617,7 +617,7 @@ export const Analytics: React.FC = () => {
                       students perform similarly. High variance = wide performance gap.
                     </p>
                     <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
-                      <table className="w-full min-w-[600px]">
+                      <table className="w-full min-w-150">
                         <thead className="bg-gray-50">
                           <tr className="border-b">
                             <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
@@ -677,7 +677,7 @@ export const Analytics: React.FC = () => {
                     Detailed Subject Statistics
                   </h3>
                   <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
-                    <table className="w-full min-w-[600px]">
+                    <table className="w-full min-w-150">
                       <thead className="bg-gray-50">
                         <tr className="border-b">
                           <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
@@ -848,7 +848,7 @@ export const Analytics: React.FC = () => {
                       Gender Breakdown by Age
                     </h3>
                     <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
-                      <table className="w-full min-w-[400px]">
+                      <table className="w-full min-w-100">
                         <thead className="bg-gray-50">
                           <tr className="border-b">
                             <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
@@ -1051,7 +1051,7 @@ export const Analytics: React.FC = () => {
                 </Card>
 
                 {/* Key Recommendations */}
-                <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50 p-6 shadow-sm">
+                <div className="rounded-xl border border-blue-200 bg-linear-to-br from-blue-50 to-purple-50 p-6 shadow-sm">
                   <h3 className="text-main mb-4 flex items-center gap-2 text-lg font-bold">
                     <Brain className="h-6 w-6 text-blue-600" />
                     AI-Powered Recommendations
