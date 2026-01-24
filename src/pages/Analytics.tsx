@@ -259,7 +259,7 @@ export const Analytics: React.FC = () => {
             return (
               <button
                 key={view.id}
-                onClick={() => setActiveView(view.id as any)}
+                onClick={() => setActiveView(view.id as "overview" | "subjects" | "demographics" | "insights")}
                 className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${
                   activeView === view.id
                     ? "bg-primary text-white shadow-md"

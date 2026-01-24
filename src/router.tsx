@@ -2,21 +2,12 @@
 import { lazy, Suspense } from "react";
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { Dashboard } from "./pages/Dashboard";
+import { PageLoader } from "./components/PageLoader";
 
 // Code-split heavy pages
 const Settings = lazy(() => import("./pages/Settings"));
 const PrintPreview = lazy(() => import("./pages/PrintPreview"));
 const Analytics = lazy(() => import("./pages/Analytics"));
-
-// Loading component
-const PageLoader = () => (
-  <div className="flex min-h-screen items-center justify-center">
-    <div className="flex flex-col items-center gap-4">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
-      <p className="text-sm text-gray-600">Loading...</p>
-    </div>
-  </div>
-);
 
 // 2. Define the Root Layout (The Shell)
 const rootRoute = createRootRoute({
