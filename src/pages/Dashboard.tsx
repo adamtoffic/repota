@@ -70,7 +70,7 @@ export function Dashboard() {
 
   // ✅ CLEAN ADD HANDLER (No Prompts, No Checks)
   const handleAddNew = () => {
-    const newId = crypto.randomUUID();
+    const newId = Date.now().toString();
     const newStudent: StudentRecord = {
       id: newId,
       name: "New Student", // Placeholder

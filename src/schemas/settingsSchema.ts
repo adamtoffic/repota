@@ -23,7 +23,6 @@ export const schoolSettingsSchema = z
       .string()
       .min(3, "School name must be at least 3 characters")
       .max(150, "School name too long")
-      .regex(/^[a-zA-Z0-9\s.,'\/-]+$/, "Invalid characters in school name")
       .transform((val) => val.trim()),
 
     className: z
