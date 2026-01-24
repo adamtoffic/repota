@@ -1,9 +1,8 @@
-// src/components/SubjectRow.tsx - MOBILE OPTIMIZED + VALIDATED
+// src/components/SubjectRow.tsx - MOBILE OPTIMIZED
 import { useState, useEffect, useRef } from "react";
 import { Trash2, AlertCircle, Check } from "lucide-react";
 import type { SavedSubject, SchoolLevel } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
-import { scoreInputSchema } from "../schemas";
 
 interface Props {
   subject: SavedSubject;
@@ -27,8 +26,6 @@ export function SubjectRow({
 
   const [showClassSaved, setShowClassSaved] = useState(false);
   const [showExamSaved, setShowExamSaved] = useState(false);
-  const [classError, setClassError] = useState<string | null>(null);
-  const [examError, setExamError] = useState<string | null>(null);
   const classTimerRef = useRef<number | null>(null);
   const examTimerRef = useRef<number | null>(null);
 
@@ -49,38 +46,26 @@ export function SubjectRow({
 
   const handleChange = (field: "classScore" | "examScore", value: string) => {
     const maxLimit = field === "classScore" ? maxClassScore : maxExamScore;
-    const setError = field === "classScore" ? setClassError : setExamError;
 
-    // 🛡️ VALIDATE INPUT WITH ZOD
-    const result = scoreInputSchema(maxLimit).safeParse(value);
-
-    if (!result.success) {
-      // Show validation error
-      const errorMessage = result.error.issues[0]?.message || "Invalid input";
-      setError(errorMessage);
+    if (value === "") {
+      onChange({ ...subject, [field]: 0 });
       return;
     }
 
-    // Clear error and update
-    setError(null);
-    onChange({ ...subject, [field]: result.data });
+    const numValue = Number(value);
+
+    // Silently clamp to max value instead of showing error toast
+    const clampedValue = Math.min(numValue, maxLimit);
+    onChange({ ...subject, [field]: clampedValue });
   };
 
   // Save on blur with instant visual feedback
   const handleBlur = (field: "classScore" | "examScore") => {
     const setShow = field === "classScore" ? setShowClassSaved : setShowExamSaved;
-    const setError = field === "classScore" ? setClassError : setExamError;
     const timerRef = field === "classScore" ? classTimerRef : examTimerRef;
-
-    // Don't show success if there's an error
-    const hasError = field === "classScore" ? classError : examError;
-    if (hasError) return;
 
     // Clear existing timer
     if (timerRef.current) clearTimeout(timerRef.current);
-
-    // Clear error
-    setError(null);
 
     // Show checkmark
     setShow(true);
@@ -144,22 +129,20 @@ export function SubjectRow({
                 onChange={(e) => handleChange("classScore", e.target.value)}
                 onBlur={() => handleBlur("classScore")}
                 className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none focus:ring-2 sm:p-2.5 sm:text-base ${
-                  classError || isClassInvalid
+                  isClassInvalid
                     ? "border-red-400 bg-red-50 text-red-900 ring-2 ring-red-200"
                     : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
                 }`}
                 placeholder={`/${maxClassScore}`}
               />
-              {showClassSaved && !classError && (
+              {showClassSaved && (
                 <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
                   <Check size={16} className="text-green-600" strokeWidth={3} />
                 </div>
               )}
             </div>
-            {(classError || isClassInvalid) && (
-              <p className="mt-1 text-[10px] font-bold text-red-600">
-                {classError || `Max: ${maxClassScore}`}
-              </p>
+            {isClassInvalid && (
+              <p className="mt-1 text-[10px] font-bold text-red-600">Max: {maxClassScore}</p>
             )}
           </div>
 
@@ -178,22 +161,20 @@ export function SubjectRow({
                 onChange={(e) => handleChange("examScore", e.target.value)}
                 onBlur={() => handleBlur("examScore")}
                 className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none focus:ring-2 sm:p-2.5 sm:text-base ${
-                  examError || isExamInvalid
+                  isExamInvalid
                     ? "border-red-400 bg-red-50 text-red-900 ring-2 ring-red-200"
                     : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
                 }`}
                 placeholder={`/${maxExamScore}`}
               />
-              {showExamSaved && !examError && (
+              {showExamSaved && (
                 <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
                   <Check size={16} className="text-green-600" strokeWidth={3} />
                 </div>
               )}
             </div>
-            {(examError || isExamInvalid) && (
-              <p className="mt-1 text-[10px] font-bold text-red-600">
-                {examError || `Max: ${maxExamScore}`}
-              </p>
+            {isExamInvalid && (
+              <p className="mt-1 text-[10px] font-bold text-red-600">Max: {maxExamScore}</p>
             )}
           </div>
 

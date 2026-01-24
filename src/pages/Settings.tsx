@@ -19,8 +19,7 @@ import { ImageUploader } from "../components/ImageUploader";
 import { DataBackup } from "../components/DataBackup";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
-import type { SchoolLevel, AcademicPeriod, SchoolSettings } from "../types";
-import { schoolSettingsSchema } from "../schemas";
+import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -51,8 +50,8 @@ export function Settings() {
     setFormData((prev) => ({
       ...prev,
       level: newLevel,
-      className: defaultClass,
       defaultSubjects: defaultSubs,
+      className: defaultClass,
     }));
     showToast(`Loaded presets for ${newLevel}`, "info");
   };
@@ -74,37 +73,22 @@ export function Settings() {
     }));
   };
 
-  // 🛡️ VALIDATE BEFORE SAVING
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate with Zod
-    const result = schoolSettingsSchema.safeParse(formData);
-
-    if (!result.success) {
-      const firstError = result.error.issues[0];
-      showToast(firstError?.message || "Please fix validation errors", "error");
-      return;
-    }
-
-    // Check if className changed
-    if (result.data.className !== settings.className && students.length > 0) {
+    if (formData.className !== settings.className && students.length > 0) {
       setShowClassUpdateModal(true);
       return;
     }
-
-    finalizeSave(result.data, false);
+    finalizeSave();
   };
 
-  const finalizeSave = (data: SchoolSettings, shouldUpdateStudents = false) => {
-    setSettings(data);
-    if (shouldUpdateStudents && data.className) {
-      updateClassNameForAll(data.className);
+  const finalizeSave = (shouldUpdateStudents = false) => {
+    setSettings(formData);
+    if (shouldUpdateStudents) {
+      updateClassNameForAll(formData.className || "");
       showToast(`Updated class name for ${students.length} students`, "success");
-    } else {
-      showToast("Settings saved successfully!", "success");
     }
-    setShowClassUpdateModal(false);
+    showToast("Configuration saved successfully!", "success");
     navigate({ to: "/" });
   };
 
@@ -558,10 +542,7 @@ export function Settings() {
         onClose={() => setShowClassUpdateModal(false)}
         onConfirm={() => {
           setShowClassUpdateModal(false);
-          const result = schoolSettingsSchema.safeParse(formData);
-          if (result.success) {
-            finalizeSave(result.data, true);
-          }
+          finalizeSave(true);
         }}
       />
 
