@@ -24,6 +24,7 @@ export interface StudentRecord {
   name: string;
   className: string;
   dateOfBirth?: string;
+  gender?: "Male" | "Female";
   attendancePresent?: number;
   teacherRemark?: string;
   conduct?: string;

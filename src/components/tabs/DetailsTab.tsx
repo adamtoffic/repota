@@ -23,6 +23,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
     name: student.name,
     className: student.className,
     dateOfBirth: student.dateOfBirth || "",
+    gender: student.gender || "",
     attendancePresent: student.attendancePresent || 0,
     conduct: student.conduct || "",
     interest: student.interest || "",
@@ -39,6 +40,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
       name: formData.name,
       className: formData.className,
       dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender as "Male" | "Female" | undefined,
       attendancePresent: formData.attendancePresent,
       conduct: formData.conduct,
       interest: formData.interest,
@@ -86,16 +88,31 @@ export function DetailsTab({ student, onUpdate }: Props) {
               />
             </div>
 
-            <div>
-              <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
+                />
+              </div>
+
+              <div>
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">Gender</label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleFormChange({ gender: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 bg-white p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
+                >
+                  <option value="">-- Select --</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

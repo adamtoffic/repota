@@ -56,6 +56,7 @@ export const studentRecordSchema = z.object({
     .transform((val) => val.trim()),
   subjects: z.array(subjectSchema), // Allow empty array for new students
   dateOfBirth: z.string().max(50).optional(),
+  gender: z.enum(["Male", "Female"]).optional(),
   attendancePresent: z.number().min(0).max(365).optional(),
   teacherRemark: z.string().max(500).optional(),
   conduct: z.string().max(100, "Conduct too long").optional(),
