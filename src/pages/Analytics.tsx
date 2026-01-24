@@ -39,6 +39,10 @@ import {
   calculatePerformanceQuartiles,
   calculateGradeDistribution,
   calculateAttendanceInsights,
+  calculateAtRiskStudents,
+  calculatePerformanceByAge,
+  calculateSubjectVariance,
+  calculateAttendanceByGender,
 } from "../utils/analyticsCalculator";
 import { processStudent } from "../utils/gradeCalculator";
 
@@ -142,6 +146,26 @@ export const Analytics: React.FC = () => {
 
   const attendanceInsights = useMemo(
     () => calculateAttendanceInsights(filteredStudents, settings),
+    [filteredStudents, settings],
+  );
+
+  const atRiskStudents = useMemo(
+    () => calculateAtRiskStudents(filteredStudents, settings),
+    [filteredStudents, settings],
+  );
+
+  const performanceByAge = useMemo(
+    () => calculatePerformanceByAge(filteredStudents, settings),
+    [filteredStudents, settings],
+  );
+
+  const subjectVariance = useMemo(
+    () => calculateSubjectVariance(filteredStudents, settings),
+    [filteredStudents, settings],
+  );
+
+  const attendanceByGender = useMemo(
+    () => calculateAttendanceByGender(filteredStudents, settings),
     [filteredStudents, settings],
   );
 
@@ -582,6 +606,71 @@ export const Analytics: React.FC = () => {
                   />
                 </div>
 
+                {/* Subject Variance/Consistency Analysis */}
+                {subjectVariance.length > 0 && (
+                  <Card>
+                    <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
+                      Subject Performance Consistency
+                    </h3>
+                    <p className="text-muted mb-4 text-sm">
+                      Measures how consistent student scores are within each subject. Low variance =
+                      students perform similarly. High variance = wide performance gap.
+                    </p>
+                    <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
+                      <table className="w-full min-w-[600px]">
+                        <thead className="bg-gray-50">
+                          <tr className="border-b">
+                            <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                              Subject
+                            </th>
+                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                              Std. Deviation
+                            </th>
+                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                              Consistency
+                            </th>
+                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                              Interpretation
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subjectVariance.map((item, index) => (
+                            <tr key={index} className="border-b transition-colors hover:bg-gray-50">
+                              <td className="text-main px-4 py-2 text-sm font-bold sm:py-3">
+                                {item.subject}
+                              </td>
+                              <td className="px-4 py-2 text-center text-sm sm:py-3">
+                                {item.stdDev}
+                              </td>
+                              <td className="px-4 py-2 text-center sm:py-3">
+                                <span
+                                  className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
+                                    item.consistency === "High"
+                                      ? "bg-green-100 text-green-700"
+                                      : item.consistency === "Medium"
+                                        ? "bg-yellow-100 text-yellow-700"
+                                        : "bg-red-100 text-red-700"
+                                  }`}
+                                >
+                                  {item.consistency}
+                                </span>
+                              </td>
+                              <td className="text-muted px-4 py-2 text-center text-xs sm:py-3">
+                                {item.consistency === "High"
+                                  ? "Students perform similarly"
+                                  : item.consistency === "Medium"
+                                    ? "Moderate performance gap"
+                                    : "Wide performance variation"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
+
                 {/* Subject Details Table */}
                 <Card>
                   <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
@@ -681,6 +770,62 @@ export const Analytics: React.FC = () => {
                   />
                 </div>
 
+                {/* Attendance Rate by Gender */}
+                {attendanceByGender.attendanceRanges.length > 0 && (
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+                    <ChartCard title="Attendance Rate Breakdown" icon={Activity}>
+                      <ComposedChart
+                        data={attendanceByGender.attendanceRanges.map((item) => ({
+                          name: item.range,
+                          Male: item.maleCount,
+                          Female: item.femaleCount,
+                        }))}
+                        barKeys={[
+                          { key: "Male", color: "#3b82f6", name: "Male" },
+                          { key: "Female", color: "#ec4899", name: "Female" },
+                        ]}
+                        height={280}
+                      />
+                      <div className="mt-4 flex justify-around border-t pt-4">
+                        <div className="text-center">
+                          <p className="text-xs text-gray-600">Male Avg Rate</p>
+                          <p className="text-lg font-black text-blue-600">
+                            {attendanceByGender.maleAttendanceRate}%
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-600">Female Avg Rate</p>
+                          <p className="text-lg font-black text-pink-600">
+                            {attendanceByGender.femaleAttendanceRate}%
+                          </p>
+                        </div>
+                      </div>
+                    </ChartCard>
+
+                    {/* Performance by Age */}
+                    {performanceByAge.length > 0 && (
+                      <ChartCard title="Performance by Age Group" icon={Users}>
+                        <BarChart
+                          data={performanceByAge.map((item) => ({
+                            label: item.ageRange,
+                            value: item.avgScore,
+                          }))}
+                          height={280}
+                          showValues={true}
+                          gradient={true}
+                        />
+                        <div className="mt-4 border-t pt-3">
+                          <p className="text-center text-xs text-gray-600">
+                            Age groups with sample sizes from{" "}
+                            {Math.min(...performanceByAge.map((a) => a.count))} to{" "}
+                            {Math.max(...performanceByAge.map((a) => a.count))} students
+                          </p>
+                        </div>
+                      </ChartCard>
+                    )}
+                  </div>
+                )}
+
                 {/* Age Distribution */}
                 {ageDistribution.length > 0 && (
                   <ChartCard title="Age Distribution" icon={Activity}>
@@ -748,6 +893,58 @@ export const Analytics: React.FC = () => {
             {/* AI Insights Tab */}
             {activeView === "insights" && (
               <>
+                {/* At-Risk Students - Priority Alert */}
+                {atRiskStudents.length > 0 && (
+                  <Card>
+                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                      Students Requiring Immediate Attention
+                    </h3>
+                    <p className="text-muted mb-4 text-sm">
+                      Students identified based on low performance, poor attendance, or multiple
+                      failed subjects. Prioritized by risk level.
+                    </p>
+                    <div className="space-y-3">
+                      {atRiskStudents.slice(0, 10).map((student) => (
+                        <div
+                          key={student.id}
+                          className="rounded-lg border-l-4 border-red-500 bg-red-50/50 p-4 transition-all hover:bg-red-50"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-gray-900">{student.name}</p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {student.riskFactors.map((factor, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-block rounded-full bg-red-200 px-2.5 py-0.5 text-xs font-medium text-red-800"
+                                  >
+                                    {factor}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="ml-4 text-right">
+                              <p className="text-xs text-gray-600">Average</p>
+                              <p className="text-lg font-black text-red-600">
+                                {student.averageScore}%
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {student.attendanceRate}% attendance
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {atRiskStudents.length > 10 && (
+                      <p className="text-muted mt-4 text-center text-sm">
+                        Showing top 10 of {atRiskStudents.length} at-risk students
+                      </p>
+                    )}
+                  </Card>
+                )}
+
                 {/* Performance Quartiles */}
                 <Card>
                   <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">

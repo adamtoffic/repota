@@ -504,3 +504,217 @@ export function calculateAttendanceInsights(
     correlationWithPerformance: correlation,
   };
 }
+
+// Calculate at-risk students (low attendance + low performance)
+export function calculateAtRiskStudents(
+  students: StudentRecord[],
+  settings: SchoolSettings,
+): Array<{
+  id: string;
+  name: string;
+  averageScore: number;
+  attendanceRate: number;
+  riskFactors: string[];
+}> {
+  const totalDays = settings.totalAttendanceDays || 70;
+
+  return students
+    .map((student) => {
+      const processed = processStudent(student, settings.level);
+      const attendanceRate = student.attendancePresent
+        ? Math.round((student.attendancePresent / totalDays) * 100)
+        : 0;
+
+      const riskFactors: string[] = [];
+
+      if (processed.averageScore < 40) riskFactors.push("Failing");
+      else if (processed.averageScore < 50) riskFactors.push("Below Pass");
+
+      if (attendanceRate < 70) riskFactors.push("Poor Attendance");
+      else if (attendanceRate < 80) riskFactors.push("Low Attendance");
+
+      // Check if failing multiple subjects
+      const failedSubjects = student.subjects.filter((s) => s.classScore + s.examScore < 50).length;
+      if (failedSubjects >= 3) riskFactors.push(`${failedSubjects} Failed Subjects`);
+
+      return {
+        id: student.id,
+        name: student.name,
+        averageScore: processed.averageScore,
+        attendanceRate,
+        riskFactors,
+      };
+    })
+    .filter((student) => student.riskFactors.length > 0)
+    .sort((a, b) => b.riskFactors.length - a.riskFactors.length || a.averageScore - b.averageScore);
+}
+
+// Calculate performance by age groups
+export function calculatePerformanceByAge(
+  students: StudentRecord[],
+  settings: SchoolSettings,
+): Array<{
+  ageRange: string;
+  avgScore: number;
+  count: number;
+  topScore: number;
+  lowScore: number;
+}> {
+  const studentsWithAge = students.filter((s) => s.dateOfBirth);
+
+  if (studentsWithAge.length === 0) return [];
+
+  const ageGroups = new Map<string, number[]>();
+
+  studentsWithAge.forEach((student) => {
+    const age = new Date().getFullYear() - new Date(student.dateOfBirth!).getFullYear();
+    const processed = processStudent(student, settings.level);
+
+    let ageRange = "";
+    if (age <= 5) ageRange = "≤ 5 years";
+    else if (age <= 8) ageRange = "6-8 years";
+    else if (age <= 11) ageRange = "9-11 years";
+    else if (age <= 14) ageRange = "12-14 years";
+    else if (age <= 17) ageRange = "15-17 years";
+    else ageRange = "18+ years";
+
+    if (!ageGroups.has(ageRange)) {
+      ageGroups.set(ageRange, []);
+    }
+    ageGroups.get(ageRange)!.push(processed.averageScore);
+  });
+
+  return Array.from(ageGroups.entries())
+    .map(([ageRange, scores]) => ({
+      ageRange,
+      avgScore: Math.round((scores.reduce((sum, s) => sum + s, 0) / scores.length) * 10) / 10,
+      count: scores.length,
+      topScore: Math.max(...scores),
+      lowScore: Math.min(...scores),
+    }))
+    .sort((a, b) => {
+      const order = [
+        "≤ 5 years",
+        "6-8 years",
+        "9-11 years",
+        "12-14 years",
+        "15-17 years",
+        "18+ years",
+      ];
+      return order.indexOf(a.ageRange) - order.indexOf(b.ageRange);
+    });
+}
+
+// Calculate subject variance (consistency)
+export function calculateSubjectVariance(
+  students: StudentRecord[],
+  _settings: SchoolSettings, // eslint-disable-line @typescript-eslint/no-unused-vars
+): Array<{
+  subject: string;
+  variance: number;
+  stdDev: number;
+  consistency: "High" | "Medium" | "Low";
+}> {
+  if (students.length === 0) return [];
+
+  const subjectScores = new Map<string, number[]>();
+
+  students.forEach((student) => {
+    student.subjects.forEach((subject) => {
+      const totalScore = subject.classScore + subject.examScore;
+      if (!subjectScores.has(subject.name)) {
+        subjectScores.set(subject.name, []);
+      }
+      subjectScores.get(subject.name)!.push(totalScore);
+    });
+  });
+
+  return Array.from(subjectScores.entries())
+    .map(([subject, scores]) => {
+      const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+      const stdDev = Math.sqrt(variance);
+
+      let consistency: "High" | "Medium" | "Low";
+      if (stdDev < 10) consistency = "High";
+      else if (stdDev < 20) consistency = "Medium";
+      else consistency = "Low";
+
+      return {
+        subject,
+        variance: Math.round(variance * 10) / 10,
+        stdDev: Math.round(stdDev * 10) / 10,
+        consistency,
+      };
+    })
+    .sort((a, b) => b.stdDev - a.stdDev);
+}
+
+// Calculate attendance rate breakdown for demographics
+export function calculateAttendanceByGender(
+  students: StudentRecord[],
+  settings: SchoolSettings,
+): {
+  maleAttendanceRate: number;
+  femaleAttendanceRate: number;
+  attendanceRanges: Array<{
+    range: string;
+    maleCount: number;
+    femaleCount: number;
+    total: number;
+  }>;
+} {
+  const totalDays = settings.totalAttendanceDays || 70;
+  const studentsWithAttendance = students.filter((s) => s.attendancePresent !== undefined);
+
+  if (studentsWithAttendance.length === 0) {
+    return {
+      maleAttendanceRate: 0,
+      femaleAttendanceRate: 0,
+      attendanceRanges: [],
+    };
+  }
+
+  const maleStudents = studentsWithAttendance.filter((s) => s.gender === "Male");
+  const femaleStudents = studentsWithAttendance.filter((s) => s.gender === "Female");
+
+  const calcRate = (studentList: StudentRecord[]) => {
+    if (studentList.length === 0) return 0;
+    const avg =
+      studentList.reduce((sum, s) => sum + (s.attendancePresent || 0), 0) / studentList.length;
+    return Math.round((avg / totalDays) * 100 * 10) / 10;
+  };
+
+  const ranges = [
+    { range: "90-100%", min: 0.9, max: 1.0 },
+    { range: "80-89%", min: 0.8, max: 0.89 },
+    { range: "70-79%", min: 0.7, max: 0.79 },
+    { range: "Below 70%", min: 0, max: 0.69 },
+  ];
+
+  const attendanceRanges = ranges.map(({ range, min, max }) => {
+    const maleCount = maleStudents.filter(
+      (s) =>
+        (s.attendancePresent || 0) / totalDays >= min &&
+        (s.attendancePresent || 0) / totalDays <= max,
+    ).length;
+    const femaleCount = femaleStudents.filter(
+      (s) =>
+        (s.attendancePresent || 0) / totalDays >= min &&
+        (s.attendancePresent || 0) / totalDays <= max,
+    ).length;
+
+    return {
+      range,
+      maleCount,
+      femaleCount,
+      total: maleCount + femaleCount,
+    };
+  });
+
+  return {
+    maleAttendanceRate: calcRate(maleStudents),
+    femaleAttendanceRate: calcRate(femaleStudents),
+    attendanceRanges,
+  };
+}
