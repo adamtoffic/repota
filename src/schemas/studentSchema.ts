@@ -55,10 +55,14 @@ export const studentRecordSchema = z.object({
     .max(50, "Class name too long")
     .transform((val) => val.trim()),
   subjects: z.array(subjectSchema), // Allow empty array for new students
-  remark: z.string().max(500, "Remark too long").optional(),
+  dateOfBirth: z.string().max(50).optional(),
+  attendancePresent: z.number().min(0).max(365).optional(),
+  teacherRemark: z.string().max(500).optional(),
   conduct: z.string().max(100, "Conduct too long").optional(),
   interest: z.string().max(100, "Interest too long").optional(),
-  attendancePresent: z.number().min(0).max(365).optional(),
+  pictureUrl: z.string().optional(),
+  promotionStatus: z.string().max(100).optional(),
+  remark: z.string().max(500, "Remark too long").optional(),
   attendanceTotal: z.number().min(0).max(365).optional(),
   promotedTo: z.string().max(50).optional(),
   headmasterRemark: z.string().max(500).optional(),
