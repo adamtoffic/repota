@@ -1,6 +1,7 @@
 # 🚀 Performance Optimization Plan for Repota
 
 ## Current State Analysis
+
 - **Bundle Size**: 1840 KB (215 KB gzipped)
 - **Main Chunk**: 752 KB (too large)
 - **Storage**: localStorage (5-10MB limit, slow for large data)
@@ -12,20 +13,22 @@
 ## 🎯 Priority 1: Critical Performance Wins
 
 ### 1. **Code Splitting with React.lazy** ⚡
+
 **Impact**: 40-50% initial bundle reduction  
 **Effort**: Low  
 **Implementation**: Split Analytics page and other heavy routes
 
 ```typescript
 // router.tsx - AFTER
-import { lazy } from 'react';
+import { lazy } from "react";
 
-const Analytics = lazy(() => import('./pages/Analytics'));
-const PrintPreview = lazy(() => import('./pages/PrintPreview'));
-const Settings = lazy(() => import('./pages/Settings'));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const PrintPreview = lazy(() => import("./pages/PrintPreview"));
+const Settings = lazy(() => import("./pages/Settings"));
 ```
 
 **Benefits**:
+
 - Initial load: ~400 KB instead of 752 KB
 - Analytics loads only when user navigates to it
 - Recharts (37 packages) not loaded upfront
@@ -33,31 +36,33 @@ const Settings = lazy(() => import('./pages/Settings'));
 ---
 
 ### 2. **IndexedDB for Data Storage** 💾
+
 **Impact**: 10x faster read/write, 250MB+ storage  
 **Effort**: Medium  
 **Library**: `idb` (2.7KB) or `dexie` (28KB)
 
 ```typescript
 // storage.ts - AFTER
-import { openDB } from 'idb';
+import { openDB } from "idb";
 
-const db = await openDB('repota-db', 1, {
+const db = await openDB("repota-db", 1, {
   upgrade(db) {
-    db.createObjectStore('students');
-    db.createObjectStore('settings');
+    db.createObjectStore("students");
+    db.createObjectStore("settings");
   },
 });
 
 export async function saveStudents(students: StudentRecord[]) {
-  await db.put('students', students, 'data');
+  await db.put("students", students, "data");
 }
 
 export async function getStudents(): Promise<StudentRecord[]> {
-  return (await db.get('students', 'data')) || [];
+  return (await db.get("students", "data")) || [];
 }
 ```
 
 **Benefits**:
+
 - **250MB storage** vs 5-10MB localStorage
 - **Async operations** don't block UI
 - **Structured queries** for analytics
@@ -67,26 +72,27 @@ export async function getStudents(): Promise<StudentRecord[]> {
 ---
 
 ### 3. **Web Workers for Analytics Calculations** 🧮
+
 **Impact**: 60% faster analytics, no UI blocking  
 **Effort**: Medium  
 **Implementation**: Move heavy calculations off main thread
 
 ```typescript
 // analytics.worker.ts - NEW
-import { calculateClassMetrics, calculateSubjectPerformance } from './analyticsCalculator';
+import { calculateClassMetrics, calculateSubjectPerformance } from "./analyticsCalculator";
 
-self.addEventListener('message', (e) => {
+self.addEventListener("message", (e) => {
   const { type, payload } = e.data;
-  
+
   switch (type) {
-    case 'CALCULATE_METRICS':
+    case "CALCULATE_METRICS":
       const metrics = calculateClassMetrics(payload.students, payload.settings);
-      self.postMessage({ type: 'METRICS_RESULT', data: metrics });
+      self.postMessage({ type: "METRICS_RESULT", data: metrics });
       break;
-    
-    case 'CALCULATE_SUBJECTS':
+
+    case "CALCULATE_SUBJECTS":
       const subjects = calculateSubjectPerformance(payload.students, payload.settings);
-      self.postMessage({ type: 'SUBJECTS_RESULT', data: subjects });
+      self.postMessage({ type: "SUBJECTS_RESULT", data: subjects });
       break;
   }
 });
@@ -94,20 +100,24 @@ self.addEventListener('message', (e) => {
 
 ```typescript
 // useAnalyticsWorker.ts - NEW
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 export function useAnalyticsWorker() {
   const worker = useMemo(
-    () => new Worker(new URL('./analytics.worker.ts', import.meta.url), { type: 'module' }),
-    []
+    () => new Worker(new URL("./analytics.worker.ts", import.meta.url), { type: "module" }),
+    [],
   );
 
   const calculateMetrics = (students, settings) => {
     return new Promise((resolve) => {
-      worker.postMessage({ type: 'CALCULATE_METRICS', payload: { students, settings } });
-      worker.addEventListener('message', (e) => {
-        if (e.data.type === 'METRICS_RESULT') resolve(e.data.data);
-      }, { once: true });
+      worker.postMessage({ type: "CALCULATE_METRICS", payload: { students, settings } });
+      worker.addEventListener(
+        "message",
+        (e) => {
+          if (e.data.type === "METRICS_RESULT") resolve(e.data.data);
+        },
+        { once: true },
+      );
     });
   };
 
@@ -116,6 +126,7 @@ export function useAnalyticsWorker() {
 ```
 
 **Benefits**:
+
 - UI stays responsive during heavy calculations
 - Parallelizes work on multi-core devices
 - Especially impactful for 100+ students
@@ -123,6 +134,7 @@ export function useAnalyticsWorker() {
 ---
 
 ### 4. **Virtual Scrolling for Student List** 📜
+
 **Impact**: 90% faster rendering for 100+ students  
 **Effort**: Low  
 **Library**: `@tanstack/react-virtual` (11KB)
@@ -169,6 +181,7 @@ export function StudentList({ students }) {
 ```
 
 **Benefits**:
+
 - Renders only visible rows (~10) instead of all students
 - Smooth scrolling even with 500+ students
 - Reduces DOM nodes by 90%
@@ -178,6 +191,7 @@ export function StudentList({ students }) {
 ## 🎯 Priority 2: Optimization Enhancements
 
 ### 5. **Memoization with useMemo/useCallback** 🧠
+
 **Status**: ✅ Already using useMemo in Analytics  
 **Enhancement**: Add to more components
 
@@ -185,26 +199,27 @@ export function StudentList({ students }) {
 // Already good in Analytics.tsx
 const classMetrics = useMemo(
   () => calculateClassMetrics(filteredStudents, settings),
-  [filteredStudents, settings]
+  [filteredStudents, settings],
 );
 
 // Add to StudentList.tsx
 const sortedStudents = useMemo(
   () => students.sort((a, b) => b.averageScore - a.averageScore),
-  [students]
+  [students],
 );
 ```
 
 ---
 
 ### 6. **Debounce Search/Filter Inputs** ⏱️
+
 **Impact**: Reduce re-renders by 80%  
 **Effort**: Low  
 **Library**: Built-in with `useDebounce` hook (already exists!)
 
 ```typescript
 // FilterPanel.tsx - AFTER
-import { useDebounce } from '../hooks/useDebounce';
+import { useDebounce } from "../hooks/useDebounce";
 
 const [scoreRange, setScoreRange] = useState({ min: 0, max: 100 });
 const debouncedRange = useDebounce(scoreRange, 300); // 300ms delay
@@ -217,6 +232,7 @@ useEffect(() => {
 ---
 
 ### 7. **Image Optimization** 🖼️
+
 **Impact**: 70% smaller images, faster load  
 **Effort**: Low (already have imageCompressor.ts!)  
 **Enhancement**: Compress on upload
@@ -231,13 +247,13 @@ export async function compressImage(file: File): Promise<string> {
       const img = new Image();
       img.src = e.target?.result as string;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         const maxWidth = 400; // Smaller for faster performance
         const maxHeight = 400;
-        
+
         let width = img.width;
         let height = img.height;
-        
+
         if (width > height) {
           if (width > maxWidth) {
             height *= maxWidth / width;
@@ -249,17 +265,17 @@ export async function compressImage(file: File): Promise<string> {
             height = maxHeight;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
+        const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Use WebP if supported (better compression)
-        const format = canvas.toDataURL('image/webp', 0.7).startsWith('data:image/webp')
-          ? 'image/webp'
-          : 'image/jpeg';
-        
+        const format = canvas.toDataURL("image/webp", 0.7).startsWith("data:image/webp")
+          ? "image/webp"
+          : "image/jpeg";
+
         resolve(canvas.toDataURL(format, 0.7));
       };
     };
@@ -272,22 +288,26 @@ export async function compressImage(file: File): Promise<string> {
 ## 🎯 Priority 3: Security & Caching
 
 ### 8. **Content Security Policy (CSP)** 🔒
+
 **Impact**: Prevent XSS attacks  
 **Effort**: Low
 
 ```html
 <!-- index.html -->
-<meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; 
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'self'; 
                script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
                style-src 'self' 'unsafe-inline';
                img-src 'self' data: blob:;
-               connect-src 'self';">
+               connect-src 'self';"
+/>
 ```
 
 ---
 
 ### 9. **Service Worker Optimization** 📦
+
 **Status**: ✅ Already have PWA  
 **Enhancement**: Add network-first strategy for data
 
@@ -323,6 +343,7 @@ workbox: {
 ## 📊 Implementation Priority
 
 ### Phase 1 (Week 1) - Quick Wins
+
 1. ✅ Code splitting with React.lazy (2 hours)
 2. ✅ Add debouncing to filters (1 hour)
 3. ✅ Enhance image compression (1 hour)
@@ -332,6 +353,7 @@ workbox: {
 ---
 
 ### Phase 2 (Week 2) - Storage Migration
+
 1. ✅ Install `idb` library
 2. ✅ Create IndexedDB wrapper
 3. ✅ Migrate localStorage to IndexedDB
@@ -342,6 +364,7 @@ workbox: {
 ---
 
 ### Phase 3 (Week 3) - Advanced Optimizations
+
 1. ✅ Implement Web Workers for analytics
 2. ✅ Add virtual scrolling
 3. ✅ Add CSP headers
@@ -367,6 +390,7 @@ npm install idb                      # 2.7KB - IndexedDB wrapper
 ## 📈 Performance Metrics Targets
 
 ### Before Optimization
+
 - **Initial Load**: 752 KB
 - **First Contentful Paint**: ~1.2s
 - **Time to Interactive**: ~2.5s
@@ -374,6 +398,7 @@ npm install idb                      # 2.7KB - IndexedDB wrapper
 - **Student List (100 items)**: 80ms render
 
 ### After Optimization
+
 - **Initial Load**: ~350 KB (-53%)
 - **First Contentful Paint**: ~0.6s (-50%)
 - **Time to Interactive**: ~1.2s (-52%)
@@ -385,12 +410,14 @@ npm install idb                      # 2.7KB - IndexedDB wrapper
 ## 🎯 Lighthouse Score Target
 
 ### Current (Estimated)
+
 - Performance: 75
 - Accessibility: 95
 - Best Practices: 90
 - SEO: 100
 
 ### Target
+
 - Performance: **95+**
 - Accessibility: **100**
 - Best Practices: **100**
@@ -427,6 +454,7 @@ npm install idb                      # 2.7KB - IndexedDB wrapper
 ## 🎉 Expected Results
 
 After full implementation:
+
 - **3x faster initial load**
 - **10x faster data operations**
 - **Smooth 60fps scrolling** even with 1000+ students

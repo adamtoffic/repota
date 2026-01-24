@@ -5,6 +5,7 @@ import { processStudent, assignPositions, assignSubjectPositions } from "../util
 import type { StudentRecord, SchoolSettings } from "../types";
 import { useToast } from "../hooks/useToast";
 import { safeSetItem, safeGetItem, STORAGE_KEYS } from "../utils/storage";
+import { useDebounce } from "../hooks/useDebounce";
 // ✅ Import definition
 import { SchoolContext } from "./SchoolContextDefinition";
 import {
@@ -60,6 +61,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   const { showToast } = useToast();
 
+  // ✅ PERFORMANCE: Debounce storage writes to prevent UI blocking
+  const debouncedStudents = useDebounce(students, 500);
+  const debouncedSettings = useDebounce(settings, 500);
+
   // ✅ NEW: RESTORE DEFAULTS (Factory Reset for Settings only)
   const restoreDefaults = () => {
     const defaultSettings: SchoolSettings = {
@@ -91,14 +96,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+    safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(debouncedStudents));
     createBackupHeartbeat(); // Update heartbeat when data changes
-  }, [students]);
+  }, [debouncedStudents]);
 
   useEffect(() => {
-    safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(debouncedSettings));
     createBackupHeartbeat(); // Update heartbeat when settings change
-  }, [settings]);
+  }, [debouncedSettings]);
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {
