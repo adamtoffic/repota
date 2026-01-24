@@ -20,6 +20,9 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
 import { FilterPanel } from "../components/analytics/FilterPanel";
 import type { AnalyticsFilters } from "../components/analytics/FilterPanel";
+import { Card } from "../components/ui/Card";
+import { ChartCard } from "../components/analytics/ChartCard";
+import { InsightCard } from "../components/analytics/InsightCard";
 import { BarChart } from "../components/charts/BarChart";
 import { PieChart } from "../components/charts/PieChart";
 import { RadarChart } from "../components/charts/RadarChart";
@@ -181,13 +184,13 @@ export const Analytics: React.FC = () => {
             <ArrowLeft size={18} />
             Back to Dashboard
           </button>
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-12">
+          <Card padding="lg" className="text-center">
             <BarChart3 size={48} className="mx-auto mb-4 text-gray-400" />
             <h3 className="text-main mb-2 text-lg font-bold sm:text-xl">No Data Available</h3>
             <p className="text-muted text-sm sm:text-base">
               Add students and their scores to view advanced analytics
             </p>
-          </div>
+          </Card>
         </main>
       </div>
     );
@@ -259,7 +262,9 @@ export const Analytics: React.FC = () => {
             return (
               <button
                 key={view.id}
-                onClick={() => setActiveView(view.id as "overview" | "subjects" | "demographics" | "insights")}
+                onClick={() =>
+                  setActiveView(view.id as "overview" | "subjects" | "demographics" | "insights")
+                }
                 className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${
                   activeView === view.id
                     ? "bg-primary text-white shadow-md"
@@ -321,11 +326,7 @@ export const Analytics: React.FC = () => {
 
                 {/* Score & Grade Distribution */}
                 <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                      <BarChart3 className="h-5 w-5" />
-                      Score Distribution
-                    </h3>
+                  <ChartCard title="Score Distribution" icon={BarChart3}>
                     <BarChart
                       data={scoreDistribution.map((item) => ({
                         label: item.range.split(" ")[0],
@@ -335,13 +336,9 @@ export const Analytics: React.FC = () => {
                       showValues={true}
                       gradient={true}
                     />
-                  </div>
+                  </ChartCard>
 
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                      <PieChartIcon className="h-5 w-5" />
-                      Grade Distribution
-                    </h3>
+                  <ChartCard title="Grade Distribution" icon={PieChartIcon}>
                     {gradeDistribution.length > 0 ? (
                       <>
                         <PieChart
@@ -392,17 +389,13 @@ export const Analytics: React.FC = () => {
                         No grade data available
                       </div>
                     )}
-                  </div>
+                  </ChartCard>
                 </div>
 
                 {/* Gender Analysis & Top Performers */}
                 <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
                   {/* Gender Analysis */}
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                      <PieChartIcon className="h-5 w-5" />
-                      Gender Distribution
-                    </h3>
+                  <ChartCard title="Gender Distribution" icon={PieChartIcon}>
                     {genderAnalysis.totalCount > 0 ? (
                       <>
                         <PieChart
@@ -464,14 +457,10 @@ export const Analytics: React.FC = () => {
                         No gender data available
                       </div>
                     )}
-                  </div>
+                  </ChartCard>
 
                   {/* Top Performers */}
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                      <Award className="h-5 w-5" />
-                      Top 5 Performers
-                    </h3>
+                  <ChartCard title="Top 5 Performers" icon={Award}>
                     <div className="space-y-3">
                       {topPerformers.slice(0, 5).map((student, index) => (
                         <div
@@ -505,7 +494,7 @@ export const Analytics: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ChartCard>
                 </div>
               </>
             )}
@@ -514,11 +503,7 @@ export const Analytics: React.FC = () => {
             {activeView === "subjects" && (
               <>
                 {/* Subject Performance Radar */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                  <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                    <Zap className="h-5 w-5" />
-                    Subject Performance Overview
-                  </h3>
+                <ChartCard title="Subject Performance Overview" icon={Zap}>
                   <RadarChart
                     data={subjectPerformance.slice(0, 8).map((s) => ({
                       subject: s.subjectName,
@@ -527,14 +512,10 @@ export const Analytics: React.FC = () => {
                     height={350}
                     color="#3b82f6"
                   />
-                </div>
+                </ChartCard>
 
                 {/* Subject Comparison Bar */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                  <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                    <BookOpen className="h-5 w-5" />
-                    Subject Performance Comparison
-                  </h3>
+                <ChartCard title="Subject Performance Comparison" icon={BookOpen}>
                   <BarChart
                     data={subjectPerformance.map((subject) => ({
                       label: subject.subjectName,
@@ -544,15 +525,11 @@ export const Analytics: React.FC = () => {
                     showValues={true}
                     gradient={true}
                   />
-                </div>
+                </ChartCard>
 
                 {/* Gender Performance by Subject */}
                 {subjectGenderComparison.length > 0 && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                      <Users className="h-5 w-5" />
-                      Gender Performance by Subject
-                    </h3>
+                  <ChartCard title="Gender Performance by Subject" icon={Users}>
                     <ComposedChart
                       data={subjectGenderComparison.slice(0, 10).map((item) => ({
                         name: item.subject,
@@ -565,65 +542,48 @@ export const Analytics: React.FC = () => {
                       ]}
                       height={320}
                     />
-                  </div>
+                  </ChartCard>
                 )}
 
                 {/* Subject Insights Cards */}
                 <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
                   {/* Strongest Subjects */}
-                  <div className="rounded-xl border border-green-200 bg-green-50/50 p-4 shadow-sm sm:p-6">
-                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-green-900">
-                      <TrendingUp className="h-4 w-4" />
-                      Strongest Subjects
-                    </h4>
-                    <div className="space-y-2">
-                      {subjectInsights.strongest.map((subject, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="font-medium text-green-800">{subject.subjectName}</span>
-                          <span className="font-bold text-green-600">{subject.averageScore}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <InsightCard
+                    title="Strongest Subjects"
+                    icon={TrendingUp}
+                    variant="success"
+                    items={subjectInsights.strongest.map((subject) => ({
+                      name: subject.subjectName,
+                      value: `${subject.averageScore}%`,
+                    }))}
+                  />
 
                   {/* Weakest Subjects */}
-                  <div className="rounded-xl border border-red-200 bg-red-50/50 p-4 shadow-sm sm:p-6">
-                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-red-900">
-                      <TrendingDown className="h-4 w-4" />
-                      Needs Improvement
-                    </h4>
-                    <div className="space-y-2">
-                      {subjectInsights.weakest.map((subject, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="font-medium text-red-800">{subject.subjectName}</span>
-                          <span className="font-bold text-red-600">{subject.averageScore}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <InsightCard
+                    title="Needs Improvement"
+                    icon={TrendingDown}
+                    variant="danger"
+                    items={subjectInsights.weakest.map((subject) => ({
+                      name: subject.subjectName,
+                      value: `${subject.averageScore}%`,
+                    }))}
+                  />
 
                   {/* Attention Required */}
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm sm:p-6">
-                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900">
-                      <AlertTriangle className="h-4 w-4" />
-                      Low Pass Rate
-                    </h4>
-                    <div className="space-y-2">
-                      {subjectInsights.needsAttention.slice(0, 3).map((subject, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="font-medium text-amber-800">{subject.subjectName}</span>
-                          <span className="font-bold text-amber-600">{subject.passRate}%</span>
-                        </div>
-                      ))}
-                      {subjectInsights.needsAttention.length === 0 && (
-                        <p className="text-xs text-amber-700">All subjects have good pass rates!</p>
-                      )}
-                    </div>
-                  </div>
+                  <InsightCard
+                    title="Low Pass Rate"
+                    icon={AlertTriangle}
+                    variant="warning"
+                    items={subjectInsights.needsAttention.slice(0, 3).map((subject) => ({
+                      name: subject.subjectName,
+                      value: `${subject.passRate}%`,
+                    }))}
+                    emptyMessage="All subjects have good pass rates!"
+                  />
                 </div>
 
                 {/* Subject Details Table */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                <Card>
                   <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
                     Detailed Subject Statistics
                   </h3>
@@ -689,7 +649,7 @@ export const Analytics: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </Card>
               </>
             )}
 
@@ -723,11 +683,7 @@ export const Analytics: React.FC = () => {
 
                 {/* Age Distribution */}
                 {ageDistribution.length > 0 && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
-                      <Activity className="h-5 w-5" />
-                      Age Distribution
-                    </h3>
+                  <ChartCard title="Age Distribution" icon={Activity}>
                     <BarChart
                       data={ageDistribution.map((item) => ({
                         label: item.category,
@@ -737,12 +693,12 @@ export const Analytics: React.FC = () => {
                       showValues={true}
                       gradient={true}
                     />
-                  </div>
+                  </ChartCard>
                 )}
 
                 {/* Gender Breakdown Table */}
                 {ageDistribution.length > 0 && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                  <Card>
                     <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
                       Gender Breakdown by Age
                     </h3>
@@ -784,7 +740,7 @@ export const Analytics: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
-                  </div>
+                  </Card>
                 )}
               </>
             )}
@@ -793,7 +749,7 @@ export const Analytics: React.FC = () => {
             {activeView === "insights" && (
               <>
                 {/* Performance Quartiles */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                <Card>
                   <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
                     <Brain className="h-5 w-5" />
                     Performance Distribution Analysis
@@ -850,10 +806,10 @@ export const Analytics: React.FC = () => {
                       </div>
                     </div>
                   )}
-                </div>
+                </Card>
 
                 {/* Attendance Insights */}
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                <Card>
                   <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
                     <Activity className="h-5 w-5" />
                     Attendance & Performance Correlation
@@ -895,7 +851,7 @@ export const Analytics: React.FC = () => {
                       </p>
                     </div>
                   )}
-                </div>
+                </Card>
 
                 {/* Key Recommendations */}
                 <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50 p-6 shadow-sm">
