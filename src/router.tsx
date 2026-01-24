@@ -1,16 +1,31 @@
 // src/router.tsx
-import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router"; // 1. Added Outlet
+import { lazy, Suspense } from "react";
+import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { Dashboard } from "./pages/Dashboard";
-import { Settings } from "./pages/Settings";
-import { PrintPreview } from "./pages/PrintPreview";
-import { Analytics } from "./pages/Analytics";
+
+// Code-split heavy pages
+const Settings = lazy(() => import("./pages/Settings"));
+const PrintPreview = lazy(() => import("./pages/PrintPreview"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+      <p className="text-sm text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 // 2. Define the Root Layout (The Shell)
 const rootRoute = createRootRoute({
   component: () => (
     <>
-      {/* This is where the children (Dashboard, Settings, etc.) will appear */}
-      <Outlet />
+      {/* Suspense boundary for lazy-loaded routes */}
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
     </>
   ),
 });

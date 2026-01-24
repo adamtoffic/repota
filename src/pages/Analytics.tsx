@@ -342,26 +342,56 @@ export const Analytics: React.FC = () => {
                       <PieChartIcon className="h-5 w-5" />
                       Grade Distribution
                     </h3>
-                    <PieChart
-                      data={gradeDistribution.map((item, index) => ({
-                        label: item.grade,
-                        value: item.count,
-                        color:
-                          index === 0
-                            ? "#10b981"
-                            : index === 1
-                              ? "#3b82f6"
-                              : index === 2
-                                ? "#f59e0b"
-                                : index === 3
-                                  ? "#f97316"
-                                  : index === 4
-                                    ? "#ef4444"
-                                    : "#991b1b",
-                      }))}
-                      size={200}
-                      showLegend={true}
-                    />
+                    {gradeDistribution.length > 0 ? (
+                      <>
+                        <PieChart
+                          data={gradeDistribution.map((item) => {
+                            // Color grades from best (green) to worst (red)
+                            const gradeColors: Record<string, string> = {
+                              // KG grades
+                              GOLD: "#10b981",
+                              SILVER: "#94a3b8",
+                              BRONZE: "#f59e0b",
+                              // PRIMARY grades
+                              "1": "#10b981",
+                              "2": "#3b82f6",
+                              "3": "#f59e0b",
+                              "4": "#f97316",
+                              "5": "#ef4444",
+                              // JHS grades
+                              "6": "#dc2626",
+                              "7": "#991b1b",
+                              "8": "#7f1d1d",
+                              "9": "#450a0a",
+                              // SHS grades
+                              A1: "#10b981",
+                              B2: "#059669",
+                              B3: "#3b82f6",
+                              C4: "#2563eb",
+                              C5: "#f59e0b",
+                              C6: "#d97706",
+                              D7: "#f97316",
+                              E8: "#ef4444",
+                              F9: "#dc2626",
+                            };
+                            return {
+                              label: `${item.grade} (${item.percentage}%)`,
+                              value: item.count,
+                              color: gradeColors[item.grade] || "#6b7280",
+                            };
+                          })}
+                          size={200}
+                          showLegend={true}
+                        />
+                        <div className="mt-4 text-center text-xs text-gray-500">
+                          Total: {gradeDistribution.reduce((sum, g) => sum + g.count, 0)} students
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-[200px] items-center justify-center text-sm text-gray-400">
+                        No grade data available
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -373,36 +403,67 @@ export const Analytics: React.FC = () => {
                       <PieChartIcon className="h-5 w-5" />
                       Gender Distribution
                     </h3>
-                    <PieChart
-                      data={[
-                        {
-                          label: "Male",
-                          value: genderAnalysis.maleCount,
-                          color: "#3b82f6",
-                        },
-                        {
-                          label: "Female",
-                          value: genderAnalysis.femaleCount,
-                          color: "#ec4899",
-                        },
-                      ]}
-                      size={180}
-                      showLegend={true}
-                    />
-                    <div className="mt-4 space-y-2 border-t pt-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Male Average:</span>
-                        <span className="font-semibold text-blue-600">
-                          {genderAnalysis.maleAverage}%
-                        </span>
+                    {genderAnalysis.totalCount > 0 ? (
+                      <>
+                        <PieChart
+                          data={[
+                            {
+                              label: `Male (${Math.round((genderAnalysis.maleCount / genderAnalysis.totalCount) * 100)}%)`,
+                              value: genderAnalysis.maleCount,
+                              color: "#3b82f6",
+                            },
+                            {
+                              label: `Female (${Math.round((genderAnalysis.femaleCount / genderAnalysis.totalCount) * 100)}%)`,
+                              value: genderAnalysis.femaleCount,
+                              color: "#ec4899",
+                            },
+                          ].filter((item) => item.value > 0)}
+                          size={180}
+                          showLegend={true}
+                        />
+                        <div className="mt-4 space-y-2 border-t pt-4">
+                          {genderAnalysis.maleCount > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Male Average:</span>
+                              <span className="font-semibold text-blue-600">
+                                {genderAnalysis.maleAverage}%
+                              </span>
+                            </div>
+                          )}
+                          {genderAnalysis.femaleCount > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Female Average:</span>
+                              <span className="font-semibold text-pink-600">
+                                {genderAnalysis.femaleAverage}%
+                              </span>
+                            </div>
+                          )}
+                          {genderAnalysis.maleCount > 0 && genderAnalysis.femaleCount > 0 && (
+                            <div className="flex justify-between text-sm font-bold">
+                              <span className="text-gray-700">Performance Gap:</span>
+                              <span
+                                className={
+                                  Math.abs(
+                                    genderAnalysis.maleAverage - genderAnalysis.femaleAverage,
+                                  ) > 5
+                                    ? "text-amber-600"
+                                    : "text-green-600"
+                                }
+                              >
+                                {Math.abs(
+                                  genderAnalysis.maleAverage - genderAnalysis.femaleAverage,
+                                ).toFixed(1)}
+                                %
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-[180px] items-center justify-center text-sm text-gray-400">
+                        No gender data available
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Female Average:</span>
-                        <span className="font-semibold text-pink-600">
-                          {genderAnalysis.femaleAverage}%
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Top Performers */}
@@ -918,3 +979,5 @@ export const Analytics: React.FC = () => {
     </div>
   );
 };
+
+export default Analytics;
