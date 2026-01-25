@@ -5,6 +5,7 @@ import { processStudent, assignPositions, assignSubjectPositions } from "../util
 import type { StudentRecord, SchoolSettings } from "../types";
 import { useToast } from "../hooks/useToast";
 import { safeSetItem, safeGetItem, STORAGE_KEYS } from "../utils/storage";
+import { useDebounce } from "../hooks/useDebounce";
 // ✅ Import definition
 import { SchoolContext } from "./SchoolContextDefinition";
 import {
@@ -60,6 +61,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   const { showToast } = useToast();
 
+  // ✅ PERFORMANCE: Debounce storage writes to prevent UI blocking
+  const debouncedStudents = useDebounce(students, 500);
+  const debouncedSettings = useDebounce(settings, 500);
+
   // ✅ NEW: RESTORE DEFAULTS (Factory Reset for Settings only)
   const restoreDefaults = () => {
     const defaultSettings: SchoolSettings = {
@@ -91,14 +96,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+    safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(debouncedStudents));
     createBackupHeartbeat(); // Update heartbeat when data changes
-  }, [students]);
+  }, [debouncedStudents]);
 
   useEffect(() => {
-    safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(debouncedSettings));
     createBackupHeartbeat(); // Update heartbeat when settings change
-  }, [settings]);
+  }, [debouncedSettings]);
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {
@@ -209,6 +214,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-1",
         name: "Kwame Mensah",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -221,6 +227,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-2",
         name: "Ama Asante",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -233,6 +240,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-3",
         name: "Kofi Owusu",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -245,6 +253,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-4",
         name: "Abena Boateng",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -257,6 +266,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-5",
         name: "Yaw Adomako",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -269,6 +279,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-6",
         name: "Efua Appiah",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -281,6 +292,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-7",
         name: "Kwabena Darko",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -293,6 +305,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-8",
         name: "Akosua Frimpong",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -305,6 +318,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-9",
         name: "Kwesi Osei",
         className: settings.className || "Primary 5A",
+        gender: "Male",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,
@@ -317,6 +331,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         id: "demo-10",
         name: "Adwoa Agyeman",
         className: settings.className || "Primary 5A",
+        gender: "Female",
         subjects: settings.defaultSubjects.map((subName) => ({
           id: crypto.randomUUID(),
           name: subName,

@@ -1,5 +1,6 @@
 // src/components/ReportTemplate.tsx
 import type { ProcessedStudent, SchoolSettings } from "../types";
+import { PrivateSchoolReport } from "./reports/PrivateSchoolReport";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 
 interface Props {
@@ -8,6 +9,12 @@ interface Props {
 }
 
 export function ReportTemplate({ student, settings }: Props) {
+  // Route to specialized template for private schools
+  if (settings.schoolType === "PRIVATE") {
+    return <PrivateSchoolReport student={student} settings={settings} />;
+  }
+
+  // Standard and Islamic schools use the existing template
   const isIslamic = settings.schoolType === "ISLAMIC";
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
 
@@ -98,6 +105,15 @@ export function ReportTemplate({ student, settings }: Props) {
                 </p>
               )}
 
+              {/* Contact Information */}
+              {(settings.phoneNumber || settings.email) && (
+                <div className="mt-1 flex justify-center gap-3 text-[9px] font-semibold text-slate-600">
+                  {settings.phoneNumber && <span>Tel: {settings.phoneNumber}</span>}
+                  {settings.phoneNumber && settings.email && <span>•</span>}
+                  {settings.email && <span>{settings.email}</span>}
+                </div>
+              )}
+
               <div className="mt-2 flex justify-center gap-6 border-t-2 border-blue-950 pt-1 text-xs font-bold tracking-wider text-slate-800 uppercase">
                 <span>{settings.academicYear}</span>
                 <span>•</span>
@@ -173,18 +189,35 @@ export function ReportTemplate({ student, settings }: Props) {
             </div>
 
             {/* Row 2: Secondary Stats */}
-            <div className="grid grid-cols-2 divide-x-2 divide-blue-950">
+            <div className="grid grid-cols-[1fr_2fr] divide-x-2 divide-blue-950">
               <div className="flex items-center justify-between px-3 py-1.5">
                 <span className="text-muted text-[10px] font-black uppercase">Attendance</span>
                 <span className="text-main font-mono text-sm font-black">
                   {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
                 </span>
               </div>
-              <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
-                <span className="text-main text-sm font-bold">
-                  {settings.nextTermStarts || "TBA"}
-                </span>
+              <div className="px-3 py-1.5">
+                {student.dateOfBirth ? (
+                  <div className="grid grid-cols-2 gap-4 divide-x-2 divide-blue-950">
+                    <div className="flex items-center justify-between pr-4">
+                      <span className="text-muted text-[10px] font-black uppercase">DOB</span>
+                      <span className="text-main text-sm font-bold">{student.dateOfBirth}</span>
+                    </div>
+                    <div className="flex items-center justify-between pl-4">
+                      <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
+                      <span className="text-main text-sm font-bold">
+                        {settings.nextTermStarts || "TBA"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
+                    <span className="text-main text-sm font-bold">
+                      {settings.nextTermStarts || "TBA"}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -10,8 +10,13 @@ interface Props {
 export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
   const [formData, setFormData] = useState<SchoolSettings>(initialSettings);
 
-  const handleChange = (field: keyof SchoolSettings, value: string) => {
+  const handleChange = (field: keyof SchoolSettings, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleNumberChange = (field: keyof SchoolSettings, value: string) => {
+    const numValue = value === "" ? undefined : parseFloat(value);
+    setFormData((prev) => ({ ...prev, [field]: numValue }));
   };
 
   return (
@@ -116,7 +121,94 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
             </label>
           </div>
         </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">School Type</label>
+
+          <div className="mt-2 flex gap-4">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                checked={formData.schoolType === "STANDARD"}
+                onChange={() => handleChange("schoolType", "STANDARD")}
+                className="h-4 w-4 text-blue-600"
+              />
+              <span className="text-sm">Standard</span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                checked={formData.schoolType === "ISLAMIC"}
+                onChange={() => handleChange("schoolType", "ISLAMIC")}
+                className="h-4 w-4 text-blue-600"
+              />
+              <span className="text-sm">Islamic</span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                checked={formData.schoolType === "PRIVATE"}
+                onChange={() => handleChange("schoolType", "PRIVATE")}
+                className="h-4 w-4 text-blue-600"
+              />
+              <span className="text-sm">Private</span>
+            </label>
+          </div>
+        </div>
       </div>
+
+      {/* Fees Section for Private Schools */}
+      {formData.schoolType === "PRIVATE" && (
+        <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <h3 className="mb-3 text-sm font-bold text-blue-900">Termly Fees (GH₵)</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">School Gift</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={formData.schoolGift || ""}
+                onChange={(e) => handleNumberChange("schoolGift", e.target.value)}
+                className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. 5.00"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Canteen Fees</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={formData.canteenFees || ""}
+                onChange={(e) => handleNumberChange("canteenFees", e.target.value)}
+                className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. 10.00"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">First Aid Fees</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={formData.firstAidFees || ""}
+                onChange={(e) => handleNumberChange("firstAidFees", e.target.value)}
+                className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. 5.00"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={() => onSave(formData)}
         className="bg-primary hover:bg-primary/90 mt-6 flex w-full items-center justify-center gap-2 rounded px-4 py-2 text-white transition-colors"

@@ -147,3 +147,5 @@ export function PrintPreview() {
     </div>
   );
 }
+
+export default PrintPreview;

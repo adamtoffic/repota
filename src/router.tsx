@@ -1,15 +1,22 @@
 // src/router.tsx
-import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router"; // 1. Added Outlet
+import { lazy, Suspense } from "react";
+import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { Dashboard } from "./pages/Dashboard";
-import { Settings } from "./pages/Settings";
-import { PrintPreview } from "./pages/PrintPreview";
+import { PageLoader } from "./components/PageLoader";
+
+// Code-split heavy pages
+const Settings = lazy(() => import("./pages/Settings"));
+const PrintPreview = lazy(() => import("./pages/PrintPreview"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 
 // 2. Define the Root Layout (The Shell)
 const rootRoute = createRootRoute({
   component: () => (
     <>
-      {/* This is where the children (Dashboard, Settings, etc.) will appear */}
-      <Outlet />
+      {/* Suspense boundary for lazy-loaded routes */}
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
     </>
   ),
 });
@@ -39,8 +46,14 @@ const printRoute = createRoute({
   },
 });
 
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/analytics",
+  component: Analytics,
+});
+
 // 4. Build the Tree
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, printRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, printRoute, analyticsRoute]);
 
 // 5. Create the Router
 export const router = createRouter({ routeTree });

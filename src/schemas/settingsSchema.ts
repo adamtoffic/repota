@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 
 export const schoolLevelSchema = z.enum(["KG", "PRIMARY", "JHS", "SHS"]);
-export const schoolTypeSchema = z.enum(["STANDARD", "ISLAMIC"]);
+export const schoolTypeSchema = z.enum(["STANDARD", "ISLAMIC", "PRIVATE"]);
 export const academicPeriodSchema = z.enum([
   "First Term",
   "Second Term",
@@ -99,6 +99,11 @@ export const schoolSettingsSchema = z
           .regex(/^[a-zA-Z\s&'-]+$/, "Invalid subject name"),
       )
       .max(25, "Too many subjects"),
+
+    // Private School Fees
+    schoolGift: z.number().min(0).max(10000).optional(), // Daily school fees
+    canteenFees: z.number().min(0).max(10000).optional(), // Daily canteen fees
+    firstAidFees: z.number().min(0).max(10000).optional(), // Termly first aid
   })
   .refine((data) => data.classScoreMax + data.examScoreMax === 100, {
     message: "Max class score + max exam score must equal 100",

@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
   plugins: [
@@ -98,6 +99,12 @@ export default defineConfig({
         enabled: true, // Enable PWA in development for testing
       },
     }),
+    visualizer({
+      filename: "./dist/stats.html",
+      open: false, // Set to true to auto-open after build
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ],
 
   // Production optimizations
@@ -105,12 +112,14 @@ export default defineConfig({
     target: "es2015",
     minify: "esbuild",
     cssMinify: true,
+    chunkSizeWarningLimit: 400, // Warn if chunks exceed 400KB
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ["react", "react-dom"],
           router: ["@tanstack/react-router"],
           icons: ["lucide-react"],
+          recharts: ["recharts"], // Separate Recharts chunk
         },
       },
     },
