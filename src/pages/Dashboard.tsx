@@ -236,7 +236,6 @@ export function Dashboard() {
             <ValidationWarnings students={students} settings={settings} />
 
             <div className="relative">
-              \n{" "}
               <DashboardToolbar
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
