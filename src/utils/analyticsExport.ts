@@ -81,22 +81,28 @@ export function exportAnalyticsAsPDF(): void {
     (el as HTMLElement).style.display = "none";
   });
 
-  // Trigger print dialog
-  window.print();
-
-  // Restore hidden elements after print dialog closes
-  setTimeout(() => {
+  // Restore elements after print
+  const restoreElements = () => {
     elementsToHide.forEach((el) => {
       (el as HTMLElement).style.display = "";
     });
-  }, 1000);
+    window.removeEventListener("afterprint", restoreElements);
+  };
+
+  window.addEventListener("afterprint", restoreElements);
+
+  // Fallback timeout in case afterprint doesn't fire
+  setTimeout(restoreElements, 3000);
+
+  // Trigger print dialog
+  window.print();
 }
 
 /**
  * Export analytics data as CSV
  */
 export function exportAnalyticsData(
-  data: Record<string, any>[],
+  data: Record<string, string | number | boolean | null>[],
   filename: string,
   headers?: string[],
 ): void {

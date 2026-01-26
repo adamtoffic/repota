@@ -180,7 +180,8 @@ export const Analytics: React.FC = () => {
     try {
       exportAnalyticsAsPDF();
       showToast("Analytics exported as PDF", "success");
-    } catch (error) {
+    } catch (err) {
+      console.error("Export PDF failed:", err);
       showToast("Failed to export PDF", "error");
     }
   };
@@ -202,7 +203,8 @@ export const Analytics: React.FC = () => {
       const filename = `Analytics_${settings.className || "Class"}_${new Date().toISOString().split("T")[0]}.csv`;
       exportAnalyticsData(exportData, filename);
       showToast(`Exported data for ${exportData.length} students`, "success");
-    } catch (error) {
+    } catch (err) {
+      console.error("Export data failed:", err);
       showToast("Failed to export data", "error");
     }
   };

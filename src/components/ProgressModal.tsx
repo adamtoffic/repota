@@ -22,15 +22,25 @@ export function ProgressModal({
   const displayProgress = progress ?? (total && current ? Math.round((current / total) * 100) : 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="progress-title"
+      aria-describedby="progress-message"
+    >
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden="true" />
           </div>
 
-          <h3 className="mb-2 text-lg font-bold text-gray-900">{title}</h3>
-          <p className="text-muted mb-4 text-sm">{message}</p>
+          <h3 id="progress-title" className="mb-2 text-lg font-bold text-gray-900">
+            {title}
+          </h3>
+          <p id="progress-message" className="text-muted mb-4 text-sm">
+            {message}
+          </p>
 
           {/* Progress Bar */}
           {displayProgress > 0 && (
