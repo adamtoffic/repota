@@ -394,7 +394,7 @@ export function Dashboard() {
       <WelcomeTour
         steps={[
           {
-            title: "Welcome to Repota! �🇭",
+            title: "Welcome to Repota! 🇬🇭",
             description:
               "We're so glad you're here! Repota helps you create beautiful GES report cards in minutes. Everything works offline - no internet needed once loaded. Let's show you around!",
           },

@@ -1,5 +1,5 @@
 // src/pages/Analytics.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -25,11 +25,21 @@ import type { AnalyticsFilters } from "../components/analytics/FilterPanel";
 import { Card } from "../components/ui/Card";
 import { ChartCard } from "../components/analytics/ChartCard";
 import { InsightCard } from "../components/analytics/InsightCard";
-import { BarChart } from "../components/charts/BarChart";
-import { PieChart } from "../components/charts/PieChart";
-import { RadarChart } from "../components/charts/RadarChart";
-import { ComposedChart } from "../components/charts/ComposedChart";
 import { ScrollButton } from "../components/ScrollButton";
+
+// Lazy load chart components to split recharts into separate chunk
+const BarChart = lazy(() =>
+  import("../components/charts/BarChart").then((m) => ({ default: m.BarChart })),
+);
+const PieChart = lazy(() =>
+  import("../components/charts/PieChart").then((m) => ({ default: m.PieChart })),
+);
+const RadarChart = lazy(() =>
+  import("../components/charts/RadarChart").then((m) => ({ default: m.RadarChart })),
+);
+const ComposedChart = lazy(() =>
+  import("../components/charts/ComposedChart").then((m) => ({ default: m.ComposedChart })),
+);
 import {
   calculateClassMetrics,
   calculateSubjectPerformance,
@@ -366,7 +376,13 @@ export const Analytics: React.FC = () => {
           <div className="order-1 space-y-4 sm:space-y-6 lg:order-2 lg:col-span-3">
             {/* Overview Tab */}
             {activeView === "overview" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                   <StatCard
@@ -570,12 +586,18 @@ export const Analytics: React.FC = () => {
                     </div>
                   </ChartCard>
                 </div>
-              </>
+              </Suspense>
             )}
 
             {/* Subject Analysis Tab */}
             {activeView === "subjects" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* Subject Performance Radar */}
                 <ChartCard title="Subject Performance Overview" icon={Zap}>
                   <RadarChart
@@ -789,12 +811,18 @@ export const Analytics: React.FC = () => {
                     </table>
                   </div>
                 </Card>
-              </>
+              </Suspense>
             )}
 
             {/* Demographics Tab */}
             {activeView === "demographics" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* Demographic Stats */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
                   <StatCard
@@ -937,12 +965,18 @@ export const Analytics: React.FC = () => {
                     </div>
                   </Card>
                 )}
-              </>
+              </Suspense>
             )}
 
             {/* AI Insights Tab */}
             {activeView === "insights" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* At-Risk Students - Priority Alert */}
                 {atRiskStudents.length > 0 && (
                   <Card>
@@ -1174,7 +1208,7 @@ export const Analytics: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </>
+              </Suspense>
             )}
           </div>
         </div>
