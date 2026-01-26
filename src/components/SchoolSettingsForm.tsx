@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SchoolSettings } from "../types";
 import { School, Save, Plus, X } from "lucide-react";
+import { Tooltip } from "./ui/Tooltip";
 
 interface Props {
   initialSettings: SchoolSettings;
@@ -77,8 +78,9 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700">
             Class Size (Number on Roll)
+            <Tooltip content="Total number of students in your class - used for position ranking" />
           </label>
           <input
             type="number"
@@ -150,7 +152,10 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">School Type</label>
+          <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+            School Type
+            <Tooltip content="Choose school type to customize report card format and available fields" />
+          </label>
 
           <div className="mt-2 flex gap-4">
             <label className="flex cursor-pointer items-center gap-2">
@@ -238,8 +243,9 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
 
       {/* Class Score Components Section */}
       <div className="mt-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
-        <h3 className="mb-2 text-sm font-bold text-purple-900">
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-purple-900">
           Class Score Components (Optional)
+          <Tooltip content="Break down class scores into components like 'Class Test', 'Project', 'Assignment'" />
         </h3>
         <p className="mb-4 text-xs text-purple-700">
           Add components like "Class Test", "Project", "Assignment" to break down class scores.
