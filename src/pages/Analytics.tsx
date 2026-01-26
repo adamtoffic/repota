@@ -27,6 +27,7 @@ import { BarChart } from "../components/charts/BarChart";
 import { PieChart } from "../components/charts/PieChart";
 import { RadarChart } from "../components/charts/RadarChart";
 import { ComposedChart } from "../components/charts/ComposedChart";
+import { ScrollButton } from "../components/ScrollButton";
 import {
   calculateClassMetrics,
   calculateSubjectPerformance,
@@ -1129,6 +1130,9 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* ✅ SCROLL BUTTON - Show when there's analytics data to navigate */}
+      {filteredStudents.length > 0 && <ScrollButton />}
     </div>
   );
 };

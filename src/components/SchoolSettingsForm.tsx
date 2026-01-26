@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { SchoolSettings } from "../types";
-import { School, Save } from "lucide-react";
+import { School, Save, Plus, X } from "lucide-react";
 
 interface Props {
   initialSettings: SchoolSettings;
@@ -9,6 +9,7 @@ interface Props {
 
 export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
   const [formData, setFormData] = useState<SchoolSettings>(initialSettings);
+  const [newComponentName, setNewComponentName] = useState("");
 
   const handleChange = (field: keyof SchoolSettings, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -17,6 +18,32 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
   const handleNumberChange = (field: keyof SchoolSettings, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
     setFormData((prev) => ({ ...prev, [field]: numValue }));
+  };
+
+  const handleAddComponent = () => {
+    const trimmed = newComponentName.trim();
+    if (!trimmed) return;
+
+    const current = formData.classScoreComponentNames || [];
+    if (current.includes(trimmed)) {
+      alert("This component already exists!");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      classScoreComponentNames: [...current, trimmed],
+    }));
+    setNewComponentName("");
+  };
+
+  const handleRemoveComponent = (componentName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      classScoreComponentNames: (prev.classScoreComponentNames || []).filter(
+        (name) => name !== componentName,
+      ),
+    }));
   };
 
   return (
@@ -208,6 +235,74 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
           </div>
         </div>
       )}
+
+      {/* Class Score Components Section */}
+      <div className="mt-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
+        <h3 className="mb-2 text-sm font-bold text-purple-900">
+          Class Score Components (Optional)
+        </h3>
+        <p className="mb-4 text-xs text-purple-700">
+          Add components like "Class Test", "Project", "Assignment" to break down class scores.
+          Teachers will enter raw scores (0-100) for each component, which will auto-calculate to
+          the class score percentage.
+        </p>
+
+        {/* Add Component Input */}
+        <div className="mb-3 flex gap-2">
+          <input
+            type="text"
+            value={newComponentName}
+            onChange={(e) => setNewComponentName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddComponent();
+              }
+            }}
+            className="flex-1 rounded border border-purple-300 p-2 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="e.g. Class Test, Project, Assignment"
+          />
+          <button
+            onClick={handleAddComponent}
+            className="flex items-center gap-1 rounded bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </button>
+        </div>
+
+        {/* Component List */}
+        {(formData.classScoreComponentNames || []).length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-purple-800">
+              {(formData.classScoreComponentNames || []).length} Component
+              {(formData.classScoreComponentNames || []).length !== 1 ? "s" : ""}:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(formData.classScoreComponentNames || []).map((componentName) => (
+                <div
+                  key={componentName}
+                  className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-sm"
+                >
+                  <span className="font-medium text-gray-700">{componentName}</span>
+                  <button
+                    onClick={() => handleRemoveComponent(componentName)}
+                    className="rounded p-0.5 text-purple-500 hover:bg-purple-100 hover:text-purple-700"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(formData.classScoreComponentNames || []).length === 0 && (
+          <div className="rounded border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
+            No components added. Class score will be entered directly.
+          </div>
+        )}
+      </div>
 
       <button
         onClick={() => onSave(formData)}

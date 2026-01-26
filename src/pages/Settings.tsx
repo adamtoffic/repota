@@ -11,6 +11,7 @@ import {
   Briefcase,
   X,
   RotateCcw,
+  Calculator,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -20,6 +21,7 @@ import { DataBackup } from "../components/DataBackup";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
 import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
+import { ScrollButton } from "../components/ScrollButton";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -39,6 +41,8 @@ export function Settings() {
 
   const [formData, setFormData] = useState<SchoolSettings>(settings);
   const [newSubject, setNewSubject] = useState("");
+  const [newComponentName, setNewComponentName] = useState("");
+  const [newComponentMax, setNewComponentMax] = useState("");
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
 
@@ -71,6 +75,45 @@ export function Settings() {
       ...prev,
       defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== index),
     }));
+  };
+
+  const addComponent = () => {
+    const trimmed = newComponentName.trim();
+    const maxScore = parseInt(newComponentMax);
+
+    if (!trimmed) {
+      showToast("Please enter a component name!", "error");
+      return;
+    }
+
+    if (!maxScore || maxScore <= 0 || maxScore > 100) {
+      showToast("Please enter a valid max score (1-100)!", "error");
+      return;
+    }
+
+    const current = formData.classScoreComponentConfigs || [];
+    if (current.some((c) => c.name === trimmed)) {
+      showToast("This component already exists!", "error");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      classScoreComponentConfigs: [...current, { name: trimmed, maxScore }],
+    }));
+    setNewComponentName("");
+    setNewComponentMax("");
+    showToast("Component added!", "success");
+  };
+
+  const removeComponent = (componentName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      classScoreComponentConfigs: (prev.classScoreComponentConfigs || []).filter(
+        (config) => config.name !== componentName,
+      ),
+    }));
+    showToast("Component removed!", "success");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -494,6 +537,106 @@ export function Settings() {
                 {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)})
               </p>
             </div>
+
+            {/* CLASS SCORE COMPONENTS */}
+            <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Calculator className="h-4 w-4 text-purple-700" />
+                <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
+                  Class Score Components (Optional)
+                </h3>
+              </div>
+              <p className="mb-4 text-xs leading-relaxed text-purple-700">
+                Break down class scores into components like "Class Test" (max: 20), "Project" (max:
+                30). Set a max score for each component. Students' actual scores will be summed and
+                converted to the class score percentage.
+              </p>
+
+              {/* Add Component Input */}
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={newComponentName}
+                  onChange={(e) => setNewComponentName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      document.getElementById("max-score-input")?.focus();
+                    }
+                  }}
+                  className="flex-1 rounded-lg border border-purple-300 bg-white p-2.5 text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                  placeholder="e.g. Class Test, Project"
+                />
+                <div className="flex gap-2">
+                  <input
+                    id="max-score-input"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max="100"
+                    value={newComponentMax}
+                    onChange={(e) => setNewComponentMax(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addComponent();
+                      }
+                    }}
+                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:w-24"
+                    placeholder="Max Score"
+                  />
+                  <button
+                    type="button"
+                    onClick={addComponent}
+                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Component List */}
+              {(formData.classScoreComponentConfigs || []).length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-purple-800">
+                    {(formData.classScoreComponentConfigs || []).length} Component
+                    {(formData.classScoreComponentConfigs || []).length !== 1 ? "s" : ""}
+                    {" (Total: "}
+                    {(formData.classScoreComponentConfigs || []).reduce(
+                      (sum, c) => sum + c.maxScore,
+                      0,
+                    )}
+                    {" marks)"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(formData.classScoreComponentConfigs || []).map((config) => (
+                      <div
+                        key={config.name}
+                        className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm shadow-sm"
+                      >
+                        <span className="font-medium text-gray-700">{config.name}</span>
+                        <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">
+                          /{config.maxScore}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeComponent(config.name)}
+                          className="rounded p-0.5 text-purple-500 transition-colors hover:bg-purple-100 hover:text-purple-700"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
+                  No components added. Class score will be entered directly (0-100 →{" "}
+                  {formData.classScoreMax}%).
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -643,6 +786,10 @@ export function Settings() {
           setTimeout(() => window.location.reload(), 1000);
         }}
       />
+
+      {/* ✅ SCROLL BUTTON - Show when form is long (8+ subjects or 3+ components) */}
+      {(formData.defaultSubjects.length >= 8 ||
+        (formData.classScoreComponentConfigs?.length ?? 0) >= 3) && <ScrollButton />}
     </div>
   );
 }

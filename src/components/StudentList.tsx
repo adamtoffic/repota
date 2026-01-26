@@ -2,7 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
-import type { ProcessedStudent, StudentRecord } from "../types";
+import type { ProcessedStudent, StudentRecord, SavedSubject } from "../types";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
@@ -38,13 +38,30 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
       subjectNames = DEFAULT_SUBJECTS[settings.level] || [];
     }
 
-    // 2. Create the objects
-    const startingSubjects = subjectNames.map((subName) => ({
-      id: crypto.randomUUID(),
-      name: subName,
-      classScore: 0,
-      examScore: 0,
-    }));
+    const hasComponents =
+      settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
+
+    // 2. Create the objects with components if configured
+    const startingSubjects = subjectNames.map((subName) => {
+      const subject: SavedSubject = {
+        id: crypto.randomUUID(),
+        name: subName,
+        classScore: 0,
+        examScore: 0,
+      };
+
+      // Initialize components if configured
+      if (hasComponents && settings.classScoreComponentConfigs) {
+        subject.classScoreComponents = settings.classScoreComponentConfigs.map((config) => ({
+          id: crypto.randomUUID(),
+          name: config.name,
+          score: 0,
+          maxScore: config.maxScore,
+        }));
+      }
+
+      return subject;
+    });
 
     // 3. Add Student
     onAddStudent({
@@ -62,12 +79,12 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
     // Removed 'overflow-hidden' to prevent any CSS clipping issues with modals
     <div className="relative rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* HEADER */}
-      <div className="bg-background flex items-center justify-between border-b border-gray-200 p-6">
+      <div className="bg-background flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <h2 className="text-lg font-bold text-gray-800">Student Records</h2>
 
         <button
-          onClick={handleOpenModal} // <--- Calls our safe opener
-          className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 font-bold text-white shadow-sm transition-colors"
+          onClick={handleOpenModal}
+          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold text-white shadow-sm transition-colors sm:py-2"
         >
           <UserPlus className="h-4 w-4" /> Add Student
         </button>
@@ -75,55 +92,52 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
 
       {/* TABLE */}
       <div className="w-full overflow-x-auto">
-        {" "}
-        {/* ✅ Ensure this is here */}
-        <table className="w-full min-w-150 text-left text-sm">
-          {" "}
-          {/* ✅ Add min-w to force scroll */}
+        <table className="w-full min-w-[700px] text-left text-sm">
           <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
             <tr>
-              <th className="px-6 py-4">Name</th>
-              <th className="px-6 py-4">Class</th>
-              <th className="px-6 py-4">Subjects</th>
-              <th className="px-6 py-4">Avg. Score</th>
-              <th className="px-6 py-4">Position</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Name</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Class</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Subjects</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Avg. Score</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4">Position</th>
+              <th className="px-4 py-3 text-right sm:px-6 sm:py-4">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {students.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
+                <td colSpan={6} className="px-4 py-10 text-center text-gray-400 sm:px-6">
                   No students found. Click "Add Student" to start.
                 </td>
               </tr>
             ) : (
               students.map((student) => (
                 <tr key={student.id} className="group transition-colors hover:bg-blue-50/50">
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3 sm:px-6 sm:py-4">
                     <p className="text-main font-bold">{student.name}</p>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{student.className}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3 text-gray-600 sm:px-6 sm:py-4">{student.className}</td>
+                  <td className="px-4 py-3 sm:px-6 sm:py-4">
                     <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                       {student.subjects.length} Subjects
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-bold text-gray-800">
+                  <td className="px-4 py-3 font-bold text-gray-800 sm:px-6 sm:py-4">
                     {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3 sm:px-6 sm:py-4">
                     {student.classPosition !== "Pending..." && (
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700">
                         {student.classPosition}
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
+                    <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-0 md:group-hover:opacity-100">
                       <button
                         onClick={() => onEditStudent(student)}
                         className="rounded-lg p-2 text-blue-600 hover:bg-blue-100"
+                        title="Edit Student"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
@@ -131,7 +145,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                       {student.subjects.length > 0 && (
                         <Link
                           to="/print"
-                          search={{ id: student.id }} // ✅ Pass the ID via search params
+                          search={{ id: student.id }}
                           className="rounded-lg p-2 text-purple-600 hover:bg-purple-100"
                           title="Print Report"
                         >
@@ -142,6 +156,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                       <button
                         onClick={() => setStudentToDelete(student.id)}
                         className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
+                        title="Delete Student"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

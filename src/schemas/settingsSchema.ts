@@ -100,6 +100,20 @@ export const schoolSettingsSchema = z
       )
       .max(25, "Too many subjects"),
 
+    // Class score component configurations with max scores
+    classScoreComponentConfigs: z
+      .array(
+        z.object({
+          name: z.string().min(1, "Component name required").max(100, "Component name too long"),
+          maxScore: z
+            .number()
+            .min(1, "Max score must be at least 1")
+            .max(100, "Max score cannot exceed 100"),
+        }),
+      )
+      .max(10, "Too many class score components")
+      .optional(),
+
     // Private School Fees
     schoolGift: z.number().min(0).max(10000).optional(), // Daily school fees
     canteenFees: z.number().min(0).max(10000).optional(), // Daily canteen fees

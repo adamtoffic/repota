@@ -4,6 +4,7 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
 import { useEffect } from "react";
 import { createPrintHandler } from "../utils/printHandler";
+import { ScrollButton } from "../components/ScrollButton";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
@@ -144,6 +145,9 @@ export function PrintPreview() {
           </div>
         ))}
       </div>
+
+      {/* ✅ SCROLL BUTTON - Show when 3+ students (each report is long) */}
+      {printableStudents.length >= 3 && <ScrollButton />}
     </div>
   );
 }

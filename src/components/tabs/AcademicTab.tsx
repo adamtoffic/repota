@@ -25,6 +25,22 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
 
   const obsoleteSubjects = student.subjects.filter((sub) => !masterList.includes(sub.name));
 
+  // Check for missing components
+  const hasComponentsConfigured =
+    settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
+
+  const subjectsWithMissingComponents = hasComponentsConfigured
+    ? student.subjects.filter((subject) => {
+        if (!subject.classScoreComponents || subject.classScoreComponents.length === 0) {
+          return true;
+        }
+        // Check if any configured component is missing
+        return settings.classScoreComponentConfigs!.some(
+          (config) => !subject.classScoreComponents!.find((comp) => comp.name === config.name),
+        );
+      })
+    : [];
+
   // Instant save on field blur - no debounce needed
   const handleScoreUpdate = (updatedSubject: SavedSubject) => {
     const newSubjects = student.subjects.map((s) =>
@@ -34,13 +50,59 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
   };
 
   const handleAddMissing = () => {
-    const newSubjects = missingSubjects.map((name) => ({
-      id: crypto.randomUUID(),
-      name,
-      classScore: 0,
-      examScore: 0,
-    }));
+    const hasComponents =
+      settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
+
+    const newSubjects = missingSubjects.map((name) => {
+      const subject: SavedSubject = {
+        id: crypto.randomUUID(),
+        name,
+        classScore: 0,
+        examScore: 0,
+      };
+
+      // Initialize components if configured
+      if (hasComponents && settings.classScoreComponentConfigs) {
+        subject.classScoreComponents = settings.classScoreComponentConfigs.map((config) => ({
+          id: crypto.randomUUID(),
+          name: config.name,
+          score: 0,
+          maxScore: config.maxScore,
+        }));
+      }
+
+      return subject;
+    });
+
     onUpdate({ ...student, subjects: [...student.subjects, ...newSubjects] });
+  };
+
+  const handleAddMissingComponents = () => {
+    if (!hasComponentsConfigured || !settings.classScoreComponentConfigs) return;
+
+    const updatedSubjects = student.subjects.map((subject) => {
+      const existingComponents = subject.classScoreComponents || [];
+
+      // Create all components from configs, preserving existing scores
+      const allComponents = settings.classScoreComponentConfigs!.map((config) => {
+        const existing = existingComponents.find((c) => c.name === config.name);
+        return (
+          existing || {
+            id: crypto.randomUUID(),
+            name: config.name,
+            score: 0,
+            maxScore: config.maxScore,
+          }
+        );
+      });
+
+      return {
+        ...subject,
+        classScoreComponents: allComponents,
+      };
+    });
+
+    onUpdate({ ...student, subjects: updatedSubjects });
   };
 
   // 🛑 CHANGED: Instead of confirm(), we just open the modal
@@ -111,6 +173,26 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
         </div>
       )}
 
+      {/* MISSING COMPONENTS ALERT */}
+      {subjectsWithMissingComponents.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg border border-purple-200 bg-purple-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-purple-600" />
+            <span className="text-xs text-purple-700">
+              <strong>{subjectsWithMissingComponents.length}</strong> subject
+              {subjectsWithMissingComponents.length !== 1 ? "s" : ""} missing new class score
+              components.
+            </span>
+          </div>
+          <button
+            onClick={handleAddMissingComponents}
+            className="rounded bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-700 active:scale-95"
+          >
+            Update Components
+          </button>
+        </div>
+      )}
+
       {/* OBSOLETE SUBJECTS ALERT */}
       {obsoleteSubjects.length > 0 && (
         <div className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-4">
@@ -162,6 +244,7 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
                   onChange={handleScoreUpdate}
                   maxClassScore={settings.classScoreMax}
                   maxExamScore={settings.examScoreMax}
+                  classScoreComponentConfigs={settings.classScoreComponentConfigs}
                 />
                 {isObsolete && (
                   <p className="mt-1 text-right text-[10px] font-bold text-red-500">

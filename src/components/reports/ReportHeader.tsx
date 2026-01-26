@@ -15,9 +15,9 @@ export function ReportHeader({ settings, isIslamic = false }: Props) {
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-between gap-2 sm:flex-row sm:gap-4">
+      <div className="flex items-center justify-between gap-4">
         {/* Logo */}
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center sm:h-24 sm:w-24">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center print:h-24 print:w-24">
           {settings.logoUrl ? (
             <img
               src={settings.logoUrl}
@@ -25,7 +25,7 @@ export function ReportHeader({ settings, isIslamic = false }: Props) {
               className="h-full w-full object-contain mix-blend-multiply"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center border-2 border-dashed border-slate-300 text-[8px] font-bold text-slate-400 sm:h-16 sm:w-16 sm:text-[10px]">
+            <div className="flex h-16 w-16 items-center justify-center border-2 border-dashed border-slate-300 text-[10px] font-bold text-slate-400">
               LOGO
             </div>
           )}
@@ -33,7 +33,7 @@ export function ReportHeader({ settings, isIslamic = false }: Props) {
 
         {/* School Details */}
         <div className="flex-1 text-center">
-          <h1 className="text-main font-serif text-xl leading-none font-black tracking-wide uppercase sm:text-2xl md:text-3xl">
+          <h1 className="text-main font-serif text-2xl leading-none font-black tracking-wide uppercase print:text-3xl">
             {settings.schoolName || "SCHOOL NAME"}
           </h1>
           {settings.address && (
@@ -64,7 +64,7 @@ export function ReportHeader({ settings, isIslamic = false }: Props) {
         </div>
 
         {/* GES Logo */}
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center sm:h-24 sm:w-24">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center print:h-24 print:w-24">
           <img
             src="/assets/ges-logo.png"
             alt="GES"

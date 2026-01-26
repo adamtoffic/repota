@@ -14,6 +14,7 @@ import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useDebounce } from "../hooks/useDebounce";
 import { exportToCSV } from "../utils/export";
 import { BulkImportModal } from "../components/BulkImportModal";
+import { ScrollButton } from "../components/ScrollButton";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 
@@ -354,6 +355,9 @@ export function Dashboard() {
           setConfirmClearScoresModal(false);
         }}
       />
+
+      {/* ✅ SCROLL TO TOP/BOTTOM BUTTON */}
+      {students.length >= 10 && <ScrollButton />}
     </div>
   );
 }
