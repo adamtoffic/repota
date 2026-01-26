@@ -65,7 +65,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const debouncedStudents = useDebounce(students, 500);
   const debouncedSettings = useDebounce(settings, 500);
 
-  // ✅ NEW: RESTORE DEFAULTS (Factory Reset for Settings only)
+  // ✅ AUTO-SAVE STATE TRACKING
+  const [lastSaved, setLastSaved] = useState<Date>();
+
+  // Track if we're in the debounce period (data changed but not yet saved)
+  const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
   const restoreDefaults = () => {
     const defaultSettings: SchoolSettings = {
       schoolName: "My School Name",
@@ -98,11 +102,15 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(debouncedStudents));
     createBackupHeartbeat(); // Update heartbeat when data changes
+    // Use queueMicrotask to defer state update and avoid cascading render warning
+    queueMicrotask(() => setLastSaved(new Date()));
   }, [debouncedStudents]);
 
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(debouncedSettings));
     createBackupHeartbeat(); // Update heartbeat when settings change
+    // Use queueMicrotask to defer state update and avoid cascading render warning
+    queueMicrotask(() => setLastSaved(new Date()));
   }, [debouncedSettings]);
 
   // Request persistent storage on mount (Android protection)
@@ -522,6 +530,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         checkDuplicateName,
         restoreDefaults,
         autoGenerateRemarks,
+        isSaving,
+        lastSaved,
       }}
     >
       {children}

@@ -22,6 +22,7 @@ import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
 import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
 import { ScrollButton } from "../components/ScrollButton";
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -34,8 +35,15 @@ const inputClass =
   "w-full rounded-lg border border-gray-300 p-2.5 text-sm font-medium outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200";
 
 export function Settings() {
-  const { settings, setSettings, updateClassNameForAll, students, restoreDefaults } =
-    useSchoolData();
+  const {
+    settings,
+    setSettings,
+    updateClassNameForAll,
+    students,
+    restoreDefaults,
+    isSaving,
+    lastSaved,
+  } = useSchoolData();
   const { showToast } = useToast();
   const navigate = useNavigate({ from: "/settings" });
 
@@ -790,6 +798,9 @@ export function Settings() {
       {/* ✅ SCROLL BUTTON - Show when form is long (8+ subjects or 3+ components) */}
       {(formData.defaultSubjects.length >= 8 ||
         (formData.classScoreComponentConfigs?.length ?? 0) >= 3) && <ScrollButton />}
+
+      {/* ✅ AUTO-SAVE INDICATOR */}
+      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
     </div>
   );
 }

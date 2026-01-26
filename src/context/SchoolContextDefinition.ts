@@ -16,6 +16,8 @@ export interface SchoolContextType {
   checkDuplicateName: (name: string) => boolean;
   restoreDefaults: () => void;
   autoGenerateRemarks: () => void;
+  isSaving: boolean;
+  lastSaved?: Date;
 }
 
 export const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
