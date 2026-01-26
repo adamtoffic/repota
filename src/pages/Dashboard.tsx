@@ -370,24 +370,34 @@ export function Dashboard() {
       <WelcomeTour
         steps={[
           {
-            title: "Welcome to Repota! 🎉",
+            title: "Welcome to Repota! �🇭",
             description:
-              "A free, offline-first report card generator built for Ghanaian teachers. Generate 50+ GES-compliant reports in under 2 minutes.",
+              "We're so glad you're here! Repota helps you create beautiful GES report cards in minutes. Everything works offline - no internet needed once loaded. Let's show you around!",
           },
           {
-            title: "Add Your Students",
+            title: "Step 1: Add Your Students 👨‍🎓",
             description:
-              "Click the 'Add Student' button at the top to start building your class list. You can also import from CSV or load demo data to explore features.",
+              "Start by clicking the 'Add Student' button at the top. Type their names one by one, or save time by using 'Bulk Import' if you have a list ready. You can also try 'Load Demo Data' to see how everything works first.",
           },
           {
-            title: "Enter Scores & Generate Reports",
+            title: "Step 2: Enter Scores & Watch the Magic ✨",
             description:
-              "Click any student to enter their scores. The system auto-calculates grades, positions, and teacher remarks. When ready, click 'Print Reports' to generate all report cards at once.",
+              "Click on any student's name to enter their class and exam scores. Repota automatically calculates their total marks, grades (A, B, C...), class position, and even writes teacher remarks for you! No more manual calculations.",
           },
           {
-            title: "Everything is Auto-Saved 💾",
+            title: "Step 3: View Class Analytics 📊",
             description:
-              "Your data is saved automatically to your device every 500ms. Works 100% offline. No internet, no login, no data sent to servers. Check the bottom-left for save status.",
+              "Click the 'Analytics' button to see beautiful charts and insights about your class performance. See top performers, subject averages, pass rates, and trends - all updated in real-time as you enter scores.",
+          },
+          {
+            title: "Step 4: Print Report Cards 🖨️",
+            description:
+              "When you're done, click 'Print Reports' to generate professional GES-compliant report cards for all students at once. You can print them directly or save as PDF. Each report looks perfect and ready to hand out!",
+          },
+          {
+            title: "Your Work is Safe! 💚",
+            description:
+              "Don't worry - everything you type is saved automatically every few seconds. Even if your phone dies or you close the app, your work is safe on your device. You'll see 'Saved just now' at the bottom-left. No internet required!",
           },
         ]}
         onComplete={() => {}}
