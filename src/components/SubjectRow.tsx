@@ -32,6 +32,8 @@ export function SubjectRow({
 
   const [showClassSaved, setShowClassSaved] = useState(false);
   const [showExamSaved, setShowExamSaved] = useState(false);
+  const [classScoreError, setClassScoreError] = useState<string | null>(null);
+  const [examScoreError, setExamScoreError] = useState<string | null>(null);
   const classTimerRef = useRef<number | null>(null);
   const examTimerRef = useRef<number | null>(null);
 
@@ -91,10 +93,19 @@ export function SubjectRow({
   const handleExamChange = (value: string) => {
     if (value === "") {
       onChange({ ...subject, examScore: 0 });
+      setExamScoreError(null);
       return;
     }
 
     const rawScore = Number(value);
+
+    // Validation check
+    if (rawScore > 100) {
+      setExamScoreError(`Exam score cannot exceed 100`);
+      return;
+    }
+
+    setExamScoreError(null);
     // Clamp to 0-100
     const clampedRaw = Math.min(Math.max(rawScore, 0), 100);
     // Convert to percentage of maxExamScore
@@ -109,10 +120,19 @@ export function SubjectRow({
 
     if (value === "") {
       onChange({ ...subject, classScore: 0 });
+      setClassScoreError(null);
       return;
     }
 
     const rawScore = Number(value);
+
+    // Validation check
+    if (rawScore > maxClassScore) {
+      setClassScoreError(`Class score cannot exceed ${maxClassScore}`);
+      return;
+    }
+
+    setClassScoreError(null);
     // Clamp to 0-maxClassScore (direct entry, no conversion)
     const clampedScore = Math.min(Math.max(rawScore, 0), maxClassScore);
 
@@ -233,7 +253,9 @@ export function SubjectRow({
                   className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none focus:ring-2 sm:p-2.5 sm:text-base ${
                     hasComponents
                       ? "cursor-not-allowed border-purple-200 bg-purple-50 text-purple-700"
-                      : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
+                      : classScoreError
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
                   }`}
                   placeholder={hasComponents ? "Auto" : `/${maxClassScore}`}
                   title={
@@ -251,6 +273,11 @@ export function SubjectRow({
               {hasComponents && (
                 <p className="mt-1 text-center text-[10px] text-purple-600">
                   = {subject.classScore}/{maxClassScore}
+                </p>
+              )}
+              {classScoreError && (
+                <p className="mt-1 text-center text-[10px] font-bold text-red-600">
+                  ⚠️ {classScoreError}
                 </p>
               )}
             </div>
@@ -273,7 +300,11 @@ export function SubjectRow({
                   }
                   onChange={(e) => handleExamChange(e.target.value)}
                   onBlur={() => handleBlur("examScore")}
-                  className="w-full rounded-lg border border-gray-300 p-3 text-center text-lg font-bold transition-all outline-none hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2.5 sm:text-base"
+                  className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none hover:border-gray-400 focus:ring-2 sm:p-2.5 sm:text-base ${
+                    examScoreError
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
+                  }`}
                   placeholder="/100"
                   title={`Enter raw score (0-100). Converts to ${maxExamScore}%`}
                 />
@@ -286,6 +317,11 @@ export function SubjectRow({
               <p className="mt-1 text-center text-[10px] text-blue-600">
                 = {subject.examScore}/{maxExamScore}
               </p>
+              {examScoreError && (
+                <p className="mt-1 text-center text-[10px] font-bold text-red-600">
+                  ⚠️ {examScoreError}
+                </p>
+              )}
             </div>
 
             {/* Grade Badge */}

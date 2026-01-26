@@ -17,6 +17,7 @@ import { BulkImportModal } from "../components/BulkImportModal";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { WelcomeTour } from "../components/WelcomeTour";
+import { ValidationWarnings } from "../components/ValidationWarnings";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 
@@ -231,7 +232,11 @@ export function Dashboard() {
           <>
             <DashboardStats students={students} settings={settings} />
 
+            {/* VALIDATION WARNINGS */}
+            <ValidationWarnings students={students} settings={settings} />
+
             <div className="relative">
+              \n{" "}
               <DashboardToolbar
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -259,7 +264,6 @@ export function Dashboard() {
                   URL.revokeObjectURL(url);
                 }}
               />
-
               {/* ✅ SPINNER: Positioned correctly in search bar area */}
               {isSearching && (
                 <div className="absolute top-2 left-80 z-10 hidden md:block">

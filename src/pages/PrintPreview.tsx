@@ -1,5 +1,5 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, Printer, AlertCircle } from "lucide-react";
+import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
 import { useEffect } from "react";
@@ -76,6 +76,9 @@ export function PrintPreview() {
 
   const printableStudents = id ? students.filter((s) => s.id === id) : students;
 
+  // Calculate validation warnings
+  const studentsWithMissingPhotos = printableStudents.filter((student) => !student.pictureUrl);
+
   if (printableStudents.length === 0) {
     return (
       <div className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center">
@@ -125,6 +128,26 @@ export function PrintPreview() {
             <Printer className="h-4 w-4" /> Print All Reports
           </button>
         </div>
+
+        {/* VALIDATION WARNING FOR MISSING PHOTOS */}
+        {studentsWithMissingPhotos.length > 0 && (
+          <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-yellow-800">
+                  ⚠️ {studentsWithMissingPhotos.length} student
+                  {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
+                  {studentsWithMissingPhotos.length === 1 ? "" : "s"}
+                </p>
+                <p className="text-muted mt-0.5 text-xs">
+                  Reports will print without photos. Add student photos in the Dashboard for
+                  complete report cards.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. THE PREVIEW AREA */}
