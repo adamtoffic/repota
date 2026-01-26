@@ -27,32 +27,6 @@
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
-/* 🌙 DARK MODE COLORS */
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: #0f172a; /* slate-900 */
-    --color-surface: #1e293b; /* slate-800 */
-    --color-main: #f1f5f9; /* slate-100 */
-    --color-muted: #94a3b8; /* slate-400 */
-  }
-}
-
-/* Manual dark mode class (overrides prefers-color-scheme) */
-.dark {
-  --color-background: #0f172a; /* slate-900 */
-  --color-surface: #1e293b; /* slate-800 */
-  --color-main: #f1f5f9; /* slate-100 */
-  --color-muted: #94a3b8; /* slate-400 */
-}
-
-/* Force light mode for print (reports must be white) */
-@media print {
-  --color-background: #ffffff !important;
-  --color-surface: #ffffff !important;
-  --color-main: #0f172a !important;
-  --color-muted: #64748b !important;
-}
-
 :root {
   --font-serif: "Times New Roman", Times, serif;
 }

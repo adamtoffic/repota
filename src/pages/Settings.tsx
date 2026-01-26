@@ -12,8 +12,6 @@ import {
   X,
   RotateCcw,
   Calculator,
-  Moon,
-  Sun,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -25,7 +23,6 @@ import { CLASS_OPTIONS } from "../constants/classes";
 import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
-import { useDarkMode } from "../hooks/useDarkMode";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -49,7 +46,6 @@ export function Settings() {
   } = useSchoolData();
   const { showToast } = useToast();
   const navigate = useNavigate({ from: "/settings" });
-  const { isDark, toggle: toggleDarkMode } = useDarkMode();
 
   const [formData, setFormData] = useState<SchoolSettings>(settings);
   const [newSubject, setNewSubject] = useState("");
@@ -745,45 +741,6 @@ export function Settings() {
                 </button>
               </span>
             ))}
-          </div>
-        </div>
-
-        {/* APP PREFERENCES */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="rounded-lg bg-purple-100 p-2.5">
-              {isDark ? (
-                <Moon className="h-5 w-5 text-purple-600" />
-              ) : (
-                <Sun className="h-5 w-5 text-purple-600" />
-              )}
-            </div>
-            <h2 className="text-lg font-bold text-gray-800">App Preferences</h2>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <h3 className="font-bold text-gray-900">Dark Mode</h3>
-              <p className="text-muted text-sm">
-                Easier on your eyes when working at night. Report cards always print in white.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                toggleDarkMode();
-                showToast(isDark ? "Light mode activated ☀️" : "Dark mode activated 🌙", "success");
-              }}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                isDark ? "bg-blue-600" : "bg-gray-300"
-              }`}
-              aria-label="Toggle dark mode"
-            >
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform ${
-                  isDark ? "translate-x-7" : "translate-x-1"
-                }`}
-              />
-            </button>
           </div>
         </div>
 
