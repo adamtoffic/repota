@@ -1,6 +1,7 @@
 // src/components/StudentList.tsx
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
 import type { ProcessedStudent, StudentRecord, SavedSubject } from "../types";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
@@ -21,6 +22,18 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
   const [newName, setNewName] = useState("");
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const { settings } = useSchoolData();
+
+  // Virtual scrolling setup
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // eslint-disable-next-line react-compiler/react-compiler
+  const rowVirtualizer = useVirtualizer({
+    count: students.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 64, // Estimated row height in pixels
+    overscan: 5, // Render 5 extra rows above/below viewport for smooth scrolling
+  });
+
   // ✅ FIX: No useEffect. We set defaults when the user clicks "Open".
   const handleOpenModal = () => {
     setIsAddOpen(true);
@@ -85,14 +98,22 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
         <button
           onClick={handleOpenModal}
           className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold text-white shadow-sm transition-colors sm:py-2"
+          aria-label="Add new student"
         >
           <UserPlus className="h-4 w-4" /> Add Student
         </button>
       </div>
 
       {/* TABLE */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[700px] text-left text-sm">
+      <div
+        ref={parentRef}
+        className="w-full overflow-x-auto"
+        style={{
+          maxHeight: "600px",
+          overflow: "auto",
+        }}
+      >
+        <table className="w-full min-w-[44rem] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold text-gray-600 uppercase shadow-sm">
             <tr>
               <th className="px-4 py-3 sm:px-6 sm:py-4">Name</th>
@@ -111,59 +132,91 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                 </td>
               </tr>
             ) : (
-              students.map((student) => (
-                <tr key={student.id} className="group transition-colors hover:bg-blue-50/50">
-                  <td className="px-4 py-3 sm:px-6 sm:py-4">
-                    <p className="text-main font-bold">{student.name}</p>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 sm:px-6 sm:py-4">{student.className}</td>
-                  <td className="px-4 py-3 sm:px-6 sm:py-4">
-                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                      {student.subjects.length} Subjects
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-bold text-gray-800 sm:px-6 sm:py-4">
-                    {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
-                  </td>
-                  <td className="px-4 py-3 sm:px-6 sm:py-4">
-                    {student.classPosition !== "Pending..." && (
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700">
-                        {student.classPosition}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
-                    <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-0 md:group-hover:opacity-100">
-                      <button
-                        onClick={() => onEditStudent(student)}
-                        className="rounded-lg p-2 text-blue-600 hover:bg-blue-100"
-                        title="Edit Student"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+              <>
+                {/* Spacer for virtual scroll positioning */}
+                {rowVirtualizer.getVirtualItems().length > 0 && (
+                  <tr style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }} />
+                )}
 
-                      {student.subjects.length > 0 && (
-                        <Link
-                          to="/print"
-                          search={{ id: student.id }}
-                          className="rounded-lg p-2 text-purple-600 hover:bg-purple-100"
-                          title="Print Report"
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Link>
-                      )}
+                {/* Only render visible rows */}
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const student = students[virtualRow.index];
+                  return (
+                    <tr
+                      key={student.id}
+                      className="group transition-colors hover:bg-blue-50/50"
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                    >
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        <p className="text-main font-bold">{student.name}</p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 sm:px-6 sm:py-4">
+                        {student.className}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                          {student.subjects.length} Subjects
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-gray-800 sm:px-6 sm:py-4">
+                        {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        {student.classPosition !== "Pending..." && (
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700">
+                            {student.classPosition}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
+                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-0 md:group-hover:opacity-100">
+                          <button
+                            onClick={() => onEditStudent(student)}
+                            className="rounded-lg p-2 text-blue-600 hover:bg-blue-100"
+                            title="Edit Student"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
 
-                      <button
-                        onClick={() => setStudentToDelete(student.id)}
-                        className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
-                        title="Delete Student"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                          {student.subjects.length > 0 && (
+                            <Link
+                              to="/print"
+                              search={{ id: student.id }}
+                              className="rounded-lg p-2 text-purple-600 hover:bg-purple-100"
+                              title="Print Report"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Link>
+                          )}
+
+                          <button
+                            onClick={() => setStudentToDelete(student.id)}
+                            className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
+                            title="Delete Student"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Bottom spacer for virtual scroll */}
+                {rowVirtualizer.getVirtualItems().length > 0 && (
+                  <tr
+                    style={{
+                      height: `${
+                        rowVirtualizer.getTotalSize() -
+                        (rowVirtualizer.getVirtualItems()[
+                          rowVirtualizer.getVirtualItems().length - 1
+                        ]?.end || 0)
+                      }px`,
+                    }}
+                  />
+                )}
+              </>
             )}
           </tbody>
         </table>

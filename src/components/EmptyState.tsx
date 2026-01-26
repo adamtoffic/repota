@@ -25,6 +25,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
         <button
           onClick={onAddStudent}
           className="bg-primary flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold text-white shadow-md transition-colors active:opacity-80"
+          aria-label="Add your first student"
         >
           <UserPlus className="h-5 w-5" />
           Add First Student
@@ -33,6 +34,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
         <button
           onClick={onLoadDemo}
           className="bg-background text-muted rounded-lg border-2 border-gray-200 px-6 py-3 font-bold transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 active:opacity-80"
+          aria-label="Load demo student data for testing"
         >
           Load Demo Data (Test)
         </button>

@@ -9,7 +9,7 @@ export const PageLoader = () => (
         <div className="h-20 w-20 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
         {/* Center Icon */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 p-3">
+          <div className="rounded-full bg-gradient-to-br from-amber-400 to-amber-500 p-3">
             <GraduationCap className="h-6 w-6 text-blue-900" />
           </div>
         </div>

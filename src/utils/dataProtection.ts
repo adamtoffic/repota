@@ -69,9 +69,9 @@ export const requestPersistentStorage = async (): Promise<boolean> => {
   try {
     const isPersisted = await navigator.storage.persist();
     if (isPersisted) {
-      console.log("✅ Storage will not be cleared automatically");
+      // Storage persistence granted
     } else {
-      console.log("⚠️ Storage may be cleared by the browser/system");
+      // Storage may be cleared - data is safe in localStorage but not guaranteed to persist
     }
     return isPersisted;
   } catch (error) {

@@ -15,7 +15,7 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
       <nav className="sticky top-0 z-50 bg-blue-900 shadow-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-500 p-2">
+            <div className="rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 p-2">
               <GraduationCap className="h-6 w-6 text-blue-900" />
             </div>
             <div>

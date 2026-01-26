@@ -146,7 +146,7 @@ export function Settings() {
   return (
     <div className="bg-background min-h-screen pb-20 font-sans">
       {/* HEADER */}
-      <div className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-20 border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Link

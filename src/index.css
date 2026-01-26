@@ -104,10 +104,6 @@
   animation: shimmer 2s linear infinite;
 }
 
-.animate-pulse-subtle {
-  /* Removed - not needed for performance */
-}
-
 /* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,

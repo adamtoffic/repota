@@ -230,7 +230,7 @@ export const Analytics: React.FC = () => {
   if (students.length === 0) {
     return (
       <div className="bg-background flex min-h-screen flex-col font-sans">
-        <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm">
+        <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-16 justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
