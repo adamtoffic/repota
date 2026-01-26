@@ -37,6 +37,11 @@ export function SubjectRow({
   const classTimerRef = useRef<number | null>(null);
   const examTimerRef = useRef<number | null>(null);
 
+  // Track raw exam input (0-100) to avoid conversion rounding issues
+  const [examRawInput, setExamRawInput] = useState<string>(() =>
+    subject.examScore === 0 ? "" : Math.round((subject.examScore / maxExamScore) * 100).toString(),
+  );
+
   // Auto-expand when components are added
   useEffect(() => {
     if (hasComponents) {
@@ -91,6 +96,8 @@ export function SubjectRow({
 
   // Auto-convert exam score from 0-100 to exam score max percentage
   const handleExamChange = (value: string) => {
+    setExamRawInput(value); // Store raw input
+
     if (value === "") {
       onChange({ ...subject, examScore: 0 });
       setExamScoreError(null);
@@ -293,11 +300,7 @@ export function SubjectRow({
                   inputMode="numeric"
                   min="0"
                   max="100"
-                  value={
-                    subject.examScore === 0
-                      ? ""
-                      : ((subject.examScore / maxExamScore) * 100).toFixed(0)
-                  }
+                  value={examRawInput}
                   onChange={(e) => handleExamChange(e.target.value)}
                   onBlur={() => handleBlur("examScore")}
                   className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none hover:border-gray-400 focus:ring-2 sm:p-2.5 sm:text-base ${
