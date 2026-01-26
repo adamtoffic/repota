@@ -74,6 +74,15 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 /* Animation Classes - Lightweight & Fast */
 .animate-slide-in-up {
   animation: slideUp 0.2s ease-out;
@@ -89,6 +98,10 @@
 
 .animate-scale-in {
   animation: fadeIn 0.2s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
 }
 
 .animate-pulse-subtle {

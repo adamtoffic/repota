@@ -1,17 +1,21 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, Printer, AlertCircle } from "lucide-react";
+import { ArrowLeft, Printer, AlertCircle, ZoomIn, ZoomOut } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPrintHandler } from "../utils/printHandler";
 import { ScrollButton } from "../components/ScrollButton";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
   const { id } = useSearch({ from: "/print" });
+  const [zoom, setZoom] = useState(100);
 
   // iOS-safe print handler
   const handlePrint = createPrintHandler();
+
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 10, 150));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 10, 50));
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -117,18 +121,46 @@ export function PrintPreview() {
             </div>
           </div>
 
-          <button
-            onClick={handlePrint}
-            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
-            aria-label="Print all report cards"
-          >
-            <Printer className="h-4 w-4" /> Print All Reports
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5">
+              <button
+                onClick={handleZoomOut}
+                className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                disabled={zoom <= 50}
+                aria-label="Zoom out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </button>
+              <span className="min-w-12 text-center text-sm font-medium text-gray-700">
+                {zoom}%
+              </span>
+              <button
+                onClick={handleZoomIn}
+                className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                disabled={zoom >= 150}
+                aria-label="Zoom in"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={handlePrint}
+              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
+              aria-label="Print all report cards"
+            >
+              <Printer className="h-4 w-4" /> Print All Reports
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 2. THE PREVIEW AREA */}
-      <div className="overflow-x-hidden print:m-0 print:w-full print:p-0">
+      <div
+        className="overflow-x-hidden print:m-0 print:w-full print:p-0"
+        style={{ zoom: `${zoom}%` }}
+      >
         {printableStudents.map((student, index) => (
           <div
             key={student.id}
