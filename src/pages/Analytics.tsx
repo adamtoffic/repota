@@ -15,6 +15,8 @@ import {
   TrendingDown,
   Zap,
   Brain,
+  Download,
+  FileText,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
@@ -46,10 +48,13 @@ import {
   calculateAttendanceByGender,
 } from "../utils/analyticsCalculator";
 import { processStudent } from "../utils/gradeCalculator";
+import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
+import { useToast } from "../hooks/useToast";
 
 export const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { students, settings } = useSchoolData();
+  const { showToast } = useToast();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     gender: "All",
     performanceLevel: "All",
@@ -170,6 +175,38 @@ export const Analytics: React.FC = () => {
     [filteredStudents, settings],
   );
 
+  // Export handlers
+  const handleExportPDF = () => {
+    try {
+      exportAnalyticsAsPDF();
+      showToast("Analytics exported as PDF", "success");
+    } catch (error) {
+      showToast("Failed to export PDF", "error");
+    }
+  };
+
+  const handleExportData = () => {
+    try {
+      const exportData = filteredStudents.map((student) => {
+        const processed = processStudent(student, settings.level);
+        return {
+          Name: student.name,
+          Class: student.className,
+          Gender: student.gender || "N/A",
+          Average: processed.averageScore.toFixed(1),
+          "Total Subjects": student.subjects.length,
+          Attendance: student.attendancePresent || 0,
+        };
+      });
+
+      const filename = `Analytics_${settings.className || "Class"}_${new Date().toISOString().split("T")[0]}.csv`;
+      exportAnalyticsData(exportData, filename);
+      showToast(`Exported data for ${exportData.length} students`, "success");
+    } catch (error) {
+      showToast("Failed to export data", "error");
+    }
+  };
+
   const availableSubjects = useMemo(() => {
     const subjects = new Set<string>();
     students.forEach((student) => {
@@ -262,15 +299,25 @@ export const Analytics: React.FC = () => {
                 of {students.length} students
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="text-left sm:text-right">
-                <p className="text-muted text-xs font-medium tracking-wide uppercase">
-                  Academic Year
-                </p>
-                <p className="text-main text-sm font-bold">
-                  {settings.academicYear} • {settings.term}
-                </p>
-              </div>
+
+            {/* Export Buttons */}
+            <div className="flex items-center gap-2" data-no-print="true">
+              <button
+                onClick={handleExportData}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95"
+                title="Export analytics data as CSV"
+              >
+                <FileText size={16} />
+                <span className="hidden sm:inline">Export CSV</span>
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
+                title="Export analytics as PDF"
+              >
+                <Download size={16} />
+                <span className="hidden sm:inline">Export PDF</span>
+              </button>
             </div>
           </div>
         </div>

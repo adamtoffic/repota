@@ -18,6 +18,7 @@ import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { WelcomeTour } from "../components/WelcomeTour";
 import { ValidationWarnings } from "../components/ValidationWarnings";
+import { ProgressModal } from "../components/ProgressModal";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 
@@ -46,6 +47,11 @@ export function Dashboard() {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [remarksProgress, setRemarksProgress] = useState<{
+    isOpen: boolean;
+    current: number;
+    total: number;
+  }>({ isOpen: false, current: 0, total: 0 });
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -249,7 +255,22 @@ export function Dashboard() {
                 }
                 onDeletePending={() => setConfirmCleanModal(true)}
                 onImport={() => setShowImportModal(true)}
-                onAutoRemarks={() => autoGenerateRemarks()}
+                onAutoRemarks={() => {
+                  setRemarksProgress({ isOpen: true, current: 0, total: students.length });
+                  // Use setTimeout to allow modal to render first
+                  setTimeout(() => {
+                    autoGenerateRemarks((current, total) => {
+                      setRemarksProgress({ isOpen: true, current, total });
+
+                      // Close modal when complete
+                      if (current === total) {
+                        setTimeout(() => {
+                          setRemarksProgress({ isOpen: false, current: 0, total: 0 });
+                        }, 800);
+                      }
+                    });
+                  }, 100);
+                }}
                 onClearScores={() => setConfirmClearScoresModal(true)}
                 onExportStudentList={() => {
                   // Export simple student names list as text file
@@ -410,6 +431,15 @@ export function Dashboard() {
         ]}
         onComplete={() => {}}
         storageKey="repota_welcome_tour_v2"
+      />
+
+      {/* PROGRESS MODAL FOR BULK OPERATIONS */}
+      <ProgressModal
+        isOpen={remarksProgress.isOpen}
+        title="Generating Remarks"
+        message="Please wait while we generate personalized remarks for all students..."
+        current={remarksProgress.current}
+        total={remarksProgress.total}
       />
     </div>
   );

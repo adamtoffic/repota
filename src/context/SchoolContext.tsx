@@ -457,15 +457,17 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     return assignPositions(withSubjectPositions);
   }, [students, settings.level]);
 
-  // 8. AUTO-GENERATE REMARKS (Smart Batching)
-  const autoGenerateRemarks = () => {
+  // 8. AUTO-GENERATE REMARKS (Smart Batching with Progress)
+  const autoGenerateRemarks = (onProgress?: (current: number, total: number) => void) => {
     // A. Temporary memory for this operation only
     // This ensures we know what was used by Student 1 when we get to Student 2
     const usedHeadmasterRemarks: string[] = [];
     const usedTeacherRemarks: string[] = [];
 
-    // B. Loop through all students
-    const updatedStudents = students.map((student) => {
+    const total = students.length;
+
+    // B. Loop through all students with progress tracking
+    const updatedStudents = students.map((student, index) => {
       // Need processed stats (average, etc.) for accurate remarks
       const processed = processStudent(student, settings.level);
 
@@ -497,6 +499,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       // 4. Fill Conduct/Interest ONLY if empty (Optional - remove checks to overwrite all)
       const conduct = student.conduct || getRandomConductTrait();
       const interest = student.interest || getRandomInterest();
+
+      // Report progress
+      if (onProgress) {
+        queueMicrotask(() => onProgress(index + 1, total));
+      }
 
       return {
         ...student,

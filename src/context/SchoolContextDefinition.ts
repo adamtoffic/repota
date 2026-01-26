@@ -15,7 +15,7 @@ export interface SchoolContextType {
   updateClassNameForAll: (newClassName: string) => void;
   checkDuplicateName: (name: string) => boolean;
   restoreDefaults: () => void;
-  autoGenerateRemarks: () => void;
+  autoGenerateRemarks: (onProgress?: (current: number, total: number) => void) => void;
   isSaving: boolean;
   lastSaved?: Date;
 }
