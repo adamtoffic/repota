@@ -16,6 +16,7 @@ import { exportToCSV } from "../utils/export";
 import { BulkImportModal } from "../components/BulkImportModal";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
+import { WelcomeTour } from "../components/WelcomeTour";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 
@@ -364,6 +365,34 @@ export function Dashboard() {
 
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+
+      {/* ✅ WELCOME TOUR for first-time users */}
+      <WelcomeTour
+        steps={[
+          {
+            title: "Welcome to Repota! 🎉",
+            description:
+              "A free, offline-first report card generator built for Ghanaian teachers. Generate 50+ GES-compliant reports in under 2 minutes.",
+          },
+          {
+            title: "Add Your Students",
+            description:
+              "Click the 'Add Student' button at the top to start building your class list. You can also import from CSV or load demo data to explore features.",
+          },
+          {
+            title: "Enter Scores & Generate Reports",
+            description:
+              "Click any student to enter their scores. The system auto-calculates grades, positions, and teacher remarks. When ready, click 'Print Reports' to generate all report cards at once.",
+          },
+          {
+            title: "Everything is Auto-Saved 💾",
+            description:
+              "Your data is saved automatically to your device every 500ms. Works 100% offline. No internet, no login, no data sent to servers. Check the bottom-left for save status.",
+          },
+        ]}
+        onComplete={() => {}}
+        storageKey="repota_welcome_tour_v1"
+      />
     </div>
   );
 }
