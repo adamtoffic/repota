@@ -153,7 +153,7 @@ function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange"
 
   return (
     <div
-      className={`group flex items-center justify-between rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${colorClass}`}
+      className={`animate-fade-in flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
     >
       <div className="flex-1">
         <p className="text-muted text-xs font-bold tracking-wide uppercase">{label}</p>
@@ -169,7 +169,7 @@ function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange"
           )}
         </div>
       </div>
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white shadow-sm transition-transform group-hover:scale-105">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/50">
         {icon}
       </div>
     </div>

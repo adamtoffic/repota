@@ -23,7 +23,7 @@ export function StudentInfo({ student, settings }: Props) {
       {/* Details Grid */}
       <div className="flex-1">
         {/* Row 1: Main Identity */}
-        <div className="grid grid-cols-[1fr_minmax(70px,100px)_minmax(60px,80px)_minmax(60px,80px)] divide-x-2 divide-blue-950 border-b-2 border-blue-950 sm:grid-cols-[1fr_100px_80px_80px]">
+        <div className="grid grid-cols-[1fr_100px_80px_80px] divide-x-2 divide-blue-950 border-b-2 border-blue-950">
           <div className="p-2">
             <span className="text-muted block text-[9px] font-black uppercase">
               Name of Student
@@ -60,12 +60,12 @@ export function StudentInfo({ student, settings }: Props) {
           </div>
           <div className="px-3 py-1.5">
             {student.dateOfBirth ? (
-              <div className="grid grid-cols-2 gap-2 divide-x-2 divide-blue-950 sm:gap-4">
-                <div className="flex items-center justify-between pr-2 sm:pr-4">
+              <div className="grid grid-cols-2 gap-4 divide-x-2 divide-blue-950">
+                <div className="flex items-center justify-between pr-4">
                   <span className="text-muted text-[10px] font-black uppercase">DOB</span>
                   <span className="text-main text-sm font-bold">{student.dateOfBirth}</span>
                 </div>
-                <div className="flex items-center justify-between pl-2 sm:pl-4">
+                <div className="flex items-center justify-between pl-4">
                   <span className="text-muted text-[10px] font-black uppercase">Next Term</span>
                   <span className="text-main text-sm font-bold">
                     {settings.nextTermStarts || "TBA"}

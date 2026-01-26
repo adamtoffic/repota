@@ -1,5 +1,5 @@
 // src/pages/Analytics.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -15,6 +15,8 @@ import {
   TrendingDown,
   Zap,
   Brain,
+  Download,
+  FileText,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
@@ -23,10 +25,21 @@ import type { AnalyticsFilters } from "../components/analytics/FilterPanel";
 import { Card } from "../components/ui/Card";
 import { ChartCard } from "../components/analytics/ChartCard";
 import { InsightCard } from "../components/analytics/InsightCard";
-import { BarChart } from "../components/charts/BarChart";
-import { PieChart } from "../components/charts/PieChart";
-import { RadarChart } from "../components/charts/RadarChart";
-import { ComposedChart } from "../components/charts/ComposedChart";
+import { ScrollButton } from "../components/ScrollButton";
+
+// Lazy load chart components to split recharts into separate chunk
+const BarChart = lazy(() =>
+  import("../components/charts/BarChart").then((m) => ({ default: m.BarChart })),
+);
+const PieChart = lazy(() =>
+  import("../components/charts/PieChart").then((m) => ({ default: m.PieChart })),
+);
+const RadarChart = lazy(() =>
+  import("../components/charts/RadarChart").then((m) => ({ default: m.RadarChart })),
+);
+const ComposedChart = lazy(() =>
+  import("../components/charts/ComposedChart").then((m) => ({ default: m.ComposedChart })),
+);
 import {
   calculateClassMetrics,
   calculateSubjectPerformance,
@@ -45,10 +58,13 @@ import {
   calculateAttendanceByGender,
 } from "../utils/analyticsCalculator";
 import { processStudent } from "../utils/gradeCalculator";
+import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
+import { useToast } from "../hooks/useToast";
 
 export const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { students, settings } = useSchoolData();
+  const { showToast } = useToast();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     gender: "All",
     performanceLevel: "All",
@@ -169,6 +185,40 @@ export const Analytics: React.FC = () => {
     [filteredStudents, settings],
   );
 
+  // Export handlers
+  const handleExportPDF = () => {
+    try {
+      exportAnalyticsAsPDF();
+      showToast("Analytics exported as PDF", "success");
+    } catch (err) {
+      console.error("Export PDF failed:", err);
+      showToast("Failed to export PDF", "error");
+    }
+  };
+
+  const handleExportData = () => {
+    try {
+      const exportData = filteredStudents.map((student) => {
+        const processed = processStudent(student, settings.level);
+        return {
+          Name: student.name,
+          Class: student.className,
+          Gender: student.gender || "N/A",
+          Average: processed.averageScore.toFixed(1),
+          "Total Subjects": student.subjects.length,
+          Attendance: student.attendancePresent || 0,
+        };
+      });
+
+      const filename = `Analytics_${settings.className || "Class"}_${new Date().toISOString().split("T")[0]}.csv`;
+      exportAnalyticsData(exportData, filename);
+      showToast(`Exported data for ${exportData.length} students`, "success");
+    } catch (err) {
+      console.error("Export data failed:", err);
+      showToast("Failed to export data", "error");
+    }
+  };
+
   const availableSubjects = useMemo(() => {
     const subjects = new Set<string>();
     students.forEach((student) => {
@@ -180,7 +230,7 @@ export const Analytics: React.FC = () => {
   if (students.length === 0) {
     return (
       <div className="bg-background flex min-h-screen flex-col font-sans">
-        <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm">
+        <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-16 justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
@@ -261,15 +311,25 @@ export const Analytics: React.FC = () => {
                 of {students.length} students
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="text-left sm:text-right">
-                <p className="text-muted text-xs font-medium tracking-wide uppercase">
-                  Academic Year
-                </p>
-                <p className="text-main text-sm font-bold">
-                  {settings.academicYear} • {settings.term}
-                </p>
-              </div>
+
+            {/* Export Buttons */}
+            <div className="flex items-center gap-2" data-no-print="true">
+              <button
+                onClick={handleExportData}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95"
+                title="Export analytics data as CSV"
+              >
+                <FileText size={16} />
+                <span className="hidden sm:inline">Export CSV</span>
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
+                title="Export analytics as PDF"
+              >
+                <Download size={16} />
+                <span className="hidden sm:inline">Export PDF</span>
+              </button>
             </div>
           </div>
         </div>
@@ -316,7 +376,13 @@ export const Analytics: React.FC = () => {
           <div className="order-1 space-y-4 sm:space-y-6 lg:order-2 lg:col-span-3">
             {/* Overview Tab */}
             {activeView === "overview" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                   <StatCard
@@ -520,12 +586,18 @@ export const Analytics: React.FC = () => {
                     </div>
                   </ChartCard>
                 </div>
-              </>
+              </Suspense>
             )}
 
             {/* Subject Analysis Tab */}
             {activeView === "subjects" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* Subject Performance Radar */}
                 <ChartCard title="Subject Performance Overview" icon={Zap}>
                   <RadarChart
@@ -739,12 +811,18 @@ export const Analytics: React.FC = () => {
                     </table>
                   </div>
                 </Card>
-              </>
+              </Suspense>
             )}
 
             {/* Demographics Tab */}
             {activeView === "demographics" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* Demographic Stats */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
                   <StatCard
@@ -887,12 +965,18 @@ export const Analytics: React.FC = () => {
                     </div>
                   </Card>
                 )}
-              </>
+              </Suspense>
             )}
 
             {/* AI Insights Tab */}
             {activeView === "insights" && (
-              <>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+                  </div>
+                }
+              >
                 {/* At-Risk Students - Priority Alert */}
                 {atRiskStudents.length > 0 && (
                   <Card>
@@ -1124,11 +1208,14 @@ export const Analytics: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </>
+              </Suspense>
             )}
           </div>
         </div>
       </main>
+
+      {/* ✅ SCROLL BUTTON - Show when there's analytics data to navigate */}
+      {filteredStudents.length > 0 && <ScrollButton />}
     </div>
   );
 };

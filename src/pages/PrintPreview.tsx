@@ -1,9 +1,10 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, Printer, AlertCircle } from "lucide-react";
+import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ReportTemplate } from "../components/ReportTemplate";
 import { useEffect } from "react";
 import { createPrintHandler } from "../utils/printHandler";
+import { ScrollButton } from "../components/ScrollButton";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
@@ -75,6 +76,9 @@ export function PrintPreview() {
 
   const printableStudents = id ? students.filter((s) => s.id === id) : students;
 
+  // Calculate validation warnings
+  const studentsWithMissingPhotos = printableStudents.filter((student) => !student.pictureUrl);
+
   if (printableStudents.length === 0) {
     return (
       <div className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center">
@@ -98,7 +102,7 @@ export function PrintPreview() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
-      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 p-4 backdrop-blur-md print:hidden">
+      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white p-4 print:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
@@ -124,6 +128,26 @@ export function PrintPreview() {
             <Printer className="h-4 w-4" /> Print All Reports
           </button>
         </div>
+
+        {/* VALIDATION WARNING FOR MISSING PHOTOS */}
+        {studentsWithMissingPhotos.length > 0 && (
+          <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-yellow-800">
+                  ⚠️ {studentsWithMissingPhotos.length} student
+                  {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
+                  {studentsWithMissingPhotos.length === 1 ? "" : "s"}
+                </p>
+                <p className="text-muted mt-0.5 text-xs">
+                  Reports will print without photos. Add student photos in the Dashboard for
+                  complete report cards.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. THE PREVIEW AREA */}
@@ -132,7 +156,9 @@ export function PrintPreview() {
           <div
             key={student.id}
             className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:h-auto print:overflow-visible print:p-0"
-            style={{ pageBreakAfter: index < printableStudents.length - 1 ? "always" : "auto" }}
+            style={{
+              pageBreakAfter: index < printableStudents.length - 1 ? "always" : "auto",
+            }}
           >
             {/* MOBILE RESPONSIVE WRAPPER */}
             {/* ✅ FIXED: Changed scale from 0.45 to 0.40 to fit 320px screens */}
@@ -144,6 +170,9 @@ export function PrintPreview() {
           </div>
         ))}
       </div>
+
+      {/* ✅ SCROLL BUTTON - Show when 3+ students (each report is long) */}
+      {printableStudents.length >= 3 && <ScrollButton />}
     </div>
   );
 }

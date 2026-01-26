@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
-import type { StudentRecord, SchoolSettings } from "../types";
+import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
 import { safeSetItem, safeGetItem, STORAGE_KEYS } from "../utils/storage";
 import { useDebounce } from "../hooks/useDebounce";
@@ -65,7 +65,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const debouncedStudents = useDebounce(students, 500);
   const debouncedSettings = useDebounce(settings, 500);
 
-  // ✅ NEW: RESTORE DEFAULTS (Factory Reset for Settings only)
+  // ✅ AUTO-SAVE STATE TRACKING
+  const [lastSaved, setLastSaved] = useState<Date>();
+
+  // Track if we're in the debounce period (data changed but not yet saved)
+  const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
   const restoreDefaults = () => {
     const defaultSettings: SchoolSettings = {
       schoolName: "My School Name",
@@ -98,11 +102,15 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(debouncedStudents));
     createBackupHeartbeat(); // Update heartbeat when data changes
+    // Use queueMicrotask to defer state update and avoid cascading render warning
+    queueMicrotask(() => setLastSaved(new Date()));
   }, [debouncedStudents]);
 
   useEffect(() => {
     safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(debouncedSettings));
     createBackupHeartbeat(); // Update heartbeat when settings change
+    // Use queueMicrotask to defer state update and avoid cascading render warning
+    queueMicrotask(() => setLastSaved(new Date()));
   }, [debouncedSettings]);
 
   // Request persistent storage on mount (Android protection)
@@ -178,6 +186,12 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           ...sub,
           classScore: 0,
           examScore: 0,
+          classScoreComponents: sub.classScoreComponents
+            ? sub.classScoreComponents.map((comp) => ({
+                ...comp,
+                score: 0,
+              }))
+            : undefined,
         })),
       })),
     );
@@ -195,6 +209,12 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
                 ...sub,
                 classScore: 0,
                 examScore: 0,
+                classScoreComponents: sub.classScoreComponents
+                  ? sub.classScoreComponents.map((comp) => ({
+                      ...comp,
+                      score: 0,
+                    }))
+                  : undefined,
               })),
             }
           : student,
@@ -209,18 +229,87 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 6. DEMO DATA
   const loadDemoData = () => {
+    const hasComponents =
+      settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
+
+    // Helper function to create subject with or without components
+    const createDemoSubject = (
+      subName: string,
+      classScoreRange: [number, number],
+      examScoreRange: [number, number],
+    ): SavedSubject => {
+      const subject: SavedSubject = {
+        id: crypto.randomUUID(),
+        name: subName,
+        classScore: 0,
+        examScore:
+          Math.floor(Math.random() * (examScoreRange[1] - examScoreRange[0] + 1)) +
+          examScoreRange[0],
+      };
+
+      if (hasComponents && settings.classScoreComponentConfigs) {
+        // Create realistic component scores that sum to approximate the target class score
+        const targetClassScore =
+          Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
+          classScoreRange[0];
+        const targetPercentage = targetClassScore / settings.classScoreMax;
+        const totalMaxScore = settings.classScoreComponentConfigs.reduce(
+          (sum, c) => sum + c.maxScore,
+          0,
+        );
+        const targetTotalScore = targetPercentage * totalMaxScore;
+
+        // Distribute the target score across components with some variance
+        subject.classScoreComponents = settings.classScoreComponentConfigs.map((config) => {
+          const proportion = config.maxScore / totalMaxScore;
+          const baseScore = targetTotalScore * proportion;
+          // Add small variance ±15%
+          const variance = baseScore * 0.15;
+          const score = Math.min(
+            config.maxScore,
+            Math.max(0, Math.floor(baseScore + (Math.random() * variance * 2 - variance))),
+          );
+
+          return {
+            id: crypto.randomUUID(),
+            name: config.name,
+            score,
+            maxScore: config.maxScore,
+          };
+        });
+
+        // Calculate actual class score from components
+        const totalActualScore = subject.classScoreComponents!.reduce((sum, c) => sum + c.score, 0);
+        subject.classScore = Math.round(
+          (totalActualScore / totalMaxScore) * settings.classScoreMax,
+        );
+      } else {
+        // No components - use direct class score
+        subject.classScore =
+          Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
+          classScoreRange[0];
+      }
+
+      return subject;
+    };
+
+    // Calculate score ranges based on actual max scores
+    const classMax = settings.classScoreMax;
+    const examMax = settings.examScoreMax;
+
     const demoStudents: StudentRecord[] = [
       {
         id: "demo-1",
         name: "Kwame Mensah",
         className: settings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 11) + 35, // 35-45 (max 50)
-          examScore: Math.floor(Math.random() * 11) + 35, // 35-45 (max 50)
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.7), Math.floor(classMax * 0.9)],
+            [Math.floor(examMax * 0.7), Math.floor(examMax * 0.9)],
+          ),
+        ),
         attendancePresent: 65,
       },
       {
@@ -228,12 +317,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Ama Asante",
         className: settings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 11) + 38, // 38-48 (max 50)
-          examScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.76), Math.floor(classMax * 0.96)],
+            [Math.floor(examMax * 0.8), examMax],
+          ),
+        ),
         attendancePresent: 68,
       },
       {
@@ -241,12 +331,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Kofi Owusu",
         className: settings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 10) + 28,
-          examScore: Math.floor(Math.random() * 10) + 30,
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.56), Math.floor(classMax * 0.76)],
+            [Math.floor(examMax * 0.6), Math.floor(examMax * 0.8)],
+          ),
+        ),
         attendancePresent: 60,
       },
       {
@@ -254,12 +345,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Abena Boateng",
         className: settings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
-          examScore: Math.floor(Math.random() * 9) + 42, // 42-50 (max 50)
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.8), classMax],
+            [Math.floor(examMax * 0.84), examMax],
+          ),
+        ),
         attendancePresent: 70,
       },
       {
@@ -267,12 +359,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Yaw Adomako",
         className: settings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 12) + 25,
-          examScore: Math.floor(Math.random() * 12) + 28,
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.5), Math.floor(classMax * 0.74)],
+            [Math.floor(examMax * 0.56), Math.floor(examMax * 0.8)],
+          ),
+        ),
         attendancePresent: 55,
       },
       {
@@ -280,12 +373,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Efua Appiah",
         className: settings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
-          examScore: Math.floor(Math.random() * 13) + 38, // 38-50 (max 50)
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.8), classMax],
+            [Math.floor(examMax * 0.76), examMax],
+          ),
+        ),
         attendancePresent: 67,
       },
       {
@@ -293,12 +387,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Kwabena Darko",
         className: settings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 9) + 42, // 42-50 (max 50)
-          examScore: Math.floor(Math.random() * 11) + 40, // 40-50 (max 50)
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.6), Math.floor(classMax * 0.8)],
+            [Math.floor(examMax * 0.64), Math.floor(examMax * 0.84)],
+          ),
+        ),
         attendancePresent: 69,
       },
       {
@@ -306,12 +401,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Akosua Frimpong",
         className: settings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 6) + 45, // 45-50 (max 50)
-          examScore: Math.floor(Math.random() * 8) + 43, // 43-50 (max 50)
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.9), classMax],
+            [Math.floor(examMax * 0.86), examMax],
+          ),
+        ),
         attendancePresent: 70,
       },
       {
@@ -319,12 +415,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Kwesi Osei",
         className: settings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 15) + 32,
-          examScore: Math.floor(Math.random() * 15) + 35,
-        })),
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.64), Math.floor(classMax * 0.94)],
+            [Math.floor(examMax * 0.7), examMax],
+          ),
+        ),
         attendancePresent: 63,
       },
       {
@@ -332,13 +429,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Adwoa Agyeman",
         className: settings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) => ({
-          id: crypto.randomUUID(),
-          name: subName,
-          classScore: Math.floor(Math.random() * 4) + 47, // 47-50 (max 50)
-          examScore: Math.floor(Math.random() * 5) + 46, // 46-50 (max 50)
-        })),
-        attendancePresent: 70,
+        subjects: settings.defaultSubjects.map((subName) =>
+          createDemoSubject(
+            subName,
+            [Math.floor(classMax * 0.76), Math.floor(classMax * 0.96)],
+            [Math.floor(examMax * 0.78), Math.floor(examMax * 0.98)],
+          ),
+        ),
+        attendancePresent: 66,
       },
     ];
 
@@ -359,15 +457,17 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     return assignPositions(withSubjectPositions);
   }, [students, settings.level]);
 
-  // 8. AUTO-GENERATE REMARKS (Smart Batching)
-  const autoGenerateRemarks = () => {
+  // 8. AUTO-GENERATE REMARKS (Smart Batching with Progress)
+  const autoGenerateRemarks = (onProgress?: (current: number, total: number) => void) => {
     // A. Temporary memory for this operation only
     // This ensures we know what was used by Student 1 when we get to Student 2
     const usedHeadmasterRemarks: string[] = [];
     const usedTeacherRemarks: string[] = [];
 
-    // B. Loop through all students
-    const updatedStudents = students.map((student) => {
+    const total = students.length;
+
+    // B. Loop through all students with progress tracking
+    const updatedStudents = students.map((student, index) => {
       // Need processed stats (average, etc.) for accurate remarks
       const processed = processStudent(student, settings.level);
 
@@ -399,6 +499,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       // 4. Fill Conduct/Interest ONLY if empty (Optional - remove checks to overwrite all)
       const conduct = student.conduct || getRandomConductTrait();
       const interest = student.interest || getRandomInterest();
+
+      // Report progress
+      if (onProgress) {
+        queueMicrotask(() => onProgress(index + 1, total));
+      }
 
       return {
         ...student,
@@ -432,6 +537,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         checkDuplicateName,
         restoreDefaults,
         autoGenerateRemarks,
+        isSaving,
+        lastSaved,
       }}
     >
       {children}

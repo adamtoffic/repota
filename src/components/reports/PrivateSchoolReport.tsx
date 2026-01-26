@@ -300,33 +300,43 @@ export function PrivateSchoolReport({ student, settings }: Props) {
           )}
 
           {/* Signatures - Compact */}
-          <div className="grid grid-cols-2 gap-8 px-6 pb-1">
+          <div className="grid grid-cols-2 gap-8 px-6 pb-0.5">
             <div className="flex flex-col items-center justify-end">
               {settings.teacherSignature && (
                 <img
                   src={settings.teacherSignature}
-                  className="-mb-2 block h-10 object-contain mix-blend-multiply"
+                  className="-mb-2 block h-9 object-contain mix-blend-multiply"
                   alt="Sign"
                 />
               )}
-              <div className="w-full border-t-2 border-dotted border-blue-950 pt-1" />
+              <div className="w-full border-t-2 border-dotted border-blue-950 pt-0.5" />
               <p className="mt-0.5 text-[8px] font-black tracking-wider text-slate-600 uppercase">
                 Class Teacher
               </p>
+              {settings.classTeacherName && (
+                <p className="text-main text-[8px] leading-tight font-bold">
+                  {settings.classTeacherName}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col items-center justify-end">
               {settings.headTeacherSignature && (
                 <img
                   src={settings.headTeacherSignature}
-                  className="-mb-2 block h-10 object-contain mix-blend-multiply"
+                  className="-mb-2 block h-9 object-contain mix-blend-multiply"
                   alt="Sign"
                 />
               )}
-              <div className="w-full border-t-2 border-dotted border-blue-950 pt-1" />
+              <div className="w-full border-t-2 border-dotted border-blue-950 pt-0.5" />
               <p className="mt-0.5 text-[8px] font-black tracking-wider text-slate-600 uppercase">
                 Head Teacher
               </p>
+              {settings.headTeacherName && (
+                <p className="text-main text-[8px] leading-tight font-bold">
+                  {settings.headTeacherName}
+                </p>
+              )}
             </div>
           </div>
         </footer>

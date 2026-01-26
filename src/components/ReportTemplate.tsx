@@ -432,6 +432,11 @@ export function ReportTemplate({ student, settings }: Props) {
               <p className="mt-1 text-[9px] font-black tracking-wider text-slate-600 uppercase">
                 Class Teacher's Signature
               </p>
+              {settings.classTeacherName && (
+                <p className="text-main mt-0.5 text-[10px] font-bold">
+                  {settings.classTeacherName}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col items-center justify-end">
@@ -446,6 +451,9 @@ export function ReportTemplate({ student, settings }: Props) {
               <p className="mt-1 text-[9px] font-black tracking-wider text-slate-600 uppercase">
                 Head Teacher's Signature
               </p>
+              {settings.headTeacherName && (
+                <p className="text-main mt-0.5 text-[10px] font-bold">{settings.headTeacherName}</p>
+              )}
             </div>
           </div>
         </footer>

@@ -12,13 +12,15 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
   return (
     <div className="text-main bg-background min-h-screen font-sans">
       {/* NAVIGATION */}
-      <nav className="sticky top-0 z-50 bg-blue-900 text-white shadow-lg">
+      <nav className="sticky top-0 z-50 bg-blue-900 shadow-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <GraduationCap className="h-8 w-8 text-yellow-400" />
+            <div className="rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 p-2">
+              <GraduationCap className="h-6 w-6 text-blue-900" />
+            </div>
             <div>
-              <h1 className="text-xl leading-tight font-bold">Repota</h1>
-              <p className="text-xs text-blue-200 opacity-80">
+              <h1 className="text-xl leading-tight font-bold text-white">Repota</h1>
+              <p className="text-xs text-blue-200 opacity-90">
                 {schoolName || "Configure School Name"}
               </p>
             </div>
@@ -27,20 +29,20 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
           <div className="flex gap-2">
             <button
               onClick={() => onTabChange("dashboard")}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
                 activeTab === "dashboard"
-                  ? "bg-white/10 text-white"
-                  : "text-blue-100 hover:bg-white/5"
+                  ? "bg-white text-blue-900"
+                  : "text-blue-100 hover:bg-white/10"
               }`}
             >
               Dashboard
             </button>
             <button
               onClick={() => onTabChange("settings")}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
                 activeTab === "settings"
-                  ? "bg-white/10 text-white"
-                  : "text-blue-100 hover:bg-white/5"
+                  ? "bg-white text-blue-900"
+                  : "text-blue-100 hover:bg-white/10"
               }`}
             >
               Settings

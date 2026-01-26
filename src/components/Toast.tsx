@@ -47,10 +47,10 @@ export function Toast({ toast, onClose }: Props) {
 
   return (
     <div
-      className={`animate-in slide-in-from-bottom-5 fade-in mb-3 flex min-w-75 items-center gap-3 rounded-lg border px-4 py-3 shadow-xl shadow-black/10 duration-300 ${styles[toast.type]} `}
+      className={`animate-slide-up flex min-w-75 items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-lg ${styles[toast.type]} `}
     >
       <div className="shrink-0">{icons[toast.type]}</div>
-      <p className="flex-1 text-sm leading-snug font-medium">{toast.message}</p>
+      <p className="flex-1 text-sm leading-snug font-semibold">{toast.message}</p>
 
       {/* ✅ ACTION BUTTON */}
       {toast.action && (
@@ -59,7 +59,7 @@ export function Toast({ toast, onClose }: Props) {
             toast.action?.onClick();
             onClose(toast.id);
           }}
-          className={`mr-2 flex items-center gap-1 rounded px-3 py-1.5 text-xs font-bold transition-all active:scale-95 ${actionButtonClass[toast.type]}`}
+          className={`mr-2 flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity active:opacity-70 ${actionButtonClass[toast.type]}`}
         >
           <RotateCcw className="h-3 w-3" />
           {toast.action.label}
@@ -68,7 +68,7 @@ export function Toast({ toast, onClose }: Props) {
 
       <button
         onClick={() => onClose(toast.id)}
-        className="p-1 opacity-50 transition-opacity hover:opacity-100"
+        className="rounded-lg p-1.5 opacity-60 transition-opacity hover:opacity-100 active:opacity-90"
         title="Dismiss"
       >
         <X className="h-4 w-4" />

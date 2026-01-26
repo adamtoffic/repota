@@ -12,11 +12,24 @@ export type AcademicPeriod = TermSystem | SemesterSystem;
 
 export type Grade = KGGrade | PRIMARYGrade | JHSGrade | SHSGrade;
 
+export interface ClassScoreComponent {
+  id: string;
+  name: string;
+  score: number;
+  maxScore: number; // Maximum possible score for this component
+}
+
+export interface ClassScoreComponentConfig {
+  name: string;
+  maxScore: number;
+}
+
 export interface SavedSubject {
   id: string;
   name: string;
   classScore: number;
   examScore: number;
+  classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score
 }
 
 export interface StudentRecord {
@@ -60,6 +73,9 @@ export interface SchoolSettings {
   teacherSignature?: string;
 
   defaultSubjects: string[];
+
+  // Class score component configurations with max scores
+  classScoreComponentConfigs?: ClassScoreComponentConfig[];
 
   // Private school fees
   schoolGift?: number; // Daily school fees

@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface Props {
   isOpen: boolean;
@@ -21,6 +22,26 @@ export function ConfirmModal({
   onConfirm,
   onClose,
 }: Props) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Focus cancel button when modal opens & trap Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Focus cancel button
+    cancelButtonRef.current?.focus();
+
+    // Handle Escape key
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -44,6 +65,7 @@ export function ConfirmModal({
         {/* Action Buttons */}
         <div className="mt-6 flex justify-end gap-3">
           <button
+            ref={cancelButtonRef}
             onClick={onClose}
             className="hover:bg-background rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors"
           >

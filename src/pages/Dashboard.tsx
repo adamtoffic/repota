@@ -14,6 +14,11 @@ import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useDebounce } from "../hooks/useDebounce";
 import { exportToCSV } from "../utils/export";
 import { BulkImportModal } from "../components/BulkImportModal";
+import { ScrollButton } from "../components/ScrollButton";
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
+import { WelcomeTour } from "../components/WelcomeTour";
+import { ValidationWarnings } from "../components/ValidationWarnings";
+import { ProgressModal } from "../components/ProgressModal";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 
@@ -28,6 +33,8 @@ export function Dashboard() {
     deletePendingStudents,
     autoGenerateRemarks,
     clearAllScores,
+    isSaving,
+    lastSaved,
   } = useSchoolData();
 
   // Welcome Banner State
@@ -40,6 +47,11 @@ export function Dashboard() {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [remarksProgress, setRemarksProgress] = useState<{
+    isOpen: boolean;
+    current: number;
+    total: number;
+  }>({ isOpen: false, current: 0, total: 0 });
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,13 +103,13 @@ export function Dashboard() {
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
-      <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm">
+      <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             {/* LEFT SIDE: Brand Identity (SaaS Style) */}
             <div className="flex items-center gap-3 overflow-hidden">
               {/* 1. Fixed Repota Logo */}
-              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-sm transition-transform hover:scale-105">
+              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-sm">
                 <img src="/logo.svg" alt="Repota" className="h-full w-full p-1" />
               </div>
 
@@ -226,6 +238,9 @@ export function Dashboard() {
           <>
             <DashboardStats students={students} settings={settings} />
 
+            {/* VALIDATION WARNINGS */}
+            <ValidationWarnings students={students} settings={settings} />
+
             <div className="relative">
               <DashboardToolbar
                 searchQuery={searchQuery}
@@ -240,7 +255,22 @@ export function Dashboard() {
                 }
                 onDeletePending={() => setConfirmCleanModal(true)}
                 onImport={() => setShowImportModal(true)}
-                onAutoRemarks={() => autoGenerateRemarks()}
+                onAutoRemarks={() => {
+                  setRemarksProgress({ isOpen: true, current: 0, total: students.length });
+                  // Use setTimeout to allow modal to render first
+                  setTimeout(() => {
+                    autoGenerateRemarks((current, total) => {
+                      setRemarksProgress({ isOpen: true, current, total });
+
+                      // Close modal when complete
+                      if (current === total) {
+                        setTimeout(() => {
+                          setRemarksProgress({ isOpen: false, current: 0, total: 0 });
+                        }, 800);
+                      }
+                    });
+                  }, 100);
+                }}
                 onClearScores={() => setConfirmClearScoresModal(true)}
                 onExportStudentList={() => {
                   // Export simple student names list as text file
@@ -254,7 +284,6 @@ export function Dashboard() {
                   URL.revokeObjectURL(url);
                 }}
               />
-
               {/* ✅ SPINNER: Positioned correctly in search bar area */}
               {isSearching && (
                 <div className="absolute top-2 left-80 z-10 hidden md:block">
@@ -353,6 +382,64 @@ export function Dashboard() {
           clearAllScores();
           setConfirmClearScoresModal(false);
         }}
+      />
+
+      {/* ✅ SCROLL TO TOP/BOTTOM BUTTON */}
+      {students.length >= 10 && <ScrollButton />}
+
+      {/* ✅ AUTO-SAVE INDICATOR */}
+      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+
+      {/* ✅ WELCOME TOUR for first-time users */}
+      <WelcomeTour
+        steps={[
+          {
+            title: "Welcome to Repota! 🇬🇭",
+            description:
+              "We're so glad you're here! Repota helps you create beautiful GES report cards in minutes. Everything works offline - no internet needed once loaded. Let's show you around!",
+          },
+          {
+            title: "Step 1: Configure Your School ⚙️",
+            description:
+              "Before adding students, click the 'Settings' button (⚙️) at the top to set up your school details. Enter your school name, academic year, term, class name, and choose your subjects. This only takes a minute and everything will be ready!",
+          },
+          {
+            title: "Step 2: Add Your Students 👨‍🎓",
+            description:
+              "Now click the 'Add Student' button to start building your class list. Type their names one by one, or use 'Bulk Import' if you have a list ready. You can also try 'Load Demo Data' to see how everything works first.",
+          },
+          {
+            title: "Step 3: Enter Scores & Watch the Magic ✨",
+            description:
+              "Click on any student's name to enter their class and exam scores. Repota automatically calculates their total marks, grades (A, B, C...), class position, and even writes teacher remarks for you! No more manual calculations.",
+          },
+          {
+            title: "Step 4: View Class Analytics 📊",
+            description:
+              "Click the 'Analytics' button to see beautiful charts and insights about your class performance. See top performers, subject averages, pass rates, and trends - all updated in real-time as you enter scores.",
+          },
+          {
+            title: "Step 5: Print Report Cards 🖨️",
+            description:
+              "When you're done, click 'Print Reports' to generate professional GES-compliant report cards for all students at once. You can print them directly or save as PDF. Each report looks perfect and ready to hand out!",
+          },
+          {
+            title: "Your Work is Safe! 💚",
+            description:
+              "Don't worry - everything you type is saved automatically every few seconds. Even if your phone dies or you close the app, your work is safe on your device. You'll see 'Saved just now' at the bottom-left. No internet required!",
+          },
+        ]}
+        onComplete={() => {}}
+        storageKey="repota_welcome_tour_v2"
+      />
+
+      {/* PROGRESS MODAL FOR BULK OPERATIONS */}
+      <ProgressModal
+        isOpen={remarksProgress.isOpen}
+        title="Generating Remarks"
+        message="Please wait while we generate personalized remarks for all students..."
+        current={remarksProgress.current}
+        total={remarksProgress.total}
       />
     </div>
   );
