@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Lock, Key, AlertCircle, CheckCircle, Copy } from "lucide-react";
-import { setupPin, generateRecoveryCode } from "../utils/pinSecurity";
+import { Lock, Key, AlertCircle, CheckCircle, Copy, X } from "lucide-react";
+import { setupPin, generateRecoveryCode, isPinConfigured } from "../utils/pinSecurity";
 
 interface Props {
   onComplete: () => void;
+  onCancel?: () => void;
 }
 
-export function PinSetup({ onComplete }: Props) {
+export function PinSetup({ onComplete, onCancel }: Props) {
   const [step, setStep] = useState<"intro" | "create" | "confirm" | "recovery">("intro");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [recoveryCode] = useState(generateRecoveryCode());
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const isChangingPin = isPinConfigured();
 
   const handleCreatePin = () => {
     if (pin.length !== 4) {
@@ -49,17 +51,30 @@ export function PinSetup({ onComplete }: Props) {
 
   if (step === "intro") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+      <div className="bg-opacity-95 fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
           <div className="mb-6 flex justify-center">
             <div className="rounded-full bg-blue-100 p-4">
               <Lock className="h-12 w-12 text-blue-600" />
             </div>
           </div>
 
-          <h1 className="mb-3 text-center text-2xl font-bold text-gray-900">Secure Your Data</h1>
+          <h1 className="mb-3 text-center text-2xl font-bold text-gray-900">
+            {isChangingPin ? "Change Your PIN" : "Secure Your Data"}
+          </h1>
           <p className="mb-6 text-center text-sm text-gray-600">
-            Set up a 4-digit PIN to protect your student records from unauthorized access.
+            {isChangingPin
+              ? "Set a new 4-digit PIN to protect your student records."
+              : "Set up a 4-digit PIN to protect your student records from unauthorized access."}
           </p>
 
           <div className="mb-6 space-y-3 rounded-lg bg-blue-50 p-4 text-sm text-blue-900">

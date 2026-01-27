@@ -12,6 +12,8 @@ import {
   X,
   RotateCcw,
   Calculator,
+  Lock,
+  Key,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -29,6 +31,9 @@ import type {
 } from "../types";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
+import { PinSetup } from "../components/PinSetup";
+import { PinRecovery } from "../components/PinRecovery";
+import { isPinConfigured, disablePinLock } from "../utils/pinSecurity";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -59,6 +64,9 @@ export function Settings() {
   const [newComponentMax, setNewComponentMax] = useState("");
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [showPinRecovery, setShowPinRecovery] = useState(false);
+  const [showDisablePinModal, setShowDisablePinModal] = useState(false);
 
   // --- HANDLERS ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
@@ -857,6 +865,124 @@ export function Settings() {
             </div>
           )}
 
+        {/* CARD 6: SECURITY */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-lg bg-green-100 p-2.5">
+              <Lock className="h-5 w-5 text-green-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800">Security & Privacy</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <h3 className="mb-2 font-bold text-green-900">PIN Lock (Optional)</h3>
+              <p className="mb-4 text-sm leading-relaxed text-green-800">
+                Secure your student data with a 4-digit PIN. You'll need to enter it when opening
+                the app.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPinSetup(true)}
+                className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 sm:w-auto"
+              >
+                {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
+              </button>
+            </div>
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-bold text-yellow-900">
+                  <Key className="h-4 w-4" /> Forgot Your PIN?
+                </h3>
+                <p className="mb-3 text-sm text-yellow-800">
+                  You'll need your 6-digit recovery code to reset your PIN.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPinRecovery(true)}
+                  className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 text-sm font-bold text-yellow-700 hover:bg-yellow-50 sm:w-auto"
+                >
+                  Reset PIN with Recovery Code
+                </button>
+              </div>
+            )}
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <h3 className="mb-2 font-bold text-red-900">Disable PIN Lock</h3>
+                <p className="mb-3 text-sm text-red-800">Remove PIN protection from the app.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowDisablePinModal(true)}
+                  className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+                >
+                  Disable PIN Lock
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CARD 6: SECURITY & PRIVACY */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-lg bg-green-100 p-2.5">
+              <Lock className="h-5 w-5 text-green-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800">Security & Privacy</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <h3 className="mb-2 font-bold text-green-900">PIN Lock (Optional)</h3>
+              <p className="mb-4 text-sm leading-relaxed text-green-800">
+                Secure your student data with a 4-digit PIN. You'll need to enter it when opening
+                the app.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPinSetup(true)}
+                className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 sm:w-auto"
+              >
+                {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
+              </button>
+            </div>
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-bold text-yellow-900">
+                  <Key className="h-4 w-4" /> Forgot Your PIN?
+                </h3>
+                <p className="mb-3 text-sm text-yellow-800">
+                  You'll need your 6-digit recovery code to reset your PIN.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPinRecovery(true)}
+                  className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 text-sm font-bold text-yellow-700 hover:bg-yellow-50 sm:w-auto"
+                >
+                  Reset PIN with Recovery Code
+                </button>
+              </div>
+            )}
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <h3 className="mb-2 font-bold text-red-900">Disable PIN Lock</h3>
+                <p className="mb-3 text-sm text-red-800">Remove PIN protection from the app.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowDisablePinModal(true)}
+                  className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+                >
+                  Disable PIN Lock
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* STORAGE MONITORING */}
         <StorageMonitor />
 
@@ -908,6 +1034,37 @@ export function Settings() {
           restoreDefaults();
           setShowResetModal(false);
           setTimeout(() => window.location.reload(), 1000);
+        }}
+      />
+
+      {/* PIN SETUP MODAL */}
+      {showPinSetup && (
+        <PinSetup
+          onComplete={() => setShowPinSetup(false)}
+          onCancel={() => setShowPinSetup(false)}
+        />
+      )}
+
+      {/* PIN RECOVERY MODAL */}
+      {showPinRecovery && (
+        <PinRecovery
+          onComplete={() => setShowPinRecovery(false)}
+          onCancel={() => setShowPinRecovery(false)}
+        />
+      )}
+
+      {/* DISABLE PIN MODAL */}
+      <ConfirmModal
+        isOpen={showDisablePinModal}
+        title="Disable PIN Lock?"
+        message="This will remove PIN protection from the app. Anyone with access to your device will be able to view student data."
+        confirmText="Yes, Disable PIN"
+        isDangerous={true}
+        onClose={() => setShowDisablePinModal(false)}
+        onConfirm={() => {
+          disablePinLock();
+          setShowDisablePinModal(false);
+          showToast("PIN lock has been disabled", "success");
         }}
       />
 

@@ -104,10 +104,9 @@ export async function resetPinWithRecoveryCode(
 }
 
 /**
- * Clear all PIN data (emergency reset - also clears app data)
+ * Disable PIN lock (just remove PIN hashes, keep app data)
  */
-export function clearPinAndData(): void {
+export function disablePinLock(): void {
   localStorage.removeItem(PIN_STORAGE_KEY);
   localStorage.removeItem(RECOVERY_CODE_KEY);
-  // Note: Caller should also clear student/settings data
 }
