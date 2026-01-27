@@ -227,6 +227,165 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     setStudents((prev) => prev.map((s) => ({ ...s, className: newClassName })));
   };
 
+  // 5B. DETECT COMPONENT MISMATCHES
+  // Check if any students have outdated/missing components compared to settings
+  const detectComponentMismatches = () => {
+    const { subjectComponentMap } = settings;
+
+    if (!subjectComponentMap || Object.keys(subjectComponentMap).length === 0) {
+      return { hasOutdated: false, hasMissing: false };
+    }
+
+    let hasOutdated = false;
+    let hasMissing = false;
+
+    for (const student of students) {
+      for (const subject of student.subjects) {
+        const settingsComponents = subjectComponentMap[subject.name] || [];
+        const currentComponents = subject.classScoreComponents || [];
+
+        // Check if settings has components but student doesn't
+        if (settingsComponents.length > 0 && currentComponents.length === 0) {
+          hasMissing = true;
+        }
+
+        // Check for missing or outdated components
+        for (const config of settingsComponents) {
+          const existing = currentComponents.find((c) => c.name === config.name);
+          if (!existing) {
+            hasMissing = true;
+          } else if (existing.maxScore !== config.maxScore) {
+            hasOutdated = true;
+          }
+        }
+
+        // Check for components that should be removed
+        for (const current of currentComponents) {
+          if (!settingsComponents.some((config) => config.name === current.name)) {
+            hasOutdated = true;
+          }
+        }
+
+        if (hasOutdated && hasMissing) {
+          return { hasOutdated, hasMissing }; // Early exit
+        }
+      }
+    }
+
+    return { hasOutdated, hasMissing };
+  };
+
+  // 5C. SYNC SUBJECT COMPONENTS FROM SETTINGS (MANUAL)
+  // This ensures all students' subjects have the components assigned in settings
+  const syncSubjectComponentsFromSettings = () => {
+    const { subjectComponentMap } = settings;
+
+    if (!subjectComponentMap || Object.keys(subjectComponentMap).length === 0) {
+      showToast("No components configured in Settings", "info");
+      return;
+    }
+
+    let syncedCount = 0;
+
+    setStudents((prev) =>
+      prev.map((student) => {
+        let studentModified = false;
+
+        const updatedSubjects = student.subjects.map((subject) => {
+          const settingsComponents = subjectComponentMap[subject.name];
+
+          // If this subject has no components in settings, remove them from student
+          if (!settingsComponents || settingsComponents.length === 0) {
+            if (subject.classScoreComponents && subject.classScoreComponents.length > 0) {
+              studentModified = true;
+              return {
+                ...subject,
+                classScoreComponents: undefined,
+                classScore: 0, // Reset to manual entry
+              };
+            }
+            return subject;
+          }
+
+          // Subject has components in settings - sync them
+          const currentComponents = subject.classScoreComponents || [];
+
+          // Create component instances from settings configs, preserving existing scores
+          const syncedComponents = settingsComponents.map((config) => {
+            // Find existing component with same name to preserve score
+            const existing = currentComponents.find((c) => c.name === config.name);
+
+            if (existing) {
+              // Update maxScore if it changed, preserve score
+              if (existing.maxScore !== config.maxScore) {
+                studentModified = true;
+                return {
+                  ...existing,
+                  maxScore: config.maxScore,
+                  score: Math.min(existing.score, config.maxScore), // Cap score to new max
+                };
+              }
+              return existing;
+            }
+
+            // New component - create with score 0
+            studentModified = true;
+            return {
+              id: crypto.randomUUID(),
+              name: config.name,
+              score: 0,
+              maxScore: config.maxScore,
+            };
+          });
+
+          // Remove components that are no longer in settings
+          const removedComponents = currentComponents.filter(
+            (current) => !settingsComponents.some((config) => config.name === current.name),
+          );
+
+          if (removedComponents.length > 0) {
+            studentModified = true;
+          }
+
+          // Recalculate class score if components changed
+          if (studentModified) {
+            const totalScore = syncedComponents.reduce((sum, c) => sum + c.score, 0);
+            const totalMax = syncedComponents.reduce((sum, c) => sum + c.maxScore, 0);
+            const percentage = totalMax > 0 ? totalScore / totalMax : 0;
+            const convertedClassScore = Math.round(percentage * settings.classScoreMax);
+
+            return {
+              ...subject,
+              classScoreComponents: syncedComponents,
+              classScore: convertedClassScore,
+            };
+          }
+
+          return {
+            ...subject,
+            classScoreComponents: syncedComponents,
+          };
+        });
+
+        if (studentModified) syncedCount++;
+
+        return {
+          ...student,
+          subjects: updatedSubjects,
+        };
+      }),
+    );
+
+    if (syncedCount > 0) {
+      showToast(
+        `Synced components for ${syncedCount} student${syncedCount > 1 ? "s" : ""}`,
+        "success",
+      );
+    } else {
+      showToast("All students already up to date", "info");
+    }
+  };
+
   // 6. DEMO DATA
   const loadDemoData = () => {
     const hasComponents =
@@ -533,6 +692,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         clearStudentScores,
         loadDemoData,
         updateClassNameForAll,
+        detectComponentMismatches,
+        syncSubjectComponentsFromSettings,
         checkDuplicateName,
         restoreDefaults,
         autoGenerateRemarks,

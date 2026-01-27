@@ -20,7 +20,12 @@ import { ImageUploader } from "../components/ImageUploader";
 import { DataBackup } from "../components/DataBackup";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
-import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
+import type {
+  SchoolLevel,
+  SchoolSettings,
+  AcademicPeriod,
+  ClassScoreComponentConfig,
+} from "../types";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 
@@ -162,10 +167,12 @@ export function Settings() {
 
   const finalizeSave = (shouldUpdateStudents = false) => {
     setSettings(formData);
+
     if (shouldUpdateStudents) {
       updateClassNameForAll(formData.className || "");
       showToast(`Updated class name for ${students.length} students`, "success");
     }
+
     showToast("Configuration saved successfully!", "success");
     navigate({ to: "/" });
   };

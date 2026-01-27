@@ -1,6 +1,6 @@
 // src/components/SubjectRow.tsx - MOBILE OPTIMIZED WITH AUTO-CONVERSION
 import { useState, useEffect, useRef } from "react";
-import { Trash2, Check, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { Trash2, Check, ChevronDown, ChevronUp } from "lucide-react";
 import type { SavedSubject, SchoolLevel, ClassScoreComponentConfig } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
 
@@ -26,8 +26,7 @@ export function SubjectRow({
   const hasComponents = subject.classScoreComponents && subject.classScoreComponents.length > 0;
   const hasLibrary = componentLibrary && componentLibrary.length > 0;
   // Auto-expand components when they exist
-  const [showComponents, setShowComponents] = useState(false);
-  const [showAddComponent, setShowAddComponent] = useState(false);
+  const [showComponents, setShowComponents] = useState(hasComponents);
 
   const total = (subject.classScore || 0) + (subject.examScore || 0);
   const { grade, remark } = calculateGrade(total, level);
@@ -55,65 +54,7 @@ export function SubjectRow({
     };
   }, []);
 
-  // Add a component from the library to this subject
-  const addComponentToSubject = (config: ClassScoreComponentConfig) => {
-    const currentComponents = subject.classScoreComponents || [];
-
-    // Check if already added
-    if (currentComponents.some((c) => c.name === config.name)) {
-      return;
-    }
-
-    const newComponent = {
-      id: crypto.randomUUID(),
-      name: config.name,
-      score: 0,
-      maxScore: config.maxScore,
-    };
-
-    onChange({
-      ...subject,
-      classScoreComponents: [...currentComponents, newComponent],
-    });
-    setShowAddComponent(false);
-  };
-
-  // Remove a component from this subject
-  const removeComponentFromSubject = (componentId: string) => {
-    if (!subject.classScoreComponents) return;
-
-    const updatedComponents = subject.classScoreComponents.filter((c) => c.id !== componentId);
-
-    // If no components left, recalculate class score
-    if (updatedComponents.length === 0) {
-      onChange({
-        ...subject,
-        classScoreComponents: undefined,
-        classScore: 0, // Reset to manual entry
-      });
-    } else {
-      // Recalculate class score from remaining components
-      const totalActualScore = updatedComponents.reduce((sum, c) => sum + c.score, 0);
-      const totalMaxScore = updatedComponents.reduce((sum, c) => sum + c.maxScore, 0);
-      const percentageAchieved = totalMaxScore > 0 ? totalActualScore / totalMaxScore : 0;
-      const convertedClassScore = percentageAchieved * maxClassScore;
-
-      onChange({
-        ...subject,
-        classScoreComponents: updatedComponents,
-        classScore: Math.round(convertedClassScore),
-      });
-    }
-  };
-
-  // Get available components (not yet added to this subject)
-  const getAvailableComponents = (): ClassScoreComponentConfig[] => {
-    if (!componentLibrary) return [];
-    const currentComponentNames = (subject.classScoreComponents || []).map((c) => c.name);
-    return componentLibrary.filter((lib) => !currentComponentNames.includes(lib.name));
-  };
-
-  // Auto-convert exam score from 0-100 to exam score max percentage
+  // Update component score (read-only management - components managed in Settings)
   const handleExamChange = (value: string) => {
     setExamRawInput(value); // Store raw input
 
@@ -393,14 +334,7 @@ export function SubjectRow({
                   key={component.id}
                   className="relative rounded-lg border border-purple-300 bg-white p-3 shadow-sm"
                 >
-                  <button
-                    onClick={() => removeComponentFromSubject(component.id)}
-                    className="absolute top-1 right-1 rounded p-1 text-purple-400 transition-colors hover:bg-purple-100 hover:text-purple-700"
-                    title="Remove this component"
-                  >
-                    <X size={14} />
-                  </button>
-                  <label className="mb-1.5 block pr-6 text-xs font-bold text-purple-800">
+                  <label className="mb-1.5 block text-xs font-bold text-purple-800">
                     {component.name}
                     <span className="ml-1 text-purple-500">(/{component.maxScore})</span>
                   </label>
@@ -427,59 +361,6 @@ export function SubjectRow({
             </div>
           )}
 
-          {/* Add Component Button */}
-          {hasLibrary && getAvailableComponents().length > 0 && (
-            <div className="mt-3">
-              {!showAddComponent ? (
-                <button
-                  onClick={() => setShowAddComponent(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-purple-300 bg-white p-3 text-sm font-bold text-purple-600 transition-all hover:border-purple-500 hover:bg-purple-50"
-                >
-                  <Plus size={16} />
-                  Add Component to {subject.name}
-                </button>
-              ) : (
-                <div className="rounded-lg border border-purple-300 bg-white p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-bold text-purple-800">
-                      Add from Library ({getAvailableComponents().length} available)
-                    </p>
-                    <button
-                      onClick={() => setShowAddComponent(false)}
-                      className="rounded p-1 text-purple-400 hover:bg-purple-100 hover:text-purple-700"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {getAvailableComponents().map((config) => (
-                      <button
-                        key={config.name}
-                        onClick={() => addComponentToSubject(config)}
-                        className="flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-medium text-purple-700 transition-all hover:bg-purple-100 hover:shadow-sm active:scale-95"
-                      >
-                        <Plus size={14} />
-                        <span>{config.name}</span>
-                        <span className="rounded bg-purple-200 px-1.5 py-0.5 text-[10px] font-bold">
-                          /{config.maxScore}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!hasComponents && (!hasLibrary || getAvailableComponents().length === 0) && (
-            <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
-              {!hasLibrary
-                ? "No components in library. Add components in Settings first."
-                : "All library components already added to this subject."}
-            </div>
-          )}
-
           {/* Class Score Summary */}
           {hasComponents && subject.classScoreComponents && (
             <div className="mt-3 rounded-lg bg-purple-100 p-2 text-center">
@@ -497,6 +378,23 @@ export function SubjectRow({
                   % achieved)
                 </span>
               </p>
+            </div>
+          )}
+
+          {/* Info: Components are managed in Settings */}
+          {hasComponents && (
+            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <p className="text-xs text-blue-700">
+                ℹ️ <strong>Components managed in Settings.</strong> Go to Settings → Subject
+                Components to add or remove.
+              </p>
+            </div>
+          )}
+
+          {/* Empty State when no components */}
+          {!hasComponents && (
+            <div className="mt-3 rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
+              No components configured. Add components for this subject in Settings.
             </div>
           )}
         </div>

@@ -20,13 +20,14 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
   // STATE
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newGender, setNewGender] = useState<"Male" | "Female">("Male");
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const { settings } = useSchoolData();
 
   // Virtual scrolling setup
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // eslint-disable-next-line react-compiler/react-compiler
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: students.length,
     getScrollElement: () => parentRef.current,
@@ -68,11 +69,13 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
     onAddStudent({
       id: crypto.randomUUID(),
       name: newName,
+      gender: newGender,
       className: settings.className || "Class",
       subjects: startingSubjects,
     });
 
     setNewName("");
+    setNewGender("Male"); // Reset to default
     setIsAddOpen(false);
   };
 
@@ -257,6 +260,37 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                   className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. Kwame Mensah"
                 />
+              </div>
+
+              {/* Gender Selection */}
+              <div>
+                <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                  Gender *
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewGender("Male")}
+                    className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                      newGender === "Male"
+                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                        : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
+                    }`}
+                  >
+                    👦 Male
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewGender("Female")}
+                    className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                      newGender === "Female"
+                        ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
+                        : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
+                    }`}
+                  >
+                    👧 Female
+                  </button>
+                </div>
               </div>
 
               {/* Class Dropdown */}

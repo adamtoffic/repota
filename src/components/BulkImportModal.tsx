@@ -43,6 +43,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
       const newStudent: StudentRecord = {
         id: `${Date.now()}-${index}`, // Ensure unique timestamp even in loop
         name: name,
+        gender: "Male", // Default - can be updated individually later
         className: settings.className || "Class",
         subjects: [],
         attendancePresent: 0,

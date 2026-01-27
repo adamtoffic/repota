@@ -27,6 +27,10 @@ export function ScoreEntryModal({
   onNavigate,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"ACADEMIC" | "DETAILS">("ACADEMIC");
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null); // null = show all
+
+  // Get all unique subjects from current student
+  const availableSubjects = student.subjects.map((s) => s.name).sort();
 
   // Calculate navigation info
   const currentIndex = allStudents?.findIndex((s) => s.id === student.id) ?? -1;
@@ -119,6 +123,29 @@ export function ScoreEntryModal({
                 </span>
               )}
             </p>
+
+            {/* Subject Filter - Only show in Academic tab */}
+            {activeTab === "ACADEMIC" && availableSubjects.length > 0 && (
+              <div className="mt-2">
+                <select
+                  value={selectedSubject || "all"}
+                  onChange={(e) =>
+                    setSelectedSubject(e.target.value === "all" ? null : e.target.value)
+                  }
+                  className="mx-auto max-w-xs rounded-lg border border-purple-300 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition-all hover:border-purple-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none sm:text-sm"
+                >
+                  <option value="all">📚 All Subjects</option>
+                  {availableSubjects.map((subj) => (
+                    <option key={subj} value={subj}>
+                      {subj}
+                    </option>
+                  ))}
+                </select>
+                {selectedSubject && (
+                  <p className="mt-1 text-xs text-purple-600">Focus Mode: {selectedSubject}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right: Next Button or Close */}
@@ -181,6 +208,7 @@ export function ScoreEntryModal({
               student={student}
               level={level}
               onUpdate={(updated) => onUpdateStudent(updated, true)} // Silent mode - tab shows its own toast
+              filterSubject={selectedSubject}
             />
           )}
 

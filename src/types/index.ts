@@ -37,7 +37,7 @@ export interface StudentRecord {
   name: string;
   className: string;
   dateOfBirth?: string;
-  gender?: "Male" | "Female";
+  gender: "Male" | "Female"; // Required field
   attendancePresent?: number;
   teacherRemark?: string;
   conduct?: string;
