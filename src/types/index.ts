@@ -77,6 +77,9 @@ export interface SchoolSettings {
   // Component library - templates that can be added to individual subjects
   componentLibrary?: ClassScoreComponentConfig[];
 
+  // Subject-component mapping - which components each subject uses
+  subjectComponentMap?: Record<string, ClassScoreComponentConfig[]>;
+
   // Private school fees
   schoolGift?: number; // Daily school fees
   canteenFees?: number; // Daily canteen fees

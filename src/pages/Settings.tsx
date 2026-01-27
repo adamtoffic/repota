@@ -124,6 +124,33 @@ export function Settings() {
     showToast("Component removed from library!", "success");
   };
 
+  // Add component to a specific subject
+  const addComponentToSubject = (subjectName: string, component: ClassScoreComponentConfig) => {
+    setFormData((prev) => ({
+      ...prev,
+      subjectComponentMap: {
+        ...(prev.subjectComponentMap || {}),
+        [subjectName]: [...(prev.subjectComponentMap?.[subjectName] || []), component],
+      },
+    }));
+  };
+
+  // Remove component from a specific subject
+  const removeComponentFromSubject = (subjectName: string, componentName: string) => {
+    setFormData((prev) => {
+      const currentComponents = prev.subjectComponentMap?.[subjectName] || [];
+      const updatedComponents = currentComponents.filter((c) => c.name !== componentName);
+
+      return {
+        ...prev,
+        subjectComponentMap: {
+          ...(prev.subjectComponentMap || {}),
+          [subjectName]: updatedComponents,
+        },
+      };
+    });
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.className !== settings.className && students.length > 0) {
@@ -736,6 +763,91 @@ export function Settings() {
             ))}
           </div>
         </div>
+
+        {/* CARD 5: SUBJECT COMPONENT ASSIGNMENT */}
+        {(formData.defaultSubjects || []).length > 0 &&
+          (formData.componentLibrary || []).length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-4">
+                <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+                  Subject Components
+                </h2>
+                <p className="text-muted text-xs">
+                  Assign components to subjects. All students will automatically get these
+                  components when graded.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {(formData.defaultSubjects || []).map((subject) => {
+                  const assignedComponents = formData.subjectComponentMap?.[subject] || [];
+                  const availableComponents = (formData.componentLibrary || []).filter(
+                    (lib) => !assignedComponents.some((assigned) => assigned.name === lib.name),
+                  );
+
+                  return (
+                    <div key={subject} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="font-bold text-gray-900">{subject}</h3>
+                        {assignedComponents.length === 0 && (
+                          <span className="text-xs text-gray-400 italic">
+                            No components assigned
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Assigned Components */}
+                      {assignedComponents.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {assignedComponents.map((comp) => (
+                            <div
+                              key={comp.name}
+                              className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm"
+                            >
+                              <span className="font-medium text-gray-700">{comp.name}</span>
+                              <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
+                                /{comp.maxScore}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeComponentFromSubject(subject, comp.name)}
+                                className="rounded p-0.5 text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add Component Buttons - Mobile Optimized */}
+                      {availableComponents.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {availableComponents.map((comp) => (
+                            <button
+                              key={comp.name}
+                              type="button"
+                              onClick={() => addComponentToSubject(subject, comp)}
+                              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-blue-400 hover:bg-blue-50 active:scale-95"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              {comp.name}
+                              <span className="text-xs text-gray-400">/{comp.maxScore}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Info message when all components assigned */}
+                      {availableComponents.length === 0 && assignedComponents.length > 0 && (
+                        <p className="text-xs text-gray-400 italic">All components assigned</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         {/* BACKUP & DANGER ZONE */}
         <DataBackup />
