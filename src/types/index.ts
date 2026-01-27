@@ -84,6 +84,9 @@ export interface SchoolSettings {
   schoolGift?: number; // Daily school fees
   canteenFees?: number; // Daily canteen fees
   firstAidFees?: number; // Termly first aid fees
+
+  // Security settings
+  autoLockTimeout?: number; // Minutes of inactivity before auto-lock (default: 5)
 }
 
 export interface ProcessedSubject extends SavedSubject {

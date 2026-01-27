@@ -4,14 +4,40 @@ import { Toaster } from "sonner";
 import { SchoolProvider } from "./context/SchoolContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
 import { PinRecovery } from "./components/PinRecovery";
+import { useIdleTimer } from "./hooks/useIdleTimer";
+import { loadFromStorage } from "./utils/idbStorage";
+import type { SchoolSettings } from "./types";
 
 function App() {
   const [isLocked, setIsLocked] = useState(() => isPinConfigured());
   const [showRecovery, setShowRecovery] = useState(false);
+  const [idleTimeout, setIdleTimeout] = useState(5 * 60 * 1000); // Default 5 minutes
+
+  // Load auto-lock timeout from settings
+  useEffect(() => {
+    loadFromStorage<{ settings: SchoolSettings }>("app-data").then((data) => {
+      if (data?.settings?.autoLockTimeout) {
+        setIdleTimeout(data.settings.autoLockTimeout * 60 * 1000);
+      }
+    });
+  }, []);
+
+  // Auto-lock after idle time
+  const handleIdle = useCallback(() => {
+    if (isPinConfigured() && !isLocked) {
+      setIsLocked(true);
+    }
+  }, [isLocked]);
+
+  useIdleTimer({
+    timeout: idleTimeout,
+    onIdle: handleIdle,
+    enabled: isPinConfigured() && !isLocked,
+  });
 
   // Lock app when it becomes hidden (user switches tabs/apps)
   useEffect(() => {

@@ -921,6 +921,35 @@ export function Settings() {
                 </button>
               </div>
             )}
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h3 className="mb-2 font-bold text-blue-900">Auto-Lock Timer</h3>
+                <p className="mb-3 text-sm text-blue-800">
+                  Automatically lock the app after a period of inactivity.
+                </p>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="autoLockTimeout" className="text-sm font-medium text-blue-900">
+                    Lock after:
+                  </label>
+                  <select
+                    id="autoLockTimeout"
+                    value={formData.autoLockTimeout || 5}
+                    onChange={(e) =>
+                      setFormData({ ...formData, autoLockTimeout: Number(e.target.value) })
+                    }
+                    className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-900 transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value={1}>1 minute</option>
+                    <option value={2}>2 minutes</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
