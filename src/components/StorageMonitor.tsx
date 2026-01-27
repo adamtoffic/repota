@@ -1,168 +1,67 @@
-import { useMemo, useState } from "react";
-import { HardDrive, AlertTriangle, TrendingUp, Image, Users, Trash2 } from "lucide-react";
-import {
-  getStorageStats,
-  getStorageWarningLevel,
-  calculateRemainingCapacity,
-  formatBytes,
-} from "../utils/storageMonitor";
+import { useState } from "react";
+import { HardDrive, Trash2, Database } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { ConfirmModal } from "./ConfirmModal";
+import { getStorageType } from "../utils/idbStorage";
 
 /**
- * Storage monitoring card for Settings page
- * Shows current usage, warns when approaching limits, provides cleanup suggestions
+ * Storage info card for Settings page
+ * Shows storage type and cleanup options
  */
 export function StorageMonitor() {
-  const stats = useMemo(() => getStorageStats(), []);
-  const warningLevel = useMemo(() => getStorageWarningLevel(), []);
-  const capacity = useMemo(() => calculateRemainingCapacity(), []);
-  const { removeAllStudentPhotos } = useSchoolData();
+  const { students, removeAllStudentPhotos } = useSchoolData();
   const [showClearPhotosConfirm, setShowClearPhotosConfirm] = useState(false);
 
-  const getWarningColor = () => {
-    if (warningLevel === "critical") return "text-red-600 bg-red-50 border-red-200";
-    if (warningLevel === "warning") return "text-amber-600 bg-amber-50 border-amber-200";
-    return "text-green-600 bg-green-50 border-green-200";
-  };
-
-  const getWarningIcon = () => {
-    if (warningLevel === "critical") return <AlertTriangle className="h-5 w-5 text-red-600" />;
-    if (warningLevel === "warning") return <AlertTriangle className="h-5 w-5 text-amber-600" />;
-    return <HardDrive className="h-5 w-5 text-green-600" />;
-  };
-
-  const getWarningMessage = () => {
-    if (warningLevel === "critical")
-      return "⚠️ Storage almost full! Please export and clear old data.";
-    if (warningLevel === "warning")
-      return "Storage usage is high. Consider removing old photos or exporting data.";
-    return "Storage is healthy. You have plenty of space.";
-  };
+  const storageType = getStorageType();
+  const studentsWithPhotos = students.filter((s) => s.pictureUrl).length;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-gray-800">Storage Usage</h3>
-        {getWarningIcon()}
+        <h3 className="text-lg font-bold text-gray-800">Storage Information</h3>
+        <Database className="h-5 w-5 text-blue-600" />
       </div>
 
-      {/* Usage Bar */}
-      <div className="mb-4">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">
-            {stats.usedMB} MB / {stats.totalEstimatedMB} MB
-          </span>
-          <span className="font-bold text-gray-900">{stats.usagePercent}%</span>
-        </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className={`h-full transition-all ${
-              warningLevel === "critical"
-                ? "bg-red-500"
-                : warningLevel === "warning"
-                  ? "bg-amber-500"
-                  : "bg-green-500"
-            }`}
-            style={{ width: `${Math.min(stats.usagePercent, 100)}%` }}
-          />
+      {/* Storage Type */}
+      <div className="mb-4 rounded-lg bg-blue-50 p-4">
+        <div className="flex items-center gap-3">
+          <HardDrive className="h-5 w-5 text-blue-600" />
+          <div>
+            <p className="text-sm font-semibold text-blue-900">
+              {storageType === "indexeddb" ? "IndexedDB" : "LocalStorage"}
+            </p>
+            <p className="text-xs text-blue-700">
+              {storageType === "indexeddb"
+                ? "✅ Using IndexedDB - 50MB+ capacity"
+                : "⚠️ Fallback mode - Limited to 5-10MB"}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Warning Message */}
-      <div className={`mb-4 rounded-lg border p-3 text-sm ${getWarningColor()}`}>
-        {getWarningMessage()}
-      </div>
-
-      {/* Breakdown */}
+      {/* Student Photos Info */}
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-gray-700">Storage Breakdown</h4>
-
+        <h4 className="text-sm font-semibold text-gray-700">Current Usage</h4>
         <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Image className="h-4 w-4 text-blue-500" />
-            <span className="text-gray-600">Student Photos</span>
-          </div>
-          <span className="font-medium text-gray-900">
-            {formatBytes(stats.breakdown.studentPhotos)}
-            <span className="ml-1 text-xs text-gray-500">({stats.studentsWithPhotos} photos)</span>
-          </span>
+          <span className="text-gray-600">Students with Photos</span>
+          <span className="font-medium text-gray-900">{studentsWithPhotos}</span>
         </div>
-
         <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-purple-500" />
-            <span className="text-gray-600">Student Data</span>
-          </div>
-          <span className="font-medium text-gray-900">
-            {formatBytes(stats.breakdown.students - stats.breakdown.studentPhotos)}
-            <span className="ml-1 text-xs text-gray-500">({stats.studentCount} students)</span>
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <HardDrive className="h-4 w-4 text-green-500" />
-            <span className="text-gray-600">Logo & Signatures</span>
-          </div>
-          <span className="font-medium text-gray-900">
-            {formatBytes(stats.breakdown.logoAndSignatures)}
-          </span>
-        </div>
-
-        {stats.averagePhotoSize > 0 && (
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-amber-500" />
-              <span className="text-gray-600">Avg Photo Size</span>
-            </div>
-            <span className="font-medium text-gray-900">{stats.averagePhotoSize} KB</span>
-          </div>
-        )}
-      </div>
-
-      {/* Remaining Capacity */}
-      <div className="mt-4 rounded-lg bg-gray-50 p-3">
-        <div className="mb-2 text-xs font-semibold text-gray-600 uppercase">Remaining Capacity</div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p className="text-gray-600">With Photos</p>
-            <p className="text-lg font-bold text-gray-900">
-              ~{capacity.estimatedStudentsWithPhotos} students
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Without Photos</p>
-            <p className="text-lg font-bold text-gray-900">
-              ~{capacity.estimatedStudentsWithoutPhotos}+ students
-            </p>
-          </div>
+          <span className="text-gray-600">Total Students</span>
+          <span className="font-medium text-gray-900">{students.length}</span>
         </div>
       </div>
 
-      {/* Tips */}
-      {warningLevel !== "safe" && (
-        <div className="mt-4 space-y-3">
-          <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-800">
-            <p className="mb-1 font-semibold">💡 Storage Tips:</p>
-            <ul className="list-inside list-disc space-y-1">
-              <li>Export old term data and delete students you no longer need</li>
-              <li>Remove photos from students who have already graduated</li>
-              <li>Compress photos before uploading (already auto-compressed to ~70KB)</li>
-              <li>Regular backups let you safely clear old data</li>
-            </ul>
-          </div>
-
-          {/* Quick Action: Clear All Photos */}
-          {stats.studentsWithPhotos > 0 && (
-            <button
-              onClick={() => setShowClearPhotosConfirm(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200"
-            >
-              <Trash2 className="h-4 w-4" />
-              Remove All Student Photos ({stats.studentsWithPhotos})
-            </button>
-          )}
+      {/* Cleanup Action */}
+      {studentsWithPhotos > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowClearPhotosConfirm(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200"
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove All Student Photos ({studentsWithPhotos})
+          </button>
         </div>
       )}
 
@@ -175,7 +74,7 @@ export function StorageMonitor() {
           setShowClearPhotosConfirm(false);
         }}
         title="Remove All Student Photos?"
-        message={`This will remove ${stats.studentsWithPhotos} student photos to free up ${formatBytes(stats.breakdown.studentPhotos)}. This action cannot be undone.`}
+        message={`This will remove ${studentsWithPhotos} student photos. This action cannot be undone.`}
         confirmText="Remove Photos"
         isDangerous={true}
       />

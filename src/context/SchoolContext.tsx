@@ -26,7 +26,6 @@ import {
   saveToStorage,
   IDB_KEYS,
   migrateFromLocalStorage,
-  getStorageType,
 } from "../utils/idbStorage";
 
 export function SchoolProvider({ children }: { children: ReactNode }) {
@@ -109,10 +108,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       if (
         migration.success &&
         migration.studentsCount !== undefined &&
-        migration.studentsCount > 0
+        migration.studentsCount > 0 &&
+        !migration.error?.includes("already")
       ) {
         console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
-        showToast(`Upgraded to IndexedDB (${getStorageType()})`, "success");
+        // Only show toast on actual migration, not on every reload
       }
 
       // 3. Load students
@@ -131,7 +131,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     };
 
     initializeStorage();
-  }, [showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   useEffect(() => {
     if (!isDataLoaded) return; // Don't save until initial load complete
@@ -157,7 +158,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     if (detectDataLoss()) {
       showToast("⚠️ Data may have been cleared. Please restore from backup if needed.", "error");
     }
-  }, [showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   // --- ACTIONS ---
 
