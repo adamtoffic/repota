@@ -348,6 +348,8 @@ export function Dashboard() {
           isOpen={!!editingStudent}
           onClose={() => setEditingStudentId(null)}
           onUpdateStudent={updateStudent}
+          allStudents={filteredStudents}
+          onNavigate={setEditingStudentId}
         />
       )}
 

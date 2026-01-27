@@ -1,6 +1,6 @@
 // src/components/ScoreEntryModal.tsx
-import { useState } from "react";
-import { X, User, BookOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, User, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
@@ -11,10 +11,47 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
+  // Navigation props
+  allStudents?: ProcessedStudent[];
+  onNavigate?: (studentId: string) => void;
 }
 
-export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStudent }: Props) {
+export function ScoreEntryModal({
+  student,
+  level,
+  isOpen,
+  onClose,
+  onUpdateStudent,
+  allStudents,
+  onNavigate,
+}: Props) {
   const [activeTab, setActiveTab] = useState<"ACADEMIC" | "DETAILS">("ACADEMIC");
+
+  // Calculate navigation info
+  const currentIndex = allStudents?.findIndex((s) => s.id === student.id) ?? -1;
+  const totalStudents = allStudents?.length ?? 0;
+  const hasNavigation = allStudents && onNavigate && totalStudents > 1;
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < totalStudents - 1;
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!isOpen || !hasNavigation) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Arrow keys for navigation
+      if ((e.metaKey || e.ctrlKey) && e.key === "ArrowLeft" && hasPrevious) {
+        e.preventDefault();
+        onNavigate(allStudents[currentIndex - 1].id);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "ArrowRight" && hasNext) {
+        e.preventDefault();
+        onNavigate(allStudents[currentIndex + 1].id);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, hasNavigation, hasPrevious, hasNext, currentIndex, allStudents, onNavigate]);
 
   if (!isOpen) return null;
 
@@ -27,20 +64,55 @@ export function ScoreEntryModal({ student, level, isOpen, onClose, onUpdateStude
         className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
-        <div className="bg-background flex items-center justify-between rounded-t-xl border-b border-gray-100 p-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">{student.name}</h2>
-            <p className="text-muted text-sm">
+        {/* HEADER WITH NAVIGATION */}
+        <div className="bg-background flex items-center justify-between rounded-t-xl border-b border-gray-100 p-4 sm:p-6">
+          {/* Left: Previous Button */}
+          {hasNavigation && (
+            <button
+              onClick={() => hasPrevious && onNavigate(allStudents[currentIndex - 1].id)}
+              disabled={!hasPrevious}
+              className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
+              title="Previous student (Cmd/Ctrl + ←)"
+            >
+              <ChevronLeft size={16} />
+              <span className="hidden sm:inline">Prev</span>
+            </button>
+          )}
+
+          {/* Center: Student Info */}
+          <div className="flex-1 text-center">
+            <h2 className="text-base font-bold text-gray-800 sm:text-xl">{student.name}</h2>
+            <p className="text-muted text-xs sm:text-sm">
               {level} • {student.className}
+              {hasNavigation && (
+                <span className="ml-2 text-blue-600">
+                  ({currentIndex + 1} of {totalStudents})
+                </span>
+              )}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 transition-colors hover:bg-gray-200"
-          >
-            <X className="text-muted h-5 w-5" />
-          </button>
+
+          {/* Right: Next Button or Close */}
+          <div className="flex items-center gap-2">
+            {hasNavigation && (
+              <button
+                onClick={() => hasNext && onNavigate(allStudents[currentIndex + 1].id)}
+                disabled={!hasNext}
+                className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
+                title="Next student (Cmd/Ctrl + →)"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight size={16} />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-full p-2 transition-colors hover:bg-gray-200"
+              title="Close (Esc)"
+            >
+              <X className="text-muted h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* TABS */}
