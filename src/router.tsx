@@ -8,6 +8,7 @@ import { PageLoader } from "./components/PageLoader";
 const Settings = lazy(() => import("./pages/Settings"));
 const PrintPreview = lazy(() => import("./pages/PrintPreview"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const SubjectEntry = lazy(() => import("./pages/SubjectEntry"));
 
 // 2. Define the Root Layout (The Shell)
 const rootRoute = createRootRoute({
@@ -52,8 +53,20 @@ const analyticsRoute = createRoute({
   component: Analytics,
 });
 
+const subjectEntryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/subject-entry",
+  component: SubjectEntry,
+});
+
 // 4. Build the Tree
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, printRoute, analyticsRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  settingsRoute,
+  printRoute,
+  analyticsRoute,
+  subjectEntryRoute,
+]);
 
 // 5. Create the Router
 export const router = createRouter({ routeTree });

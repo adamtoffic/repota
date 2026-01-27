@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { HelpCircle, X, Printer, Settings as SettingsIcon, BarChart3 } from "lucide-react";
+import { HelpCircle, X, Printer, Settings as SettingsIcon, BarChart3, Book } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
@@ -126,6 +126,13 @@ export function Dashboard() {
             <div className="flex items-center gap-2 pl-2">
               {students.length > 0 && (
                 <>
+                  <Link
+                    to="/subject-entry"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 sm:px-4"
+                  >
+                    <Book className="h-5 w-5 sm:h-4 sm:w-4" />
+                    <span className="hidden text-sm font-medium sm:inline">Subject Entry</span>
+                  </Link>
                   <Link
                     to="/analytics"
                     className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 sm:px-4"
