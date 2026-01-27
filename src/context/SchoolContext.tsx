@@ -222,6 +222,26 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // 4D. REMOVE ALL STUDENT PHOTOS (Storage cleanup helper)
+  const removeAllStudentPhotos = () => {
+    let removedCount = 0;
+    setStudents((prev) =>
+      prev.map((student) => {
+        if (student.pictureUrl) {
+          removedCount++;
+          return { ...student, pictureUrl: undefined };
+        }
+        return student;
+      }),
+    );
+
+    if (removedCount > 0) {
+      showToast(`Removed ${removedCount} student photos to free up storage.`, "success");
+    } else {
+      showToast("No student photos found.", "info");
+    }
+  };
+
   // 5. MASS UPDATE
   const updateClassNameForAll = (newClassName: string) => {
     setStudents((prev) => prev.map((s) => ({ ...s, className: newClassName })));
@@ -690,6 +710,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         updateStudent,
         clearAllScores,
         clearStudentScores,
+        removeAllStudentPhotos,
         loadDemoData,
         updateClassNameForAll,
         detectComponentMismatches,

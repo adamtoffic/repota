@@ -11,6 +11,7 @@ export interface SchoolContextType {
   updateStudent: (updatedStudent: StudentRecord, silent?: boolean) => void;
   clearAllScores: () => void;
   clearStudentScores: (id: string) => void;
+  removeAllStudentPhotos: () => void;
   loadDemoData: () => void;
   updateClassNameForAll: (newClassName: string) => void;
   detectComponentMismatches: () => { hasOutdated: boolean; hasMissing: boolean };

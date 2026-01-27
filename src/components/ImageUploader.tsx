@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Upload, Image as ImageIcon, X } from "lucide-react";
 import { compressImage } from "../utils/imageCompressor"; // ✅ Import utility
 import { useToast } from "../hooks/useToast"; // ✅ Import Toast
+import { getStorageWarningLevel } from "../utils/storageMonitor";
 
 interface ImageUploaderProps {
   label: string;
@@ -17,6 +18,16 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 0. Check storage before allowing upload
+    const storageLevel = getStorageWarningLevel();
+    if (storageLevel === "critical") {
+      showToast(
+        "Storage full! Please export data and clear old students before uploading images.",
+        "error",
+      );
+      return;
+    }
 
     // 1. Type Validation (Must be an image)
     if (!file.type.startsWith("image/")) {

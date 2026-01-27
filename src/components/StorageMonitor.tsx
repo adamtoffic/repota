@@ -1,11 +1,13 @@
-import { useMemo } from "react";
-import { HardDrive, AlertTriangle, TrendingUp, Image, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { HardDrive, AlertTriangle, TrendingUp, Image, Users, Trash2 } from "lucide-react";
 import {
   getStorageStats,
   getStorageWarningLevel,
   calculateRemainingCapacity,
   formatBytes,
 } from "../utils/storageMonitor";
+import { useSchoolData } from "../hooks/useSchoolData";
+import { ConfirmModal } from "./ConfirmModal";
 
 /**
  * Storage monitoring card for Settings page
@@ -15,6 +17,8 @@ export function StorageMonitor() {
   const stats = useMemo(() => getStorageStats(), []);
   const warningLevel = useMemo(() => getStorageWarningLevel(), []);
   const capacity = useMemo(() => calculateRemainingCapacity(), []);
+  const { removeAllStudentPhotos } = useSchoolData();
+  const [showClearPhotosConfirm, setShowClearPhotosConfirm] = useState(false);
 
   const getWarningColor = () => {
     if (warningLevel === "critical") return "text-red-600 bg-red-50 border-red-200";
@@ -138,16 +142,43 @@ export function StorageMonitor() {
 
       {/* Tips */}
       {warningLevel !== "safe" && (
-        <div className="mt-4 rounded-lg bg-blue-50 p-3 text-xs text-blue-800">
-          <p className="mb-1 font-semibold">💡 Storage Tips:</p>
-          <ul className="list-inside list-disc space-y-1">
-            <li>Export old term data and delete students you no longer need</li>
-            <li>Remove photos from students who have already graduated</li>
-            <li>Compress photos before uploading (already auto-compressed to ~70KB)</li>
-            <li>Regular backups let you safely clear old data</li>
-          </ul>
+        <div className="mt-4 space-y-3">
+          <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-800">
+            <p className="mb-1 font-semibold">💡 Storage Tips:</p>
+            <ul className="list-inside list-disc space-y-1">
+              <li>Export old term data and delete students you no longer need</li>
+              <li>Remove photos from students who have already graduated</li>
+              <li>Compress photos before uploading (already auto-compressed to ~70KB)</li>
+              <li>Regular backups let you safely clear old data</li>
+            </ul>
+          </div>
+
+          {/* Quick Action: Clear All Photos */}
+          {stats.studentsWithPhotos > 0 && (
+            <button
+              onClick={() => setShowClearPhotosConfirm(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200"
+            >
+              <Trash2 className="h-4 w-4" />
+              Remove All Student Photos ({stats.studentsWithPhotos})
+            </button>
+          )}
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showClearPhotosConfirm}
+        onClose={() => setShowClearPhotosConfirm(false)}
+        onConfirm={() => {
+          removeAllStudentPhotos();
+          setShowClearPhotosConfirm(false);
+        }}
+        title="Remove All Student Photos?"
+        message={`This will remove ${stats.studentsWithPhotos} student photos to free up ${formatBytes(stats.breakdown.studentPhotos)}. This action cannot be undone.`}
+        confirmText="Remove Photos"
+        isDangerous={true}
+      />
     </div>
   );
 }
