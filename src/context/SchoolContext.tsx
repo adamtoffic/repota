@@ -229,14 +229,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 6. DEMO DATA
   const loadDemoData = () => {
-    const hasComponents =
-      settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
+    const hasComponents = settings.componentLibrary && settings.componentLibrary.length > 0;
 
-    // Helper function to create subject with or without components
+    // Helper function to create subject with optional components
     const createDemoSubject = (
       subName: string,
       classScoreRange: [number, number],
       examScoreRange: [number, number],
+      useComponents: boolean = false, // NEW: Control whether this subject uses components
     ): SavedSubject => {
       const subject: SavedSubject = {
         id: crypto.randomUUID(),
@@ -247,20 +247,18 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           examScoreRange[0],
       };
 
-      if (hasComponents && settings.classScoreComponentConfigs) {
+      // Only add components if library exists AND this subject should use them
+      if (hasComponents && useComponents && settings.componentLibrary) {
         // Create realistic component scores that sum to approximate the target class score
         const targetClassScore =
           Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
           classScoreRange[0];
         const targetPercentage = targetClassScore / settings.classScoreMax;
-        const totalMaxScore = settings.classScoreComponentConfigs.reduce(
-          (sum, c) => sum + c.maxScore,
-          0,
-        );
+        const totalMaxScore = settings.componentLibrary.reduce((sum, c) => sum + c.maxScore, 0);
         const targetTotalScore = targetPercentage * totalMaxScore;
 
         // Distribute the target score across components with some variance
-        subject.classScoreComponents = settings.classScoreComponentConfigs.map((config) => {
+        subject.classScoreComponents = settings.componentLibrary.map((config) => {
           const proportion = config.maxScore / totalMaxScore;
           const baseScore = targetTotalScore * proportion;
           // Add small variance ±15%
@@ -303,13 +301,18 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         name: "Kwame Mensah",
         className: settings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) =>
-          createDemoSubject(
+        // Demo: English and Math use components, others don't
+        subjects: settings.defaultSubjects.map((subName) => {
+          const useComponents =
+            hasComponents &&
+            (subName.toLowerCase().includes("english") || subName.toLowerCase().includes("math"));
+          return createDemoSubject(
             subName,
             [Math.floor(classMax * 0.7), Math.floor(classMax * 0.9)],
             [Math.floor(examMax * 0.7), Math.floor(examMax * 0.9)],
-          ),
-        ),
+            useComponents,
+          );
+        }),
         attendancePresent: 65,
       },
       {

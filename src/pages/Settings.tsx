@@ -99,7 +99,7 @@ export function Settings() {
       return;
     }
 
-    const current = formData.classScoreComponentConfigs || [];
+    const current = formData.componentLibrary || [];
     if (current.some((c) => c.name === trimmed)) {
       showToast("This component already exists!", "error");
       return;
@@ -107,21 +107,21 @@ export function Settings() {
 
     setFormData((prev) => ({
       ...prev,
-      classScoreComponentConfigs: [...current, { name: trimmed, maxScore }],
+      componentLibrary: [...current, { name: trimmed, maxScore }],
     }));
     setNewComponentName("");
     setNewComponentMax("");
-    showToast("Component added!", "success");
+    showToast("Component added to library!", "success");
   };
 
   const removeComponent = (componentName: string) => {
     setFormData((prev) => ({
       ...prev,
-      classScoreComponentConfigs: (prev.classScoreComponentConfigs || []).filter(
+      componentLibrary: (prev.componentLibrary || []).filter(
         (config) => config.name !== componentName,
       ),
     }));
-    showToast("Component removed!", "success");
+    showToast("Component removed from library!", "success");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -551,13 +551,13 @@ export function Settings() {
               <div className="mb-3 flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-purple-700" />
                 <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
-                  Class Score Components (Optional)
+                  Component Library (Optional)
                 </h3>
               </div>
               <p className="mb-4 text-xs leading-relaxed text-purple-700">
-                Break down class scores into components like "Class Test" (max: 20), "Project" (max:
-                30). Set a max score for each component. Students' actual scores will be summed and
-                converted to the class score percentage.
+                Create a library of assessment components (e.g., "Class Test", "Project", "Quiz").
+                These can then be selectively added to individual subjects. Each component needs a
+                maximum score. Components are subject-specific - add only what you need per subject!
               </p>
 
               {/* Add Component Input */}
@@ -573,7 +573,7 @@ export function Settings() {
                     }
                   }}
                   className="flex-1 rounded-lg border border-purple-300 bg-white p-2.5 text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                  placeholder="e.g. Class Test, Project"
+                  placeholder="e.g. Class Test, Project, Quiz"
                 />
                 <div className="flex gap-2">
                   <input
@@ -605,20 +605,14 @@ export function Settings() {
               </div>
 
               {/* Component List */}
-              {(formData.classScoreComponentConfigs || []).length > 0 ? (
+              {(formData.componentLibrary || []).length > 0 ? (
                 <div className="space-y-3">
                   <p className="text-xs font-bold text-purple-800">
-                    {(formData.classScoreComponentConfigs || []).length} Component
-                    {(formData.classScoreComponentConfigs || []).length !== 1 ? "s" : ""}
-                    {" (Total: "}
-                    {(formData.classScoreComponentConfigs || []).reduce(
-                      (sum, c) => sum + c.maxScore,
-                      0,
-                    )}
-                    {" marks)"}
+                    {(formData.componentLibrary || []).length} Component
+                    {(formData.componentLibrary || []).length !== 1 ? "s" : ""} in Library
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {(formData.classScoreComponentConfigs || []).map((config) => (
+                    {(formData.componentLibrary || []).map((config) => (
                       <div
                         key={config.name}
                         className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm shadow-sm"
@@ -640,8 +634,7 @@ export function Settings() {
                 </div>
               ) : (
                 <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
-                  No components added. Class score will be entered directly (0-100 →{" "}
-                  {formData.classScoreMax}%).
+                  No components in library. Add components to use with subjects.
                 </div>
               )}
             </div>
@@ -796,8 +789,9 @@ export function Settings() {
       />
 
       {/* ✅ SCROLL BUTTON - Show when form is long (8+ subjects or 3+ components) */}
-      {(formData.defaultSubjects.length >= 8 ||
-        (formData.classScoreComponentConfigs?.length ?? 0) >= 3) && <ScrollButton />}
+      {(formData.defaultSubjects.length >= 8 || (formData.componentLibrary?.length ?? 0) >= 3) && (
+        <ScrollButton />
+      )}
 
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />

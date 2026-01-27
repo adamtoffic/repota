@@ -29,7 +29,7 @@ export interface SavedSubject {
   name: string;
   classScore: number;
   examScore: number;
-  classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score
+  classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score - subject-specific!
 }
 
 export interface StudentRecord {
@@ -74,8 +74,8 @@ export interface SchoolSettings {
 
   defaultSubjects: string[];
 
-  // Class score component configurations with max scores
-  classScoreComponentConfigs?: ClassScoreComponentConfig[];
+  // Component library - templates that can be added to individual subjects
+  componentLibrary?: ClassScoreComponentConfig[];
 
   // Private school fees
   schoolGift?: number; // Daily school fees

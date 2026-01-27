@@ -51,27 +51,15 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
       subjectNames = DEFAULT_SUBJECTS[settings.level] || [];
     }
 
-    const hasComponents =
-      settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
-
-    // 2. Create the objects with components if configured
+    // 2. Create the subject objects - components are added per-subject by user
     const startingSubjects = subjectNames.map((subName) => {
       const subject: SavedSubject = {
         id: crypto.randomUUID(),
         name: subName,
         classScore: 0,
         examScore: 0,
+        // Don't auto-add components - let user choose per subject
       };
-
-      // Initialize components if configured
-      if (hasComponents && settings.classScoreComponentConfigs) {
-        subject.classScoreComponents = settings.classScoreComponentConfigs.map((config) => ({
-          id: crypto.randomUUID(),
-          name: config.name,
-          score: 0,
-          maxScore: config.maxScore,
-        }));
-      }
 
       return subject;
     });

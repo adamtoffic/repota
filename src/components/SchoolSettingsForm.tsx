@@ -26,7 +26,7 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
     const trimmed = newComponentName.trim();
     if (!trimmed) return;
 
-    const current = formData.classScoreComponentConfigs || [];
+    const current = formData.componentLibrary || [];
     if (current.some((c) => c.name === trimmed)) {
       alert("This component already exists!");
       return;
@@ -34,7 +34,7 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
 
     setFormData((prev) => ({
       ...prev,
-      classScoreComponentConfigs: [
+      componentLibrary: [
         ...current,
         { name: trimmed, maxScore: parseFloat(newComponentMax) || 10 },
       ],
@@ -46,7 +46,7 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
   const handleRemoveComponent = (componentName: string) => {
     setFormData((prev) => ({
       ...prev,
-      classScoreComponentConfigs: (prev.classScoreComponentConfigs || []).filter(
+      componentLibrary: (prev.componentLibrary || []).filter(
         (config) => config.name !== componentName,
       ),
     }));
@@ -298,14 +298,14 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
         </div>
 
         {/* Component List */}
-        {(formData.classScoreComponentConfigs || []).length > 0 && (
+        {(formData.componentLibrary || []).length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-bold text-purple-800">
-              {(formData.classScoreComponentConfigs || []).length} Component
-              {(formData.classScoreComponentConfigs || []).length !== 1 ? "s" : ""}:
+              {(formData.componentLibrary || []).length} Component
+              {(formData.componentLibrary || []).length !== 1 ? "s" : ""}:
             </p>
             <div className="flex flex-wrap gap-2">
-              {(formData.classScoreComponentConfigs || []).map((config) => (
+              {(formData.componentLibrary || []).map((config) => (
                 <div
                   key={config.name}
                   className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-sm"
@@ -325,7 +325,7 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
           </div>
         )}
 
-        {(formData.classScoreComponentConfigs || []).length === 0 && (
+        {(formData.componentLibrary || []).length === 0 && (
           <div className="rounded border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
             No components added. Class score will be entered directly.
           </div>

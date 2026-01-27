@@ -1,6 +1,6 @@
 // src/components/SubjectRow.tsx - MOBILE OPTIMIZED WITH AUTO-CONVERSION
 import { useState, useEffect, useRef } from "react";
-import { Trash2, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Check, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import type { SavedSubject, SchoolLevel, ClassScoreComponentConfig } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
 
@@ -9,7 +9,7 @@ interface Props {
   level: SchoolLevel;
   maxClassScore: number;
   maxExamScore: number;
-  classScoreComponentConfigs?: ClassScoreComponentConfig[];
+  componentLibrary?: ClassScoreComponentConfig[]; // Available component templates
   onChange: (updated: SavedSubject) => void;
   onDelete?: () => void;
 }
@@ -19,13 +19,15 @@ export function SubjectRow({
   level,
   maxClassScore,
   maxExamScore,
-  classScoreComponentConfigs,
+  componentLibrary,
   onChange,
   onDelete,
 }: Props) {
-  const hasComponents = classScoreComponentConfigs && classScoreComponentConfigs.length > 0;
+  const hasComponents = subject.classScoreComponents && subject.classScoreComponents.length > 0;
+  const hasLibrary = componentLibrary && componentLibrary.length > 0;
   // Auto-expand components when they exist
-  const [showComponents, setShowComponents] = useState(hasComponents);
+  const [showComponents, setShowComponents] = useState(false);
+  const [showAddComponent, setShowAddComponent] = useState(false);
 
   const total = (subject.classScore || 0) + (subject.examScore || 0);
   const { grade, remark } = calculateGrade(total, level);
@@ -42,47 +44,6 @@ export function SubjectRow({
     subject.examScore === 0 ? "" : Math.round((subject.examScore / maxExamScore) * 100).toString(),
   );
 
-  // Auto-expand when components are added
-  useEffect(() => {
-    if (hasComponents) {
-      setShowComponents(true);
-    }
-  }, [hasComponents]);
-
-  // Initialize components based on configs
-  useEffect(() => {
-    if (hasComponents) {
-      const existingComponents = subject.classScoreComponents || [];
-
-      // Create components from configs
-      const allComponents = classScoreComponentConfigs.map((config) => {
-        const existing = existingComponents.find((c) => c.name === config.name);
-        return (
-          existing || {
-            id: crypto.randomUUID(),
-            name: config.name,
-            score: 0,
-            maxScore: config.maxScore,
-          }
-        );
-      });
-
-      // Only update if there's a difference
-      const needsUpdate =
-        !subject.classScoreComponents ||
-        allComponents.length !== existingComponents.length ||
-        allComponents.some((comp, i) => comp.name !== existingComponents[i]?.name);
-
-      if (needsUpdate) {
-        onChange({ ...subject, classScoreComponents: allComponents });
-      }
-    } else if (subject.classScoreComponents) {
-      // Remove components if feature is disabled
-      onChange({ ...subject, classScoreComponents: undefined });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasComponents, classScoreComponentConfigs]);
-
   // Cleanup timers on unmount
   useEffect(() => {
     const classTimer = classTimerRef.current;
@@ -93,6 +54,64 @@ export function SubjectRow({
       if (examTimer) clearTimeout(examTimer);
     };
   }, []);
+
+  // Add a component from the library to this subject
+  const addComponentToSubject = (config: ClassScoreComponentConfig) => {
+    const currentComponents = subject.classScoreComponents || [];
+
+    // Check if already added
+    if (currentComponents.some((c) => c.name === config.name)) {
+      return;
+    }
+
+    const newComponent = {
+      id: crypto.randomUUID(),
+      name: config.name,
+      score: 0,
+      maxScore: config.maxScore,
+    };
+
+    onChange({
+      ...subject,
+      classScoreComponents: [...currentComponents, newComponent],
+    });
+    setShowAddComponent(false);
+  };
+
+  // Remove a component from this subject
+  const removeComponentFromSubject = (componentId: string) => {
+    if (!subject.classScoreComponents) return;
+
+    const updatedComponents = subject.classScoreComponents.filter((c) => c.id !== componentId);
+
+    // If no components left, recalculate class score
+    if (updatedComponents.length === 0) {
+      onChange({
+        ...subject,
+        classScoreComponents: undefined,
+        classScore: 0, // Reset to manual entry
+      });
+    } else {
+      // Recalculate class score from remaining components
+      const totalActualScore = updatedComponents.reduce((sum, c) => sum + c.score, 0);
+      const totalMaxScore = updatedComponents.reduce((sum, c) => sum + c.maxScore, 0);
+      const percentageAchieved = totalMaxScore > 0 ? totalActualScore / totalMaxScore : 0;
+      const convertedClassScore = percentageAchieved * maxClassScore;
+
+      onChange({
+        ...subject,
+        classScoreComponents: updatedComponents,
+        classScore: Math.round(convertedClassScore),
+      });
+    }
+  };
+
+  // Get available components (not yet added to this subject)
+  const getAvailableComponents = (): ClassScoreComponentConfig[] => {
+    if (!componentLibrary) return [];
+    const currentComponentNames = (subject.classScoreComponents || []).map((c) => c.name);
+    return componentLibrary.filter((lib) => !currentComponentNames.includes(lib.name));
+  };
 
   // Auto-convert exam score from 0-100 to exam score max percentage
   const handleExamChange = (value: string) => {
@@ -204,7 +223,7 @@ export function SubjectRow({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-800 sm:text-base">{subject.name}</span>
-                {hasComponents && (
+                {(hasComponents || hasLibrary) && (
                   <button
                     onClick={() => setShowComponents(!showComponents)}
                     className="flex items-center gap-1 rounded-lg bg-purple-100 px-2 py-1 text-purple-700 hover:bg-purple-200"
@@ -353,63 +372,133 @@ export function SubjectRow({
         </div>
       </div>
 
-      {/* Class Score Components Section - Always visible when components exist */}
-      {hasComponents && showComponents && subject.classScoreComponents && (
+      {/* Class Score Components Section */}
+      {(hasComponents || hasLibrary) && showComponents && (
         <div className="border-t border-purple-200 bg-purple-50/50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-bold text-purple-900">Component Breakdown</p>
-            <p className="text-[10px] font-medium text-purple-700">
-              Total: {subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0)}/
-              {subject.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0)} marks
-            </p>
+            {hasComponents && subject.classScoreComponents && (
+              <p className="text-[10px] font-medium text-purple-700">
+                Total: {subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0)}/
+                {subject.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0)} marks
+              </p>
+            )}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {subject.classScoreComponents.map((component) => (
-              <div
-                key={component.id}
-                className="rounded-lg border border-purple-300 bg-white p-3 shadow-sm"
-              >
-                <label className="mb-1.5 block text-xs font-bold text-purple-800">
-                  {component.name}
-                  <span className="ml-1 text-purple-500">(/{component.maxScore})</span>
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max={component.maxScore}
-                  value={component.score === 0 ? "" : component.score}
-                  onChange={(e) =>
-                    handleComponentChange(component.id, e.target.value, component.maxScore)
-                  }
-                  className="w-full rounded-lg border border-purple-300 p-2.5 text-center text-base font-bold transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                  placeholder={`/${component.maxScore}`}
-                />
-                <p className="mt-1 text-center text-[10px] text-purple-600">
-                  {component.score > 0
-                    ? ((component.score / component.maxScore) * 100).toFixed(0)
+
+          {/* Existing Components */}
+          {hasComponents && subject.classScoreComponents && (
+            <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {subject.classScoreComponents.map((component) => (
+                <div
+                  key={component.id}
+                  className="relative rounded-lg border border-purple-300 bg-white p-3 shadow-sm"
+                >
+                  <button
+                    onClick={() => removeComponentFromSubject(component.id)}
+                    className="absolute top-1 right-1 rounded p-1 text-purple-400 transition-colors hover:bg-purple-100 hover:text-purple-700"
+                    title="Remove this component"
+                  >
+                    <X size={14} />
+                  </button>
+                  <label className="mb-1.5 block pr-6 text-xs font-bold text-purple-800">
+                    {component.name}
+                    <span className="ml-1 text-purple-500">(/{component.maxScore})</span>
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max={component.maxScore}
+                    value={component.score === 0 ? "" : component.score}
+                    onChange={(e) =>
+                      handleComponentChange(component.id, e.target.value, component.maxScore)
+                    }
+                    className="w-full rounded-lg border border-purple-300 p-2.5 text-center text-base font-bold transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    placeholder={`/${component.maxScore}`}
+                  />
+                  <p className="mt-1 text-center text-[10px] text-purple-600">
+                    {component.score > 0
+                      ? ((component.score / component.maxScore) * 100).toFixed(0)
+                      : 0}
+                    %
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Component Button */}
+          {hasLibrary && getAvailableComponents().length > 0 && (
+            <div className="mt-3">
+              {!showAddComponent ? (
+                <button
+                  onClick={() => setShowAddComponent(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-purple-300 bg-white p-3 text-sm font-bold text-purple-600 transition-all hover:border-purple-500 hover:bg-purple-50"
+                >
+                  <Plus size={16} />
+                  Add Component to {subject.name}
+                </button>
+              ) : (
+                <div className="rounded-lg border border-purple-300 bg-white p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-bold text-purple-800">
+                      Add from Library ({getAvailableComponents().length} available)
+                    </p>
+                    <button
+                      onClick={() => setShowAddComponent(false)}
+                      className="rounded p-1 text-purple-400 hover:bg-purple-100 hover:text-purple-700"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {getAvailableComponents().map((config) => (
+                      <button
+                        key={config.name}
+                        onClick={() => addComponentToSubject(config)}
+                        className="flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-medium text-purple-700 transition-all hover:bg-purple-100 hover:shadow-sm active:scale-95"
+                      >
+                        <Plus size={14} />
+                        <span>{config.name}</span>
+                        <span className="rounded bg-purple-200 px-1.5 py-0.5 text-[10px] font-bold">
+                          /{config.maxScore}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!hasComponents && (!hasLibrary || getAvailableComponents().length === 0) && (
+            <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
+              {!hasLibrary
+                ? "No components in library. Add components in Settings first."
+                : "All library components already added to this subject."}
+            </div>
+          )}
+
+          {/* Class Score Summary */}
+          {hasComponents && subject.classScoreComponents && (
+            <div className="mt-3 rounded-lg bg-purple-100 p-2 text-center">
+              <p className="text-xs font-bold text-purple-900">
+                Class Score: {subject.classScore}/{maxClassScore}
+                <span className="ml-2 text-purple-600">
+                  (
+                  {subject.classScoreComponents.length > 0
+                    ? Math.round(
+                        (subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0) /
+                          subject.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0)) *
+                          100,
+                      )
                     : 0}
-                  %
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 rounded-lg bg-purple-100 p-2 text-center">
-            <p className="text-xs font-bold text-purple-900">
-              Class Score: {subject.classScore}/{maxClassScore}
-              <span className="ml-2 text-purple-600">
-                (
-                {subject.classScoreComponents.length > 0
-                  ? Math.round(
-                      (subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0) /
-                        subject.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0)) *
-                        100,
-                    )
-                  : 0}
-                % achieved)
-              </span>
-            </p>
-          </div>
+                  % achieved)
+                </span>
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
