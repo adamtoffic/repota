@@ -66,9 +66,15 @@ export function SubjectRow({
 
     const rawScore = Number(value);
 
-    // Validation check
+    // Auto-clamp instead of blocking - better UX
     if (rawScore > 100) {
-      setExamScoreError(`Exam score cannot exceed 100`);
+      setExamScoreError(`Auto-clamped to 100`);
+      const clampedRaw = Math.min(rawScore, 100);
+      const convertedScore = (clampedRaw / 100) * maxExamScore;
+      onChange({ ...subject, examScore: Math.round(convertedScore) });
+
+      // Clear error message after 2 seconds
+      setTimeout(() => setExamScoreError(null), 2000);
       return;
     }
 
@@ -93,9 +99,14 @@ export function SubjectRow({
 
     const rawScore = Number(value);
 
-    // Validation check
+    // Auto-clamp instead of blocking - better UX
     if (rawScore > maxClassScore) {
-      setClassScoreError(`Class score cannot exceed ${maxClassScore}`);
+      setClassScoreError(`Auto-clamped to max (${maxClassScore})`);
+      const clampedScore = Math.min(rawScore, maxClassScore);
+      onChange({ ...subject, classScore: Math.round(clampedScore) });
+
+      // Clear error message after 2 seconds
+      setTimeout(() => setClassScoreError(null), 2000);
       return;
     }
 

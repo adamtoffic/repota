@@ -104,7 +104,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
           overflow: "auto",
         }}
       >
-        <table className="w-full min-w-[44rem] text-left text-sm">
+        <table className="w-full min-w-176 text-left text-sm">
           <thead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold text-gray-600 uppercase shadow-sm">
             <tr>
               <th className="px-4 py-3 sm:px-6 sm:py-4">Name</th>
