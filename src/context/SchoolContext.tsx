@@ -4,7 +4,6 @@ import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
-import { safeSetItem, safeGetItem, STORAGE_KEYS } from "../utils/storage";
 import { useDebounce } from "../hooks/useDebounce";
 // ✅ Import definition
 import { SchoolContext } from "./SchoolContextDefinition";
@@ -20,43 +19,43 @@ import {
   requestPersistentStorage,
   detectDataLoss,
 } from "../utils/dataProtection";
+// IndexedDB storage
+import {
+  initStorage,
+  loadFromStorage,
+  saveToStorage,
+  IDB_KEYS,
+  migrateFromLocalStorage,
+  getStorageType,
+} from "../utils/idbStorage";
 
 export function SchoolProvider({ children }: { children: ReactNode }) {
-  // ... (State initialization stays exactly the same) ...
-  const [students, setStudents] = useState<StudentRecord[]>(() => {
-    const saved = safeGetItem(STORAGE_KEYS.STUDENTS);
-    return saved ? JSON.parse(saved) : [];
-  });
+  // State with empty initialization (will load from IndexedDB)
+  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const [settings, setSettings] = useState<SchoolSettings>(() => {
-    const saved = safeGetItem(STORAGE_KEYS.SETTINGS);
-    if (saved) {
-      return JSON.parse(saved); // (Simplified for brevity, keep your migration logic if needed)
-    }
-
-    return {
-      schoolName: "My School Name",
-      academicYear: "2025/2026",
-      term: "First Term",
-      level: "PRIMARY",
-      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-      totalAttendanceDays: 70,
-      classScoreMax: 50,
-      examScoreMax: 50,
-      classSize: 30,
-      nextTermStarts: "",
-      headTeacherName: "",
-      classTeacherName: "",
-      className: "",
-      phoneNumber: "",
-      address: "",
-      email: "",
-      schoolMotto: "",
-      logoUrl: "",
-      headTeacherSignature: "",
-      teacherSignature: "",
-      schoolType: "STANDARD",
-    };
+  const [settings, setSettings] = useState<SchoolSettings>({
+    schoolName: "My School Name",
+    academicYear: "2025/2026",
+    term: "First Term",
+    level: "PRIMARY",
+    defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
+    totalAttendanceDays: 70,
+    classScoreMax: 50,
+    examScoreMax: 50,
+    classSize: 30,
+    nextTermStarts: "",
+    headTeacherName: "",
+    classTeacherName: "",
+    className: "",
+    phoneNumber: "",
+    address: "",
+    email: "",
+    schoolMotto: "",
+    logoUrl: "",
+    headTeacherSignature: "",
+    teacherSignature: "",
+    schoolType: "STANDARD",
   });
 
   const { showToast } = useToast();
@@ -99,19 +98,56 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     showToast("Settings restored to factory defaults.", "success");
   };
 
+  // ✅ INITIALIZE INDEXEDDB AND LOAD DATA
   useEffect(() => {
-    safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(debouncedStudents));
-    createBackupHeartbeat(); // Update heartbeat when data changes
-    // Use queueMicrotask to defer state update and avoid cascading render warning
-    queueMicrotask(() => setLastSaved(new Date()));
-  }, [debouncedStudents]);
+    const initializeStorage = async () => {
+      // 1. Initialize IndexedDB
+      await initStorage();
+
+      // 2. Migrate from localStorage if needed
+      const migration = await migrateFromLocalStorage();
+      if (
+        migration.success &&
+        migration.studentsCount !== undefined &&
+        migration.studentsCount > 0
+      ) {
+        console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
+        showToast(`Upgraded to IndexedDB (${getStorageType()})`, "success");
+      }
+
+      // 3. Load students
+      const loadedStudents = await loadFromStorage<StudentRecord[]>(IDB_KEYS.STUDENTS);
+      if (loadedStudents && loadedStudents.length > 0) {
+        setStudents(loadedStudents);
+      }
+
+      // 4. Load settings
+      const loadedSettings = await loadFromStorage<SchoolSettings>(IDB_KEYS.SETTINGS);
+      if (loadedSettings) {
+        setSettings(loadedSettings);
+      }
+
+      setIsDataLoaded(true);
+    };
+
+    initializeStorage();
+  }, [showToast]);
 
   useEffect(() => {
-    safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(debouncedSettings));
-    createBackupHeartbeat(); // Update heartbeat when settings change
-    // Use queueMicrotask to defer state update and avoid cascading render warning
+    if (!isDataLoaded) return; // Don't save until initial load complete
+
+    saveToStorage(IDB_KEYS.STUDENTS, debouncedStudents);
+    createBackupHeartbeat();
     queueMicrotask(() => setLastSaved(new Date()));
-  }, [debouncedSettings]);
+  }, [debouncedStudents, isDataLoaded]);
+
+  useEffect(() => {
+    if (!isDataLoaded) return; // Don't save until initial load complete
+
+    saveToStorage(IDB_KEYS.SETTINGS, debouncedSettings);
+    createBackupHeartbeat();
+    queueMicrotask(() => setLastSaved(new Date()));
+  }, [debouncedSettings, isDataLoaded]);
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {

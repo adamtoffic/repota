@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
-import { Download, Upload, AlertTriangle, CheckCircle, Share2 } from "lucide-react"; // ✅ Added Share2 icon
+import { Download, Upload, AlertTriangle, CheckCircle, Share2 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "./ConfirmModal";
-import { safeGetItem, safeSetItem, STORAGE_KEYS } from "../utils/storage";
 import { recordBackup } from "../utils/dataProtection";
+import { loadFromStorage, saveToStorage, IDB_KEYS } from "../utils/idbStorage";
 
 export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -17,13 +17,13 @@ export function DataBackup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. EXPORT HANDLER
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const students = safeGetItem(STORAGE_KEYS.STUDENTS);
-      const settings = safeGetItem(STORAGE_KEYS.SETTINGS);
+      const students = await loadFromStorage(IDB_KEYS.STUDENTS);
+      const settings = await loadFromStorage(IDB_KEYS.SETTINGS);
 
-      const parsedSettings = settings ? JSON.parse(settings) : {};
-      const parsedStudents = students ? JSON.parse(students) : [];
+      const parsedSettings = (settings || {}) as Record<string, unknown>;
+      const parsedStudents = students || [];
 
       const backup = {
         version: "1.0",
@@ -36,8 +36,8 @@ export function DataBackup() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
 
-      const schoolName = parsedSettings.schoolName || "School";
-      const className = parsedSettings.className || "Class";
+      const schoolName = (parsedSettings.schoolName as string) || "School";
+      const className = (parsedSettings.className as string) || "Class";
       const date = new Date().toISOString().split("T")[0];
 
       // Filename optimized for WhatsApp (e.g., "Class6_Data_2025.json")
@@ -93,16 +93,16 @@ export function DataBackup() {
   };
 
   // 3. IMPORT EXECUTION
-  const executeImport = () => {
+  const executeImport = async () => {
     if (!pendingFile) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const content = e.target?.result as string;
       const backup = JSON.parse(content);
 
-      safeSetItem(STORAGE_KEYS.STUDENTS, JSON.stringify(backup.students));
-      safeSetItem(STORAGE_KEYS.SETTINGS, JSON.stringify(backup.settings));
+      await saveToStorage(IDB_KEYS.STUDENTS, backup.students);
+      await saveToStorage(IDB_KEYS.SETTINGS, backup.settings);
 
       setStatus("success");
       showToast("Class data loaded successfully!", "success");
