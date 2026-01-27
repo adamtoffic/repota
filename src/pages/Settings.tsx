@@ -18,6 +18,7 @@ import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ImageUploader } from "../components/ImageUploader";
 import { DataBackup } from "../components/DataBackup";
+import { StorageMonitor } from "../components/StorageMonitor";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
 import type {
@@ -855,6 +856,9 @@ export function Settings() {
               </div>
             </div>
           )}
+
+        {/* STORAGE MONITORING */}
+        <StorageMonitor />
 
         {/* BACKUP & DANGER ZONE */}
         <DataBackup />
