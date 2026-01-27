@@ -4,6 +4,7 @@ import { X, User, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
+import { useSwipe } from "../hooks/useSwipe";
 
 interface Props {
   student: ProcessedStudent;
@@ -53,6 +54,20 @@ export function ScoreEntryModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, hasNavigation, hasPrevious, hasNext, currentIndex, allStudents, onNavigate]);
 
+  // Swipe gestures for mobile
+  useSwipe({
+    onSwipeLeft: () => {
+      if (hasNavigation && hasNext) {
+        onNavigate(allStudents[currentIndex + 1].id);
+      }
+    },
+    onSwipeRight: () => {
+      if (hasNavigation && hasPrevious) {
+        onNavigate(allStudents[currentIndex - 1].id);
+      }
+    },
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -79,10 +94,24 @@ export function ScoreEntryModal({
             </button>
           )}
 
-          {/* Center: Student Info */}
+          {/* Center: Student Info with Picker */}
           <div className="flex-1 text-center">
-            <h2 className="text-base font-bold text-gray-800 sm:text-xl">{student.name}</h2>
-            <p className="text-muted text-xs sm:text-sm">
+            {hasNavigation ? (
+              <select
+                value={student.id}
+                onChange={(e) => onNavigate(e.target.value)}
+                className="mx-auto max-w-xs rounded-lg border-2 border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-800 transition-all hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-base"
+              >
+                {allStudents.map((s, idx) => (
+                  <option key={s.id} value={s.id}>
+                    {idx + 1}. {s.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <h2 className="text-base font-bold text-gray-800 sm:text-xl">{student.name}</h2>
+            )}
+            <p className="text-muted mt-1 text-xs sm:text-sm">
               {level} • {student.className}
               {hasNavigation && (
                 <span className="ml-2 text-blue-600">
