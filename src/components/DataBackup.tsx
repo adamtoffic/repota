@@ -155,7 +155,7 @@ export function DataBackup() {
         setPendingFile(file);
         setImportStats({
           count: data.students.length,
-          school: data.settings.schoolName || "Unknown School",
+          school: (data.settings.schoolName as string) || "Unknown School",
         });
         setShowImportModal(true);
       } catch {
@@ -196,7 +196,7 @@ export function DataBackup() {
         // Show confirmation modal with decrypted stats
         setImportStats({
           count: decryptedBackup.students.length,
-          school: decryptedBackup.settings.schoolName || "Unknown School",
+          school: (decryptedBackup.settings.schoolName as string) || "Unknown School",
         });
         setShowImportPasswordModal(false);
         setShowImportModal(true);
