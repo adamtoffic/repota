@@ -23,6 +23,10 @@ export function DataBackup() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [importStats, setImportStats] = useState({ count: 0, school: "" });
+  const [decryptedBackupData, setDecryptedBackupData] = useState<{
+    students: unknown[];
+    settings: Record<string, unknown>;
+  } | null>(null);
 
   // Password protection state
   const [usePassword, setUsePassword] = useState(false);
@@ -198,6 +202,7 @@ export function DataBackup() {
           count: decryptedBackup.students.length,
           school: (decryptedBackup.settings.schoolName as string) || "Unknown School",
         });
+        setDecryptedBackupData(decryptedBackup); // Store decrypted data
         setShowImportPasswordModal(false);
         setShowImportModal(true);
         setImportPassword("");
@@ -217,32 +222,40 @@ export function DataBackup() {
 
   // 4. IMPORT EXECUTION
   const executeImport = async () => {
-    if (!pendingFile) return;
+    try {
+      let backup;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const content = e.target?.result as string;
-        let backup = JSON.parse(content);
-
-        // If encrypted, decrypt first
-        if (isEncryptedFile(backup)) {
-          backup = await decryptBackupFile(backup, importPassword);
-        }
-
-        await saveToStorage(IDB_KEYS.STUDENTS, backup.students);
-        await saveToStorage(IDB_KEYS.SETTINGS, backup.settings);
-
-        setStatus("success");
-        showToast("Class data loaded successfully!", "success");
-        setTimeout(() => window.location.reload(), 1000);
-      } catch (error) {
-        showToast("Failed to import file. Please try again.", "error");
-        console.error(error);
+      // If we have decrypted data, use it
+      if (decryptedBackupData) {
+        backup = decryptedBackupData;
+      } else if (pendingFile) {
+        // Otherwise read and parse the file
+        const reader = new FileReader();
+        const content = await new Promise<string>((resolve, reject) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsText(pendingFile);
+        });
+        backup = JSON.parse(content);
+      } else {
+        throw new Error("No file to import");
       }
-    };
-    reader.readAsText(pendingFile);
-    setShowImportModal(false);
+
+      await saveToStorage(IDB_KEYS.STUDENTS, backup.students);
+      await saveToStorage(IDB_KEYS.SETTINGS, backup.settings);
+
+      setStatus("success");
+      showToast("Class data loaded successfully!", "success");
+
+      // Clean up
+      setDecryptedBackupData(null);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      showToast("Failed to import file. Please try again.", "error");
+      console.error(error);
+    } finally {
+      setShowImportModal(false);
+    }
   };
 
   return (
@@ -348,6 +361,7 @@ export function DataBackup() {
         isDangerous={true}
         onClose={() => {
           setShowImportModal(false);
+          setDecryptedBackupData(null);
           if (fileInputRef.current) fileInputRef.current.value = "";
         }}
         onConfirm={executeImport}
