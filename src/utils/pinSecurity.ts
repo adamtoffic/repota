@@ -5,6 +5,12 @@
 
 const PIN_STORAGE_KEY = "app_pin_hash";
 const RECOVERY_CODE_KEY = "recovery_code_hash";
+const SECURITY_QUESTIONS_KEY = "security_questions";
+
+export interface SecurityQuestionAnswer {
+  questionId: string;
+  answerHash: string;
+}
 
 /**
  * Simple hash function using Web Crypto API
@@ -125,4 +131,104 @@ export async function resetPinWithRecoveryCode(
 export function disablePinLock(): void {
   localStorage.removeItem(PIN_STORAGE_KEY);
   localStorage.removeItem(RECOVERY_CODE_KEY);
+  localStorage.removeItem(SECURITY_QUESTIONS_KEY);
+}
+
+/**
+ * Save security questions and answers
+ */
+export async function saveSecurityQuestions(
+  questions: Array<{ questionId: string; answer: string }>,
+): Promise<boolean> {
+  try {
+    const hashedQuestions: SecurityQuestionAnswer[] = await Promise.all(
+      questions.map(async (q) => ({
+        questionId: q.questionId,
+        answerHash: await hashString(q.answer.toLowerCase().trim()),
+      })),
+    );
+
+    localStorage.setItem(SECURITY_QUESTIONS_KEY, JSON.stringify(hashedQuestions));
+    return true;
+  } catch (error) {
+    console.error("Error saving security questions:", error);
+    return false;
+  }
+}
+
+/**
+ * Get saved security question IDs
+ */
+export function getSavedSecurityQuestionIds(): string[] {
+  try {
+    const stored = localStorage.getItem(SECURITY_QUESTIONS_KEY);
+    if (!stored) return [];
+
+    const questions: SecurityQuestionAnswer[] = JSON.parse(stored);
+    return questions.map((q) => q.questionId);
+  } catch (error) {
+    console.error("Error getting security questions:", error);
+    return [];
+  }
+}
+
+/**
+ * Verify security question answers
+ */
+export async function verifySecurityAnswers(
+  answers: Array<{ questionId: string; answer: string }>,
+): Promise<{ verified: boolean; correctCount: number }> {
+  try {
+    const stored = localStorage.getItem(SECURITY_QUESTIONS_KEY);
+    if (!stored) return { verified: false, correctCount: 0 };
+
+    const savedQuestions: SecurityQuestionAnswer[] = JSON.parse(stored);
+    let correctCount = 0;
+
+    for (const answer of answers) {
+      const savedQuestion = savedQuestions.find((q) => q.questionId === answer.questionId);
+      if (!savedQuestion) continue;
+
+      const answerHash = await hashString(answer.answer.toLowerCase().trim());
+      if (answerHash === savedQuestion.answerHash) {
+        correctCount++;
+      }
+    }
+
+    // Require at least 2 out of 3 correct answers
+    const verified = correctCount >= 2;
+    return { verified, correctCount };
+  } catch (error) {
+    console.error("Error verifying security answers:", error);
+    return { verified: false, correctCount: 0 };
+  }
+}
+
+/**
+ * Check if security questions are configured
+ */
+export function areSecurityQuestionsConfigured(): boolean {
+  const stored = localStorage.getItem(SECURITY_QUESTIONS_KEY);
+  if (!stored) return false;
+
+  try {
+    const questions: SecurityQuestionAnswer[] = JSON.parse(stored);
+    return questions.length === 3;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reset PIN using security questions
+ */
+export async function resetPinWithSecurityQuestions(newPin: string): Promise<boolean> {
+  try {
+    const pinHash = await hashString(newPin);
+    localStorage.setItem(PIN_STORAGE_KEY, pinHash);
+    return true;
+  } catch (error) {
+    console.error("PIN reset error:", error);
+    return false;
+  }
 }

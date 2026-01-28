@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Lock, Key, AlertCircle, CheckCircle, Copy, X } from "lucide-react";
+import { Lock, Key, AlertCircle, CheckCircle, Copy, X, HelpCircle } from "lucide-react";
 import {
   setupPin,
   generateRecoveryCode,
   isPinConfigured,
   isSameAsCurrentPin,
+  saveSecurityQuestions,
 } from "../utils/pinSecurity";
+import { SECURITY_QUESTIONS } from "../constants/securityQuestions";
 
 interface Props {
   onComplete: () => void;
@@ -14,7 +16,7 @@ interface Props {
 
 export function PinSetup({ onComplete, onCancel }: Props) {
   const isChangingPin = isPinConfigured();
-  const [step, setStep] = useState<"intro" | "create" | "confirm" | "recovery">(
+  const [step, setStep] = useState<"intro" | "create" | "confirm" | "recovery" | "questions">(
     isChangingPin ? "create" : "intro",
   );
   const [pin, setPin] = useState("");
@@ -22,6 +24,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   const [recoveryCode] = useState(generateRecoveryCode());
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Security questions state
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(["", "", ""]);
+  const [answers, setAnswers] = useState<string[]>(["", "", ""]);
 
   const handleCreatePin = async () => {
     if (pin.length !== 4) {
@@ -49,6 +55,38 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     }
     setError("");
     setStep("recovery");
+  };
+
+  const handleSaveSecurityQuestions = async () => {
+    // Validate all questions are selected and answered
+    if (selectedQuestions.some((q) => !q)) {
+      setError("Please select all 3 security questions");
+      return;
+    }
+
+    if (answers.some((a) => a.trim().length < 2)) {
+      setError("Please provide answers for all questions (minimum 2 characters)");
+      return;
+    }
+
+    // Check for duplicate questions
+    const uniqueQuestions = new Set(selectedQuestions);
+    if (uniqueQuestions.size !== 3) {
+      setError("Please select 3 different questions");
+      return;
+    }
+
+    const questionsToSave = selectedQuestions.map((questionId, index) => ({
+      questionId,
+      answer: answers[index],
+    }));
+
+    const success = await saveSecurityQuestions(questionsToSave);
+    if (success) {
+      await handleFinishSetup();
+    } else {
+      setError("Failed to save security questions. Please try again.");
+    }
   };
 
   const handleFinishSetup = async () => {
@@ -257,55 +295,165 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   }
 
   // Recovery code step
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-        <div className="mb-6 flex justify-center">
-          <div className="rounded-full bg-amber-100 p-4">
-            <Key className="h-12 w-12 text-amber-600" />
+  if (step === "recovery") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+          <div className="mb-6 flex justify-center">
+            <div className="rounded-full bg-amber-100 p-4">
+              <Key className="h-12 w-12 text-amber-600" />
+            </div>
           </div>
+
+          <h2 className="mb-3 text-center text-xl font-bold text-gray-900">
+            Save Your Recovery Code
+          </h2>
+          <p className="mb-6 text-center text-sm text-gray-600">
+            Write this down in a safe place. You'll need it if you forget your PIN.
+          </p>
+
+          <div className="mb-6 rounded-lg bg-amber-50 p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-4xl font-bold tracking-wider text-amber-900">
+                {recoveryCode}
+              </span>
+              <button
+                onClick={copyRecoveryCode}
+                className="rounded-lg bg-amber-200 p-2 text-amber-900 transition-colors hover:bg-amber-300"
+                title="Copy to clipboard"
+              >
+                {copied ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+              </button>
+            </div>
+            <p className="text-xs text-amber-700">
+              {copied ? "✓ Copied to clipboard!" : "Click to copy"}
+            </p>
+          </div>
+
+          <div className="mb-6 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
+            <p className="flex items-start gap-2 text-sm text-amber-900">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>Important:</strong> Keep this code safe. You'll need it to reset your PIN.
+              </span>
+            </p>
+          </div>
+
+          <button
+            onClick={() => setStep("questions")}
+            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            Next: Set Security Questions
+          </button>
         </div>
+      </div>
+    );
+  }
 
-        <h2 className="mb-3 text-center text-xl font-bold text-gray-900">
-          Save Your Recovery Code
-        </h2>
-        <p className="mb-6 text-center text-sm text-gray-600">
-          Write this down in a safe place. You'll need it if you forget your PIN.
-        </p>
+  // Security questions step
+  if (step === "questions") {
+    const getAvailableQuestions = (currentIndex: number) => {
+      const otherSelections = selectedQuestions.filter((_, i) => i !== currentIndex);
+      return SECURITY_QUESTIONS.filter((q) => !otherSelections.includes(q.id));
+    };
 
-        <div className="mb-6 rounded-lg bg-amber-50 p-6">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-4xl font-bold tracking-wider text-amber-900">{recoveryCode}</span>
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
+          <div className="mb-6 flex justify-center">
+            <div className="rounded-full bg-green-100 p-4">
+              <HelpCircle className="h-12 w-12 text-green-600" />
+            </div>
+          </div>
+
+          <h2 className="mb-3 text-center text-xl font-bold text-gray-900">
+            Set Security Questions (Optional)
+          </h2>
+          <p className="mb-6 text-center text-sm text-gray-600">
+            Answer 3 questions to help you recover access if you forget your PIN.
+          </p>
+
+          <div className="mb-6 space-y-4">
+            {[0, 1, 2].map((index) => {
+              const selectedQuestion = SECURITY_QUESTIONS.find(
+                (q) => q.id === selectedQuestions[index],
+              );
+
+              return (
+                <div key={index} className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4">
+                  <label className="mb-2 block text-sm font-bold text-gray-700">
+                    Question {index + 1}
+                  </label>
+                  <select
+                    value={selectedQuestions[index]}
+                    onChange={(e) => {
+                      const newQuestions = [...selectedQuestions];
+                      newQuestions[index] = e.target.value;
+                      setSelectedQuestions(newQuestions);
+                      setError("");
+                    }}
+                    className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                  >
+                    <option value="">-- Select a question --</option>
+                    {getAvailableQuestions(index).map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.question}
+                      </option>
+                    ))}
+                  </select>
+
+                  {selectedQuestion && (
+                    <input
+                      type="text"
+                      value={answers[index]}
+                      onChange={(e) => {
+                        const newAnswers = [...answers];
+                        newAnswers[index] = e.target.value;
+                        setAnswers(newAnswers);
+                        setError("");
+                      }}
+                      placeholder={selectedQuestion.placeholder}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {error && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Tip:</strong> Choose questions with answers you'll always remember. Answers
+              are case-insensitive.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
             <button
-              onClick={copyRecoveryCode}
-              className="rounded-lg bg-amber-200 p-2 text-amber-900 transition-colors hover:bg-amber-300"
-              title="Copy to clipboard"
+              onClick={() => {
+                setStep("recovery");
+                setError("");
+              }}
+              className="flex-1 rounded-lg border-2 border-gray-300 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
             >
-              {copied ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+              Back
+            </button>
+            <button
+              onClick={handleSaveSecurityQuestions}
+              className="flex-1 rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700"
+            >
+              Complete Setup
             </button>
           </div>
-          <p className="text-xs text-amber-700">
-            {copied ? "✓ Copied to clipboard!" : "Click to copy"}
-          </p>
         </div>
-
-        <div className="mb-6 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
-          <p className="flex items-start gap-2 text-sm text-amber-900">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              <strong>Important:</strong> Without this code, you won't be able to reset your PIN if
-              you forget it. The only option will be to reset the entire app and lose all data.
-            </span>
-          </p>
-        </div>
-
-        <button
-          onClick={handleFinishSetup}
-          className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
-        >
-          I've Saved My Recovery Code
-        </button>
       </div>
-    </div>
-  );
+    );
+  }
 }
