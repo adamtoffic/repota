@@ -97,14 +97,11 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4 duration-300">
       {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-1/2 -left-1/2 h-full w-full animate-pulse rounded-full bg-blue-500/20 blur-3xl" />
-        <div
-          className="absolute -right-1/2 -bottom-1/2 h-full w-full animate-pulse rounded-full bg-purple-500/20 blur-3xl"
-          style={{ animationDelay: "1s" }}
-        />
+        <div className="absolute -right-1/2 -bottom-1/2 h-full w-full animate-pulse rounded-full bg-purple-500/20 blur-3xl delay-1000" />
       </div>
 
       <div
@@ -151,7 +148,7 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
 
           {/* Error Message with slide animation */}
           {error && (
-            <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-red-500/90 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm">
+            <div className="animate-in slide-in-from-top-2 mt-4 flex items-center justify-center gap-2 rounded-xl bg-red-500/90 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm duration-300">
               <AlertCircle className="h-5 w-5 shrink-0" />
               <span>{error}</span>
             </div>

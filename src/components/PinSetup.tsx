@@ -156,7 +156,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
   if (step === "intro") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="bg-opacity-95 fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           {onCancel && (
             <button
