@@ -12,8 +12,17 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
   return (
     <div className="text-main bg-background min-h-screen font-sans">
       {/* NAVIGATION */}
-      <nav className="sticky top-0 z-50 bg-blue-900 shadow-lg">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <nav
+        className="sticky top-0 z-50 bg-blue-900 shadow-lg"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div
+          className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3"
+          style={{
+            paddingLeft: "max(1rem, env(safe-area-inset-left))",
+            paddingRight: "max(1rem, env(safe-area-inset-right))",
+          }}
+        >
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-linear-to-br from-amber-400 to-amber-500 p-2">
               <GraduationCap className="h-6 w-6 text-blue-900" />

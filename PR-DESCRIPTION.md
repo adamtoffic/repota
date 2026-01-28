@@ -1,154 +1,235 @@
-# 📊 Major Feature Updates & Quality Improvements
+# 🔒 Security Enhancements & Settings Improvements
 
-This PR introduces critical data validation, progress tracking, analytics export capabilities, virtual scrolling optimization, and comprehensive code quality improvements. Includes mobile performance enhancements and UX polish for production deployment.
+## 📋 Summary
 
-## ✨ New Features
+This PR introduces comprehensive security features, fixes critical data handling bugs, and improves the Settings page functionality. Major additions include encrypted file export/import, biometric authentication, and smarter configuration management.
 
-### Data Validation & Warnings
+## 🎯 Key Features
 
-- Added validation banners on Dashboard showing students with no scores, missing photos, and incomplete assessments
-- Color-coded severity levels (red/yellow/orange) with auto-hide when no warnings
-- Inline score validation in SubjectRow with error messages and red borders
-- Prevents scores exceeding configured maximums
+### 1. **Encrypted File Export/Import** 🔐
 
-### Progress Indicators
+- **Password-protected exports**: Users can now encrypt class data with AES-256-GCM encryption
+- **Custom file extension**: `.repota` files for encrypted backups, `.json` for plain exports
+- **Security-first approach**: Student data remains unencrypted in browser storage for performance, only encrypted when exporting/sharing
+- **User-friendly modals**: Password setup with show/hide toggle, strength hints, and confirmation step
+- **Backward compatible**: Plain JSON exports still work for users who prefer unencrypted backups
 
-- New ProgressModal component for bulk operations (auto-generate remarks)
-- Shows percentage completion with visual progress bar
-- Displays "X of Y" count for transparency
-- ARIA labels for accessibility
+**Implementation Details:**
 
-### Analytics Export
+- Uses Web Crypto API for AES-256-GCM encryption
+- PBKDF2 key derivation with 100,000 iterations
+- Unique salt and IV per file for security
+- Files include metadata for version compatibility
 
-- CSV export with proper escaping for Excel compatibility
-- PDF export using browser print dialog with afterprint event listener
-- Export buttons integrated into Analytics header
-- Comprehensive error logging for debugging
+### 2. **iOS Lock Screen Fixes** 📱
 
-### Welcome Tour
+- **Ghana-themed redesign**: Navy blue gradient background with gold accents
+- **Input keyboard fixes**: Changed to `type="tel"` with `pattern="[0-9]*"` to trigger numeric keyboard on iOS
+- **Focus handling**: Added `requestAnimationFrame` wrapper for reliable input focus
+- **Auto-biometric disabled on iOS**: Manual button only to prevent UI freezing
+- **Viewport improvements**: Proper height handling with `-webkit-fill-available`
 
-- Interactive first-time user onboarding (5 steps)
-- Explains school setup, student management, score entry, and report generation
-- Non-technical language for teachers
-- Fixed Ghana flag emoji display 🇬🇭
+### 3. **Smart Biometric Detection** 🔍
 
-### Mobile & Performance
+- **Device-specific detection**: Identifies Touch ID vs Face ID based on iPhone model
+- **Screen size analysis**: Uses viewport dimensions to determine device type
+  - iPhone 7 Plus (414x736) = Touch ID
+  - iPhone X+ (≥812 height) = Face ID
+- **Fallback support**: Generic "Biometric" label for unknown devices
+- **Conditional UI**: Biometric options only shown when both PIN is set AND device supports it
 
-- **Virtual Scrolling** - Implemented for student list (67x faster with 1000+ students)
-  - Only renders visible rows (~15 DOM nodes instead of 1000+)
-  - Smooth 60fps scrolling even on older phones
-  - Handles infinite student lists without lag
-- **GPU Optimizations** - Removed expensive backdrop-blur from all sticky navs (30-40% faster)
-- **Lazy Loading** - Analytics page and chart components load on-demand
-- Bundle optimization: Initial load now 90 KB gzipped (down from ~200 KB)
-- Recharts only loads when Analytics accessed (saves 118 KB for non-analytics users)
-- Scroll-to-top button for long pages
-- Zero 300ms tap delay on mobile (native app feel)
-- Auto-save indicator for offline confidence
-- Sticky table headers with optimized rendering
+### 4. **Settings Page Enhancements** ⚙️
 
-### Professional Theme & Branding
+- **Complete factory reset**: `restoreDefaults` now properly clears:
+  - Component library
+  - Subject-component mappings
+  - All custom configurations
+- **Fixed function order**: `checkBiometric` declared before use to prevent hoisting errors
+- **Mobile-optimized layout**: Responsive grids, touch-friendly buttons, proper spacing
+- **Auto-lock timer**: Configurable inactivity timeout (1-30 minutes)
 
-- **Ghana Flag Colors** - Replaced generic gradients with amber gold (#FCD34D)
-- Consistent navy blue primary (#1E3A8A) throughout
-- Professional logo styling with brand colors
-- Removed generic yellow, replaced with Ghana-specific palette
-- Cohesive visual identity across all components
+### 5. **Data Protection Logic** 🛡️
+
+- **Encryption Strategy (Option 1 Selected)**:
+  - ✅ Browser storage stays fast (unencrypted)
+  - ✅ Only encrypted when exporting/sharing files
+  - ❌ Dev tools can still see data (acceptable trade-off for performance)
+- **Smart Score Clearing**:
+  - Clears regular scores (classScore, examScore)
+  - **Intelligently handles component scores**: If subjects have component breakdowns, zeros each component's score
+  - Preserves component structure (doesn't delete, just resets values)
+  - Graceful handling of missing/undefined components
 
 ## 🐛 Bug Fixes
 
-### TypeScript & Type Safety
+### Critical Import Bug
 
-- Fixed all SchoolSettingsForm errors (classScoreComponentConfigs)
-- Removed unsafe 'any' types in export utilities
-- Added proper type guards for chart data
+**Issue**: Encrypted files would decrypt successfully but fail to import with "Failed to import file" error.
 
-### Code Quality
+**Root Cause**:
 
-- Comprehensive code review conducted (4.5/5 rating, 0 critical bugs)
-- Fixed unused error variables in catch blocks
-- Added proper error logging throughout
-- Enhanced accessibility (ARIA labels, semantic HTML)
+```typescript
+// After decryption, password was cleared
+setImportPassword("");
 
-### UI/UX Fixes
+// Later, executeImport tried to decrypt again with empty password
+const decryptedBackup = await decryptFileEncryption(file, importPassword); // ❌ Fails!
+```
 
-- Removed stray "\n" literal in Dashboard JSX
-- Fixed broken Ghana flag emoji in welcome tour 🇬🇭
-- Fixed exam score input bug (77 turning into 88, couldn't enter 100)
-- Improved form validation feedback
-- Better error messages
-- Removed hover effects on mobile (not applicable, performance waste)
-- Cleaned up production console.logs
+**Solution**:
 
-## 🎨 UX Improvements
+- Added `decryptedBackupData` state to store decrypted content
+- `handleDecryptAndImport` now saves decrypted data after successful decryption
+- `executeImport` uses stored data instead of re-reading/re-decrypting file
+- Cleanup logic clears stored data when modal is cancelled
 
-- **Accessibility** - Added ARIA labels to all interactive elements
-- Tooltips on all action buttons
-- Keyboard focus indicators
-- Removed dark mode (confusing for target users)
-- Mobile-first responsive design (98% mobile optimization score)
-- Smooth scroll navigation with virtual scrolling
-- Visual feedback for all interactions (active states)
-- Touch-optimized buttons (44px minimum touch targets)
+### Settings Reset Bug
 
-## 📦 Bundle Size
+**Issue**: Restore Defaults didn't clear component library or subject-component mappings, leaving orphaned configurations.
 
-**Before:**
+**Fix**: Added missing properties to default settings:
 
-- Initial bundle: ~200 KB gzipped
-- Analytics always loaded
-- All students rendered (performance issues at 100+)
+```typescript
+componentLibrary: [],
+subjectComponentMap: {},
+```
 
-**After:**
+## 🎨 UI/UX Improvements
 
-- Initial bundle: 90 KB gzipped ✅ (55% reduction)
-- Analytics: +10 KB gzipped (lazy loaded)
-- Charts: +118 KB gzipped (lazy loaded, first visit only)
-- Virtual scrolling: +16 KB (enables infinite students)
+### Mobile-First Design
 
-**Performance Gains:**
+- **Responsive everywhere**: `grid-cols-1 sm:grid-cols-2 md:grid-cols-4` patterns throughout
+- **Touch-optimized**: All buttons have `active:scale-95` feedback
+- **Proper spacing**: `p-5 sm:p-6` for card padding, `gap-3 sm:gap-4` for grids
+- **Maximum width constraints**: `max-w-3xl` for Settings, `max-w-7xl` for Dashboard
+- **Flexible layouts**: Components wrap properly on small screens
 
-- 50 students: 3x faster rendering
-- 100 students: 7x faster rendering
-- 500 students: 33x faster rendering
-- 1000 students: 67x faster rendering
+### Security UI
 
-## 🧪 Testing
+- **Color-coded sections**:
+  - 🟢 Green: Enable PIN Lock
+  - 🟡 Yellow: PIN Recovery
+  - 🔵 Blue: Auto-lock Timer
+  - 🟣 Purple: Biometric Authentication
+  - 🔴 Red: Disable PIN (danger zone)
+- **Clear messaging**: Each security option has descriptive text explaining its purpose
+- **Progressive disclosure**: Biometric options only show when relevant
 
-- ✅ All TypeScript errors resolved
-- ✅ Production build passes
-- ✅ No linting errors
-- ✅ Accessibility improvements validated (ARIA labels)
-- ✅ Mobile responsiveness tested (98% optimization score)
-- ✅ Virtual scrolling tested with 500+ students
-- ✅ Performance profiling completed
-- ✅ Cross-browser compatibility verified
+## 📊 Testing
 
-## 📝 Notes
+### Manual Testing Checklist
 
-This PR represents a significant quality milestone before production deployment. All priority features from the roadmap have been implemented and tested. The app achieves:
+- [x] Export plain JSON file - works
+- [x] Export encrypted .repota file with password - works
+- [x] Import plain JSON file - works
+- [x] Import encrypted .repota file with correct password - works ✅ (fixed)
+- [x] Import encrypted file with wrong password - shows error
+- [x] Restore factory defaults - clears all settings including components ✅ (fixed)
+- [x] Clear all scores - zeros regular scores AND component scores ✅ (verified)
+- [x] Lock screen on iOS - numeric keyboard appears ✅ (fixed)
+- [x] Biometric detection - correctly identifies Touch ID/Face ID
 
-- **98% Mobile UX Score** - Touch-optimized, smooth scrolling, native app feel
-- **95% Professional Design Score** - Ghana-specific branding, consistent theme
-- **Performance Ready** - Handles 1000+ students smoothly
-- **Production Quality** - Zero TypeScript errors, comprehensive testing
-- **Accessibility Compliant** - ARIA labels, semantic HTML, keyboard navigation
+### Build Status
 
-The app is now ready for real-world deployment to teachers in Ghana. 🇬🇭
+```bash
+✓ Built in 7.55s
+✓ 0 TypeScript errors
+✓ 2491 modules transformed
+```
+
+## 🔄 Migration Notes
+
+### Breaking Changes
+
+None - all changes are backward compatible.
+
+### Data Format
+
+- Encrypted files use new `.repota` extension
+- Plain JSON exports continue to work as before
+- Old backups can still be imported
+
+## 📝 Code Quality
+
+### Files Changed
+
+- `src/components/DataBackup.tsx` - Encryption UI and import flow
+- `src/components/LockScreen.tsx` - iOS fixes and Ghana theme
+- `src/utils/fileEncryption.ts` - NEW: AES-256-GCM encryption engine
+- `src/utils/biometricAuth.ts` - Smart device detection
+- `src/context/SchoolContext.tsx` - Restore defaults fix
+- `src/pages/Settings.tsx` - Function order fix, mobile optimization
+- `src/index.css` - iOS viewport fixes
+
+### Technical Debt Addressed
+
+- ✅ Removed double-decryption anti-pattern
+- ✅ Fixed function hoisting issues
+- ✅ Improved state management for async operations
+- ✅ Added proper cleanup handlers for modals
+
+## 🚀 Performance Impact
+
+### Bundle Size
+
+No significant increase - encryption uses native Web Crypto API (0 KB added).
+
+### Runtime Performance
+
+- Encryption/decryption is async (non-blocking UI)
+- Browser storage remains fast (no encryption overhead)
+- Minimal impact on app startup
+
+## 🔐 Security Considerations
+
+### What's Protected
+
+- ✅ Exported files can be password-protected
+- ✅ App can be locked with PIN + biometric
+- ✅ Recovery codes for PIN reset
+- ✅ Auto-lock on inactivity
+
+### What's Not Protected
+
+- ⚠️ Data in browser storage is unencrypted (visible in dev tools)
+- **Rationale**: Performance trade-off - IndexedDB encryption would slow down every operation
+- **Mitigation**: PIN lock prevents unauthorized device access
+
+## 📚 Documentation
+
+### User-Facing Changes
+
+- New "Password Protection" toggle in Data Backup section
+- New biometric options in Security settings (when available)
+- Ghana-themed lock screen on iOS devices
+
+### Developer Notes
+
+- See `src/utils/fileEncryption.ts` for encryption implementation
+- Web Crypto API requires HTTPS in production
+- PBKDF2 iterations set to 100k (balance between security and UX)
+
+## ✅ Checklist
+
+- [x] Code builds without errors
+- [x] Manual testing completed
+- [x] Mobile responsiveness verified
+- [x] Security features tested
+- [x] Backward compatibility confirmed
+- [x] No console errors or warnings
+- [x] TypeScript types properly defined
+
+## 🎯 Next Steps (Future PRs)
+
+- [ ] Add backup reminder notifications
+- [ ] Implement cloud backup option (Firebase)
+- [ ] Performance optimization (code splitting)
+- [ ] Add analytics for feature usage
+- [ ] Implement monetization (paid tier)
 
 ---
 
-## Deployment Checklist
-
-- [x] TypeScript build passes
-- [x] Code review completed (4.5/5 rating, 0 critical bugs)
-- [x] Bundle size optimized (55% reduction)
-- [x] Virtual scrolling implemented
-- [x] Mobile performance optimized (98% score)
-- [x] GPU-intensive effects removed
-- [x] Accessibility improved (ARIA labels added)
-- [x] Ghana flag branding applied
-- [x] Production console.logs removed
-- [x] Welcome tour for onboarding
-- [x] All bugs fixed (exam score input, emoji, etc.)
-- [x] Performance tested with 500+ students
+**Branch**: `feat-logic/ui` → `main`  
+**Commits**: 5 commits (encryption, iOS fixes, settings improvements, bug fixes)  
+**Lines Changed**: ~800 additions, ~200 deletions  
+**Review Focus**: Security implementation, iOS compatibility, data migration
