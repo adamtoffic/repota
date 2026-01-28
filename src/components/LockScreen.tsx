@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { Lock, AlertCircle, KeyRound } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lock, AlertCircle, KeyRound, Fingerprint } from "lucide-react";
 import { verifyPin } from "../utils/pinSecurity";
+import {
+  isBiometricEnrolled,
+  verifyBiometric,
+  getBiometricName,
+  isBiometricAvailable,
+} from "../utils/biometricAuth";
 
 interface Props {
   onUnlock: () => void;
@@ -13,6 +19,40 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [shake, setShake] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [biometricName, setBiometricName] = useState<string>("Biometric");
+  const [showBiometricButton, setShowBiometricButton] = useState(false);
+
+  // Auto-prompt biometric on mount
+  useEffect(() => {
+    checkAndPromptBiometric();
+  }, []);
+
+  const checkAndPromptBiometric = async () => {
+    if (isBiometricEnrolled()) {
+      const { available, type } = await isBiometricAvailable();
+      if (available) {
+        setBiometricName(getBiometricName(type));
+        setShowBiometricButton(true);
+        // Auto-prompt biometric
+        attemptBiometricUnlock();
+      }
+    }
+  };
+
+  const attemptBiometricUnlock = async () => {
+    setError("");
+    const { success, error: biometricError } = await verifyBiometric();
+
+    if (success) {
+      setIsUnlocking(true);
+      setTimeout(() => {
+        onUnlock();
+      }, 400);
+    } else if (biometricError && !biometricError.includes("cancelled")) {
+      // Only show error if not cancelled by user
+      setError(biometricError);
+    }
+  };
 
   const handlePinChange = (value: string) => {
     const numericValue = value.replace(/\D/g, "");
@@ -117,6 +157,20 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
             />
           ))}
         </div>
+
+        {/* Biometric Button (if available) */}
+        {showBiometricButton && (
+          <div className="mb-6 text-center">
+            <button
+              onClick={attemptBiometricUnlock}
+              disabled={isUnlocking}
+              className="group inline-flex items-center gap-2 rounded-xl bg-white/10 px-6 py-3 text-sm font-bold text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-white/20 active:scale-95 disabled:opacity-50"
+            >
+              <Fingerprint className="h-5 w-5 transition-transform group-hover:scale-110" />
+              <span>Use {biometricName}</span>
+            </button>
+          </div>
+        )}
 
         {/* Forgot PIN Link with icon */}
         <div className="text-center">

@@ -1,5 +1,14 @@
-import { useState } from "react";
-import { Lock, Key, AlertCircle, CheckCircle, Copy, X, HelpCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Lock,
+  Key,
+  AlertCircle,
+  CheckCircle,
+  Copy,
+  X,
+  HelpCircle,
+  Fingerprint,
+} from "lucide-react";
 import {
   setupPin,
   generateRecoveryCode,
@@ -7,6 +16,7 @@ import {
   isSameAsCurrentPin,
   saveSecurityQuestions,
 } from "../utils/pinSecurity";
+import { isBiometricAvailable, enrollBiometric, getBiometricName } from "../utils/biometricAuth";
 import { SECURITY_QUESTIONS } from "../constants/securityQuestions";
 
 interface Props {
@@ -16,9 +26,9 @@ interface Props {
 
 export function PinSetup({ onComplete, onCancel }: Props) {
   const isChangingPin = isPinConfigured();
-  const [step, setStep] = useState<"intro" | "create" | "confirm" | "recovery" | "questions">(
-    isChangingPin ? "create" : "intro",
-  );
+  const [step, setStep] = useState<
+    "intro" | "create" | "confirm" | "recovery" | "questions" | "biometric"
+  >(isChangingPin ? "create" : "intro");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [recoveryCode] = useState(generateRecoveryCode());
@@ -28,6 +38,22 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   // Security questions state
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>(["", "", ""]);
   const [answers, setAnswers] = useState<string[]>(["", "", ""]);
+
+  // Biometric state
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<"face" | "fingerprint" | "other" | null>(null);
+  const [enrollingBiometric, setEnrollingBiometric] = useState(false);
+
+  // Check biometric availability on mount
+  useEffect(() => {
+    checkBiometric();
+  }, []);
+
+  const checkBiometric = async () => {
+    const { available, type } = await isBiometricAvailable();
+    setBiometricAvailable(available);
+    setBiometricType(type);
+  };
 
   const handleCreatePin = async () => {
     if (pin.length !== 4) {
@@ -83,10 +109,34 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
     const success = await saveSecurityQuestions(questionsToSave);
     if (success) {
-      await handleFinishSetup();
+      // Check if biometric is available, if so go to biometric step
+      if (biometricAvailable) {
+        setStep("biometric");
+      } else {
+        await handleFinishSetup();
+      }
     } else {
       setError("Failed to save security questions. Please try again.");
     }
+  };
+
+  const handleEnrollBiometric = async () => {
+    setEnrollingBiometric(true);
+    setError("");
+
+    const { success, error: biometricError } = await enrollBiometric();
+
+    setEnrollingBiometric(false);
+
+    if (success) {
+      await handleFinishSetup();
+    } else {
+      setError(biometricError || "Failed to enroll biometric");
+    }
+  };
+
+  const handleSkipBiometric = async () => {
+    await handleFinishSetup();
   };
 
   const handleFinishSetup = async () => {
@@ -449,7 +499,70 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               onClick={handleSaveSecurityQuestions}
               className="flex-1 rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700"
             >
-              Complete Setup
+              {biometricAvailable ? "Next" : "Complete Setup"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Biometric enrollment step
+  if (step === "biometric") {
+    const biometricName = getBiometricName(biometricType);
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+          <div className="mb-6 flex justify-center">
+            <div className="rounded-full bg-indigo-100 p-4">
+              <Fingerprint className="h-12 w-12 text-indigo-600" />
+            </div>
+          </div>
+
+          <h2 className="mb-3 text-center text-xl font-bold text-gray-900">
+            Enable {biometricName}?
+          </h2>
+          <p className="mb-6 text-center text-sm text-gray-600">
+            Use {biometricName} to unlock the app quickly. Your PIN will still work as a backup.
+          </p>
+
+          <div className="mb-6 space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+            <p className="flex items-start gap-2">
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Faster unlock on this device</span>
+            </p>
+            <p className="flex items-start gap-2">
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>More secure than PIN alone</span>
+            </p>
+            <p className="flex items-start gap-2">
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>PIN remains available as fallback</span>
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleSkipBiometric}
+              disabled={enrollingBiometric}
+              className="flex-1 rounded-lg border-2 border-gray-300 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Skip for Now
+            </button>
+            <button
+              onClick={handleEnrollBiometric}
+              disabled={enrollingBiometric}
+              className="flex-1 rounded-lg bg-indigo-600 py-3 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {enrollingBiometric ? "Setting up..." : `Enable ${biometricName}`}
             </button>
           </div>
         </div>

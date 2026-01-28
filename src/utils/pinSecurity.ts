@@ -132,6 +132,10 @@ export function disablePinLock(): void {
   localStorage.removeItem(PIN_STORAGE_KEY);
   localStorage.removeItem(RECOVERY_CODE_KEY);
   localStorage.removeItem(SECURITY_QUESTIONS_KEY);
+
+  // Also disable biometric since it's tied to PIN
+  localStorage.removeItem("biometric_credential_id");
+  localStorage.removeItem("biometric_enabled");
 }
 
 /**

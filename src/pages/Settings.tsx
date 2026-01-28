@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
   Calculator,
   Lock,
   Key,
+  Fingerprint,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -34,6 +35,13 @@ import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { PinSetup } from "../components/PinSetup";
 import { PinRecovery } from "../components/PinRecovery";
 import { isPinConfigured, disablePinLock } from "../utils/pinSecurity";
+import {
+  isBiometricEnrolled,
+  isBiometricAvailable,
+  enrollBiometric,
+  disableBiometric,
+  getBiometricName,
+} from "../utils/biometricAuth";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -67,6 +75,41 @@ export function Settings() {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showPinRecovery, setShowPinRecovery] = useState(false);
   const [showDisablePinModal, setShowDisablePinModal] = useState(false);
+
+  // Biometric state
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<"face" | "fingerprint" | "other" | null>(null);
+  const [enrollingBiometric, setEnrollingBiometric] = useState(false);
+
+  // Check biometric availability on mount
+  useEffect(() => {
+    checkBiometric();
+  }, []);
+
+  const checkBiometric = async () => {
+    const { available, type } = await isBiometricAvailable();
+    setBiometricAvailable(available);
+    setBiometricType(type);
+  };
+
+  const handleEnrollBiometric = async () => {
+    setEnrollingBiometric(true);
+    const { success, error } = await enrollBiometric();
+    setEnrollingBiometric(false);
+
+    if (success) {
+      showToast(`${getBiometricName(biometricType)} enabled successfully!`, "success");
+      checkBiometric(); // Refresh state
+    } else {
+      showToast(error || "Failed to enable biometric", "error");
+    }
+  };
+
+  const handleDisableBiometric = () => {
+    disableBiometric();
+    showToast("Biometric authentication disabled", "info");
+    checkBiometric(); // Refresh state
+  };
 
   // --- HANDLERS ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
@@ -954,6 +997,48 @@ export function Settings() {
                     <option value={30}>30 minutes</option>
                   </select>
                 </div>
+              </div>
+            )}
+
+            {/* Biometric Section - Only show if PIN is configured AND device supports it */}
+            {isPinConfigured() && biometricAvailable && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-bold text-indigo-900">
+                  <Fingerprint className="h-4 w-4" /> {getBiometricName(biometricType)}
+                </h3>
+                <p className="mb-3 text-sm text-indigo-800">
+                  Use {getBiometricName(biometricType)} to unlock the app quickly. Your PIN will
+                  still work as a backup.
+                </p>
+
+                {isBiometricEnrolled() ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-indigo-900">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="font-medium">
+                        {getBiometricName(biometricType)} is enabled
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleDisableBiometric}
+                      className="rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
+                    >
+                      Disable {getBiometricName(biometricType)}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEnrollBiometric}
+                    disabled={enrollingBiometric}
+                    className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto"
+                  >
+                    {enrollingBiometric
+                      ? "Setting up..."
+                      : `Enable ${getBiometricName(biometricType)}`}
+                  </button>
+                )}
               </div>
             )}
           </div>
