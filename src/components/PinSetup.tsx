@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Lock, Key, AlertCircle, CheckCircle, Copy, X } from "lucide-react";
-import { setupPin, generateRecoveryCode, isPinConfigured } from "../utils/pinSecurity";
+import {
+  setupPin,
+  generateRecoveryCode,
+  isPinConfigured,
+  isSameAsCurrentPin,
+} from "../utils/pinSecurity";
 
 interface Props {
   onComplete: () => void;
@@ -18,11 +23,21 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const handleCreatePin = () => {
+  const handleCreatePin = async () => {
     if (pin.length !== 4) {
       setError("PIN must be 4 digits");
       return;
     }
+
+    // Check if trying to use the same PIN when changing
+    if (isChangingPin) {
+      const isSame = await isSameAsCurrentPin(pin);
+      if (isSame) {
+        setError("New PIN must be different from current PIN");
+        return;
+      }
+    }
+
     setError("");
     setStep("confirm");
   };

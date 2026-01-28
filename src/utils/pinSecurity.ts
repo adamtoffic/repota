@@ -66,6 +66,22 @@ export async function verifyPin(pin: string): Promise<boolean> {
 }
 
 /**
+ * Check if new PIN is same as current PIN
+ */
+export async function isSameAsCurrentPin(newPin: string): Promise<boolean> {
+  try {
+    const storedHash = localStorage.getItem(PIN_STORAGE_KEY);
+    if (!storedHash) return false;
+
+    const newHash = await hashString(newPin);
+    return newHash === storedHash;
+  } catch (error) {
+    console.error("PIN comparison error:", error);
+    return false;
+  }
+}
+
+/**
  * Verify recovery code
  */
 export async function verifyRecoveryCode(code: string): Promise<boolean> {
