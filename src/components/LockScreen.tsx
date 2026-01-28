@@ -97,15 +97,12 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
-      {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/20" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4">
       {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 h-full w-full animate-pulse rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute -top-1/2 -left-1/2 h-full w-full animate-pulse rounded-full bg-blue-500/20 blur-3xl" />
         <div
-          className="absolute -right-1/2 -bottom-1/2 h-full w-full animate-pulse rounded-full bg-indigo-500/10 blur-3xl"
+          className="absolute -right-1/2 -bottom-1/2 h-full w-full animate-pulse rounded-full bg-purple-500/20 blur-3xl"
           style={{ animationDelay: "1s" }}
         />
       </div>
