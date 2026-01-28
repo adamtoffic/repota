@@ -19,6 +19,7 @@ import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { WelcomeTour } from "../components/WelcomeTour";
 import { ValidationWarnings } from "../components/ValidationWarnings";
 import { ProgressModal } from "../components/ProgressModal";
+import { useToast } from "../hooks/useToast";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 
@@ -36,6 +37,8 @@ export function Dashboard() {
     isSaving,
     lastSaved,
   } = useSchoolData();
+
+  const { showToast } = useToast();
 
   // Welcome Banner State
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -86,6 +89,7 @@ export function Dashboard() {
     const newStudent: StudentRecord = {
       id: newId,
       name: "New Student", // Placeholder
+      gender: "Male", // Default - will be changed in modal
       className: settings.className || "Class",
       subjects: [], // Will be populated by Modal logic
       attendancePresent: 0,
@@ -247,12 +251,21 @@ export function Dashboard() {
                 onSearchChange={setSearchQuery}
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
-                onExport={() =>
-                  exportToCSV(
-                    students,
-                    `Class_Broadsheet_${new Date().toISOString().split("T")[0]}`,
-                  )
-                }
+                onExport={() => {
+                  try {
+                    exportToCSV(
+                      students,
+                      `Class_Broadsheet_${new Date().toISOString().split("T")[0]}`,
+                    );
+                    showToast("Class list exported successfully!", "success");
+                  } catch (error) {
+                    console.error("Export failed:", error);
+                    showToast(
+                      error instanceof Error ? error.message : "Export failed. Please try again.",
+                      "error",
+                    );
+                  }
+                }}
                 onDeletePending={() => setConfirmCleanModal(true)}
                 onImport={() => setShowImportModal(true)}
                 onAutoRemarks={() => {
@@ -348,6 +361,8 @@ export function Dashboard() {
           isOpen={!!editingStudent}
           onClose={() => setEditingStudentId(null)}
           onUpdateStudent={updateStudent}
+          allStudents={filteredStudents}
+          onNavigate={setEditingStudentId}
         />
       )}
 

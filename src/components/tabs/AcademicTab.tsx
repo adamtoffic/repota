@@ -9,10 +9,16 @@ interface Props {
   student: ProcessedStudent;
   level: SchoolLevel;
   onUpdate: (updatedRecord: StudentRecord) => void;
+  filterSubject?: string | null; // Optional: filter to show only one subject
 }
 
-export function AcademicTab({ student, level, onUpdate }: Props) {
-  const { settings, clearStudentScores } = useSchoolData();
+export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) {
+  const {
+    settings,
+    clearStudentScores,
+    detectComponentMismatches,
+    syncSubjectComponentsFromSettings,
+  } = useSchoolData();
   const masterList = settings.defaultSubjects || [];
 
   // State for Modals
@@ -25,21 +31,14 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
 
   const obsoleteSubjects = student.subjects.filter((sub) => !masterList.includes(sub.name));
 
-  // Check for missing components
-  const hasComponentsConfigured =
-    settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
+  // Detect component mismatches
+  const { hasOutdated, hasMissing } = detectComponentMismatches();
+  const showComponentSyncAlert = hasOutdated || hasMissing;
 
-  const subjectsWithMissingComponents = hasComponentsConfigured
-    ? student.subjects.filter((subject) => {
-        if (!subject.classScoreComponents || subject.classScoreComponents.length === 0) {
-          return true;
-        }
-        // Check if any configured component is missing
-        return settings.classScoreComponentConfigs!.some(
-          (config) => !subject.classScoreComponents!.find((comp) => comp.name === config.name),
-        );
-      })
-    : [];
+  // Filter subjects if filterSubject is set
+  const displayedSubjects = filterSubject
+    ? student.subjects.filter((sub) => sub.name === filterSubject)
+    : student.subjects;
 
   // Instant save on field blur - no debounce needed
   const handleScoreUpdate = (updatedSubject: SavedSubject) => {
@@ -50,59 +49,19 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
   };
 
   const handleAddMissing = () => {
-    const hasComponents =
-      settings.classScoreComponentConfigs && settings.classScoreComponentConfigs.length > 0;
-
     const newSubjects = missingSubjects.map((name) => {
       const subject: SavedSubject = {
         id: crypto.randomUUID(),
         name,
         classScore: 0,
         examScore: 0,
+        // Don't auto-add components - let user choose per subject
       };
-
-      // Initialize components if configured
-      if (hasComponents && settings.classScoreComponentConfigs) {
-        subject.classScoreComponents = settings.classScoreComponentConfigs.map((config) => ({
-          id: crypto.randomUUID(),
-          name: config.name,
-          score: 0,
-          maxScore: config.maxScore,
-        }));
-      }
 
       return subject;
     });
 
     onUpdate({ ...student, subjects: [...student.subjects, ...newSubjects] });
-  };
-
-  const handleAddMissingComponents = () => {
-    if (!hasComponentsConfigured || !settings.classScoreComponentConfigs) return;
-
-    const updatedSubjects = student.subjects.map((subject) => {
-      const existingComponents = subject.classScoreComponents || [];
-
-      // Create all components from configs, preserving existing scores
-      const allComponents = settings.classScoreComponentConfigs!.map((config) => {
-        const existing = existingComponents.find((c) => c.name === config.name);
-        return (
-          existing || {
-            id: crypto.randomUUID(),
-            name: config.name,
-            score: 0,
-            maxScore: config.maxScore,
-          }
-        );
-      });
-
-      return {
-        ...subject,
-        classScoreComponents: allComponents,
-      };
-    });
-
-    onUpdate({ ...student, subjects: updatedSubjects });
   };
 
   // 🛑 CHANGED: Instead of confirm(), we just open the modal
@@ -155,7 +114,29 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
         </div>
       )}
 
-      {/* ... (Missing Subjects Alert stays the same) ... */}
+      {/* Component Sync Alert */}
+      {showComponentSyncAlert && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <span className="text-xs text-blue-700">
+              {hasMissing && hasOutdated
+                ? "Components need updating."
+                : hasMissing
+                  ? "Missing components from Settings."
+                  : "Outdated components detected."}
+            </span>
+          </div>
+          <button
+            onClick={() => syncSubjectComponentsFromSettings()}
+            className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-xs font-bold text-white"
+          >
+            Sync Now
+          </button>
+        </div>
+      )}
+
+      {/* Missing Subjects Alert */}
       {missingSubjects.length > 0 && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-center gap-2">
@@ -169,26 +150,6 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
             className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-xs font-bold text-white"
           >
             Add Missing
-          </button>
-        </div>
-      )}
-
-      {/* MISSING COMPONENTS ALERT */}
-      {subjectsWithMissingComponents.length > 0 && (
-        <div className="flex flex-col gap-2 rounded-lg border border-purple-200 bg-purple-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-purple-600" />
-            <span className="text-xs text-purple-700">
-              <strong>{subjectsWithMissingComponents.length}</strong> subject
-              {subjectsWithMissingComponents.length !== 1 ? "s" : ""} missing new class score
-              components.
-            </span>
-          </div>
-          <button
-            onClick={handleAddMissingComponents}
-            className="rounded bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-700 active:scale-95"
-          >
-            Update Components
           </button>
         </div>
       )}
@@ -220,8 +181,19 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
 
       {/* THE LIST */}
       <div className="space-y-3">
-        {/* Mobile tip - only show when there are subjects */}
-        {student.subjects.length > 0 && (
+        {/* Subject Filter Info */}
+        {filterSubject && (
+          <div className="rounded-lg bg-purple-50 p-3 text-center">
+            <p className="text-sm font-semibold text-purple-800">🎯 Focused on: {filterSubject}</p>
+            <p className="text-xs text-purple-600">
+              Navigate students while staying on this subject. Select "All Subjects" to see
+              everything.
+            </p>
+          </div>
+        )}
+
+        {/* Mobile tip - only show when NOT in focus mode and there are subjects */}
+        {!filterSubject && displayedSubjects.length > 0 && (
           <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700 sm:hidden">
             <p className="font-medium">
               💡 Tip: Tap "Next" on your keyboard to jump between fields quickly!
@@ -229,12 +201,14 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
           </div>
         )}
 
-        {student.subjects.length === 0 ? (
+        {displayedSubjects.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-gray-200 py-10 text-center text-gray-400">
-            No subjects found. Use the alerts above to sync with Settings.
+            {filterSubject
+              ? `This student doesn't have "${filterSubject}".`
+              : "No subjects found. Use the alerts above to sync with Settings."}
           </div>
         ) : (
-          student.subjects.map((subject) => {
+          displayedSubjects.map((subject) => {
             const isObsolete = !masterList.includes(subject.name);
             return (
               <div key={subject.id} className={isObsolete ? "opacity-50 grayscale" : ""}>
@@ -244,7 +218,7 @@ export function AcademicTab({ student, level, onUpdate }: Props) {
                   onChange={handleScoreUpdate}
                   maxClassScore={settings.classScoreMax}
                   maxExamScore={settings.examScoreMax}
-                  classScoreComponentConfigs={settings.classScoreComponentConfigs}
+                  componentLibrary={settings.componentLibrary}
                 />
                 {isObsolete && (
                   <p className="mt-1 text-right text-[10px] font-bold text-red-500">

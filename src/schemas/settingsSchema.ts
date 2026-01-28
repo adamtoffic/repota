@@ -100,8 +100,8 @@ export const schoolSettingsSchema = z
       )
       .max(25, "Too many subjects"),
 
-    // Class score component configurations with max scores
-    classScoreComponentConfigs: z
+    // Component library - available assessment components that can be added to subjects
+    componentLibrary: z
       .array(
         z.object({
           name: z.string().min(1, "Component name required").max(100, "Component name too long"),
@@ -111,7 +111,7 @@ export const schoolSettingsSchema = z
             .max(100, "Max score cannot exceed 100"),
         }),
       )
-      .max(10, "Too many class score components")
+      .max(10, "Too many components in library")
       .optional(),
 
     // Private School Fees

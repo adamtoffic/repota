@@ -4,8 +4,8 @@ import { GraduationCap } from "lucide-react";
 interface Props {
   children: ReactNode;
   schoolName: string;
-  activeTab: "dashboard" | "settings";
-  onTabChange: (tab: "dashboard" | "settings") => void;
+  activeTab: "dashboard" | "settings" | "subject-entry";
+  onTabChange: (tab: "dashboard" | "settings" | "subject-entry") => void;
 }
 
 export function Layout({ children, schoolName, activeTab, onTabChange }: Props) {
@@ -15,7 +15,7 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
       <nav className="sticky top-0 z-50 bg-blue-900 shadow-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 p-2">
+            <div className="rounded-lg bg-linear-to-br from-amber-400 to-amber-500 p-2">
               <GraduationCap className="h-6 w-6 text-blue-900" />
             </div>
             <div>
@@ -29,7 +29,7 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
           <div className="flex gap-2">
             <button
               onClick={() => onTabChange("dashboard")}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              className={`rounded-lg px-3 py-2 text-sm font-bold transition-colors sm:px-4 ${
                 activeTab === "dashboard"
                   ? "bg-white text-blue-900"
                   : "text-blue-100 hover:bg-white/10"
@@ -38,8 +38,19 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
               Dashboard
             </button>
             <button
+              onClick={() => onTabChange("subject-entry")}
+              className={`rounded-lg px-3 py-2 text-sm font-bold transition-colors sm:px-4 ${
+                activeTab === "subject-entry"
+                  ? "bg-white text-blue-900"
+                  : "text-blue-100 hover:bg-white/10"
+              }`}
+            >
+              <span className="hidden sm:inline">Subject Entry</span>
+              <span className="sm:hidden">Entry</span>
+            </button>
+            <button
               onClick={() => onTabChange("settings")}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              className={`rounded-lg px-3 py-2 text-sm font-bold transition-colors sm:px-4 ${
                 activeTab === "settings"
                   ? "bg-white text-blue-900"
                   : "text-blue-100 hover:bg-white/10"

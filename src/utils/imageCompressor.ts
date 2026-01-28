@@ -1,3 +1,8 @@
+/**
+ * Compress images using WebP format (30% smaller than JPEG)
+ * Falls back to JPEG for older browsers
+ * Handles high-end phone cameras (12MP+) down to ~30-100KB
+ */
 export const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -24,9 +29,16 @@ export const compressImage = (file: File): Promise<string> => {
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, width, height);
 
-        // 4. Export as highly compressed JPEG (0.7 quality)
-        // This converts the heavy PNG/Heic into a tiny string
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        // 4. Try WebP first (better compression), fallback to JPEG
+        // WebP gives ~30% smaller files with better quality
+        let dataUrl = canvas.toDataURL("image/webp", 0.75);
+
+        // Check if WebP is supported (some old browsers return image/png)
+        if (!dataUrl.startsWith("data:image/webp")) {
+          // Fallback to JPEG for older browsers
+          dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        }
+
         resolve(dataUrl);
       };
 

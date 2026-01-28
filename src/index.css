@@ -31,6 +31,29 @@
   --font-serif: "Times New Roman", Times, serif;
 }
 
+/* iOS specific fixes for better mobile experience */
+html {
+  height: 100%;
+  height: -webkit-fill-available;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fix iOS input zoom issue */
+input,
+textarea,
+select {
+  font-size: 16px !important; /* Prevents iOS zoom on focus */
+}
+
 @layer utilities {
   .print-only {
     display: none;

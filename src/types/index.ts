@@ -29,7 +29,7 @@ export interface SavedSubject {
   name: string;
   classScore: number;
   examScore: number;
-  classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score
+  classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score - subject-specific!
 }
 
 export interface StudentRecord {
@@ -37,7 +37,7 @@ export interface StudentRecord {
   name: string;
   className: string;
   dateOfBirth?: string;
-  gender?: "Male" | "Female";
+  gender: "Male" | "Female"; // Required field
   attendancePresent?: number;
   teacherRemark?: string;
   conduct?: string;
@@ -74,13 +74,19 @@ export interface SchoolSettings {
 
   defaultSubjects: string[];
 
-  // Class score component configurations with max scores
-  classScoreComponentConfigs?: ClassScoreComponentConfig[];
+  // Component library - templates that can be added to individual subjects
+  componentLibrary?: ClassScoreComponentConfig[];
+
+  // Subject-component mapping - which components each subject uses
+  subjectComponentMap?: Record<string, ClassScoreComponentConfig[]>;
 
   // Private school fees
   schoolGift?: number; // Daily school fees
   canteenFees?: number; // Daily canteen fees
   firstAidFees?: number; // Termly first aid fees
+
+  // Security settings
+  autoLockTimeout?: number; // Minutes of inactivity before auto-lock (default: 5)
 }
 
 export interface ProcessedSubject extends SavedSubject {

@@ -1,7 +1,7 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
-import { ReportTemplate } from "../components/ReportTemplate";
+import { LazyReportCard } from "../components/LazyReportCard";
 import { useEffect } from "react";
 import { createPrintHandler } from "../utils/printHandler";
 import { ScrollButton } from "../components/ScrollButton";
@@ -150,24 +150,16 @@ export function PrintPreview() {
         )}
       </div>
 
-      {/* 2. THE PREVIEW AREA */}
+      {/* 2. THE PREVIEW AREA - Lazy loaded for performance */}
       <div className="overflow-x-hidden print:m-0 print:w-full print:p-0">
         {printableStudents.map((student, index) => (
-          <div
+          <LazyReportCard
             key={student.id}
-            className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:h-auto print:overflow-visible print:p-0"
-            style={{
-              pageBreakAfter: index < printableStudents.length - 1 ? "always" : "auto",
-            }}
-          >
-            {/* MOBILE RESPONSIVE WRAPPER */}
-            {/* ✅ FIXED: Changed scale from 0.45 to 0.40 to fit 320px screens */}
-            <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:h-full print:w-full print:scale-100 print:transform-none">
-              <div className="shadow-2xl print:m-0 print:p-0 print:shadow-none">
-                <ReportTemplate student={student} settings={settings} />
-              </div>
-            </div>
-          </div>
+            student={student}
+            settings={settings}
+            index={index}
+            totalStudents={printableStudents.length}
+          />
         ))}
       </div>
 

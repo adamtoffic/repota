@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -12,17 +12,36 @@ import {
   X,
   RotateCcw,
   Calculator,
+  Lock,
+  Key,
+  Fingerprint,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ImageUploader } from "../components/ImageUploader";
 import { DataBackup } from "../components/DataBackup";
+import { StorageMonitor } from "../components/StorageMonitor";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
-import type { SchoolLevel, SchoolSettings, AcademicPeriod } from "../types";
+import type {
+  SchoolLevel,
+  SchoolSettings,
+  AcademicPeriod,
+  ClassScoreComponentConfig,
+} from "../types";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
+import { PinSetup } from "../components/PinSetup";
+import { PinRecovery } from "../components/PinRecovery";
+import { isPinConfigured, disablePinLock } from "../utils/pinSecurity";
+import {
+  isBiometricEnrolled,
+  isBiometricAvailable,
+  enrollBiometric,
+  disableBiometric,
+  getBiometricName,
+} from "../utils/biometricAuth";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -53,6 +72,44 @@ export function Settings() {
   const [newComponentMax, setNewComponentMax] = useState("");
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [showPinRecovery, setShowPinRecovery] = useState(false);
+  const [showDisablePinModal, setShowDisablePinModal] = useState(false);
+
+  // Biometric state
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<"face" | "fingerprint" | "other" | null>(null);
+  const [enrollingBiometric, setEnrollingBiometric] = useState(false);
+
+  const checkBiometric = async () => {
+    const { available, type } = await isBiometricAvailable();
+    setBiometricAvailable(available);
+    setBiometricType(type);
+  };
+
+  // Check biometric availability on mount
+  useEffect(() => {
+    checkBiometric();
+  }, []);
+
+  const handleEnrollBiometric = async () => {
+    setEnrollingBiometric(true);
+    const { success, error } = await enrollBiometric();
+    setEnrollingBiometric(false);
+
+    if (success) {
+      showToast(`${getBiometricName(biometricType)} enabled successfully!`, "success");
+      checkBiometric(); // Refresh state
+    } else {
+      showToast(error || "Failed to enable biometric", "error");
+    }
+  };
+
+  const handleDisableBiometric = () => {
+    disableBiometric();
+    showToast("Biometric authentication disabled", "info");
+    checkBiometric(); // Refresh state
+  };
 
   // --- HANDLERS ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
@@ -99,7 +156,7 @@ export function Settings() {
       return;
     }
 
-    const current = formData.classScoreComponentConfigs || [];
+    const current = formData.componentLibrary || [];
     if (current.some((c) => c.name === trimmed)) {
       showToast("This component already exists!", "error");
       return;
@@ -107,21 +164,48 @@ export function Settings() {
 
     setFormData((prev) => ({
       ...prev,
-      classScoreComponentConfigs: [...current, { name: trimmed, maxScore }],
+      componentLibrary: [...current, { name: trimmed, maxScore }],
     }));
     setNewComponentName("");
     setNewComponentMax("");
-    showToast("Component added!", "success");
+    showToast("Component added to library!", "success");
   };
 
   const removeComponent = (componentName: string) => {
     setFormData((prev) => ({
       ...prev,
-      classScoreComponentConfigs: (prev.classScoreComponentConfigs || []).filter(
+      componentLibrary: (prev.componentLibrary || []).filter(
         (config) => config.name !== componentName,
       ),
     }));
-    showToast("Component removed!", "success");
+    showToast("Component removed from library!", "success");
+  };
+
+  // Add component to a specific subject
+  const addComponentToSubject = (subjectName: string, component: ClassScoreComponentConfig) => {
+    setFormData((prev) => ({
+      ...prev,
+      subjectComponentMap: {
+        ...(prev.subjectComponentMap || {}),
+        [subjectName]: [...(prev.subjectComponentMap?.[subjectName] || []), component],
+      },
+    }));
+  };
+
+  // Remove component from a specific subject
+  const removeComponentFromSubject = (subjectName: string, componentName: string) => {
+    setFormData((prev) => {
+      const currentComponents = prev.subjectComponentMap?.[subjectName] || [];
+      const updatedComponents = currentComponents.filter((c) => c.name !== componentName);
+
+      return {
+        ...prev,
+        subjectComponentMap: {
+          ...(prev.subjectComponentMap || {}),
+          [subjectName]: updatedComponents,
+        },
+      };
+    });
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -135,10 +219,12 @@ export function Settings() {
 
   const finalizeSave = (shouldUpdateStudents = false) => {
     setSettings(formData);
+
     if (shouldUpdateStudents) {
       updateClassNameForAll(formData.className || "");
       showToast(`Updated class name for ${students.length} students`, "success");
     }
+
     showToast("Configuration saved successfully!", "success");
     navigate({ to: "/" });
   };
@@ -551,13 +637,13 @@ export function Settings() {
               <div className="mb-3 flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-purple-700" />
                 <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
-                  Class Score Components (Optional)
+                  Component Library (Optional)
                 </h3>
               </div>
               <p className="mb-4 text-xs leading-relaxed text-purple-700">
-                Break down class scores into components like "Class Test" (max: 20), "Project" (max:
-                30). Set a max score for each component. Students' actual scores will be summed and
-                converted to the class score percentage.
+                Create a library of assessment components (e.g., "Class Test", "Project", "Quiz").
+                These can then be selectively added to individual subjects. Each component needs a
+                maximum score. Components are subject-specific - add only what you need per subject!
               </p>
 
               {/* Add Component Input */}
@@ -573,7 +659,7 @@ export function Settings() {
                     }
                   }}
                   className="flex-1 rounded-lg border border-purple-300 bg-white p-2.5 text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                  placeholder="e.g. Class Test, Project"
+                  placeholder="e.g. Class Test, Project, Quiz"
                 />
                 <div className="flex gap-2">
                   <input
@@ -605,20 +691,14 @@ export function Settings() {
               </div>
 
               {/* Component List */}
-              {(formData.classScoreComponentConfigs || []).length > 0 ? (
+              {(formData.componentLibrary || []).length > 0 ? (
                 <div className="space-y-3">
                   <p className="text-xs font-bold text-purple-800">
-                    {(formData.classScoreComponentConfigs || []).length} Component
-                    {(formData.classScoreComponentConfigs || []).length !== 1 ? "s" : ""}
-                    {" (Total: "}
-                    {(formData.classScoreComponentConfigs || []).reduce(
-                      (sum, c) => sum + c.maxScore,
-                      0,
-                    )}
-                    {" marks)"}
+                    {(formData.componentLibrary || []).length} Component
+                    {(formData.componentLibrary || []).length !== 1 ? "s" : ""} in Library
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {(formData.classScoreComponentConfigs || []).map((config) => (
+                    {(formData.componentLibrary || []).map((config) => (
                       <div
                         key={config.name}
                         className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm shadow-sm"
@@ -640,8 +720,7 @@ export function Settings() {
                 </div>
               ) : (
                 <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
-                  No components added. Class score will be entered directly (0-100 →{" "}
-                  {formData.classScoreMax}%).
+                  No components in library. Add components to use with subjects.
                 </div>
               )}
             </div>
@@ -744,6 +823,230 @@ export function Settings() {
           </div>
         </div>
 
+        {/* CARD 5: SUBJECT COMPONENT ASSIGNMENT */}
+        {(formData.defaultSubjects || []).length > 0 &&
+          (formData.componentLibrary || []).length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-4">
+                <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+                  Subject Components
+                </h2>
+                <p className="text-muted text-xs">
+                  Assign components to subjects. All students will automatically get these
+                  components when graded.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {(formData.defaultSubjects || []).map((subject) => {
+                  const assignedComponents = formData.subjectComponentMap?.[subject] || [];
+                  const availableComponents = (formData.componentLibrary || []).filter(
+                    (lib) => !assignedComponents.some((assigned) => assigned.name === lib.name),
+                  );
+
+                  return (
+                    <div key={subject} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="font-bold text-gray-900">{subject}</h3>
+                        {assignedComponents.length === 0 && (
+                          <span className="text-xs text-gray-400 italic">
+                            No components assigned
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Assigned Components */}
+                      {assignedComponents.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {assignedComponents.map((comp) => (
+                            <div
+                              key={comp.name}
+                              className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm"
+                            >
+                              <span className="font-medium text-gray-700">{comp.name}</span>
+                              <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
+                                /{comp.maxScore}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeComponentFromSubject(subject, comp.name)}
+                                className="rounded p-0.5 text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add Component Buttons - Mobile Optimized */}
+                      {availableComponents.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {availableComponents.map((comp) => (
+                            <button
+                              key={comp.name}
+                              type="button"
+                              onClick={() => addComponentToSubject(subject, comp)}
+                              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-blue-400 hover:bg-blue-50 active:scale-95"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              {comp.name}
+                              <span className="text-xs text-gray-400">/{comp.maxScore}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Info message when all components assigned */}
+                      {availableComponents.length === 0 && assignedComponents.length > 0 && (
+                        <p className="text-xs text-gray-400 italic">All components assigned</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        {/* CARD 6: SECURITY & PRIVACY */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-lg bg-green-100 p-2.5">
+              <Lock className="h-5 w-5 text-green-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800">Security & Privacy</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <h3 className="mb-2 font-bold text-green-900">PIN Lock (Optional)</h3>
+              <p className="mb-4 text-sm leading-relaxed text-green-800">
+                Secure your student data with a 4-digit PIN. You'll need to enter it when opening
+                the app.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPinSetup(true)}
+                className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 sm:w-auto"
+              >
+                {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
+              </button>
+            </div>
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-bold text-yellow-900">
+                  <Key className="h-4 w-4" /> Forgot Your PIN?
+                </h3>
+                <p className="mb-3 text-sm text-yellow-800">
+                  You'll need your 6-digit recovery code to reset your PIN.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPinRecovery(true)}
+                  className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 text-sm font-bold text-yellow-700 hover:bg-yellow-50 sm:w-auto"
+                >
+                  Reset PIN with Recovery Code
+                </button>
+              </div>
+            )}
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <h3 className="mb-2 font-bold text-red-900">Disable PIN Lock</h3>
+                <p className="mb-3 text-sm text-red-800">
+                  Remove PIN protection from the app. This action cannot be undone.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowDisablePinModal(true)}
+                  className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+                >
+                  Disable PIN Lock
+                </button>
+                <p className="mt-3 text-xs text-red-700">
+                  <strong>Lost your recovery code?</strong> Disabling PIN lock is the only way to
+                  regain access. Your student data will remain safe.
+                </p>
+              </div>
+            )}
+
+            {isPinConfigured() && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h3 className="mb-2 font-bold text-blue-900">Auto-Lock Timer</h3>
+                <p className="mb-3 text-sm text-blue-800">
+                  Automatically lock the app after a period of inactivity.
+                </p>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="autoLockTimeout" className="text-sm font-medium text-blue-900">
+                    Lock after:
+                  </label>
+                  <select
+                    id="autoLockTimeout"
+                    value={formData.autoLockTimeout || 5}
+                    onChange={(e) =>
+                      setFormData({ ...formData, autoLockTimeout: Number(e.target.value) })
+                    }
+                    className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-900 transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value={1}>1 minute</option>
+                    <option value={2}>2 minutes</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Biometric Section - Only show if PIN is configured AND device supports it */}
+            {isPinConfigured() && biometricAvailable && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                <h3 className="mb-2 flex items-center gap-2 font-bold text-indigo-900">
+                  <Fingerprint className="h-4 w-4" /> {getBiometricName(biometricType)}
+                </h3>
+                <p className="mb-3 text-sm text-indigo-800">
+                  Use {getBiometricName(biometricType)} to unlock the app quickly. Your PIN will
+                  still work as a backup.
+                </p>
+
+                {isBiometricEnrolled() ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-indigo-900">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="font-medium">
+                        {getBiometricName(biometricType)} is enabled
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleDisableBiometric}
+                      className="rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
+                    >
+                      Disable {getBiometricName(biometricType)}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEnrollBiometric}
+                    disabled={enrollingBiometric}
+                    className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto"
+                  >
+                    {enrollingBiometric
+                      ? "Setting up..."
+                      : `Enable ${getBiometricName(biometricType)}`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* STORAGE MONITORING */}
+        <StorageMonitor />
+
         {/* BACKUP & DANGER ZONE */}
         <DataBackup />
 
@@ -795,9 +1098,41 @@ export function Settings() {
         }}
       />
 
+      {/* PIN SETUP MODAL */}
+      {showPinSetup && (
+        <PinSetup
+          onComplete={() => setShowPinSetup(false)}
+          onCancel={() => setShowPinSetup(false)}
+        />
+      )}
+
+      {/* PIN RECOVERY MODAL */}
+      {showPinRecovery && (
+        <PinRecovery
+          onComplete={() => setShowPinRecovery(false)}
+          onCancel={() => setShowPinRecovery(false)}
+        />
+      )}
+
+      {/* DISABLE PIN MODAL */}
+      <ConfirmModal
+        isOpen={showDisablePinModal}
+        title="Disable PIN Lock?"
+        message="This will remove PIN protection from the app. Anyone with access to your device will be able to view student data."
+        confirmText="Yes, Disable PIN"
+        isDangerous={true}
+        onClose={() => setShowDisablePinModal(false)}
+        onConfirm={() => {
+          disablePinLock();
+          setShowDisablePinModal(false);
+          showToast("PIN lock has been disabled", "success");
+        }}
+      />
+
       {/* ✅ SCROLL BUTTON - Show when form is long (8+ subjects or 3+ components) */}
-      {(formData.defaultSubjects.length >= 8 ||
-        (formData.classScoreComponentConfigs?.length ?? 0) >= 3) && <ScrollButton />}
+      {(formData.defaultSubjects.length >= 8 || (formData.componentLibrary?.length ?? 0) >= 3) && (
+        <ScrollButton />
+      )}
 
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />

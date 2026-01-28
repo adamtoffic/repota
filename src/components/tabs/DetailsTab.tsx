@@ -40,7 +40,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
       name: formData.name,
       className: formData.className,
       dateOfBirth: formData.dateOfBirth,
-      gender: formData.gender as "Male" | "Female" | undefined,
+      gender: formData.gender as "Male" | "Female",
       attendancePresent: formData.attendancePresent,
       conduct: formData.conduct,
       interest: formData.interest,
@@ -56,6 +56,28 @@ export function DetailsTab({ student, onUpdate }: Props) {
   const handleFormChange = (updates: Partial<typeof formData>) => {
     setFormData({ ...formData, ...updates });
     setHasUnsavedChanges(true);
+  };
+
+  // Auto-save gender changes immediately
+  const handleGenderChange = (gender: "Male" | "Female") => {
+    const updatedRecord: StudentRecord = {
+      ...student,
+      subjects: student.subjects,
+      name: formData.name,
+      className: formData.className,
+      dateOfBirth: formData.dateOfBirth,
+      gender: gender,
+      attendancePresent: formData.attendancePresent,
+      conduct: formData.conduct,
+      interest: formData.interest,
+      teacherRemark: formData.teacherRemark,
+      promotionStatus: formData.promotionStatus,
+      pictureUrl: formData.pictureUrl,
+    };
+
+    setFormData({ ...formData, gender });
+    onUpdate(updatedRecord);
+    // Don't mark as unsaved since we auto-saved
   };
 
   return (
@@ -103,15 +125,31 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
               <div>
                 <label className="text-muted mb-1 block text-xs font-bold uppercase">Gender</label>
-                <select
-                  value={formData.gender}
-                  onChange={(e) => handleFormChange({ gender: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-                >
-                  <option value="">-- Select --</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleGenderChange("Male")}
+                    className={`flex-1 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition-all ${
+                      formData.gender === "Male"
+                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                        : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
+                    }`}
+                  >
+                    👦 Male
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenderChange("Female")}
+                    className={`flex-1 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition-all ${
+                      formData.gender === "Female"
+                        ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
+                        : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
+                    }`}
+                  >
+                    👧 Female
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Auto-saved when changed.</p>
               </div>
             </div>
           </div>
