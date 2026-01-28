@@ -156,7 +156,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
   if (step === "intro") {
     return (
-      <div className="bg-opacity-95 fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           {onCancel && (
             <button
@@ -210,7 +210,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
   if (step === "create") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           {onCancel && (
             <button
@@ -280,7 +280,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
   if (step === "confirm") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           {onCancel && (
             <button
@@ -347,7 +347,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   // Recovery code step
   if (step === "recovery") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-6 flex justify-center">
             <div className="rounded-full bg-amber-100 p-4">
@@ -408,7 +408,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     };
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
         <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-6 flex justify-center">
             <div className="rounded-full bg-green-100 p-4">
@@ -512,7 +512,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     const biometricName = getBiometricName(biometricType);
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-6 flex justify-center">
             <div className="rounded-full bg-indigo-100 p-4">
