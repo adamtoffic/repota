@@ -8,12 +8,12 @@ export const SECURITY_QUESTIONS: SecurityQuestion[] = [
   {
     id: "teacher_training",
     question: "What teacher training college did you attend?",
-    placeholder: "e.g., OLA College of Education",
+    placeholder: "e.g., Offinso College of Education",
   },
   {
     id: "first_school",
     question: "What was the name of the first school you taught at?",
-    placeholder: "e.g., Kumasi Academy",
+    placeholder: "e.g., Ahibenso Anglican Primary School",
   },
   {
     id: "hometown",
@@ -28,12 +28,12 @@ export const SECURITY_QUESTIONS: SecurityQuestion[] = [
   {
     id: "primary_school",
     question: "What was the name of your primary school?",
-    placeholder: "e.g., Ridge Church School",
+    placeholder: "e.g., Kokote Methodist",
   },
   {
     id: "fathers_hometown",
     question: "What is your father's hometown?",
-    placeholder: "e.g., Accra",
+    placeholder: "e.g., Kumasi",
   },
   {
     id: "mothers_hometown",
