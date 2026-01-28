@@ -91,6 +91,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       headTeacherSignature: "",
       teacherSignature: "",
       schoolType: "STANDARD",
+      componentLibrary: [], // Clear component library
+      subjectComponentMap: {}, // Clear subject-component assignments
     };
 
     setSettings(defaultSettings);

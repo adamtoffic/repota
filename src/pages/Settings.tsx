@@ -81,16 +81,16 @@ export function Settings() {
   const [biometricType, setBiometricType] = useState<"face" | "fingerprint" | "other" | null>(null);
   const [enrollingBiometric, setEnrollingBiometric] = useState(false);
 
-  // Check biometric availability on mount
-  useEffect(() => {
-    checkBiometric();
-  }, []);
-
   const checkBiometric = async () => {
     const { available, type } = await isBiometricAvailable();
     setBiometricAvailable(available);
     setBiometricType(type);
   };
+
+  // Check biometric availability on mount
+  useEffect(() => {
+    checkBiometric();
+  }, []);
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
