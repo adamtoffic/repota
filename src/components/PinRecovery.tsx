@@ -7,6 +7,7 @@ import {
   resetPinWithSecurityQuestions,
   getSavedSecurityQuestionIds,
   areSecurityQuestionsConfigured,
+  isSameAsCurrentPin,
 } from "../utils/pinSecurity";
 import { SECURITY_QUESTIONS } from "../constants/securityQuestions";
 
@@ -66,11 +67,19 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
     setStep("newPin");
   };
 
-  const handleNewPin = () => {
+  const handleNewPin = async () => {
     if (newPin.length !== 4) {
       setError("PIN must be 4 digits");
       return;
     }
+
+    // Check if trying to use the same PIN
+    const isSame = await isSameAsCurrentPin(newPin);
+    if (isSame) {
+      setError("New PIN must be different from your old PIN");
+      return;
+    }
+
     setError("");
     setStep("confirm");
   };
