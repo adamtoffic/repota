@@ -13,12 +13,7 @@ import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "./ConfirmModal";
 import { recordBackup } from "../utils/dataProtection";
 import { loadFromStorage, saveToStorage, IDB_KEYS } from "../utils/idbStorage";
-import {
-  encryptBackupFile,
-  decryptBackupFile,
-  isEncryptedFile,
-  getEncryptionInfo,
-} from "../utils/fileEncryption";
+import { encryptBackupFile, decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
 
 export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -40,7 +35,6 @@ export function DataBackup() {
   // Import password state
   const [showImportPasswordModal, setShowImportPasswordModal] = useState(false);
   const [importPassword, setImportPassword] = useState("");
-  const [isEncrypted, setIsEncrypted] = useState(false);
   const [encryptionHint, setEncryptionHint] = useState("");
   const [showImportPassword, setShowImportPassword] = useState(false);
   const [isDecrypting, setIsDecrypting] = useState(false);
@@ -148,7 +142,6 @@ export function DataBackup() {
 
         // Check if file is encrypted
         if (isEncryptedFile(data)) {
-          setIsEncrypted(true);
           setEncryptionHint(data.hint || "");
           setPendingFile(file);
           setShowImportPasswordModal(true);
@@ -159,8 +152,6 @@ export function DataBackup() {
         if (!data.students || !data.settings) {
           throw new Error("Invalid file format");
         }
-
-        setIsEncrypted(false);
         setPendingFile(file);
         setImportStats({
           count: data.students.length,
@@ -192,7 +183,10 @@ export function DataBackup() {
         const encryptedData = JSON.parse(content);
 
         // Decrypt the file
-        const decryptedBackup = await decryptBackupFile(encryptedData, importPassword);
+        const decryptedBackup = await decryptBackupFile<{
+          students: unknown[];
+          settings: Record<string, unknown>;
+        }>(encryptedData, importPassword);
 
         // Validate decrypted data
         if (!decryptedBackup.students || !decryptedBackup.settings) {
