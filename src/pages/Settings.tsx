@@ -911,7 +911,9 @@ export function Settings() {
             {isPinConfigured() && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                 <h3 className="mb-2 font-bold text-red-900">Disable PIN Lock</h3>
-                <p className="mb-3 text-sm text-red-800">Remove PIN protection from the app.</p>
+                <p className="mb-3 text-sm text-red-800">
+                  Remove PIN protection from the app. This action cannot be undone.
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowDisablePinModal(true)}
@@ -919,6 +921,10 @@ export function Settings() {
                 >
                   Disable PIN Lock
                 </button>
+                <p className="mt-3 text-xs text-red-700">
+                  <strong>Lost your recovery code?</strong> Disabling PIN lock is the only way to
+                  regain access. Your student data will remain safe.
+                </p>
               </div>
             )}
 

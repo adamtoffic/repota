@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Key, AlertCircle, X, AlertTriangle, Trash2 } from "lucide-react";
-import { verifyRecoveryCode, resetPinWithRecoveryCode, disablePinLock } from "../utils/pinSecurity";
+import { Key, AlertCircle, X } from "lucide-react";
+import { verifyRecoveryCode, resetPinWithRecoveryCode } from "../utils/pinSecurity";
 
 interface Props {
   onComplete: () => void;
@@ -13,7 +13,6 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState("");
-  const [showEmergencyReset, setShowEmergencyReset] = useState(false);
 
   const handleVerifyRecovery = async () => {
     if (recoveryCode.length !== 6) {
@@ -53,67 +52,6 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
       setError("Failed to reset PIN. Please try again.");
     }
   };
-
-  // Emergency reset confirmation
-  if (showEmergencyReset) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-          <button
-            onClick={() => setShowEmergencyReset(false)}
-            className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          <div className="mb-6 flex justify-center">
-            <div className="rounded-full bg-red-100 p-4">
-              <AlertTriangle className="h-12 w-12 text-red-600" />
-            </div>
-          </div>
-
-          <h1 className="mb-3 text-center text-2xl font-bold text-gray-900">Emergency Reset</h1>
-          <p className="mb-6 text-center text-sm text-gray-600">
-            This will <strong className="text-red-600">permanently disable</strong> PIN lock. Your
-            student data will remain safe.
-          </p>
-
-          <div className="mb-6 space-y-3 rounded-lg border-2 border-red-200 bg-red-50 p-4 text-sm text-red-900">
-            <p className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>PIN protection will be removed</span>
-            </p>
-            <p className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Recovery code will be deleted</span>
-            </p>
-            <p className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>You can set up a new PIN later from Settings</span>
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowEmergencyReset(false)}
-              className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-3 font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                disablePinLock();
-                onComplete();
-              }}
-              className="flex-1 rounded-lg bg-red-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-red-700 active:scale-95"
-            >
-              Reset & Disable
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (step === "verify") {
     return (
@@ -164,25 +102,11 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
           <button
             onClick={handleVerifyRecovery}
-            className="mb-4 w-full rounded-lg bg-yellow-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-yellow-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={recoveryCode.length !== 6}
           >
             Verify Code
           </button>
-
-          {/* Alternative: Emergency Reset */}
-          <div className="border-t border-gray-200 pt-4">
-            <p className="mb-3 text-center text-xs text-gray-500">Don't have your recovery code?</p>
-            <button
-              onClick={() => setShowEmergencyReset(true)}
-              className="group w-full rounded-lg border-2 border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-all hover:border-red-300 hover:bg-red-100 active:scale-95"
-            >
-              <div className="flex items-center justify-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                <span>Emergency Reset (Disable PIN)</span>
-              </div>
-            </button>
-          </div>
         </div>
       </div>
     );
