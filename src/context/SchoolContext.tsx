@@ -155,8 +155,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     requestPersistentStorage();
 
     // Check for data loss (cleared by cleaner apps)
-    if (detectDataLoss()) {
+    // Only check once per session to avoid false positives on unlock/remount
+    const dataLossChecked = sessionStorage.getItem("data_loss_checked");
+    if (!dataLossChecked && detectDataLoss()) {
       showToast("⚠️ Data may have been cleared. Please restore from backup if needed.", "error");
+      sessionStorage.setItem("data_loss_checked", "true");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount

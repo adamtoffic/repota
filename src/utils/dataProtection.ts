@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "./storage";
  */
 const BACKUP_CHECK_KEY = "repota_backup_check";
 const LAST_BACKUP_KEY = "repota_last_backup";
+const HAD_DATA_BEFORE_KEY = "repota_had_data"; // Track if user ever had data
 
 /**
  * Check if data was recently lost (cleared by cleaner app)
@@ -17,9 +18,13 @@ export const detectDataLoss = (): boolean => {
   const backupCheck = localStorage.getItem(BACKUP_CHECK_KEY);
   const hasStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
   const hasSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+  const hadDataBefore = localStorage.getItem(HAD_DATA_BEFORE_KEY);
 
-  // If backup check exists but data is missing, storage was cleared
-  if (backupCheck && (!hasStudents || !hasSettings)) {
+  // Only flag data loss if:
+  // 1. User had data before (not first-time setup)
+  // 2. Backup check exists (app was running)
+  // 3. Data is now missing
+  if (hadDataBefore === "true" && backupCheck && (!hasStudents || !hasSettings)) {
     return true;
   }
 
@@ -28,9 +33,11 @@ export const detectDataLoss = (): boolean => {
 
 /**
  * Create a heartbeat to know storage is intact
+ * Also marks that user has data (to detect future losses)
  */
 export const createBackupHeartbeat = (): void => {
   localStorage.setItem(BACKUP_CHECK_KEY, Date.now().toString());
+  localStorage.setItem(HAD_DATA_BEFORE_KEY, "true"); // Mark that user has data
 };
 
 /**
