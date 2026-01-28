@@ -24,7 +24,12 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
 
   // Auto-prompt biometric on mount
   useEffect(() => {
-    checkAndPromptBiometric();
+    // Small delay to ensure component is fully mounted and visible
+    const timer = setTimeout(() => {
+      checkAndPromptBiometric();
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const checkAndPromptBiometric = async () => {
@@ -41,16 +46,23 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
 
   const attemptBiometricUnlock = async () => {
     setError("");
-    const { success, error: biometricError } = await verifyBiometric();
 
-    if (success) {
-      setIsUnlocking(true);
-      setTimeout(() => {
-        onUnlock();
-      }, 400);
-    } else if (biometricError && !biometricError.includes("cancelled")) {
-      // Only show error if not cancelled by user
-      setError(biometricError);
+    try {
+      const { success, error: biometricError } = await verifyBiometric();
+
+      if (success) {
+        setIsUnlocking(true);
+        setTimeout(() => {
+          onUnlock();
+        }, 400);
+      } else if (biometricError && !biometricError.includes("cancelled")) {
+        // Only show error if not cancelled by user
+        // Don't show error on auto-prompt (silent fail to PIN)
+        console.log("Biometric failed:", biometricError);
+      }
+    } catch (err) {
+      console.error("Biometric error:", err);
+      // Silent fail - user can use PIN
     }
   };
 

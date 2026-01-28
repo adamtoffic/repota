@@ -27,16 +27,17 @@ export async function isBiometricAvailable(): Promise<{
       return { available: false, type: null };
     }
 
-    // Try to detect type based on user agent
+    // Try to detect type based on user agent and screen size
     const ua = navigator.userAgent.toLowerCase();
     let type: "face" | "fingerprint" | "other" = "other";
 
-    // iOS devices with Face ID (iPhone X and newer)
+    // iOS devices
     if (/iphone|ipad|ipod/.test(ua)) {
-      // iPhone X and newer models typically have Face ID
-      // Older models have Touch ID (fingerprint)
-      // We can't detect exactly, so default to "face" for modern iOS
-      type = "face";
+      // iPhone X and newer have Face ID (released Sept 2017)
+      // Screen height >= 812px indicates iPhone X or newer (notch devices)
+      // iPhone 8/7/6/SE have Touch ID (fingerprint)
+      const isModernIPhone = window.screen.height >= 812 || window.screen.width >= 812;
+      type = isModernIPhone ? "face" : "fingerprint";
     }
     // Android devices typically use fingerprint
     else if (/android/.test(ua)) {
@@ -62,7 +63,7 @@ export function getBiometricName(type: "face" | "fingerprint" | "other" | null):
     case "face":
       return "Face ID";
     case "fingerprint":
-      return "Fingerprint";
+      return "Touch ID"; // Better UX for Apple devices
     case "other":
       return "Biometric";
     default:
