@@ -27,25 +27,57 @@ export async function isBiometricAvailable(): Promise<{
       return { available: false, type: null };
     }
 
-    // Try to detect type based on user agent and screen size
+    // Smart device detection
     const ua = navigator.userAgent.toLowerCase();
     let type: "face" | "fingerprint" | "other" = "other";
 
-    // iOS devices
+    // iOS devices - highly accurate detection
     if (/iphone|ipad|ipod/.test(ua)) {
-      // iPhone X and newer have Face ID (released Sept 2017)
-      // Screen height >= 812px indicates iPhone X or newer (notch devices)
-      // iPhone 8/7/6/SE have Touch ID (fingerprint)
-      const isModernIPhone = window.screen.height >= 812 || window.screen.width >= 812;
-      type = isModernIPhone ? "face" : "fingerprint";
+      const screenHeight = Math.max(window.screen.height, window.screen.width);
+      const screenWidth = Math.min(window.screen.height, window.screen.width);
+
+      // iPhone models with Touch ID (Fingerprint):
+      // - iPhone SE (1st, 2nd, 3rd gen): 375x667, 375x667, 375x667
+      // - iPhone 6/6s/7/8: 375x667
+      // - iPhone 6+/7+/8+ Plus: 414x736
+      // - iPad with Home button
+
+      // iPhone models with Face ID:
+      // - iPhone X and newer (notch/dynamic island): height >= 812
+      // - iPhone 11, 12, 13, 14, 15 series
+
+      const isTouchIDDevice =
+        (screenWidth === 375 && screenHeight === 667) || // iPhone SE, 6, 7, 8
+        (screenWidth === 414 && screenHeight === 736) || // iPhone Plus models
+        (screenWidth === 320 && screenHeight === 568) || // iPhone 5s (first Touch ID)
+        (/ipad/.test(ua) && screenHeight < 1024); // Older iPads with Touch ID
+
+      const isFaceIDDevice = screenHeight >= 812; // iPhone X and newer
+
+      if (isFaceIDDevice) {
+        type = "face";
+      } else if (isTouchIDDevice) {
+        type = "fingerprint";
+      } else {
+        // Fallback for edge cases
+        type = "fingerprint"; // Most older iPhones have Touch ID
+      }
     }
-    // Android devices typically use fingerprint
+    // Android devices
     else if (/android/.test(ua)) {
+      // Most Android devices use fingerprint
+      // Some newer ones have face unlock, but fingerprint is most common
       type = "fingerprint";
     }
-    // macOS with Touch ID or Face ID
+    // macOS
     else if (/mac os x/.test(ua)) {
-      type = "fingerprint"; // Most Macs have Touch ID
+      // MacBook Pro/Air with Touch ID
+      type = "fingerprint";
+    }
+    // Windows Hello
+    else if (/windows/.test(ua)) {
+      // Could be fingerprint or face
+      type = "fingerprint"; // Most common
     }
 
     return { available: true, type };
@@ -123,12 +155,13 @@ export async function enrollBiometric(): Promise<{ success: boolean; error?: str
     localStorage.setItem(BIOMETRIC_ENABLED_KEY, "true");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Biometric enrollment error:", error);
+    const err = error as Error;
 
-    if (error.name === "NotAllowedError") {
+    if (err.name === "NotAllowedError") {
       return { success: false, error: "Biometric access denied. Please try again." };
-    } else if (error.name === "InvalidStateError") {
+    } else if (err.name === "InvalidStateError") {
       return { success: false, error: "Biometric already enrolled on this device." };
     }
 
@@ -158,6 +191,9 @@ export async function verifyBiometric(): Promise<{ success: boolean; error?: str
     const challenge = new Uint8Array(32);
     crypto.getRandomValues(challenge);
 
+    // Shorter timeout for better mobile experience (30 seconds)
+    const timeout = 30000;
+
     // Get assertion (verify biometric)
     const assertion = await navigator.credentials.get({
       publicKey: {
@@ -169,7 +205,7 @@ export async function verifyBiometric(): Promise<{ success: boolean; error?: str
           },
         ],
         userVerification: "required",
-        timeout: 60000,
+        timeout,
       },
     });
 
@@ -178,11 +214,16 @@ export async function verifyBiometric(): Promise<{ success: boolean; error?: str
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Biometric verification error:", error);
+    const err = error as Error;
 
-    if (error.name === "NotAllowedError") {
+    if (err.name === "NotAllowedError") {
       return { success: false, error: "Biometric verification cancelled" };
+    } else if (err.name === "AbortError") {
+      return { success: false, error: "Biometric verification cancelled" };
+    } else if (err.name === "TimeoutError") {
+      return { success: false, error: "Biometric verification timed out" };
     }
 
     return { success: false, error: "Biometric verification failed" };
