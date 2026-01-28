@@ -8,13 +8,15 @@ interface Props {
 }
 
 export function PinSetup({ onComplete, onCancel }: Props) {
-  const [step, setStep] = useState<"intro" | "create" | "confirm" | "recovery">("intro");
+  const isChangingPin = isPinConfigured();
+  const [step, setStep] = useState<"intro" | "create" | "confirm" | "recovery">(
+    isChangingPin ? "create" : "intro",
+  );
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [recoveryCode] = useState(generateRecoveryCode());
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const isChangingPin = isPinConfigured();
 
   const handleCreatePin = () => {
     if (pin.length !== 4) {
@@ -106,8 +108,24 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "create") {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-          <h2 className="mb-6 text-center text-xl font-bold text-gray-900">Create Your PIN</h2>
+        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
+          <h2 className="mb-2 text-center text-xl font-bold text-gray-900">
+            {isChangingPin ? "Enter New PIN" : "Create Your PIN"}
+          </h2>
+          <p className="mb-6 text-center text-sm text-gray-600">
+            {isChangingPin
+              ? "Choose a new 4-digit PIN"
+              : "Choose a 4-digit PIN to secure your data"}
+          </p>
 
           <div className="mb-6">
             <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -122,7 +140,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
                 setPin(e.target.value.replace(/\D/g, ""));
                 setError("");
               }}
-              className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-2xl tracking-widest focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-2xl tracking-widest transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               placeholder="••••"
               autoFocus
             />
@@ -135,13 +153,23 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             </div>
           )}
 
-          <button
-            onClick={handleCreatePin}
-            disabled={pin.length !== 4}
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
-            Next
-          </button>
+          <div className="flex gap-3">
+            {isChangingPin && onCancel && (
+              <button
+                onClick={onCancel}
+                className="flex-1 rounded-lg border-2 border-gray-300 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={handleCreatePin}
+              disabled={pin.length !== 4}
+              className={`${isChangingPin ? "flex-1" : "w-full"} rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300`}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -150,8 +178,18 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "confirm") {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-          <h2 className="mb-6 text-center text-xl font-bold text-gray-900">Confirm Your PIN</h2>
+        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
+          <h2 className="mb-2 text-center text-xl font-bold text-gray-900">Confirm Your PIN</h2>
+          <p className="mb-6 text-center text-sm text-gray-600">Re-enter your PIN to confirm</p>
 
           <div className="mb-6">
             <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -166,7 +204,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
                 setConfirmPin(e.target.value.replace(/\D/g, ""));
                 setError("");
               }}
-              className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-2xl tracking-widest focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-2xl tracking-widest transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               placeholder="••••"
               autoFocus
             />
