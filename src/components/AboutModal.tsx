@@ -1,4 +1,5 @@
 import { X, Shield, Code, Heart } from "lucide-react"; // 👈 Added User icon
+import { createPortal } from "react-dom";
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -8,7 +9,7 @@ interface AboutModalProps {
 export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200">
       <div className="animate-in zoom-in-95 relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl duration-200">
         {/* Header */}
@@ -116,6 +117,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

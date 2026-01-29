@@ -12,6 +12,20 @@ import { useIdleTimer } from "./hooks/useIdleTimer";
 import { loadFromStorage } from "./utils/idbStorage";
 import type { SchoolSettings } from "./types";
 
+function isiOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+}
+
+function isInStandaloneMode() {
+  // iOS: 'standalone' is a non-standard property
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  return (
+    nav.standalone === true ||
+    // Android
+    window.matchMedia("(display-mode: standalone)").matches
+  );
+}
+
 function App() {
   const [isLocked, setIsLocked] = useState(() => isPinConfigured());
   const [showRecovery, setShowRecovery] = useState(false);
@@ -86,6 +100,22 @@ function App() {
 
   return (
     <ErrorBoundary>
+      {/* iOS PWA status bar background fix */}
+      {isiOS() && isInStandaloneMode() && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "20px",
+            background: "#1e3a8a",
+            zIndex: 9999,
+            WebkitUserSelect: "none",
+            pointerEvents: "none",
+          }}
+        />
+      )}
       <div
         className={`transition-opacity duration-300 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
       >

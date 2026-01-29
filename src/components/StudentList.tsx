@@ -1,6 +1,7 @@
 // src/components/StudentList.tsx
 import { Link } from "@tanstack/react-router";
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
 import type { ProcessedStudent, StudentRecord, SavedSubject } from "../types";
@@ -229,91 +230,93 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
       />
 
       {/* MODAL */}
-      {isAddOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => setIsAddOpen(false)}
-        >
+      {isAddOpen &&
+        createPortal(
           <div
-            className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+            onClick={() => setIsAddOpen(false)}
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800">Add New Student</h3>
-              <button onClick={() => setIsAddOpen(false)}>
-                <X className="text-muted h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              {/* Name Input */}
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                  Full Name
-                </label>
-                <input
-                  autoFocus
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Kwame Mensah"
-                />
+            <div
+              className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-800">Add New Student</h3>
+                <button onClick={() => setIsAddOpen(false)}>
+                  <X className="text-muted h-5 w-5" />
+                </button>
               </div>
 
-              {/* Gender Selection */}
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                  Gender *
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setNewGender("Male")}
-                    className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
-                      newGender === "Male"
-                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
-                        : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
-                    }`}
-                  >
-                    👦 Male
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewGender("Female")}
-                    className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
-                      newGender === "Female"
-                        ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
-                        : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
-                    }`}
-                  >
-                    👧 Female
-                  </button>
+              <form onSubmit={handleAddSubmit} className="space-y-4">
+                {/* Name Input */}
+                <div>
+                  <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                    Full Name
+                  </label>
+                  <input
+                    autoFocus
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. Kwame Mensah"
+                  />
                 </div>
-              </div>
 
-              {/* Class Dropdown */}
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">Class</label>
-                <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
-                  {settings.className}
-                </p>
-                <p className="mt-1 text-[10px] text-gray-400">
-                  Based on School Level: {settings.level}
-                </p>
-              </div>
+                {/* Gender Selection */}
+                <div>
+                  <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                    Gender *
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setNewGender("Male")}
+                      className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                        newGender === "Male"
+                          ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                          : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
+                      }`}
+                    >
+                      👦 Male
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewGender("Female")}
+                      className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                        newGender === "Female"
+                          ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
+                          : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
+                      }`}
+                    >
+                      👧 Female
+                    </button>
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2 font-bold text-white"
-              >
-                Save Student
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Class Dropdown */}
+                <div>
+                  <label className="text-muted mb-1 block text-xs font-bold uppercase">Class</label>
+                  <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
+                    {settings.className}
+                  </p>
+                  <p className="mt-1 text-[10px] text-gray-400">
+                    Based on School Level: {settings.level}
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2 font-bold text-white"
+                >
+                  Save Student
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
