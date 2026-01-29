@@ -45,6 +45,7 @@ body {
   position: relative;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #1e3a8a; /* Ensures iOS status bar blends for non-notched devices */
 }
 
 /* Fix iOS input zoom issue */

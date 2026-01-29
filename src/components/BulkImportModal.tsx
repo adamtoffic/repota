@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, CheckCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -67,7 +68,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
     setPreview([]);
   };
 
-  return (
+  return createPortal(
     <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* Header */}
@@ -139,6 +140,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
