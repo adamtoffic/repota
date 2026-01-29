@@ -17,17 +17,10 @@ function isiOS() {
 }
 
 function isInStandaloneMode() {
-<<<<<<< HEAD
   // iOS: 'standalone' is a non-standard property
   const nav = window.navigator as Navigator & { standalone?: boolean };
   return (
     nav.standalone === true ||
-=======
-  // iOS
-  // @ts-ignore
-  return (
-    window.navigator.standalone === true ||
->>>>>>> ab37297c2a287eccac3b382f724dfd8f220e0484
     // Android
     window.matchMedia("(display-mode: standalone)").matches
   );
