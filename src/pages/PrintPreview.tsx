@@ -136,7 +136,7 @@ export function PrintPreview() {
 
           {/* VALIDATION WARNING FOR MISSING PHOTOS */}
           {studentsWithMissingPhotos.length > 0 && (
-            <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
+            <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm print:hidden">
               <div className="flex items-start gap-3">
                 <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
                 <div className="flex-1">

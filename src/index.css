@@ -282,6 +282,13 @@ a[role="button"]:active {
     padding: 0 !important;
     border: none !important;
     display: block !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure last report doesn't create blank page */
+  .report-wrapper[data-is-last="true"] {
+    page-break-after: auto !important;
   }
 }
 

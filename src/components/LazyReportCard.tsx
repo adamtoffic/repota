@@ -78,9 +78,7 @@ export function LazyReportCard({ student, settings, index, totalStudents }: Prop
     <div
       ref={wrapperRef}
       className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:h-auto print:overflow-visible print:p-0"
-      style={{
-        pageBreakAfter: index < totalStudents - 1 ? "always" : "auto",
-      }}
+      data-is-last={index === totalStudents - 1}
     >
       {isVisible ? (
         <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:h-full print:w-full print:scale-100 print:transform-none">

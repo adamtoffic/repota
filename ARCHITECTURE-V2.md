@@ -1,4 +1,5 @@
 # Repota v2 Architecture Plan
+
 ## Vision: From Single-Teacher Tool → Collaborative School Platform
 
 ---
@@ -18,6 +19,7 @@
 ### The Solution
 
 **Multi-tier collaborative system:**
+
 - **Free Tier**: Solo teachers (current local mode) - unlimited forever
 - **School Tier**: Multiple teachers collaborate on shared classes
 - **District/Regional/National**: Analytics dashboards (future)
@@ -37,18 +39,18 @@ School Admin (Principal/Admin Staff)
 
 ### Permissions Matrix
 
-| Action | School Admin | Headteacher | Class Teacher | Subject Teacher |
-|--------|-------------|-------------|---------------|----------------|
-| Add/Remove Teachers | ✅ | ❌ | ❌ | ❌ |
-| Create Classes | ✅ | ✅ | ❌ | ❌ |
-| Manage Students | ✅ | ✅ | ✅ (own class) | ❌ |
-| Enter Scores | ✅ | ✅ | ✅ (all subjects) | ✅ (assigned subject only) |
-| Write Teacher Remarks | ✅ | ✅ | ✅ (own class) | ❌ |
-| Write Headteacher Remarks | ✅ | ✅ | ❌ | ❌ |
-| Mark Attendance | ✅ | ✅ | ✅ (own class) | ❌ |
-| Approve Reports | ✅ | ✅ | ❌ | ❌ |
-| View School Analytics | ✅ | ✅ | ✅ (own class) | ✅ (assigned subjects) |
-| Export Reports | ✅ | ✅ | ✅ (own class) | ✅ (assigned students) |
+| Action                    | School Admin | Headteacher | Class Teacher     | Subject Teacher            |
+| ------------------------- | ------------ | ----------- | ----------------- | -------------------------- |
+| Add/Remove Teachers       | ✅           | ❌          | ❌                | ❌                         |
+| Create Classes            | ✅           | ✅          | ❌                | ❌                         |
+| Manage Students           | ✅           | ✅          | ✅ (own class)    | ❌                         |
+| Enter Scores              | ✅           | ✅          | ✅ (all subjects) | ✅ (assigned subject only) |
+| Write Teacher Remarks     | ✅           | ✅          | ✅ (own class)    | ❌                         |
+| Write Headteacher Remarks | ✅           | ✅          | ❌                | ❌                         |
+| Mark Attendance           | ✅           | ✅          | ✅ (own class)    | ❌                         |
+| Approve Reports           | ✅           | ✅          | ❌                | ❌                         |
+| View School Analytics     | ✅           | ✅          | ✅ (own class)    | ✅ (assigned subjects)     |
+| Export Reports            | ✅           | ✅          | ✅ (own class)    | ✅ (assigned students)     |
 
 ---
 
@@ -80,21 +82,21 @@ CREATE TABLE teachers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  
+
   -- Personal Info
   name TEXT NOT NULL,
   email TEXT,
   phone TEXT,
-  
+
   -- Role & Status
   role TEXT NOT NULL, -- 'admin', 'headteacher', 'class_teacher', 'subject_teacher'
   status TEXT DEFAULT 'active', -- 'active', 'inactive', 'pending'
-  
+
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   last_login TIMESTAMPTZ,
-  
+
   UNIQUE(school_id, email)
 );
 
@@ -102,20 +104,20 @@ CREATE TABLE teachers (
 CREATE TABLE classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-  
+
   -- Class Info
   name TEXT NOT NULL, -- "Class 6A", "Primary 3"
   class_teacher_id UUID REFERENCES teachers(id) ON DELETE SET NULL,
   class_size INTEGER DEFAULT 30,
-  
+
   -- Academic Period
   academic_year TEXT NOT NULL,
   term TEXT NOT NULL,
-  
+
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(school_id, name, academic_year, term)
 );
 
@@ -124,13 +126,13 @@ CREATE TABLE students (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-  
+
   -- Personal Info
   name TEXT NOT NULL,
   gender TEXT NOT NULL CHECK (gender IN ('Male', 'Female')),
   date_of_birth TEXT,
   picture_url TEXT,
-  
+
   -- Academic Info
   attendance_present INTEGER DEFAULT 0,
   conduct TEXT,
@@ -138,11 +140,11 @@ CREATE TABLE students (
   teacher_remark TEXT,
   headteacher_remark TEXT,
   promotion_status TEXT,
-  
+
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(school_id, class_id, name)
 );
 
@@ -150,11 +152,11 @@ CREATE TABLE students (
 CREATE TABLE subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-  
+
   name TEXT NOT NULL,
   code TEXT, -- "MATH", "ENG", "SCI"
   level TEXT, -- "PRIMARY", "JHS", etc.
-  
+
   UNIQUE(school_id, name, level)
 );
 
@@ -165,9 +167,9 @@ CREATE TABLE subject_assignments (
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
   teacher_id UUID REFERENCES teachers(id) ON DELETE SET NULL,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(class_id, subject_id)
 );
 
@@ -176,17 +178,17 @@ CREATE TABLE student_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
-  
+
   -- Scores
   class_score DECIMAL(5,2) DEFAULT 0,
   exam_score DECIMAL(5,2) DEFAULT 0,
   class_score_components JSONB, -- Breakdown: [{"name": "Quiz 1", "score": 10, "max": 10}]
-  
+
   -- Tracking
   entered_by UUID REFERENCES teachers(id),
   last_modified_by UUID REFERENCES teachers(id),
   last_modified_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(student_id, subject_id)
 );
 
@@ -194,17 +196,17 @@ CREATE TABLE student_scores (
 CREATE TABLE activity_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-  
+
   -- Who & What
   teacher_id UUID REFERENCES teachers(id) ON DELETE SET NULL,
   teacher_name TEXT NOT NULL,
   action TEXT NOT NULL, -- 'created_student', 'updated_score', 'approved_report'
-  
+
   -- Context
   entity_type TEXT, -- 'student', 'score', 'class'
   entity_id UUID,
   changes JSONB, -- Before/after data
-  
+
   -- When
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -240,7 +242,7 @@ CREATE POLICY "Teachers see own school data"
   ON students FOR SELECT
   USING (
     school_id IN (
-      SELECT school_id FROM teachers 
+      SELECT school_id FROM teachers
       WHERE auth_user_id = auth.uid()
     )
   );
@@ -287,6 +289,7 @@ CREATE POLICY "Headteachers full access"
 ## 🔐 Authentication Strategy (Cost-Optimized)
 
 ### Problem: Email-based auth is expensive
+
 - Email verification sends emails (costs scale with users)
 - Forgot password = more emails
 - Most teachers don't have/check email regularly
@@ -296,21 +299,24 @@ CREATE POLICY "Headteachers full access"
 **Flow:**
 
 1. **School Admin Signs Up** (One-time, email-based)
+
    ```
    Admin → Creates school account → Pays (if needed)
    ```
 
 2. **Admin Creates Teacher Accounts** (No email required!)
+
    ```sql
    -- Admin creates teacher with simple credentials
    INSERT INTO teachers (school_id, name, role)
    VALUES ('school-123', 'Mr. Mensah', 'class_teacher');
-   
+
    -- Generate simple login: teacher phone + PIN
    -- Example: 0241234567 + PIN: 1234
    ```
 
 3. **Teacher First Login**
+
    ```
    Teacher enters: Phone + Initial PIN (given by admin)
    Teacher sets: New PIN + Security Question
@@ -332,34 +338,32 @@ async function createTeacherAccount(
   teacherData: {
     name: string;
     phone: string;
-    role: 'class_teacher' | 'subject_teacher' | 'headteacher';
-  }
+    role: "class_teacher" | "subject_teacher" | "headteacher";
+  },
 ) {
   // Generate initial PIN
   const initialPIN = generateRandomPIN(); // 4-digit
 
   // Create teacher record (pending status)
   const { data: teacher } = await supabase
-    .from('teachers')
+    .from("teachers")
     .insert({
       school_id: schoolId,
       name: teacherData.name,
       phone: teacherData.phone,
       role: teacherData.role,
-      status: 'pending'
+      status: "pending",
     })
     .select()
     .single();
 
   // Store initial PIN securely (hashed)
-  await supabase
-    .from('teacher_credentials')
-    .insert({
-      teacher_id: teacher.id,
-      phone: teacherData.phone,
-      pin_hash: await hashPIN(initialPIN),
-      requires_setup: true
-    });
+  await supabase.from("teacher_credentials").insert({
+    teacher_id: teacher.id,
+    phone: teacherData.phone,
+    pin_hash: await hashPIN(initialPIN),
+    requires_setup: true,
+  });
 
   // Return credentials for admin to share
   return {
@@ -373,7 +377,7 @@ async function createTeacherAccount(
 async function claimTeacherAccount(phone: string, initialPIN: string, newPIN: string) {
   // Verify initial PIN
   const valid = await verifyInitialPIN(phone, initialPIN);
-  if (!valid) throw new Error('Invalid credentials');
+  if (!valid) throw new Error("Invalid credentials");
 
   // Create auth.users entry (no email!)
   const { data: authUser } = await supabase.auth.signUp({
@@ -383,18 +387,18 @@ async function claimTeacherAccount(phone: string, initialPIN: string, newPIN: st
       data: {
         phone: phone,
         is_teacher: true,
-      }
-    }
+      },
+    },
   });
 
   // Link teacher record to auth user
   await supabase
-    .from('teachers')
+    .from("teachers")
     .update({
       auth_user_id: authUser.user.id,
-      status: 'active'
+      status: "active",
     })
-    .eq('phone', phone);
+    .eq("phone", phone);
 
   return authUser;
 }
@@ -403,11 +407,13 @@ async function claimTeacherAccount(phone: string, initialPIN: string, newPIN: st
 ### Cost Analysis
 
 **Email-based (expensive):**
+
 - Email verification: ~$1 per 1000 emails
 - Forgot password: ~$0.50 per reset
 - 100 teachers = $100-200/year just for emails
 
 **Phone + PIN (cheap):**
+
 - No emails sent
 - Admin creates accounts
 - Simple PIN recovery via admin
@@ -431,16 +437,18 @@ National Dashboard
 ### Data Aggregation Strategy
 
 **Option 1: Real-time Calculation** (Simple, slower for large datasets)
+
 ```typescript
 // Calculate on-demand
 const schoolStats = await calculateSchoolStats(schoolId);
 ```
 
 **Option 2: Materialized Views** (Fast, Supabase-native)
+
 ```sql
 -- Pre-computed school statistics
 CREATE MATERIALIZED VIEW school_analytics AS
-SELECT 
+SELECT
   school_id,
   COUNT(DISTINCT students.id) as total_students,
   AVG((class_score + exam_score)) as average_score,
@@ -454,19 +462,20 @@ REFRESH MATERIALIZED VIEW school_analytics;
 ```
 
 **Option 3: Aggregation Tables** (Recommended)
+
 ```sql
 -- Daily aggregation job
 CREATE TABLE school_daily_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id),
   date DATE NOT NULL,
-  
+
   total_students INTEGER,
   total_classes INTEGER,
   average_score DECIMAL(5,2),
   top_performers INTEGER,
   needs_improvement INTEGER,
-  
+
   UNIQUE(school_id, date)
 );
 
@@ -477,9 +486,9 @@ BEGIN
   -- Recalculate stats for affected school
   INSERT INTO school_daily_stats (school_id, date, ...)
   VALUES (NEW.school_id, CURRENT_DATE, ...)
-  ON CONFLICT (school_id, date) 
+  ON CONFLICT (school_id, date)
   DO UPDATE SET ...;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -488,6 +497,7 @@ $$ LANGUAGE plpgsql;
 ### Dashboard Components
 
 **School Dashboard:**
+
 - Total students across all classes
 - Average performance by class
 - Subject-wise performance
@@ -496,12 +506,14 @@ $$ LANGUAGE plpgsql;
 - Teacher activity log
 
 **District Dashboard:**
+
 - Schools ranked by performance
 - Inter-school comparisons
 - Resource allocation insights
 - Trend analysis
 
 **National Dashboard:**
+
 - Regional comparisons
 - Policy impact analysis
 - Curriculum effectiveness
@@ -514,18 +526,21 @@ $$ LANGUAGE plpgsql;
 ### Supabase Costs
 
 **Free Tier (Current v1 users):**
+
 - ✅ Unlimited local-only usage
 - ✅ 500MB database
 - ✅ 50,000 MAU (monthly active users)
 - ✅ Perfect for solo teachers
 
 **Pro Tier ($25/month - For schools):**
+
 - 8GB database (~10,000 students)
 - 100,000 MAU
 - Daily backups
 - Email support
 
 **Estimated School Costs:**
+
 ```
 Small School (20 teachers, 500 students):
   - Database: ~50MB
@@ -555,12 +570,14 @@ District (500 teachers, 50 schools):
 ### Revenue Model
 
 **Freemium:**
+
 - Free: Solo teachers (unlimited forever)
 - School: $10-20/month or $100-150/year per school
 - District: $50-100/month or $500-800/year
 - Regional/National: Custom enterprise pricing
 
 **Cost Structure:**
+
 - Supabase: $25/month (covers 10-20 schools)
 - Gross profit margin: 60-80%
 - Break-even: 2-3 paying schools
@@ -570,6 +587,7 @@ District (500 teachers, 50 schools):
 ## 🚀 Migration Plan
 
 ### Phase 1: Foundation (Week 1-2)
+
 - ✅ Supabase schema (DONE - in SUPABASE-SETUP.md)
 - ✅ Authentication flow (DONE - in supabase.ts)
 - ✅ Student API (DONE - in studentApiSupabase.ts)
@@ -578,6 +596,7 @@ District (500 teachers, 50 schools):
 - 🔄 Class management API
 
 ### Phase 2: Multi-User (Week 3-4)
+
 - Role-based permissions
 - Subject assignments
 - Granular score tracking
@@ -585,6 +604,7 @@ District (500 teachers, 50 schools):
 - Conflict resolution
 
 ### Phase 3: Dashboard (Week 5-6)
+
 - School analytics
 - Class analytics
 - Subject analytics
@@ -592,12 +612,14 @@ District (500 teachers, 50 schools):
 - Export/reports
 
 ### Phase 4: Onboarding (Week 7-8)
+
 - School signup flow
 - Teacher invitation system
 - Data migration from v1
 - Billing integration
 
 ### Phase 5: Advanced (Week 9-12)
+
 - District dashboards
 - Offline sync improvements
 - Mobile optimizations
@@ -608,6 +630,7 @@ District (500 teachers, 50 schools):
 ## 🎨 UX Flow Changes
 
 ### Current (v1):
+
 ```
 Teacher → Dashboard → Add Students → Enter Scores → Print
 ```
@@ -615,21 +638,25 @@ Teacher → Dashboard → Add Students → Enter Scores → Print
 ### Future (v2):
 
 **School Admin:**
+
 ```
 Sign Up → Create School → Add Teachers → Assign Classes → View Analytics
 ```
 
 **Class Teacher:**
+
 ```
 Login → Select Class → View Students → Enter Scores → Write Remarks → Request Approval
 ```
 
 **Subject Teacher:**
+
 ```
 Login → View Assigned Subjects → Enter Scores (Subject only) → Done
 ```
 
 **Headteacher:**
+
 ```
 Login → View Pending Reports → Add Final Remarks → Approve → Print
 ```
@@ -639,18 +666,21 @@ Login → View Pending Reports → Add Final Remarks → Approve → Print
 ## 🔧 Technical Stack
 
 **Frontend (No changes):**
+
 - React + TypeScript
 - TanStack Router
 - Tailwind CSS
 - IndexedDB (offline cache)
 
 **Backend:**
+
 - Supabase (PostgreSQL + Auth + Realtime + Storage)
 - Row Level Security
 - Database functions
 - Triggers for analytics
 
 **Infrastructure:**
+
 - Vercel (frontend hosting)
 - Supabase (backend)
 - Cloudflare (CDN for assets)
@@ -660,10 +690,12 @@ Login → View Pending Reports → Add Final Remarks → Approve → Print
 ## 📈 Success Metrics
 
 **v1 Metrics (Current):**
+
 - Number of downloads
 - Reports generated
 
 **v2 Metrics (Future):**
+
 - Schools onboarded
 - Active teachers (MAU)
 - Reports generated per school
