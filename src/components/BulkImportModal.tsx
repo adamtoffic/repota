@@ -5,6 +5,7 @@ import { useToast } from "../hooks/useToast";
 import type { StudentRecord } from "../types";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
+import { Textarea } from "./ui/Textarea";
 
 interface Props {
   isOpen: boolean;
@@ -90,11 +91,11 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               <p className="text-sm text-gray-600">
                 Paste your class list below. One student name per line.
               </p>
-              <textarea
+              <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Kwame Mensah&#10;Ama Serwaa&#10;Aiman Adam&#10;...etc"
-                className="h-64 w-full resize-none rounded-lg border border-gray-300 p-4 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-64 font-mono text-sm"
               />
               <Button
                 onClick={handlePreview}

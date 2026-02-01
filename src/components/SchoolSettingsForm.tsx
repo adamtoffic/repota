@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { SchoolSettings } from "../types";
 import { School, Save, Plus, X } from "lucide-react";
 import { Tooltip } from "./ui/Tooltip";
+import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
 
 interface Props {
   initialSettings: SchoolSettings;
@@ -60,27 +62,22 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">School Name</label>
-          <input
-            type="text"
-            value={formData.schoolName}
-            onChange={(e) => handleChange("schoolName", e.target.value)}
-            className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. Anglican PRIMARY"
-          />
-        </div>
+        <Input
+          label="School Name"
+          type="text"
+          value={formData.schoolName}
+          onChange={(e) => handleChange("schoolName", e.target.value)}
+          placeholder="e.g. Anglican PRIMARY"
+        />
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700"> Academic Year</label>
-          <input
-            type="text"
-            value={formData.academicYear}
-            onChange={(e) => handleChange("academicYear", e.target.value)}
-            className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. 2025/2026"
-          />
-        </div>
+        <Input
+          label="Academic Year"
+          type="text"
+          value={formData.academicYear}
+          onChange={(e) => handleChange("academicYear", e.target.value)}
+          className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="e.g. 2025/2026"
+        />
 
         <div>
           <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700">
@@ -98,18 +95,15 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
             placeholder="e.g. 30"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Term</label>
-          <select
-            value={formData.term}
-            onChange={(e) => handleChange("term", e.target.value)}
-            className="w-full rounded border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value={1}>First Term</option>
-            <option value={2}>Second Term</option>
-            <option value={3}>Third Term</option>
-          </select>
-        </div>
+        <Select
+          label="Term"
+          value={formData.term}
+          onChange={(e) => handleChange("term", e.target.value)}
+        >
+          <option value={1}>First Term</option>
+          <option value={2}>Second Term</option>
+          <option value={3}>Third Term</option>
+        </Select>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">School Level</label>
 
