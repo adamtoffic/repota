@@ -326,13 +326,21 @@ export function Settings() {
         actions={
           <div className="flex items-center gap-2">
             {hasUnsavedChanges && (
-              <button
-                onClick={() => setShowResetModal(true)}
-                className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95"
-              >
-                <RotateCcw className="h-4 w-4" />
-                <span className="hidden sm:inline">Reset</span>
-              </button>
+              <>
+                {/* Mobile: Just icon with pulse */}
+                <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-2 py-2 sm:hidden">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+                </div>
+                {/* Desktop: Full reset button */}
+                <button
+                  onClick={() => setShowResetModal(true)}
+                  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
+                  title="Discard unsaved changes"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Reset</span>
+                </button>
+              </>
             )}
             <Link
               to="/"
@@ -345,7 +353,38 @@ export function Settings() {
         }
       />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6 pb-24">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+        {/* Auto-Save Info Banner */}
+        <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+          <div>
+            <p className="font-medium">
+              Settings auto-save as you type{" "}
+              <span className="hidden sm:inline">• No need to scroll for a save button</span>
+            </p>
+            <p className="mt-1 text-blue-700 opacity-90">
+              High-risk changes (like deleting subjects) will ask for confirmation
+            </p>
+          </div>
+        </div>
+
+        {/* Unsaved Changes Banner - Mobile Only */}
+        {hasUnsavedChanges && (
+          <div className="animate-fade-in flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-3 sm:hidden">
+            <div className="flex items-center gap-2 text-sm text-orange-700">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+              <span className="font-medium">Unsaved changes</span>
+            </div>
+            <button
+              onClick={() => setShowResetModal(true)}
+              className="flex items-center gap-1.5 rounded-md border border-orange-300 bg-white px-2.5 py-1.5 text-xs font-medium text-orange-700 transition-all active:scale-95"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          </div>
+        )}
+
         {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
