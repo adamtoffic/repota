@@ -5,6 +5,7 @@ import { LazyReportCard } from "../components/LazyReportCard";
 import { useEffect } from "react";
 import { createPrintHandler } from "../utils/printHandler";
 import { ScrollButton } from "../components/ScrollButton";
+import { Button } from "../components/ui/Button";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
@@ -123,13 +124,14 @@ export function PrintPreview() {
               </div>
             </div>
 
-            <button
+            <Button
               onClick={handlePrint}
-              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
+              variant="primary"
+              size="md"
               aria-label="Print all report cards"
             >
               <Printer className="h-4 w-4" /> Print All Reports
-            </button>
+            </Button>
           </div>
 
           {/* VALIDATION WARNING FOR MISSING PHOTOS */}

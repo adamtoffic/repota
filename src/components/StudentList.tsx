@@ -8,6 +8,7 @@ import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
+import { Button } from "./ui/Button";
 
 interface Props {
   students: ProcessedStudent[];
@@ -86,13 +87,9 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
       <div className="bg-background flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <h2 className="text-lg font-bold text-gray-800">Student Records</h2>
 
-        <button
-          onClick={handleOpenModal}
-          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold text-white shadow-sm transition-colors sm:py-2"
-          aria-label="Add new student"
-        >
+        <Button onClick={handleOpenModal} variant="primary" size="md" aria-label="Add new student">
           <UserPlus className="h-4 w-4" /> Add Student
-        </button>
+        </Button>
       </div>
 
       {/* TABLE */}
@@ -304,12 +301,9 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                 </p>
               </div>
 
-              <button
-                type="submit"
-                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2 font-bold text-white"
-              >
+              <Button type="submit" variant="primary" size="md" fullWidth>
                 Save Student
-              </button>
+              </Button>
             </form>
           </div>
         </div>

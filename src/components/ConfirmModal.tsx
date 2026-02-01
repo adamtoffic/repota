@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Button } from "./ui/Button";
 
 interface Props {
   isOpen: boolean;
@@ -74,17 +75,16 @@ export function ConfirmModal({
           >
             {cancelText}
           </button>
-          <button
+          <Button
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className={`rounded-lg px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 ${
-              isDangerous ? "bg-danger hover:bg-danger/90" : "bg-primary hover:bg-primary/90"
-            }`}
+            variant={isDangerous ? "danger" : "primary"}
+            size="md"
           >
             {confirmText}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -42,6 +42,7 @@ import {
   disableBiometric,
   getBiometricName,
 } from "../utils/biometricAuth";
+import { Button } from "../components/ui/Button";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -245,12 +246,9 @@ export function Settings() {
             </Link>
             <h1 className="text-main text-lg font-bold sm:text-xl">Settings</h1>
           </div>
-          <button
-            onClick={handleSave}
-            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-md transition-all active:scale-95"
-          >
+          <Button onClick={handleSave} variant="primary" size="md">
             <Save className="h-4 w-4" /> Save
-          </button>
+          </Button>
         </div>
       </div>
 
