@@ -82,9 +82,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-4">
       {/* 1. IDENTITY CARD (Photo + Basic Info Combined) */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-6 sm:flex-row">
           {/* PHOTO COLUMN (Left on Desktop, Top on Mobile) */}
           <div className="flex flex-col items-center gap-2 sm:w-1/3">
@@ -118,12 +118,14 @@ export function DetailsTab({ student, onUpdate }: Props) {
               />
 
               <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">Gender</label>
+                <label className="mb-1 block text-xs font-bold text-gray-700 uppercase">
+                  Gender
+                </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => handleGenderChange("Male")}
-                    className={`flex-1 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition-all ${
+                    className={`flex-1 rounded-lg border-2 px-2 py-2 text-xs font-semibold transition-all sm:px-3 sm:py-2.5 sm:text-sm ${
                       formData.gender === "Male"
                         ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
                         : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
@@ -134,7 +136,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                   <button
                     type="button"
                     onClick={() => handleGenderChange("Female")}
-                    className={`flex-1 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition-all ${
+                    className={`flex-1 rounded-lg border-2 px-2 py-2 text-xs font-semibold transition-all sm:px-3 sm:py-2.5 sm:text-sm ${
                       formData.gender === "Female"
                         ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
                         : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
@@ -143,7 +145,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                     👧 Female
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Auto-saved when changed.</p>
+                <p className="mt-1 text-xs text-gray-500">Auto-saved</p>
               </div>
             </div>
           </div>
@@ -151,9 +153,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
       </div>
 
       {/* 2. ACADEMIC STATUS */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="text-muted mb-4 text-xs font-bold tracking-wider uppercase">
-          Academic Status
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800">
+          📚 Academic Status
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -194,9 +196,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
       </div>
 
       {/* 3. QUALITATIVE ASSESSMENT (Remarks) */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="text-muted mb-4 text-xs font-bold tracking-wider uppercase">
-          Qualitative Assessment
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800">
+          💬 Qualitative Assessment
         </h3>
         <div className="space-y-4">
           {/* CONDUCT */}
@@ -265,14 +267,14 @@ export function DetailsTab({ student, onUpdate }: Props) {
               placeholder="Write a custom remark..."
               value={formData.teacherRemark}
               onChange={(e) => handleFormChange({ teacherRemark: e.target.value })}
-              className="w-full resize-none rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
+              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             />
           </div>
         </div>
       </div>
 
       {/* Sticky Save Bar - Mobile Optimized */}
-      <div className="sticky bottom-0 -mx-6 mt-6 -mb-6 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+      <div className="sticky bottom-0 -mx-4 mt-4 -mb-4 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] sm:-mx-6 sm:mt-6 sm:-mb-6">
         {hasUnsavedChanges && (
           <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-orange-600">
             <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>

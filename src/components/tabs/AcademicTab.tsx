@@ -85,7 +85,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
     <div className="space-y-4">
       {/* ✅ MOBILE-FRIENDLY STICKY HEADER */}
       {student.subjects.length > 0 && (
-        <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-4 border-b border-gray-200 bg-white px-6 py-3 shadow-sm sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:static sm:-mx-6 sm:mx-0 sm:-mt-6 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:px-6 sm:shadow-none">
           <div className="flex items-center justify-between gap-3">
             {/* Subject count & progress indicator */}
             <div className="flex items-center gap-3">
@@ -116,20 +116,22 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
       {/* Component Sync Alert */}
       {showComponentSyncAlert && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <span className="text-xs text-blue-700">
-              {hasMissing && hasOutdated
-                ? "Components need updating."
-                : hasMissing
-                  ? "Missing components from Settings."
-                  : "Outdated components detected."}
-            </span>
+        <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-sm font-semibold text-blue-900">
+                {hasMissing && hasOutdated
+                  ? "Components need updating"
+                  : hasMissing
+                    ? "Missing components from Settings"
+                    : "Outdated components detected"}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => syncSubjectComponentsFromSettings()}
-            className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-xs font-bold text-white"
+            className="active:scale-95\ rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
           >
             Sync Now
           </button>
@@ -138,16 +140,18 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
       {/* Missing Subjects Alert */}
       {missingSubjects.length > 0 && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <span className="text-xs text-blue-700">
-              Missing <strong>{missingSubjects.length}</strong> subjects.
-            </span>
+        <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-sm font-semibold text-blue-900">
+                Missing {missingSubjects.length} subject{missingSubjects.length > 1 ? "s" : ""}
+              </p>
+            </div>
           </div>
           <button
             onClick={handleAddMissing}
-            className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-xs font-bold text-white"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-95"
           >
             Add Missing
           </button>
@@ -156,7 +160,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
       {/* OBSOLETE SUBJECTS ALERT */}
       {obsoleteSubjects.length > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-4">
+        <div className="flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-orange-100 p-2">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
@@ -172,7 +176,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
           {/* Button triggers Modal */}
           <button
             onClick={triggerRemoveObsolete}
-            className="rounded-lg border border-orange-300 bg-white px-4 py-2 text-xs font-bold text-orange-700 shadow-sm hover:bg-orange-100"
+            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 active:scale-95"
           >
             Remove Old
           </button>
@@ -180,10 +184,10 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
       )}
 
       {/* THE LIST */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {/* Subject Filter Info */}
         {filterSubject && (
-          <div className="rounded-lg bg-purple-50 p-3 text-center">
+          <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-center">
             <p className="text-sm font-semibold text-purple-800">🎯 Focused on: {filterSubject}</p>
             <p className="text-xs text-purple-600">
               Navigate students while staying on this subject. Select "All Subjects" to see
@@ -202,7 +206,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
         )}
 
         {displayedSubjects.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 py-10 text-center text-gray-400">
+          <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-12 text-center text-gray-400">
             {filterSubject
               ? `This student doesn't have "${filterSubject}".`
               : "No subjects found. Use the alerts above to sync with Settings."}
@@ -211,7 +215,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
           displayedSubjects.map((subject) => {
             const isObsolete = !masterList.includes(subject.name);
             return (
-              <div key={subject.id} className={isObsolete ? "opacity-50 grayscale" : ""}>
+              <div key={subject.id} className={isObsolete ? "opacity-60 grayscale" : ""}>
                 <SubjectRow
                   subject={subject}
                   level={level}

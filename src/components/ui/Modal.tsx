@@ -25,11 +25,15 @@ export const Modal = ({
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md"
+      className="modal-backdrop fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-md"
       onClick={handleBackdropClick}
       style={{ position: "fixed" }}
     >
-      <div className={`w-full max-w-md rounded-lg bg-white shadow-xl ${className}`}>{children}</div>
+      <div
+        className={`my-auto w-full max-w-md flex-shrink-0 rounded-lg bg-white shadow-xl ${className}`}
+      >
+        {children}
+      </div>
     </div>
   );
 };

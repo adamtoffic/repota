@@ -5,7 +5,6 @@ import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
 import { useSwipe } from "../hooks/useSwipe";
-import { Modal } from "./ui/Modal";
 
 interface Props {
   student: ProcessedStudent;
@@ -76,8 +75,14 @@ export function ScoreEntryModal({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-h-[90vh] max-w-4xl">
-      <div className="flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* HEADER WITH NAVIGATION */}
         <div className="bg-background flex items-center justify-between rounded-t-xl border-b border-gray-100 p-4 sm:p-6">
           {/* Left: Previous Button */}
@@ -161,13 +166,13 @@ export function ScoreEntryModal({
               className="rounded-full p-2 transition-colors hover:bg-gray-200"
               title="Close (Esc)"
             >
-              <X className="text-muted h-5 w-5" />
+              <X className="tw-5" />
             </button>
           </div>
         </div>
 
         {/* TABS */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex flex-shrink-0 border-b border-gray-200 px-6">
           <button
             onClick={() => setActiveTab("ACADEMIC")}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
@@ -212,6 +217,6 @@ export function ScoreEntryModal({
           )}
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }
