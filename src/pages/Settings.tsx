@@ -42,7 +42,7 @@ import {
   disableBiometric,
   getBiometricName,
 } from "../utils/biometricAuth";
-import { Button } from "../components/ui/Button";
+import { Button, Alert, Badge, IconButton } from "../components/ui";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -683,14 +683,10 @@ export function Settings() {
                     className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:w-24"
                     placeholder="Max Score"
                   />
-                  <button
-                    type="button"
-                    onClick={addComponent}
-                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95"
-                  >
+                  <Button type="button" onClick={addComponent} variant="primary" size="sm">
                     <Plus className="h-4 w-4" />
                     <span>Add</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -708,16 +704,18 @@ export function Settings() {
                         className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm shadow-sm"
                       >
                         <span className="font-medium text-gray-700">{config.name}</span>
-                        <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">
+                        <Badge variant="primary" size="sm">
                           /{config.maxScore}
-                        </span>
-                        <button
+                        </Badge>
+                        <IconButton
                           type="button"
                           onClick={() => removeComponent(config.name)}
-                          className="rounded p-0.5 text-purple-500 transition-colors hover:bg-purple-100 hover:text-purple-700"
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Remove ${config.name}`}
                         >
                           <X className="h-3.5 w-3.5" />
-                        </button>
+                        </IconButton>
                       </div>
                     ))}
                   </div>
@@ -922,57 +920,63 @@ export function Settings() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <h3 className="mb-2 font-bold text-green-900">PIN Lock (Optional)</h3>
-              <p className="mb-4 text-sm leading-relaxed text-green-800">
+            <Alert variant="success" title="PIN Lock (Optional)">
+              <p className="mb-4">
                 Secure your student data with a 4-digit PIN. You'll need to enter it when opening
                 the app.
               </p>
-              <button
+              <Button
                 type="button"
                 onClick={() => setShowPinSetup(true)}
-                className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 sm:w-auto"
+                variant="primary"
+                size="sm"
+                className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
               >
                 {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
-              </button>
-            </div>
+              </Button>
+            </Alert>
 
             {isPinConfigured() && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                <h3 className="mb-2 flex items-center gap-2 font-bold text-yellow-900">
-                  <Key className="h-4 w-4" /> Forgot Your PIN?
-                </h3>
-                <p className="mb-3 text-sm text-yellow-800">
-                  You'll need your 6-digit recovery code to reset your PIN.
-                </p>
-                <button
+              <Alert
+                variant="warning"
+                title={
+                  <>
+                    <Key className="inline h-4 w-4" /> Forgot Your PIN?
+                  </>
+                }
+              >
+                <p className="mb-3">You'll need your 6-digit recovery code to reset your PIN.</p>
+                <Button
                   type="button"
                   onClick={() => setShowPinRecovery(true)}
-                  className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 text-sm font-bold text-yellow-700 hover:bg-yellow-50 sm:w-auto"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full sm:w-auto"
                 >
                   Reset PIN with Recovery Code
-                </button>
-              </div>
+                </Button>
+              </Alert>
             )}
 
             {isPinConfigured() && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                <h3 className="mb-2 font-bold text-red-900">Disable PIN Lock</h3>
-                <p className="mb-3 text-sm text-red-800">
+              <Alert variant="error" title="Disable PIN Lock">
+                <p className="mb-3">
                   Remove PIN protection from the app. This action cannot be undone.
                 </p>
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowDisablePinModal(true)}
-                  className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+                  variant="danger"
+                  size="sm"
+                  className="w-full sm:w-auto"
                 >
                   Disable PIN Lock
-                </button>
-                <p className="mt-3 text-xs text-red-700">
+                </Button>
+                <p className="mt-3 text-xs">
                   <strong>Lost your recovery code?</strong> Disabling PIN lock is the only way to
                   regain access. Your student data will remain safe.
                 </p>
-              </div>
+              </Alert>
             )}
 
             {isPinConfigured() && (
@@ -1006,44 +1010,52 @@ export function Settings() {
 
             {/* Biometric Section - Only show if PIN is configured AND device supports it */}
             {isPinConfigured() && biometricAvailable && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                <h3 className="mb-2 flex items-center gap-2 font-bold text-indigo-900">
-                  <Fingerprint className="h-4 w-4" /> {getBiometricName(biometricType)}
-                </h3>
-                <p className="mb-3 text-sm text-indigo-800">
+              <Alert
+                variant="info"
+                title={
+                  <>
+                    <Fingerprint className="inline h-4 w-4" /> {getBiometricName(biometricType)}
+                  </>
+                }
+              >
+                <p className="mb-3">
                   Use {getBiometricName(biometricType)} to unlock the app quickly. Your PIN will
                   still work as a backup.
                 </p>
 
                 {isBiometricEnrolled() ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-indigo-900">
+                    <div className="flex items-center gap-2 text-sm">
                       <div className="h-2 w-2 rounded-full bg-green-500" />
                       <span className="font-medium">
                         {getBiometricName(biometricType)} is enabled
                       </span>
                     </div>
-                    <button
+                    <Button
                       type="button"
                       onClick={handleDisableBiometric}
-                      className="rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
+                      variant="secondary"
+                      size="sm"
                     >
                       Disable {getBiometricName(biometricType)}
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={handleEnrollBiometric}
                     disabled={enrollingBiometric}
-                    className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto"
+                    variant="primary"
+                    size="sm"
+                    isLoading={enrollingBiometric}
+                    className="w-full sm:w-auto"
                   >
                     {enrollingBiometric
                       ? "Setting up..."
                       : `Enable ${getBiometricName(biometricType)}`}
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </Alert>
             )}
           </div>
         </div>
@@ -1054,21 +1066,27 @@ export function Settings() {
         {/* BACKUP & DANGER ZONE */}
         <DataBackup />
 
-        <div className="rounded-xl border border-red-100 bg-red-50 p-6 shadow-sm">
-          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-red-900">
-            <RotateCcw className="h-5 w-5" /> Reset Configuration
-          </h2>
-          <p className="mb-4 text-sm leading-relaxed text-red-800">
+        <Alert
+          variant="error"
+          title={
+            <>
+              <RotateCcw className="inline h-5 w-5" /> Reset Configuration
+            </>
+          }
+        >
+          <p className="mb-4">
             This will restore default subject lists and settings. Your student data will remain
             safe.
           </p>
-          <button
+          <Button
             onClick={() => setShowResetModal(true)}
-            className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+            variant="danger"
+            size="sm"
+            className="w-full sm:w-auto"
           >
             Restore Factory Defaults
-          </button>
-        </div>
+          </Button>
+        </Alert>
 
         {/* ABOUT (Keep existing) */}
         {/* ... (Copy your About Card logic here if you want it) ... */}
