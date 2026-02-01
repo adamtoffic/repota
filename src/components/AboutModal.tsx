@@ -9,7 +9,10 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200">
+    <div
+      className="animate-in fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md duration-200"
+      style={{ position: "fixed" }}
+    >
       <div className="animate-in zoom-in-95 relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl duration-200">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">

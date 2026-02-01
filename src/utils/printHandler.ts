@@ -20,8 +20,13 @@ export const createPrintHandler = (haptic: boolean = true) => {
       triggerHaptic("light");
     }
 
-    // Immediate print call - must be synchronous with user gesture for iOS
-    window.print();
+    // Dispatch custom event to force all lazy components to render
+    window.dispatchEvent(new Event("beforeprint"));
+
+    // Give components time to render before printing (especially in PWA)
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 };
 
@@ -32,7 +37,11 @@ export const createKeyboardPrintHandler = () => {
   return (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      window.print();
+      // Dispatch custom event to force all lazy components to render
+      window.dispatchEvent(new Event("beforeprint"));
+      setTimeout(() => {
+        window.print();
+      }, 100);
     }
   };
 };

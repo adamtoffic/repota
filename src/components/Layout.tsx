@@ -12,7 +12,9 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
   return (
     <div className="text-main bg-background min-h-screen font-sans">
       {/* NAVIGATION */}
-      <nav className="safe-top sticky top-0 z-50 bg-blue-900 shadow-lg">
+      <nav className="fixed top-0 right-0 left-0 z-50 bg-blue-900 shadow-lg">
+        {/* Safe area spacer for notch/dynamic island */}
+        <div className="safe-top bg-blue-900" />
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-linear-to-br from-amber-400 to-amber-500 p-2">
@@ -62,8 +64,13 @@ export function Layout({ children, schoolName, activeTab, onTabChange }: Props) 
         </div>
       </nav>
 
-      {/* MAIN CONTENT CONTAINER */}
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      {/* MAIN CONTENT CONTAINER - Extra padding for fixed nav + safe area */}
+      <main
+        className="mx-auto max-w-6xl px-4 pb-8"
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 5rem)" }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

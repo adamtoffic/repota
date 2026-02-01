@@ -102,52 +102,56 @@ export function PrintPreview() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
-      <div className="safe-top sticky top-0 z-50 border-b border-gray-200 bg-white p-4 print:hidden">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/"
-              className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-main text-lg font-bold">Print Preview</h1>
-              <p className="text-muted text-xs">
-                Generating {printableStudents.length} report cards for{" "}
-                {settings.className || "Class"}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handlePrint}
-            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
-            aria-label="Print all report cards"
-          >
-            <Printer className="h-4 w-4" /> Print All Reports
-          </button>
-        </div>
-
-        {/* VALIDATION WARNING FOR MISSING PHOTOS */}
-        {studentsWithMissingPhotos.length > 0 && (
-          <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-yellow-800">
-                  ⚠️ {studentsWithMissingPhotos.length} student
-                  {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
-                  {studentsWithMissingPhotos.length === 1 ? "" : "s"}
-                </p>
-                <p className="text-muted mt-0.5 text-xs">
-                  Reports will print without photos. Add student photos in the Dashboard for
-                  complete report cards.
+      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white print:hidden">
+        {/* Safe area spacer */}
+        <div className="safe-top bg-white" />
+        <div className="p-4">
+          <div className="mx-auto flex max-w-5xl items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/"
+                className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+              <div>
+                <h1 className="text-main text-lg font-bold">Print Preview</h1>
+                <p className="text-muted text-xs">
+                  Generating {printableStudents.length} report cards for{" "}
+                  {settings.className || "Class"}
                 </p>
               </div>
             </div>
+
+            <button
+              onClick={handlePrint}
+              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
+              aria-label="Print all report cards"
+            >
+              <Printer className="h-4 w-4" /> Print All Reports
+            </button>
           </div>
-        )}
+
+          {/* VALIDATION WARNING FOR MISSING PHOTOS */}
+          {studentsWithMissingPhotos.length > 0 && (
+            <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-yellow-800">
+                    ⚠️ {studentsWithMissingPhotos.length} student
+                    {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
+                    {studentsWithMissingPhotos.length === 1 ? "" : "s"}
+                  </p>
+                  <p className="text-muted mt-0.5 text-xs">
+                    Reports will print without photos. Add student photos in the Dashboard for
+                    complete report cards.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 2. THE PREVIEW AREA - Lazy loaded for performance */}

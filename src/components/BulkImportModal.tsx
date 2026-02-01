@@ -68,7 +68,10 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div
+      className="animate-in fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md"
+      style={{ position: "fixed" }}
+    >
       <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">

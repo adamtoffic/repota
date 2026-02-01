@@ -14,8 +14,10 @@ interface Props {
  * Improves performance for printing 50+ reports
  */
 export function LazyReportCard({ student, settings, index, totalStudents }: Props) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasRendered, setHasRendered] = useState(false);
+  // Check if we're in print mode at initialization
+  const isPrintMode = typeof window !== "undefined" && window.matchMedia("print").matches;
+  const [isVisible, setIsVisible] = useState(isPrintMode);
+  const [hasRendered, setHasRendered] = useState(isPrintMode);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,26 +36,42 @@ export function LazyReportCard({ student, settings, index, totalStudents }: Prop
       },
     );
 
-    if (wrapperRef.current) {
-      observer.observe(wrapperRef.current);
+    const currentRef = wrapperRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (wrapperRef.current) {
-        observer.unobserve(wrapperRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, [hasRendered]);
 
-  // Always render during print
+  // Always render during print - Multiple approaches for better compatibility
   useEffect(() => {
     const handleBeforePrint = () => {
       setIsVisible(true);
       setHasRendered(true);
     };
 
+    // Check if we're in print mode via media query
+    const printMediaQuery = window.matchMedia("print");
+    const handlePrintMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        setIsVisible(true);
+        setHasRendered(true);
+      }
+    };
+
+    // Listen for print events
     window.addEventListener("beforeprint", handleBeforePrint);
-    return () => window.removeEventListener("beforeprint", handleBeforePrint);
+    printMediaQuery.addEventListener("change", handlePrintMediaChange);
+
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+      printMediaQuery.removeEventListener("change", handlePrintMediaChange);
+    };
   }, []);
 
   return (
