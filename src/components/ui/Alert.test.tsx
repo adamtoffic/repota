@@ -65,25 +65,25 @@ describe("Alert", () => {
     expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("should show dismiss button when onDismiss is provided", () => {
-    const handleDismiss = vi.fn();
-    render(<Alert onDismiss={handleDismiss}>Dismissible</Alert>);
-    expect(screen.getByRole("button", { name: /dismiss/i })).toBeInTheDocument();
+  it("should show close button when onClose is provided", () => {
+    const handleClose = vi.fn();
+    render(<Alert onClose={handleClose}>Dismissible</Alert>);
+    expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
   });
 
-  it("should call onDismiss when dismiss button is clicked", async () => {
-    const handleDismiss = vi.fn();
+  it("should call onClose when close button is clicked", async () => {
+    const handleClose = vi.fn();
     const user = userEvent.setup();
 
-    render(<Alert onDismiss={handleDismiss}>Dismissible</Alert>);
+    render(<Alert onClose={handleClose}>Dismissible</Alert>);
 
-    await user.click(screen.getByRole("button", { name: /dismiss/i }));
-    expect(handleDismiss).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: /close/i }));
+    expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it("should not show dismiss button when onDismiss is not provided", () => {
-    render(<Alert>Not dismissible</Alert>);
-    expect(screen.queryByRole("button", { name: /dismiss/i })).not.toBeInTheDocument();
+  it("should not show close button when onClose is not provided", () => {
+    render(<Alert>Not closeable</Alert>);
+    expect(screen.queryByRole("button", { name: /close/i })).not.toBeInTheDocument();
   });
 
   it("should apply custom className", () => {

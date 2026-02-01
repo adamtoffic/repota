@@ -73,13 +73,13 @@ describe("Button", () => {
   it("should apply small size styles", () => {
     render(<Button size="sm">Small</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("text-sm");
+    expect(button).toHaveClass("text-xs");
   });
 
   it("should apply large size styles", () => {
     render(<Button size="lg">Large</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("text-lg");
+    expect(button).toHaveClass("text-base");
   });
 
   it("should apply fullWidth prop", () => {
