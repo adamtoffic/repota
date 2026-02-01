@@ -14,6 +14,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { recordBackup } from "../utils/dataProtection";
 import { loadFromStorage, saveToStorage, IDB_KEYS } from "../utils/idbStorage";
 import { encryptBackupFile, decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
+import { Input } from "./ui";
 
 export function DataBackup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -389,11 +390,11 @@ export function DataBackup() {
                   Password (min 4 characters)
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 p-2.5 pr-10 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                    className="pr-10 text-sm"
                     placeholder="Enter password"
                     autoFocus
                   />
@@ -407,28 +408,22 @@ export function DataBackup() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Confirm Password
-                </label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                  placeholder="Re-enter password"
-                />
-              </div>
+              <Input
+                label="Confirm Password"
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="text-sm"
+                placeholder="Re-enter password"
+              />
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Password Hint (optional)
-                </label>
-                <input
+                <Input
+                  label="Password Hint (optional)"
                   type="text"
                   value={passwordHint}
                   onChange={(e) => setPasswordHint(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  className="text-sm"
                   placeholder="e.g., 'My birth year'"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -486,7 +481,7 @@ export function DataBackup() {
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showImportPassword ? "text" : "password"}
                     value={importPassword}
                     onChange={(e) => setImportPassword(e.target.value)}
@@ -495,7 +490,7 @@ export function DataBackup() {
                         handleDecryptAndImport();
                       }
                     }}
-                    className="w-full rounded-lg border border-gray-300 p-2.5 pr-10 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="pr-10 text-sm"
                     placeholder="Enter password"
                     autoFocus
                   />
