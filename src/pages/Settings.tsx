@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
-  Save,
   Plus,
   AlertCircle,
   School,
@@ -17,6 +16,7 @@ import {
   Fingerprint,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ImageUploader } from "../components/ImageUploader";
@@ -56,17 +56,32 @@ export function Settings() {
     lastSaved,
   } = useSchoolData();
   const { showToast } = useToast();
-  const navigate = useNavigate({ from: "/settings" });
 
   const [formData, setFormData] = useState<SchoolSettings>(settings);
+  const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
+  const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
   const [newSubject, setNewSubject] = useState("");
   const [newComponentName, setNewComponentName] = useState("");
   const [newComponentMax, setNewComponentMax] = useState("");
+
+  // Modal states
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+  const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<{ index: number; name: string } | null>(
+    null,
+  );
+  const [showDeleteComponentModal, setShowDeleteComponentModal] = useState(false);
+  const [componentToDelete, setComponentToDelete] = useState<string | null>(null);
+  const [showLevelChangeModal, setShowLevelChangeModal] = useState(false);
+  const [pendingLevel, setPendingLevel] = useState<SchoolLevel | null>(null);
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showPinRecovery, setShowPinRecovery] = useState(false);
   const [showDisablePinModal, setShowDisablePinModal] = useState(false);
+
+  // Debounce form data for auto-save (500ms)
+  const debouncedFormData = useDebounce(formData, 500);
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -88,8 +103,46 @@ export function Settings() {
     })();
   }, []);
 
-  // Compute unsaved changes - derived state, no effect needed
-  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(settings);
+  // Compute unsaved changes
+  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
+
+  // Auto-save effect: saves low-risk changes automatically after debounce
+  useEffect(() => {
+    const debouncedString = JSON.stringify(debouncedFormData);
+
+    // Skip if no changes from last auto-save
+    if (debouncedString === lastAutoSaveRef.current) return;
+
+    // Check if this is a high-risk change that needs confirmation
+    const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
+
+    // Skip auto-save for class name changes when students exist
+    if (classNameChanged && students.length > 0) {
+      return;
+    }
+
+    // Auto-save low-risk changes
+    setSettings(debouncedFormData);
+    lastAutoSaveRef.current = debouncedString;
+
+    // Update last saved state after successful save (in a separate effect cycle)
+    requestAnimationFrame(() => {
+      setLastSavedSettings(debouncedFormData);
+    });
+  }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
+  useEffect(() => {
+    const classNameChanged = formData.className !== lastSavedSettings.className;
+    if (classNameChanged && students.length > 0 && !showClassUpdateModal) {
+      // Delay modal to avoid showing during typing
+      const timer = setTimeout(() => {
+        if (formData.className !== lastSavedSettings.className) {
+          setShowClassUpdateModal(true);
+        }
+      }, 1000); // Show modal 1s after user stops typing className
+
+      return () => clearTimeout(timer);
+    }
+  }, [formData.className, lastSavedSettings.className, students.length, showClassUpdateModal]);
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
@@ -112,6 +165,22 @@ export function Settings() {
 
   // --- HANDLERS ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
+    // If changing level and subjects exist, show confirmation
+    if (
+      newLevel !== formData.level &&
+      formData.defaultSubjects &&
+      formData.defaultSubjects.length > 0
+    ) {
+      setPendingLevel(newLevel);
+      setShowLevelChangeModal(true);
+      return;
+    }
+
+    // Otherwise apply immediately
+    applyLevelChange(newLevel);
+  };
+
+  const applyLevelChange = (newLevel: SchoolLevel) => {
     const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
     const defaultClass = CLASS_OPTIONS[newLevel]?.[0] || "";
 
@@ -122,6 +191,8 @@ export function Settings() {
       className: defaultClass,
     }));
     showToast(`Loaded presets for ${newLevel}`, "info");
+    setShowLevelChangeModal(false);
+    setPendingLevel(null);
   };
 
   const addSubject = () => {
@@ -135,10 +206,21 @@ export function Settings() {
   };
 
   const removeSubject = (index: number) => {
+    const subjectName = formData.defaultSubjects?.[index] || "";
+    setSubjectToDelete({ index, name: subjectName });
+    setShowDeleteSubjectModal(true);
+  };
+
+  const confirmDeleteSubject = () => {
+    if (subjectToDelete === null) return;
+
     setFormData((prev) => ({
       ...prev,
-      defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== index),
+      defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== subjectToDelete.index),
     }));
+    showToast(`Deleted ${subjectToDelete.name}`, "info");
+    setShowDeleteSubjectModal(false);
+    setSubjectToDelete(null);
   };
 
   const addComponent = () => {
@@ -171,13 +253,22 @@ export function Settings() {
   };
 
   const removeComponent = (componentName: string) => {
+    setComponentToDelete(componentName);
+    setShowDeleteComponentModal(true);
+  };
+
+  const confirmDeleteComponent = () => {
+    if (!componentToDelete) return;
+
     setFormData((prev) => ({
       ...prev,
       componentLibrary: (prev.componentLibrary || []).filter(
-        (config) => config.name !== componentName,
+        (config) => config.name !== componentToDelete,
       ),
     }));
-    showToast("Component removed from library!", "success");
+    showToast(`Deleted component: ${componentToDelete}`, "info");
+    setShowDeleteComponentModal(false);
+    setComponentToDelete(null);
   };
 
   // Add component to a specific subject
@@ -207,25 +298,24 @@ export function Settings() {
     });
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.className !== settings.className && students.length > 0) {
-      setShowClassUpdateModal(true);
-      return;
-    }
-    finalizeSave();
-  };
-
+  // Handle class name update confirmation
   const finalizeSave = (shouldUpdateStudents = false) => {
     setSettings(formData);
+    setLastSavedSettings(formData);
 
     if (shouldUpdateStudents) {
       updateClassNameForAll(formData.className || "");
       showToast(`Updated class name for ${students.length} students`, "success");
     }
 
-    showToast("Configuration saved successfully!", "success");
-    navigate({ to: "/" });
+    setShowClassUpdateModal(false);
+  };
+
+  // Reset to last saved state
+  const handleReset = () => {
+    setFormData(lastSavedSettings);
+    setShowResetModal(false);
+    showToast("Changes discarded", "info");
   };
 
   return (
@@ -234,17 +324,67 @@ export function Settings() {
       <PageHeader
         schoolName={settings.schoolName}
         actions={
-          <Link
-            to="/"
-            className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
-          >
-            <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
-            <span className="hidden text-sm font-medium sm:inline">Back</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            {hasUnsavedChanges && (
+              <>
+                {/* Mobile: Just icon with pulse */}
+                <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-2 py-2 sm:hidden">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+                </div>
+                {/* Desktop: Full reset button */}
+                <button
+                  onClick={() => setShowResetModal(true)}
+                  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
+                  title="Discard unsaved changes"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Reset</span>
+                </button>
+              </>
+            )}
+            <Link
+              to="/"
+              className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
+            >
+              <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="hidden text-sm font-medium sm:inline">Back</span>
+            </Link>
+          </div>
         }
       />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6 pb-24">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+        {/* Auto-Save Info Banner */}
+        <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+          <div>
+            <p className="font-medium">
+              Settings auto-save as you type{" "}
+              <span className="hidden sm:inline">• No need to scroll for a save button</span>
+            </p>
+            <p className="mt-1 text-blue-700 opacity-90">
+              High-risk changes (like deleting subjects) will ask for confirmation
+            </p>
+          </div>
+        </div>
+
+        {/* Unsaved Changes Banner - Mobile Only */}
+        {hasUnsavedChanges && (
+          <div className="animate-fade-in flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-3 sm:hidden">
+            <div className="flex items-center gap-2 text-sm text-orange-700">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+              <span className="font-medium">Unsaved changes</span>
+            </div>
+            <button
+              onClick={() => setShowResetModal(true)}
+              className="flex items-center gap-1.5 rounded-md border border-orange-300 bg-white px-2.5 py-1.5 text-xs font-medium text-orange-700 transition-all active:scale-95"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          </div>
+        )}
+
         {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
@@ -1044,7 +1184,7 @@ export function Settings() {
             safe.
           </p>
           <Button
-            onClick={() => setShowResetModal(true)}
+            onClick={() => setShowFactoryResetModal(true)}
             variant="danger"
             size="sm"
             className="w-full sm:w-auto"
@@ -1072,15 +1212,15 @@ export function Settings() {
       />
 
       <ConfirmModal
-        isOpen={showResetModal}
+        isOpen={showFactoryResetModal}
         title="Restore Default Settings?"
         message="Are you sure? This will overwrite your School Name, Logo, and Default Subjects."
         confirmText="Yes, Restore Defaults"
         isDangerous={true}
-        onClose={() => setShowResetModal(false)}
+        onClose={() => setShowFactoryResetModal(false)}
         onConfirm={() => {
           restoreDefaults();
-          setShowResetModal(false);
+          setShowFactoryResetModal(false);
           setTimeout(() => window.location.reload(), 1000);
         }}
       />
@@ -1124,29 +1264,58 @@ export function Settings() {
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
-      {/* Sticky Save Bar - Matches DetailsTab UX */}
-      <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <div className="mx-auto max-w-3xl">
-          {hasUnsavedChanges && (
-            <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-orange-600">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
-              <span className="font-medium">You have unsaved changes</span>
-            </p>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95 ${
-              hasUnsavedChanges
-                ? "bg-primary hover:bg-primary/90"
-                : "cursor-not-allowed bg-gray-300"
-            }`}
-          >
-            <Save className="h-5 w-5" />
-            {hasUnsavedChanges ? "Save Settings" : "All Changes Saved"}
-          </button>
-        </div>
-      </div>
+      {/* RESET CHANGES MODAL */}
+      <ConfirmModal
+        isOpen={showResetModal}
+        title="Discard Changes?"
+        message="This will reset all fields to their last saved state. Any unsaved changes will be lost."
+        confirmText="Yes, Discard Changes"
+        isDangerous={true}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={handleReset}
+      />
+
+      {/* DELETE SUBJECT CONFIRMATION */}
+      <ConfirmModal
+        isOpen={showDeleteSubjectModal}
+        title="Delete Subject?"
+        message={`Are you sure you want to remove "${subjectToDelete?.name}"? This will affect report generation for students with this subject.`}
+        confirmText="Yes, Delete Subject"
+        isDangerous={true}
+        onClose={() => {
+          setShowDeleteSubjectModal(false);
+          setSubjectToDelete(null);
+        }}
+        onConfirm={confirmDeleteSubject}
+      />
+
+      {/* DELETE COMPONENT CONFIRMATION */}
+      <ConfirmModal
+        isOpen={showDeleteComponentModal}
+        title="Delete Component?"
+        message={`Are you sure you want to remove the "${componentToDelete}" component? Any subjects using this component will lose their score configuration.`}
+        confirmText="Yes, Delete Component"
+        isDangerous={true}
+        onClose={() => {
+          setShowDeleteComponentModal(false);
+          setComponentToDelete(null);
+        }}
+        onConfirm={confirmDeleteComponent}
+      />
+
+      {/* LEVEL CHANGE CONFIRMATION */}
+      <ConfirmModal
+        isOpen={showLevelChangeModal}
+        title="Change School Level?"
+        message={`Changing from ${formData.level} to ${pendingLevel} will reset all subjects and default configurations. This cannot be undone.`}
+        confirmText="Yes, Change Level"
+        isDangerous={true}
+        onClose={() => {
+          setShowLevelChangeModal(false);
+          setPendingLevel(null);
+        }}
+        onConfirm={() => pendingLevel && applyLevelChange(pendingLevel)}
+      />
     </div>
   );
 }

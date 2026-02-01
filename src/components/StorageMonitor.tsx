@@ -26,14 +26,16 @@ export function StorageMonitor() {
       <div className="mb-4 rounded-lg bg-blue-50 p-4">
         <div className="flex items-center gap-3">
           <HardDrive className="h-5 w-5 text-blue-600" />
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-semibold text-blue-900">
-              {storageType === "indexeddb" ? "IndexedDB" : "LocalStorage"}
+              {storageType === "indexeddb"
+                ? "Device Storage (Offline-First)"
+                : "Limited Storage Mode"}
             </p>
             <p className="text-xs text-blue-700">
               {storageType === "indexeddb"
-                ? "✅ Using IndexedDB - 50MB+ capacity"
-                : "⚠️ Fallback mode - Limited to 5-10MB"}
+                ? "✅ All data stays on your device • Works offline • 50MB+ capacity"
+                : "⚠️ Using fallback storage • Limited capacity • Consider using Chrome/Edge"}
             </p>
           </div>
         </div>
