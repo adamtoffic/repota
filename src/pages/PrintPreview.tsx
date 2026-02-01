@@ -1,18 +1,13 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
-import { LazyReportCard } from "../components/LazyReportCard";
+import { ReportTemplate } from "../components/ReportTemplate";
 import { useEffect } from "react";
-import { createPrintHandler } from "../utils/printHandler";
 import { ScrollButton } from "../components/ScrollButton";
-import { Button } from "../components/ui/Button";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
   const { id } = useSearch({ from: "/print" });
-
-  // iOS-safe print handler
-  const handlePrint = createPrintHandler();
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -24,18 +19,10 @@ export function PrintPreview() {
           margin: 0mm !important;
         }
         
-        html {
+        html, body {
           margin: 0 !important;
           padding: 0 !important;
           width: 210mm !important;
-          height: 297mm !important;
-        }
-        
-        body {
-          margin: 0 !important;
-          padding: 0 !important;
-          width: 210mm !important;
-          min-height: 297mm !important;
         }
         
         .report-wrapper {
@@ -103,69 +90,69 @@ export function PrintPreview() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
-      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white print:hidden">
-        {/* Safe area spacer */}
-        <div className="safe-top bg-white" />
-        <div className="p-4">
-          <div className="mx-auto flex max-w-5xl items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/"
-                className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-              <div>
-                <h1 className="text-main text-lg font-bold">Print Preview</h1>
-                <p className="text-muted text-xs">
-                  Generating {printableStudents.length} report cards for{" "}
-                  {settings.className || "Class"}
+      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 p-4 backdrop-blur-md print:hidden">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-main text-lg font-bold">Print Preview</h1>
+              <p className="text-muted text-xs">
+                Generating {printableStudents.length} report cards for{" "}
+                {settings.className || "Class"}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => window.print()}
+            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white shadow-sm transition-all active:scale-95"
+          >
+            <Printer className="h-4 w-4" /> Print All Reports
+          </button>
+        </div>
+
+        {/* VALIDATION WARNING FOR MISSING PHOTOS */}
+        {studentsWithMissingPhotos.length > 0 && (
+          <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm print:hidden">
+            <div className="flex items-start gap-3">
+              <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-yellow-800">
+                  ⚠️ {studentsWithMissingPhotos.length} student
+                  {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
+                  {studentsWithMissingPhotos.length === 1 ? "" : "s"}
+                </p>
+                <p className="text-muted mt-0.5 text-xs">
+                  Reports will print without photos. Add student photos in the Dashboard for
+                  complete report cards.
                 </p>
               </div>
             </div>
-
-            <Button
-              onClick={handlePrint}
-              variant="primary"
-              size="md"
-              aria-label="Print all report cards"
-            >
-              <Printer className="h-4 w-4" /> Print All Reports
-            </Button>
           </div>
-
-          {/* VALIDATION WARNING FOR MISSING PHOTOS */}
-          {studentsWithMissingPhotos.length > 0 && (
-            <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm print:hidden">
-              <div className="flex items-start gap-3">
-                <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-yellow-800">
-                    ⚠️ {studentsWithMissingPhotos.length} student
-                    {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
-                    {studentsWithMissingPhotos.length === 1 ? "" : "s"}
-                  </p>
-                  <p className="text-muted mt-0.5 text-xs">
-                    Reports will print without photos. Add student photos in the Dashboard for
-                    complete report cards.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* 2. THE PREVIEW AREA - Lazy loaded for performance */}
+      {/* 2. THE PREVIEW AREA */}
       <div className="overflow-x-hidden print:m-0 print:w-full print:p-0">
         {printableStudents.map((student, index) => (
-          <LazyReportCard
+          <div
             key={student.id}
-            student={student}
-            settings={settings}
-            index={index}
-            totalStudents={printableStudents.length}
-          />
+            className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:h-auto print:overflow-visible print:p-0"
+            style={{ pageBreakAfter: index < printableStudents.length - 1 ? "always" : "auto" }}
+          >
+            {/* MOBILE RESPONSIVE WRAPPER */}
+            {/* ✅ FIXED: Changed scale from 0.45 to 0.40 to fit 320px screens */}
+            <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:h-full print:w-full print:scale-100 print:transform-none">
+              <div className="shadow-2xl print:m-0 print:p-0 print:shadow-none">
+                <ReportTemplate student={student} settings={settings} />
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -176,3 +163,5 @@ export function PrintPreview() {
 }
 
 export default PrintPreview;
+
+// Debug: Check printableStudents count

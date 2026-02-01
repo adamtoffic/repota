@@ -222,7 +222,6 @@ a[role="button"]:active {
   html,
   body {
     width: 210mm;
-    height: 297mm;
     margin: 0 !important;
     padding: 0 !important;
     background: white;
@@ -233,7 +232,8 @@ a[role="button"]:active {
   /* Hide UI */
   nav,
   button,
-  .no-print {
+  .no-print,
+  [data-sonner-toaster] {
     display: none !important;
   }
   .print-only {
