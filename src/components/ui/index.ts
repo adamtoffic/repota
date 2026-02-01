@@ -32,6 +32,9 @@ export type { ModalProps } from "./Modal";
 
 export { PageHeader } from "./PageHeader";
 
+export { FormLabel } from "./FormLabel";
+export type { FormLabelProps } from "./FormLabel";
+
 export { Card } from "./Card";
 export { LoadingSpinner } from "./LoadingSpinner";
 export { Skeleton } from "./Skeleton";

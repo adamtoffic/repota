@@ -42,10 +42,10 @@ import {
   disableBiometric,
   getBiometricName,
 } from "../utils/biometricAuth";
-import { Button, Alert, Badge, IconButton } from "../components/ui";
+import { Button, Alert, Badge, IconButton, Input } from "../components/ui";
 import { PageHeader } from "../components/ui/PageHeader";
 
-// ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
+// TODO: Replace remaining raw inputs with Input component, then remove these
 const Label = ({ children }: { children: React.ReactNode }) => (
   <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
     {children}
@@ -274,61 +274,48 @@ export function Settings() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label>School Name</Label>
-                <input
-                  type="text"
-                  required
-                  value={formData.schoolName}
-                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                  className={`${inputClass} text-main font-bold`}
-                  placeholder="e.g. Royal International School"
-                />
-              </div>
+              <Input
+                label="School Name"
+                type="text"
+                required
+                value={formData.schoolName}
+                onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                className="text-main font-bold"
+                placeholder="e.g. Royal International School"
+              />
 
-              <div>
-                <Label>Motto</Label>
-                <input
-                  type="text"
-                  value={formData.schoolMotto || ""}
-                  onChange={(e) => setFormData({ ...formData, schoolMotto: e.target.value })}
-                  className={`${inputClass} italic`}
-                  placeholder="e.g. Knowledge is Power"
-                />
-              </div>
+              <Input
+                label="Motto"
+                type="text"
+                value={formData.schoolMotto || ""}
+                onChange={(e) => setFormData({ ...formData, schoolMotto: e.target.value })}
+                className="italic"
+                placeholder="e.g. Knowledge is Power"
+              />
 
-              <div>
-                <Label>Address / Location</Label>
-                <input
-                  type="text"
-                  value={formData.address || ""}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className={inputClass}
-                  placeholder="e.g. Kumasi, Ashanti Region"
-                />
-              </div>
+              <Input
+                label="Address / Location"
+                type="text"
+                value={formData.address || ""}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="e.g. Kumasi, Ashanti Region"
+              />
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Phone Number</Label>
-                  <input
-                    type="tel"
-                    value={formData.phoneNumber || ""}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    className={inputClass}
-                    placeholder="024 123 4567"
-                  />
-                </div>
-                <div>
-                  <Label>Email Address</Label>
-                  <input
-                    type="email"
-                    value={formData.email || ""}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={inputClass}
-                    placeholder="school@gmail.com"
-                  />
-                </div>
+                <Input
+                  label="Phone Number"
+                  type="tel"
+                  value={formData.phoneNumber || ""}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  placeholder="024 123 4567"
+                />
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={formData.email || ""}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="school@gmail.com"
+                />
               </div>
 
               {/* School Type */}
