@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   isOpen: boolean;
@@ -46,11 +47,8 @@ export function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="animate-in fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md duration-200"
-      style={{ position: "fixed" }}
-    >
-      <div className="animate-in zoom-in-95 w-full max-w-sm scale-100 rounded-xl bg-white p-6 shadow-xl duration-200">
+    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-sm">
+      <div className="animate-in zoom-in-95 scale-100 p-6 duration-200">
         {/* Header with Icon */}
         <div className="mb-4 flex items-start gap-4">
           <div
@@ -87,6 +85,6 @@ export function ConfirmModal({
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

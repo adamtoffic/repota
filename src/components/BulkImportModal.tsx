@@ -4,6 +4,7 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import type { StudentRecord } from "../types";
 import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   isOpen: boolean;
@@ -69,11 +70,8 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <div
-      className="animate-in fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md"
-      style={{ position: "fixed" }}
-    >
-      <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-lg">
+      <div className="overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold">
@@ -144,6 +142,6 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -5,6 +5,7 @@ import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
 import { useSwipe } from "../hooks/useSwipe";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   student: ProcessedStudent;
@@ -75,15 +76,8 @@ export function ScoreEntryModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md"
-      style={{ position: "fixed" }}
-      onClick={onClose}
-    >
-      <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal isOpen={isOpen} onClose={onClose} className="max-h-[90vh] max-w-4xl">
+      <div className="flex flex-col">
         {/* HEADER WITH NAVIGATION */}
         <div className="bg-background flex items-center justify-between rounded-t-xl border-b border-gray-100 p-4 sm:p-6">
           {/* Left: Previous Button */}
@@ -218,6 +212,6 @@ export function ScoreEntryModal({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

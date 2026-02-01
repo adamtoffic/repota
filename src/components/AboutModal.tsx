@@ -1,4 +1,5 @@
 import { X, Shield, Code, Heart } from "lucide-react"; // 👈 Added User icon
+import { Modal } from "./ui/Modal";
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -9,11 +10,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="animate-in fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md duration-200"
-      style={{ position: "fixed" }}
-    >
-      <div className="animate-in zoom-in-95 relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl duration-200">
+    <Modal isOpen={isOpen} onClose={onClose} className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <div className="animate-in zoom-in-95 relative p-6 duration-200">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-main text-2xl font-bold">About Repota</h2>
@@ -119,6 +117,6 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           Close
         </button>
       </div>
-    </div>
+    </Modal>
   );
 }
