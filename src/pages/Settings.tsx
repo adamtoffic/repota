@@ -63,14 +63,25 @@ export function Settings() {
   const [newSubject, setNewSubject] = useState("");
   const [newComponentName, setNewComponentName] = useState("");
   const [newComponentMax, setNewComponentMax] = useState("");
+
+  // Modal states
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
-
-  // Debounce form data for auto-save (500ms)
-  const debouncedFormData = useDebounce(formData, 500);
+  const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+  const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<{ index: number; name: string } | null>(
+    null,
+  );
+  const [showDeleteComponentModal, setShowDeleteComponentModal] = useState(false);
+  const [componentToDelete, setComponentToDelete] = useState<string | null>(null);
+  const [showLevelChangeModal, setShowLevelChangeModal] = useState(false);
+  const [pendingLevel, setPendingLevel] = useState<SchoolLevel | null>(null);
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showPinRecovery, setShowPinRecovery] = useState(false);
   const [showDisablePinModal, setShowDisablePinModal] = useState(false);
+
+  // Debounce form data for auto-save (500ms)
+  const debouncedFormData = useDebounce(formData, 500);
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -154,6 +165,22 @@ export function Settings() {
 
   // --- HANDLERS ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
+    // If changing level and subjects exist, show confirmation
+    if (
+      newLevel !== formData.level &&
+      formData.defaultSubjects &&
+      formData.defaultSubjects.length > 0
+    ) {
+      setPendingLevel(newLevel);
+      setShowLevelChangeModal(true);
+      return;
+    }
+
+    // Otherwise apply immediately
+    applyLevelChange(newLevel);
+  };
+
+  const applyLevelChange = (newLevel: SchoolLevel) => {
     const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
     const defaultClass = CLASS_OPTIONS[newLevel]?.[0] || "";
 
@@ -164,6 +191,8 @@ export function Settings() {
       className: defaultClass,
     }));
     showToast(`Loaded presets for ${newLevel}`, "info");
+    setShowLevelChangeModal(false);
+    setPendingLevel(null);
   };
 
   const addSubject = () => {
@@ -177,10 +206,21 @@ export function Settings() {
   };
 
   const removeSubject = (index: number) => {
+    const subjectName = formData.defaultSubjects?.[index] || "";
+    setSubjectToDelete({ index, name: subjectName });
+    setShowDeleteSubjectModal(true);
+  };
+
+  const confirmDeleteSubject = () => {
+    if (subjectToDelete === null) return;
+
     setFormData((prev) => ({
       ...prev,
-      defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== index),
+      defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== subjectToDelete.index),
     }));
+    showToast(`Deleted ${subjectToDelete.name}`, "info");
+    setShowDeleteSubjectModal(false);
+    setSubjectToDelete(null);
   };
 
   const addComponent = () => {
@@ -213,13 +253,22 @@ export function Settings() {
   };
 
   const removeComponent = (componentName: string) => {
+    setComponentToDelete(componentName);
+    setShowDeleteComponentModal(true);
+  };
+
+  const confirmDeleteComponent = () => {
+    if (!componentToDelete) return;
+
     setFormData((prev) => ({
       ...prev,
       componentLibrary: (prev.componentLibrary || []).filter(
-        (config) => config.name !== componentName,
+        (config) => config.name !== componentToDelete,
       ),
     }));
-    showToast("Component removed from library!", "success");
+    showToast(`Deleted component: ${componentToDelete}`, "info");
+    setShowDeleteComponentModal(false);
+    setComponentToDelete(null);
   };
 
   // Add component to a specific subject
@@ -1096,7 +1145,7 @@ export function Settings() {
             safe.
           </p>
           <Button
-            onClick={() => setShowResetModal(true)}
+            onClick={() => setShowFactoryResetModal(true)}
             variant="danger"
             size="sm"
             className="w-full sm:w-auto"
@@ -1124,15 +1173,15 @@ export function Settings() {
       />
 
       <ConfirmModal
-        isOpen={showResetModal}
+        isOpen={showFactoryResetModal}
         title="Restore Default Settings?"
         message="Are you sure? This will overwrite your School Name, Logo, and Default Subjects."
         confirmText="Yes, Restore Defaults"
         isDangerous={true}
-        onClose={() => setShowResetModal(false)}
+        onClose={() => setShowFactoryResetModal(false)}
         onConfirm={() => {
           restoreDefaults();
-          setShowResetModal(false);
+          setShowFactoryResetModal(false);
           setTimeout(() => window.location.reload(), 1000);
         }}
       />
@@ -1176,7 +1225,7 @@ export function Settings() {
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
-      {/* RESET CONFIRMATION MODAL */}
+      {/* RESET CHANGES MODAL */}
       <ConfirmModal
         isOpen={showResetModal}
         title="Discard Changes?"
@@ -1185,6 +1234,48 @@ export function Settings() {
         isDangerous={true}
         onClose={() => setShowResetModal(false)}
         onConfirm={handleReset}
+      />
+
+      {/* DELETE SUBJECT CONFIRMATION */}
+      <ConfirmModal
+        isOpen={showDeleteSubjectModal}
+        title="Delete Subject?"
+        message={`Are you sure you want to remove "${subjectToDelete?.name}"? This will affect report generation for students with this subject.`}
+        confirmText="Yes, Delete Subject"
+        isDangerous={true}
+        onClose={() => {
+          setShowDeleteSubjectModal(false);
+          setSubjectToDelete(null);
+        }}
+        onConfirm={confirmDeleteSubject}
+      />
+
+      {/* DELETE COMPONENT CONFIRMATION */}
+      <ConfirmModal
+        isOpen={showDeleteComponentModal}
+        title="Delete Component?"
+        message={`Are you sure you want to remove the "${componentToDelete}" component? Any subjects using this component will lose their score configuration.`}
+        confirmText="Yes, Delete Component"
+        isDangerous={true}
+        onClose={() => {
+          setShowDeleteComponentModal(false);
+          setComponentToDelete(null);
+        }}
+        onConfirm={confirmDeleteComponent}
+      />
+
+      {/* LEVEL CHANGE CONFIRMATION */}
+      <ConfirmModal
+        isOpen={showLevelChangeModal}
+        title="Change School Level?"
+        message={`Changing from ${formData.level} to ${pendingLevel} will reset all subjects and default configurations. This cannot be undone.`}
+        confirmText="Yes, Change Level"
+        isDangerous={true}
+        onClose={() => {
+          setShowLevelChangeModal(false);
+          setPendingLevel(null);
+        }}
+        onConfirm={() => pendingLevel && applyLevelChange(pendingLevel)}
       />
     </div>
   );
