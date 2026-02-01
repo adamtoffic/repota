@@ -90,7 +90,11 @@ export function Settings() {
 
   // Check biometric availability on mount
   useEffect(() => {
-    checkBiometric();
+    (async () => {
+      const { available, type } = await isBiometricAvailable();
+      setBiometricAvailable(available);
+      setBiometricType(type);
+    })();
   }, []);
 
   const handleEnrollBiometric = async () => {

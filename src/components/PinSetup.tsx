@@ -46,14 +46,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
   // Check biometric availability on mount
   useEffect(() => {
-    checkBiometric();
+    (async () => {
+      const { available, type } = await isBiometricAvailable();
+      setBiometricAvailable(available);
+      setBiometricType(type);
+    })();
   }, []);
-
-  const checkBiometric = async () => {
-    const { available, type } = await isBiometricAvailable();
-    setBiometricAvailable(available);
-    setBiometricType(type);
-  };
 
   const handleCreatePin = async () => {
     if (pin.length !== 4) {
