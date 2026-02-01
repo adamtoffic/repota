@@ -43,6 +43,7 @@ import {
   getBiometricName,
 } from "../utils/biometricAuth";
 import { Button, Alert, Badge, IconButton } from "../components/ui";
+import { PageHeader } from "../components/ui/PageHeader";
 
 // ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -96,6 +97,9 @@ export function Settings() {
       setBiometricType(type);
     })();
   }, []);
+
+  // Compute unsaved changes - derived state, no effect needed
+  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(settings);
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
@@ -235,28 +239,22 @@ export function Settings() {
   };
 
   return (
-    <div className="bg-background min-h-screen pb-20 font-sans">
+    <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* HEADER */}
-      <div className="sticky top-0 z-20 border-b border-gray-200 bg-white">
-        {/* Safe area spacer for notch/dynamic island */}
-        <div className="safe-top bg-white" />
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="rounded-full p-2 text-gray-600 transition-transform hover:bg-gray-100 active:scale-95"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <h1 className="text-main text-lg font-bold sm:text-xl">Settings</h1>
-          </div>
-          <Button onClick={handleSave} variant="primary" size="md">
-            <Save className="h-4 w-4" /> Save
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        schoolName={settings.schoolName}
+        actions={
+          <Link
+            to="/"
+            className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
+          >
+            <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+            <span className="hidden text-sm font-medium sm:inline">Back</span>
+          </Link>
+        }
+      />
 
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6 pb-24">
         {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
@@ -1158,6 +1156,30 @@ export function Settings() {
 
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+
+      {/* Sticky Save Bar - Matches DetailsTab UX */}
+      <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div className="mx-auto max-w-3xl">
+          {hasUnsavedChanges && (
+            <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-orange-600">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+              <span className="font-medium">You have unsaved changes</span>
+            </p>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges}
+            className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95 ${
+              hasUnsavedChanges
+                ? "bg-primary hover:bg-primary/90"
+                : "cursor-not-allowed bg-gray-300"
+            }`}
+          >
+            <Save className="h-5 w-5" />
+            {hasUnsavedChanges ? "Save Settings" : "All Changes Saved"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
