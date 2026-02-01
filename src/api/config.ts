@@ -43,5 +43,7 @@ export const isSupabaseConfigured = () => {
  * Use Supabase client instead
  */
 export const getEndpoint = (_path: string) => {
+  // Path parameter kept for backward compatibility but not used
+  void _path;
   return null; // Not used with Supabase
 };

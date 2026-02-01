@@ -30,23 +30,58 @@ function toSupabaseFormat(student: StudentRecord, userId: string) {
 }
 
 /**
- * Convert Supabase row to StudentRecord
+ * Supabase student row type
+ * All student fields are stored in the student_data JSON column
  */
-function fromSupabaseFormat(row: any): StudentRecord {
+interface SupabaseStudentRow {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+  student_name: string;
+  class_level: string;
+  academic_year: string;
+  term: string;
+  student_data: {
+    name?: string;
+    class_name?: string;
+    date_of_birth?: string;
+    gender?: string;
+    attendance_present?: number;
+    teacher_remark?: string;
+    conduct?: string;
+    interest?: string;
+    picture_url?: string;
+    promotion_status?: string;
+    subjects?: Array<{
+      name: string;
+      classScore: number;
+      examScore: number;
+    }>;
+    [key: string]: unknown;
+  };
+  school_id?: string;
+  created_by?: string;
+}
+
+/**
+ * Convert Supabase row to app StudentRecord format
+ */
+function fromSupabaseFormat(row: SupabaseStudentRow): StudentRecord {
+  const data = row.student_data;
   return {
     id: row.id,
-    name: row.name,
-    className: row.class_name,
-    dateOfBirth: row.date_of_birth,
-    gender: row.gender,
-    attendancePresent: row.attendance_present,
-    teacherRemark: row.teacher_remark,
-    conduct: row.conduct,
-    interest: row.interest,
-    pictureUrl: row.picture_url,
-    promotionStatus: row.promotion_status,
-    subjects: row.subjects || [],
-  };
+    name: data.name || row.student_name,
+    className: data.class_name || row.class_level,
+    dateOfBirth: data.date_of_birth,
+    gender: data.gender,
+    attendancePresent: data.attendance_present,
+    teacherRemark: data.teacher_remark,
+    conduct: data.conduct,
+    interest: data.interest,
+    pictureUrl: data.picture_url,
+    promotionStatus: data.promotion_status,
+    subjects: data.subjects || [],
+  } as StudentRecord;
 }
 
 /**
@@ -121,20 +156,30 @@ export async function updateStudent(
   }
 
   // Convert updates to Supabase format
-  const supabaseUpdates: any = {};
-  if (updates.name) supabaseUpdates.name = updates.name;
-  if (updates.className) supabaseUpdates.class_name = updates.className;
-  if (updates.dateOfBirth !== undefined) supabaseUpdates.date_of_birth = updates.dateOfBirth;
-  if (updates.gender) supabaseUpdates.gender = updates.gender;
+  const supabaseUpdates: Partial<SupabaseStudentRow> = {};
+
+  // Build student_data object
+  const studentData: Partial<SupabaseStudentRow["student_data"]> = {};
+
+  if (updates.name) {
+    supabaseUpdates.student_name = updates.name;
+    studentData.name = updates.name;
+  }
+  if (updates.className) {
+    studentData.class_name = updates.className;
+  }
+  if (updates.dateOfBirth !== undefined) studentData.date_of_birth = updates.dateOfBirth;
+  if (updates.gender) studentData.gender = updates.gender;
   if (updates.attendancePresent !== undefined)
-    supabaseUpdates.attendance_present = updates.attendancePresent;
-  if (updates.teacherRemark !== undefined) supabaseUpdates.teacher_remark = updates.teacherRemark;
-  if (updates.conduct !== undefined) supabaseUpdates.conduct = updates.conduct;
-  if (updates.interest !== undefined) supabaseUpdates.interest = updates.interest;
-  if (updates.pictureUrl !== undefined) supabaseUpdates.picture_url = updates.pictureUrl;
-  if (updates.promotionStatus !== undefined)
-    supabaseUpdates.promotion_status = updates.promotionStatus;
-  if (updates.subjects) supabaseUpdates.subjects = updates.subjects;
+    studentData.attendance_present = updates.attendancePresent;
+  if (updates.teacherRemark !== undefined) studentData.teacher_remark = updates.teacherRemark;
+  if (updates.conduct !== undefined) studentData.conduct = updates.conduct;
+  if (updates.interest !== undefined) studentData.interest = updates.interest;
+  if (updates.pictureUrl !== undefined) studentData.picture_url = updates.pictureUrl;
+  if (updates.promotionStatus !== undefined) studentData.promotion_status = updates.promotionStatus;
+  if (updates.subjects) studentData.subjects = updates.subjects;
+
+  supabaseUpdates.student_data = studentData as SupabaseStudentRow["student_data"];
 
   const { data, error } = await supabase
     .from("students")

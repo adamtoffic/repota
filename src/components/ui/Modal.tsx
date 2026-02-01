@@ -25,7 +25,7 @@ export const Modal = ({
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-md"
+      className="modal-backdrop fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md"
       onClick={handleBackdropClick}
       style={{ position: "fixed" }}
     >

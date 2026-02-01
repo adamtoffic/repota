@@ -3,7 +3,7 @@
  * Handles Supabase initialization and authentication
  */
 
-// @ts-ignore - Supabase is optional
+// @ts-expect-error - Supabase package is optional, only installed when API_MODE=supabase
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { isLocalMode } from "./config";
 
