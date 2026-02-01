@@ -110,13 +110,15 @@ ALTER PUBLICATION supabase_realtime ADD TABLE settings;
 ### 5. Update Import Statements
 
 Replace:
+
 ```typescript
-import { fetchStudents, createStudent } from '@/api/studentApi';
+import { fetchStudents, createStudent } from "@/api/studentApi";
 ```
 
 With:
+
 ```typescript
-import { fetchStudents, createStudent } from '@/api/studentApiSupabase';
+import { fetchStudents, createStudent } from "@/api/studentApiSupabase";
 ```
 
 ## Features You Get
@@ -140,6 +142,7 @@ import { fetchStudents, createStudent } from '@/api/studentApiSupabase';
 ## Authentication Flow
 
 ### Option 1: Anonymous Auth (Simplest)
+
 ```typescript
 // User clicks "Start Using App"
 const { data, error } = await supabase.auth.signInAnonymously();
@@ -147,20 +150,22 @@ const { data, error } = await supabase.auth.signInAnonymously();
 ```
 
 ### Option 2: PIN + Supabase Auth
+
 ```typescript
 // Keep your PIN screen
 // After PIN verified, sign in to Supabase
 const { data, error } = await supabase.auth.signInWithPassword({
-  email: 'teacher@school.com',
+  email: "teacher@school.com",
   password: derivedFromPIN, // Derive from PIN
 });
 ```
 
 ### Option 3: Magic Links
+
 ```typescript
 // Email-based login, no password
 const { data, error } = await supabase.auth.signInWithOtp({
-  email: 'teacher@school.com',
+  email: "teacher@school.com",
 });
 ```
 
@@ -200,13 +205,13 @@ if (isBackendMode()) {
 // Upload student picture
 const file = event.target.files[0];
 const { data, error } = await supabase.storage
-  .from('student-photos')
+  .from("student-photos")
   .upload(`${userId}/${studentId}.jpg`, file);
 
 // Get public URL
-const { data: { publicUrl } } = supabase.storage
-  .from('student-photos')
-  .getPublicUrl(`${userId}/${studentId}.jpg`);
+const {
+  data: { publicUrl },
+} = supabase.storage.from("student-photos").getPublicUrl(`${userId}/${studentId}.jpg`);
 
 // Save to student record
 updateStudent(studentId, { pictureUrl: publicUrl });
@@ -215,21 +220,25 @@ updateStudent(studentId, { pictureUrl: publicUrl });
 ## Migration Strategy
 
 ### Phase 1: Install & Test (1 hour)
+
 - Install Supabase client
 - Run SQL migration
 - Test with 1-2 demo students
 
 ### Phase 2: Auth Integration (2-3 hours)
+
 - Choose auth method (anonymous/email/PIN hybrid)
 - Add sign-in flow
 - Test multi-device sync
 
 ### Phase 3: Full Migration (1-2 hours)
+
 - Import existing data
 - Switch all users to Supabase mode
 - Monitor for issues
 
 ### Phase 4: Advanced Features (optional)
+
 - Real-time subscriptions
 - File storage for images
 - Collaborative editing
@@ -238,6 +247,7 @@ updateStudent(studentId, { pictureUrl: publicUrl });
 ## Cost Estimate
 
 **Free Tier (Perfect for testing):**
+
 - 500MB database
 - 1GB file storage
 - 2GB bandwidth
@@ -245,6 +255,7 @@ updateStudent(studentId, { pictureUrl: publicUrl });
 - Unlimited API requests
 
 **Pro ($25/month):**
+
 - 8GB database
 - 100GB file storage
 - 50GB bandwidth
@@ -255,6 +266,7 @@ For most teachers/schools, **free tier is more than enough**!
 ## What Changes in Your Code
 
 ### Before (Local Only)
+
 ```typescript
 // SchoolContext.tsx
 const students = await loadFromStorage(IDB_KEYS.STUDENTS);
@@ -262,9 +274,10 @@ setStudents(students || []);
 ```
 
 ### After (Supabase)
+
 ```typescript
 // SchoolContext.tsx
-import { fetchStudents } from '@/api/studentApiSupabase';
+import { fetchStudents } from "@/api/studentApiSupabase";
 
 const students = await fetchStudents(); // Auto-syncs!
 setStudents(students);
@@ -275,6 +288,7 @@ That's it! Everything else stays the same.
 ## Questions?
 
 Your project is **already architected perfectly** for Supabase:
+
 - ✅ Proper types (StudentRecord, SchoolSettings)
 - ✅ Async operations everywhere
 - ✅ Offline-first mindset
@@ -282,6 +296,7 @@ Your project is **already architected perfectly** for Supabase:
 - ✅ React Context for state
 
 You just need to:
+
 1. Run SQL migration
 2. Set environment variables
 3. Enjoy cloud sync! 🎉

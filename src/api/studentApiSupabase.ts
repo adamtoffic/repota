@@ -3,10 +3,10 @@
  * Handles all student-related operations with Supabase
  */
 
-import type { StudentRecord } from '../types';
-import { getSupabaseClient, getCurrentUserId } from './supabase';
-import { isLocalMode } from './config';
-import { loadFromStorage, saveToStorage, IDB_KEYS } from '../utils/idbStorage';
+import type { StudentRecord } from "../types";
+import { getSupabaseClient, getCurrentUserId } from "./supabase";
+import { isLocalMode } from "./config";
+import { loadFromStorage, saveToStorage, IDB_KEYS } from "../utils/idbStorage";
 
 /**
  * Convert StudentRecord to Supabase format
@@ -60,16 +60,16 @@ export async function fetchStudents(): Promise<StudentRecord[]> {
 
   const supabase = getSupabaseClient();
   const userId = await getCurrentUserId();
-  
+
   if (!supabase || !userId) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
   const { data, error } = await supabase
-    .from('students')
-    .select('*')
-    .eq('user_id', userId)
-    .order('name', { ascending: true });
+    .from("students")
+    .select("*")
+    .eq("user_id", userId)
+    .order("name", { ascending: true });
 
   if (error) throw error;
 
@@ -86,19 +86,19 @@ export async function createStudent(student: StudentRecord): Promise<StudentReco
 
   const supabase = getSupabaseClient();
   const userId = await getCurrentUserId();
-  
+
   if (!supabase || !userId) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
   const { data, error } = await supabase
-    .from('students')
+    .from("students")
     .insert([toSupabaseFormat(student, userId)])
     .select()
     .single();
 
   if (error) throw error;
-  
+
   return fromSupabaseFormat(data);
 }
 
@@ -115,9 +115,9 @@ export async function updateStudent(
 
   const supabase = getSupabaseClient();
   const userId = await getCurrentUserId();
-  
+
   if (!supabase || !userId) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
   // Convert updates to Supabase format
@@ -126,24 +126,26 @@ export async function updateStudent(
   if (updates.className) supabaseUpdates.class_name = updates.className;
   if (updates.dateOfBirth !== undefined) supabaseUpdates.date_of_birth = updates.dateOfBirth;
   if (updates.gender) supabaseUpdates.gender = updates.gender;
-  if (updates.attendancePresent !== undefined) supabaseUpdates.attendance_present = updates.attendancePresent;
+  if (updates.attendancePresent !== undefined)
+    supabaseUpdates.attendance_present = updates.attendancePresent;
   if (updates.teacherRemark !== undefined) supabaseUpdates.teacher_remark = updates.teacherRemark;
   if (updates.conduct !== undefined) supabaseUpdates.conduct = updates.conduct;
   if (updates.interest !== undefined) supabaseUpdates.interest = updates.interest;
   if (updates.pictureUrl !== undefined) supabaseUpdates.picture_url = updates.pictureUrl;
-  if (updates.promotionStatus !== undefined) supabaseUpdates.promotion_status = updates.promotionStatus;
+  if (updates.promotionStatus !== undefined)
+    supabaseUpdates.promotion_status = updates.promotionStatus;
   if (updates.subjects) supabaseUpdates.subjects = updates.subjects;
 
   const { data, error } = await supabase
-    .from('students')
+    .from("students")
     .update(supabaseUpdates)
-    .eq('id', id)
-    .eq('user_id', userId)
+    .eq("id", id)
+    .eq("user_id", userId)
     .select()
     .single();
 
   if (error) throw error;
-  
+
   return fromSupabaseFormat(data);
 }
 
@@ -157,19 +159,15 @@ export async function deleteStudent(id: string): Promise<boolean> {
 
   const supabase = getSupabaseClient();
   const userId = await getCurrentUserId();
-  
+
   if (!supabase || !userId) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
-  const { error } = await supabase
-    .from('students')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', userId);
+  const { error } = await supabase.from("students").delete().eq("id", id).eq("user_id", userId);
 
   if (error) throw error;
-  
+
   return true;
 }
 
@@ -183,20 +181,17 @@ export async function bulkCreateStudents(students: StudentRecord[]): Promise<Stu
 
   const supabase = getSupabaseClient();
   const userId = await getCurrentUserId();
-  
+
   if (!supabase || !userId) {
-    throw new Error('Not authenticated');
+    throw new Error("Not authenticated");
   }
 
-  const supabaseStudents = students.map(s => toSupabaseFormat(s, userId));
+  const supabaseStudents = students.map((s) => toSupabaseFormat(s, userId));
 
-  const { data, error } = await supabase
-    .from('students')
-    .insert(supabaseStudents)
-    .select();
+  const { data, error } = await supabase.from("students").insert(supabaseStudents).select();
 
   if (error) throw error;
-  
+
   return (data || []).map(fromSupabaseFormat);
 }
 
@@ -214,13 +209,13 @@ export function subscribeToStudents(
   if (!supabase) return null;
 
   const channel = supabase
-    .channel('students-changes')
+    .channel("students-changes")
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: '*',
-        schema: 'public',
-        table: 'students',
+        event: "*",
+        schema: "public",
+        table: "students",
       },
       async () => {
         // Refetch all students when any change occurs
