@@ -8,7 +8,7 @@ import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
-import { Button } from "./ui/Button";
+import { Button, Input } from "./ui";
 
 interface Props {
   students: ProcessedStudent[];
@@ -244,20 +244,15 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
 
             <form onSubmit={handleAddSubmit} className="space-y-4">
               {/* Name Input */}
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                  Full Name
-                </label>
-                <input
-                  autoFocus
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Kwame Mensah"
-                />
-              </div>
+              <Input
+                label="Full Name"
+                autoFocus
+                type="text"
+                required
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. Kwame Mensah"
+              />
 
               {/* Gender Selection */}
               <div>
