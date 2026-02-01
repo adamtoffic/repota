@@ -22,6 +22,7 @@ import { ProgressModal } from "../components/ProgressModal";
 import { useToast } from "../hooks/useToast";
 
 import { triggerHaptic } from "../utils/iosInteraction";
+import { PageHeader } from "../components/ui/PageHeader";
 
 export function Dashboard() {
   const {
@@ -107,45 +108,25 @@ export function Dashboard() {
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
-      <nav className="safe-top sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between">
-            {/* LEFT SIDE: Brand Identity (SaaS Style) */}
-            <div className="flex items-center gap-3 overflow-hidden">
-              {/* 1. Fixed Repota Logo */}
-              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-sm">
-                <img src="/logo.svg" alt="Repota" className="h-full w-full p-1" />
-              </div>
-
-              {/* 2. App Name + School Context */}
-              <div className="min-w-0 flex-1">
-                <h1 className="text-main text-lg leading-none font-black tracking-tight">REPOTA</h1>
-                <p className="text-muted truncate text-xs font-medium">
-                  {settings.schoolName || "No School Selected"}
-                </p>
-              </div>
-            </div>
-
-            {/* RIGHT SIDE: Buttons (Icon only on Mobile) */}
-            <div className="flex items-center gap-2 pl-2">
-              {students.length > 0 && (
-                <>
-                  <Link
-                    to="/analytics"
-                    className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 sm:px-4"
-                  >
-                    <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
-                    <span className="hidden text-sm font-medium sm:inline">Analytics</span>
-                  </Link>
-                  <Link
-                    to="/print"
-                    className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
-                  >
-                    <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
-                    <span className="hidden text-sm font-medium sm:inline">Print</span>
-                  </Link>
-                </>
-              )}
+      <PageHeader
+        schoolName={settings.schoolName}
+        actions={
+          students.length > 0 ? (
+            <>
+              <Link
+                to="/analytics"
+                className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 sm:px-4"
+              >
+                <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="hidden text-sm font-medium sm:inline">Analytics</span>
+              </Link>
+              <Link
+                to="/print"
+                className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
+              >
+                <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="hidden text-sm font-medium sm:inline">Print</span>
+              </Link>
               <Link
                 to="/settings"
                 className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
@@ -153,10 +134,18 @@ export function Dashboard() {
                 <SettingsIcon className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="hidden text-sm font-medium sm:inline">Settings</span>
               </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+            </>
+          ) : (
+            <Link
+              to="/settings"
+              className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
+            >
+              <SettingsIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="hidden text-sm font-medium sm:inline">Settings</span>
+            </Link>
+          )
+        }
+      />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {/* WELCOME BANNER */}

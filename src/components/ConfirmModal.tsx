@@ -1,5 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   isOpen: boolean;
@@ -45,8 +47,8 @@ export function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200">
-      <div className="animate-in zoom-in-95 w-full max-w-sm scale-100 rounded-xl bg-white p-6 shadow-xl duration-200">
+    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-sm">
+      <div className="animate-in zoom-in-95 scale-100 p-6 duration-200">
         {/* Header with Icon */}
         <div className="mb-4 flex items-start gap-4">
           <div
@@ -71,19 +73,18 @@ export function ConfirmModal({
           >
             {cancelText}
           </button>
-          <button
+          <Button
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className={`rounded-lg px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 ${
-              isDangerous ? "bg-danger hover:bg-danger/90" : "bg-primary hover:bg-primary/90"
-            }`}
+            variant={isDangerous ? "danger" : "primary"}
+            size="md"
           >
             {confirmText}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

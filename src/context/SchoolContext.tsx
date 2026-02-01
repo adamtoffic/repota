@@ -133,7 +133,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     };
 
     initializeStorage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
   useEffect(() => {

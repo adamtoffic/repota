@@ -3,6 +3,9 @@ import { X, Upload, CheckCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import type { StudentRecord } from "../types";
+import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
+import { Textarea } from "./ui/Textarea";
 
 interface Props {
   isOpen: boolean;
@@ -68,8 +71,8 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-lg">
+      <div className="overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold">
@@ -88,19 +91,21 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               <p className="text-sm text-gray-600">
                 Paste your class list below. One student name per line.
               </p>
-              <textarea
+              <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Kwame Mensah&#10;Ama Serwaa&#10;Aiman Adam&#10;...etc"
-                className="h-64 w-full resize-none rounded-lg border border-gray-300 p-4 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-64 font-mono text-sm"
               />
-              <button
+              <Button
                 onClick={handlePreview}
                 disabled={!text.trim()}
-                className="bg-primary hover:bg-primary/90 w-full rounded-lg py-2.5 font-bold text-white disabled:opacity-50"
+                variant="primary"
+                size="md"
+                fullWidth
               >
                 Preview List
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -122,23 +127,22 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
               </div>
 
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={() => setIsPreviewing(false)}
-                  className="hover:bg-background flex-1 rounded-lg border border-gray-300 py-2 font-bold text-gray-700"
+                  variant="secondary"
+                  size="md"
+                  className="flex-1"
                 >
                   Back
-                </button>
-                <button
-                  onClick={handleImport}
-                  className="bg-primary hover:bg-primary/90 flex-1 rounded-lg py-2 font-bold text-white"
-                >
+                </Button>
+                <Button onClick={handleImport} variant="primary" size="md" className="flex-1">
                   Import All
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

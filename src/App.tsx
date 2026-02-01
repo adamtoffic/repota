@@ -93,6 +93,7 @@ function App() {
         <Toaster
           position="bottom-right"
           toastOptions={{
+            className: "print:hidden",
             style: {
               borderRadius: "0.75rem",
             },

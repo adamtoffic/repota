@@ -1,11 +1,30 @@
 // vite.config.ts - PRODUCTION OPTIMIZED
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/test/setup.ts",
+    css: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "*.config.{js,ts}",
+        "dist/",
+        "**/*.d.ts",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+      ],
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -21,8 +40,17 @@ export default defineConfig({
       ],
 
       workbox: {
-        // Cache strategy for assets
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff,woff2}"],
+        // Only precache essential files for faster initial load
+        globPatterns: ["**/*.{html,ico,png,svg,woff,woff2}"],
+        // Don't precache large JS chunks - load on demand
+        globIgnores: [
+          "**/recharts-*.js",
+          "**/CategoricalChart-*.js",
+          "**/Analytics-*.js",
+          "**/Settings-*.js",
+        ],
+        // Maximum cache size
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
@@ -116,10 +144,12 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          // Core React libraries
           vendor: ["react", "react-dom"],
           router: ["@tanstack/react-router"],
           icons: ["lucide-react"],
-          recharts: ["recharts"], // Separate Recharts chunk
+          // Don't manually chunk recharts - let lazy loading handle it
+          // recharts: ["recharts"],
         },
       },
     },

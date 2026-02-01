@@ -164,33 +164,41 @@ export function SubjectRow({
   };
 
   return (
-    <div
-      className={`group rounded-lg border bg-white shadow-sm transition-all duration-200 ${"border-gray-200 hover:border-blue-300 hover:shadow-md"}`}
-    >
+    <div className="group rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-blue-300 hover:shadow-md">
       {/* Main Row */}
-      <div className="p-4 sm:p-4">
+      <div className="p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           {/* 1. SUBJECT NAME */}
           <div className="flex flex-1 items-center justify-between">
-            <div>
+            <div className="flex-1 overflow-hidden">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-800 sm:text-base">{subject.name}</span>
+                <span className="truncate text-sm font-bold text-gray-800 sm:text-base">
+                  {subject.name}
+                </span>
                 {(hasComponents || hasLibrary) && (
                   <button
                     onClick={() => setShowComponents(!showComponents)}
-                    className="flex items-center gap-1 rounded-lg bg-purple-100 px-2 py-1 text-purple-700 hover:bg-purple-200"
+                    className="flex shrink-0 items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-purple-700 hover:bg-purple-200"
                     title="Toggle class score components"
                   >
                     <span className="text-[10px] font-bold">
-                      {showComponents ? "Hide" : "Show"} Components
+                      {showComponents ? "Hide" : "Show"}
                     </span>
-                    {showComponents ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {showComponents ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-gray-400 sm:hidden">
-                {remark} ({grade})
-              </p>
+              <div className="mt-0.5 flex items-center gap-2 text-[10px] sm:hidden">
+                <span className="font-bold text-gray-700">{total} pts</span>
+                <span
+                  className={`rounded px-1.5 py-0.5 font-bold ${
+                    total < 50 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {grade}
+                </span>
+                <span className="text-gray-400">{remark}</span>
+              </div>
               {hasComponents &&
                 subject.classScoreComponents &&
                 subject.classScoreComponents.length > 0 && (
@@ -215,8 +223,8 @@ export function SubjectRow({
           <div className="grid grid-cols-6 gap-2 sm:flex sm:w-auto sm:items-center">
             {/* Class Score Input */}
             <div className="col-span-2 sm:w-20">
-              <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
-                Class ({maxClassScore})
+              <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
+                Class
               </label>
               <div className="relative">
                 <input
@@ -228,7 +236,7 @@ export function SubjectRow({
                   onChange={(e) => handleClassChange(e.target.value)}
                   onBlur={() => handleBlur("classScore")}
                   disabled={hasComponents}
-                  className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none focus:ring-2 sm:p-2.5 sm:text-base ${
+                  className={`w-full rounded-lg border px-2 py-2 text-center text-base font-bold transition-all outline-none focus:ring-2 sm:p-2.5 ${
                     hasComponents
                       ? "cursor-not-allowed border-purple-200 bg-purple-50 text-purple-700"
                       : classScoreError
@@ -262,8 +270,8 @@ export function SubjectRow({
 
             {/* Exam Score Input */}
             <div className="col-span-2 sm:w-20">
-              <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase sm:hidden">
-                Exam ({maxExamScore})
+              <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
+                Exam
               </label>
               <div className="relative">
                 <input
@@ -274,7 +282,7 @@ export function SubjectRow({
                   value={examRawInput}
                   onChange={(e) => handleExamChange(e.target.value)}
                   onBlur={() => handleBlur("examScore")}
-                  className={`w-full rounded-lg border p-3 text-center text-lg font-bold transition-all outline-none hover:border-gray-400 focus:ring-2 sm:p-2.5 sm:text-base ${
+                  className={`w-full rounded-lg border px-2 py-2 text-center text-base font-bold transition-all outline-none hover:border-gray-400 focus:ring-2 sm:p-2.5 ${
                     examScoreError
                       ? "border-red-500 focus:border-red-500 focus:ring-red-200"
                       : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
@@ -298,7 +306,15 @@ export function SubjectRow({
               )}
             </div>
 
-            {/* Grade Badge */}
+            {/* Total Score - Mobile */}
+            <div className="col-span-2 flex flex-col items-center justify-center sm:hidden">
+              <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase">
+                Total
+              </label>
+              <div className="text-base font-bold text-gray-800">{total}</div>
+            </div>
+
+            {/* Grade Badge - Desktop */}
             <div className="hidden justify-center sm:flex sm:w-16">
               <span
                 className={`rounded-lg px-2 py-1 text-xs font-bold shadow-sm ${

@@ -42,16 +42,8 @@ import {
   disableBiometric,
   getBiometricName,
 } from "../utils/biometricAuth";
-
-// ✅ FIX: Defined OUTSIDE the component to prevent re-render issues
-const Label = ({ children }: { children: React.ReactNode }) => (
-  <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
-    {children}
-  </label>
-);
-
-const inputClass =
-  "w-full rounded-lg border border-gray-300 p-2.5 text-sm font-medium outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200";
+import { Button, Alert, Badge, IconButton, Input } from "../components/ui";
+import { PageHeader } from "../components/ui/PageHeader";
 
 export function Settings() {
   const {
@@ -89,8 +81,15 @@ export function Settings() {
 
   // Check biometric availability on mount
   useEffect(() => {
-    checkBiometric();
+    (async () => {
+      const { available, type } = await isBiometricAvailable();
+      setBiometricAvailable(available);
+      setBiometricType(type);
+    })();
   }, []);
+
+  // Compute unsaved changes - derived state, no effect needed
+  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(settings);
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
@@ -230,29 +229,22 @@ export function Settings() {
   };
 
   return (
-    <div className="bg-background min-h-screen pb-20 font-sans">
+    <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* HEADER */}
-      <div className="safe-top sticky top-0 z-20 border-b border-gray-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="rounded-full p-2 text-gray-600 transition-transform hover:bg-gray-100 active:scale-95"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <h1 className="text-main text-lg font-bold sm:text-xl">Settings</h1>
-          </div>
-          <button
-            onClick={handleSave}
-            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-md transition-all active:scale-95"
+      <PageHeader
+        schoolName={settings.schoolName}
+        actions={
+          <Link
+            to="/"
+            className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
           >
-            <Save className="h-4 w-4" /> Save
-          </button>
-        </div>
-      </div>
+            <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+            <span className="hidden text-sm font-medium sm:inline">Back</span>
+          </Link>
+        }
+      />
 
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6 pb-24">
         {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
@@ -272,66 +264,55 @@ export function Settings() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label>School Name</Label>
-                <input
-                  type="text"
-                  required
-                  value={formData.schoolName}
-                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                  className={`${inputClass} text-main font-bold`}
-                  placeholder="e.g. Royal International School"
-                />
-              </div>
+              <Input
+                label="School Name"
+                type="text"
+                required
+                value={formData.schoolName}
+                onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                className="text-main font-bold"
+                placeholder="e.g. Royal International School"
+              />
 
-              <div>
-                <Label>Motto</Label>
-                <input
-                  type="text"
-                  value={formData.schoolMotto || ""}
-                  onChange={(e) => setFormData({ ...formData, schoolMotto: e.target.value })}
-                  className={`${inputClass} italic`}
-                  placeholder="e.g. Knowledge is Power"
-                />
-              </div>
+              <Input
+                label="Motto"
+                type="text"
+                value={formData.schoolMotto || ""}
+                onChange={(e) => setFormData({ ...formData, schoolMotto: e.target.value })}
+                className="italic"
+                placeholder="e.g. Knowledge is Power"
+              />
 
-              <div>
-                <Label>Address / Location</Label>
-                <input
-                  type="text"
-                  value={formData.address || ""}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className={inputClass}
-                  placeholder="e.g. Kumasi, Ashanti Region"
-                />
-              </div>
+              <Input
+                label="Address / Location"
+                type="text"
+                value={formData.address || ""}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="e.g. Kumasi, Ashanti Region"
+              />
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Phone Number</Label>
-                  <input
-                    type="tel"
-                    value={formData.phoneNumber || ""}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    className={inputClass}
-                    placeholder="024 123 4567"
-                  />
-                </div>
-                <div>
-                  <Label>Email Address</Label>
-                  <input
-                    type="email"
-                    value={formData.email || ""}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={inputClass}
-                    placeholder="school@gmail.com"
-                  />
-                </div>
+                <Input
+                  label="Phone Number"
+                  type="tel"
+                  value={formData.phoneNumber || ""}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  placeholder="024 123 4567"
+                />
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={formData.email || ""}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="school@gmail.com"
+                />
               </div>
 
               {/* School Type */}
               <div>
-                <Label>Curriculum Type</Label>
+                <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+                  Curriculum Type
+                </label>
                 <div className="bg-background flex flex-wrap gap-4 rounded-lg border border-gray-100 p-3">
                   <label className="flex cursor-pointer items-center gap-2">
                     <input
@@ -371,72 +352,69 @@ export function Settings() {
               {/* Private School Fees */}
               {formData.schoolType === "PRIVATE" && (
                 <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                  <Label>
+                  <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
                     <span className="text-purple-900">Fee Schedule (GH₵)</span>
-                  </Label>
+                  </label>
                   <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        School Fees <span className="text-[10px] text-slate-600">(Per Term)</span>
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        value={formData.schoolGift || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            schoolGift: e.target.value ? parseFloat(e.target.value) : undefined,
-                          })
-                        }
-                        className={inputClass}
-                        placeholder="5.00"
-                      />
-                    </div>
+                    <Input
+                      label={
+                        <span>
+                          School Fees <span className="text-[10px] text-slate-600">(Per Term)</span>
+                        </span>
+                      }
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={formData.schoolGift || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          schoolGift: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="5.00"
+                    />
 
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Canteen Fees <span className="text-[10px] text-purple-600">(Daily)</span>
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        value={formData.canteenFees || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            canteenFees: e.target.value ? parseFloat(e.target.value) : undefined,
-                          })
-                        }
-                        className={inputClass}
-                        placeholder="10.00"
-                      />
-                    </div>
+                    <Input
+                      label={
+                        <span>
+                          Canteen Fees <span className="text-[10px] text-purple-600">(Daily)</span>
+                        </span>
+                      }
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={formData.canteenFees || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          canteenFees: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="10.00"
+                    />
 
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        First Aid <span className="text-[10px] text-green-700">(Per Term)</span>
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        value={formData.firstAidFees || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            firstAidFees: e.target.value ? parseFloat(e.target.value) : undefined,
-                          })
-                        }
-                        className={inputClass}
-                        placeholder="5.00"
-                      />
-                    </div>
+                    <Input
+                      label={
+                        <span>
+                          First Aid <span className="text-[10px] text-green-700">(Per Term)</span>
+                        </span>
+                      }
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={formData.firstAidFees || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          firstAidFees: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="5.00"
+                    />
                   </div>
                 </div>
               )}
@@ -456,7 +434,9 @@ export function Settings() {
           <div className="grid gap-6">
             {/* LEVEL SELECTOR */}
             <div>
-              <Label>School Level</Label>
+              <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+                School Level
+              </label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(["KG", "PRIMARY", "JHS", "SHS"] as SchoolLevel[]).map((lvl) => (
                   <button
@@ -491,83 +471,79 @@ export function Settings() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <Label>Class Name</Label>
+                <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+                  Class Name
+                </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type="text"
                     required
                     value={formData.className || ""}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                    className={`${inputClass} pl-9 font-bold`}
+                    className="pl-9 font-bold"
                     placeholder="e.g. Class 3"
                   />
                   <Users className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
                 </div>
               </div>
-              <div>
-                <Label>Class Size (Number on Roll)</Label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="200"
-                  value={formData.classSize || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, classSize: Number(e.target.value) || undefined })
-                  }
-                  className={`${inputClass} font-bold`}
-                  placeholder="e.g. 30"
-                />
-              </div>
+              <Input
+                label="Class Size (Number on Roll)"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="200"
+                value={formData.classSize || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, classSize: Number(e.target.value) || undefined })
+                }
+                className="font-bold"
+                placeholder="e.g. 30"
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Total Attendance Days</Label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="365"
-                  value={formData.totalAttendanceDays || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, totalAttendanceDays: Number(e.target.value) })
-                  }
-                  className={`${inputClass} font-bold`}
-                  placeholder="e.g. 70"
-                />
-              </div>
-              <div>
-                <Label>Next Term Begins</Label>
-                <input
-                  type="date"
-                  value={formData.nextTermStarts || ""}
-                  onChange={(e) => setFormData({ ...formData, nextTermStarts: e.target.value })}
-                  className={`${inputClass} font-bold`}
-                />
-              </div>
+              <Input
+                label="Total Attendance Days"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="365"
+                value={formData.totalAttendanceDays || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, totalAttendanceDays: Number(e.target.value) })
+                }
+                className="font-bold"
+                placeholder="e.g. 70"
+              />
+              <Input
+                label="Next Term Begins"
+                type="date"
+                value={formData.nextTermStarts || ""}
+                onChange={(e) => setFormData({ ...formData, nextTermStarts: e.target.value })}
+                className="font-bold"
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Academic Year"
+                type="text"
+                required
+                value={formData.academicYear}
+                onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
+                className="font-bold"
+                placeholder="e.g. 2025/2026"
+              />
               <div>
-                <Label>Academic Year</Label>
-                <input
-                  type="text"
-                  required
-                  value={formData.academicYear}
-                  onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-                  className={`${inputClass} font-bold`}
-                  placeholder="e.g. 2025/2026"
-                />
-              </div>
-              <div>
-                <Label>Term / Semester</Label>
+                <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+                  Term / Semester
+                </label>
                 <select
                   value={formData.term}
                   onChange={(e) =>
                     setFormData({ ...formData, term: e.target.value as AcademicPeriod })
                   }
-                  className={`${inputClass} bg-white font-bold`}
+                  className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm font-bold transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="First Term">First Term</option>
                   <option value="Second Term">Second Term</option>
@@ -582,48 +558,44 @@ export function Settings() {
                 <AlertCircle className="h-4 w-4" /> Grading Limits
               </h3>
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <Label>Class Score Max</Label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="100"
-                    value={formData.classScoreMax || ""}
-                    onChange={(e) => {
-                      const classScore = Number(e.target.value) || 0;
-                      const examScore = 100 - classScore;
-                      setFormData({
-                        ...formData,
-                        classScoreMax: classScore,
-                        examScoreMax: examScore,
-                      });
-                    }}
-                    className={`${inputClass} border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300`}
-                    placeholder="30"
-                  />
-                </div>
-                <div>
-                  <Label>Exam Score Max</Label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="100"
-                    value={formData.examScoreMax || ""}
-                    onChange={(e) => {
-                      const examScore = Number(e.target.value) || 0;
-                      const classScore = 100 - examScore;
-                      setFormData({
-                        ...formData,
-                        classScoreMax: classScore,
-                        examScoreMax: examScore,
-                      });
-                    }}
-                    className={`${inputClass} border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300`}
-                    placeholder="70"
-                  />
-                </div>
+                <Input
+                  label="Class Score Max"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="100"
+                  value={formData.classScoreMax || ""}
+                  onChange={(e) => {
+                    const classScore = Number(e.target.value) || 0;
+                    const examScore = 100 - classScore;
+                    setFormData({
+                      ...formData,
+                      classScoreMax: classScore,
+                      examScoreMax: examScore,
+                    });
+                  }}
+                  className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
+                  placeholder="30"
+                />
+                <Input
+                  label="Exam Score Max"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="100"
+                  value={formData.examScoreMax || ""}
+                  onChange={(e) => {
+                    const examScore = Number(e.target.value) || 0;
+                    const classScore = 100 - examScore;
+                    setFormData({
+                      ...formData,
+                      classScoreMax: classScore,
+                      examScoreMax: examScore,
+                    });
+                  }}
+                  className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
+                  placeholder="70"
+                />
               </div>
               <p className="mt-3 text-xs leading-relaxed text-yellow-800">
                 <span className="font-bold">Total must equal 100.</span> Changing one value
@@ -679,14 +651,10 @@ export function Settings() {
                     className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:w-24"
                     placeholder="Max Score"
                   />
-                  <button
-                    type="button"
-                    onClick={addComponent}
-                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95"
-                  >
+                  <Button type="button" onClick={addComponent} variant="primary" size="sm">
                     <Plus className="h-4 w-4" />
                     <span>Add</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -704,16 +672,18 @@ export function Settings() {
                         className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm shadow-sm"
                       >
                         <span className="font-medium text-gray-700">{config.name}</span>
-                        <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">
+                        <Badge variant="primary" size="sm">
                           /{config.maxScore}
-                        </span>
-                        <button
+                        </Badge>
+                        <IconButton
                           type="button"
                           onClick={() => removeComponent(config.name)}
-                          className="rounded p-0.5 text-purple-500 transition-colors hover:bg-purple-100 hover:text-purple-700"
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Remove ${config.name}`}
                         >
                           <X className="h-3.5 w-3.5" />
-                        </button>
+                        </IconButton>
                       </div>
                     ))}
                   </div>
@@ -738,15 +708,12 @@ export function Settings() {
 
           <div className="grid gap-8 md:grid-cols-2">
             <div className="space-y-4">
-              <div>
-                <Label>Head Teacher Name</Label>
-                <input
-                  type="text"
-                  value={formData.headTeacherName || ""}
-                  onChange={(e) => setFormData({ ...formData, headTeacherName: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
+              <Input
+                label="Head Teacher Name"
+                type="text"
+                value={formData.headTeacherName || ""}
+                onChange={(e) => setFormData({ ...formData, headTeacherName: e.target.value })}
+              />
               <ImageUploader
                 label="Head Teacher Signature"
                 value={formData.headTeacherSignature}
@@ -756,15 +723,12 @@ export function Settings() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label>Class Teacher Name</Label>
-                <input
-                  type="text"
-                  value={formData.classTeacherName || ""}
-                  onChange={(e) => setFormData({ ...formData, classTeacherName: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
+              <Input
+                label="Class Teacher Name"
+                type="text"
+                value={formData.classTeacherName || ""}
+                onChange={(e) => setFormData({ ...formData, classTeacherName: e.target.value })}
+              />
               <ImageUploader
                 label="Class Teacher Signature"
                 value={formData.teacherSignature}
@@ -787,21 +751,24 @@ export function Settings() {
           </div>
 
           <div className="mb-4 flex gap-2">
-            <input
+            <Input
               type="text"
               value={newSubject}
               onChange={(e) => setNewSubject(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSubject())}
-              className={`${inputClass} flex-1`}
+              className="flex-1"
               placeholder="Type subject name..."
             />
-            <button
+            <IconButton
               type="button"
               onClick={addSubject}
-              className="rounded-lg bg-blue-100 px-4 font-bold text-blue-700 hover:bg-blue-200"
+              variant="secondary"
+              size="md"
+              aria-label="Add subject"
+              className="rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
             >
               <Plus className="h-5 w-5" />
-            </button>
+            </IconButton>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -918,57 +885,63 @@ export function Settings() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <h3 className="mb-2 font-bold text-green-900">PIN Lock (Optional)</h3>
-              <p className="mb-4 text-sm leading-relaxed text-green-800">
+            <Alert variant="success" title="PIN Lock (Optional)">
+              <p className="mb-4">
                 Secure your student data with a 4-digit PIN. You'll need to enter it when opening
                 the app.
               </p>
-              <button
+              <Button
                 type="button"
                 onClick={() => setShowPinSetup(true)}
-                className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 sm:w-auto"
+                variant="primary"
+                size="sm"
+                className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
               >
                 {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
-              </button>
-            </div>
+              </Button>
+            </Alert>
 
             {isPinConfigured() && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                <h3 className="mb-2 flex items-center gap-2 font-bold text-yellow-900">
-                  <Key className="h-4 w-4" /> Forgot Your PIN?
-                </h3>
-                <p className="mb-3 text-sm text-yellow-800">
-                  You'll need your 6-digit recovery code to reset your PIN.
-                </p>
-                <button
+              <Alert
+                variant="warning"
+                title={
+                  <>
+                    <Key className="inline h-4 w-4" /> Forgot Your PIN?
+                  </>
+                }
+              >
+                <p className="mb-3">You'll need your 6-digit recovery code to reset your PIN.</p>
+                <Button
                   type="button"
                   onClick={() => setShowPinRecovery(true)}
-                  className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 text-sm font-bold text-yellow-700 hover:bg-yellow-50 sm:w-auto"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full sm:w-auto"
                 >
                   Reset PIN with Recovery Code
-                </button>
-              </div>
+                </Button>
+              </Alert>
             )}
 
             {isPinConfigured() && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                <h3 className="mb-2 font-bold text-red-900">Disable PIN Lock</h3>
-                <p className="mb-3 text-sm text-red-800">
+              <Alert variant="error" title="Disable PIN Lock">
+                <p className="mb-3">
                   Remove PIN protection from the app. This action cannot be undone.
                 </p>
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowDisablePinModal(true)}
-                  className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+                  variant="danger"
+                  size="sm"
+                  className="w-full sm:w-auto"
                 >
                   Disable PIN Lock
-                </button>
-                <p className="mt-3 text-xs text-red-700">
+                </Button>
+                <p className="mt-3 text-xs">
                   <strong>Lost your recovery code?</strong> Disabling PIN lock is the only way to
                   regain access. Your student data will remain safe.
                 </p>
-              </div>
+              </Alert>
             )}
 
             {isPinConfigured() && (
@@ -1002,44 +975,52 @@ export function Settings() {
 
             {/* Biometric Section - Only show if PIN is configured AND device supports it */}
             {isPinConfigured() && biometricAvailable && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                <h3 className="mb-2 flex items-center gap-2 font-bold text-indigo-900">
-                  <Fingerprint className="h-4 w-4" /> {getBiometricName(biometricType)}
-                </h3>
-                <p className="mb-3 text-sm text-indigo-800">
+              <Alert
+                variant="info"
+                title={
+                  <>
+                    <Fingerprint className="inline h-4 w-4" /> {getBiometricName(biometricType)}
+                  </>
+                }
+              >
+                <p className="mb-3">
                   Use {getBiometricName(biometricType)} to unlock the app quickly. Your PIN will
                   still work as a backup.
                 </p>
 
                 {isBiometricEnrolled() ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-indigo-900">
+                    <div className="flex items-center gap-2 text-sm">
                       <div className="h-2 w-2 rounded-full bg-green-500" />
                       <span className="font-medium">
                         {getBiometricName(biometricType)} is enabled
                       </span>
                     </div>
-                    <button
+                    <Button
                       type="button"
                       onClick={handleDisableBiometric}
-                      className="rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-50"
+                      variant="secondary"
+                      size="sm"
                     >
                       Disable {getBiometricName(biometricType)}
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={handleEnrollBiometric}
                     disabled={enrollingBiometric}
-                    className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto"
+                    variant="primary"
+                    size="sm"
+                    isLoading={enrollingBiometric}
+                    className="w-full sm:w-auto"
                   >
                     {enrollingBiometric
                       ? "Setting up..."
                       : `Enable ${getBiometricName(biometricType)}`}
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </Alert>
             )}
           </div>
         </div>
@@ -1050,21 +1031,27 @@ export function Settings() {
         {/* BACKUP & DANGER ZONE */}
         <DataBackup />
 
-        <div className="rounded-xl border border-red-100 bg-red-50 p-6 shadow-sm">
-          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-red-900">
-            <RotateCcw className="h-5 w-5" /> Reset Configuration
-          </h2>
-          <p className="mb-4 text-sm leading-relaxed text-red-800">
+        <Alert
+          variant="error"
+          title={
+            <>
+              <RotateCcw className="inline h-5 w-5" /> Reset Configuration
+            </>
+          }
+        >
+          <p className="mb-4">
             This will restore default subject lists and settings. Your student data will remain
             safe.
           </p>
-          <button
+          <Button
             onClick={() => setShowResetModal(true)}
-            className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 sm:w-auto"
+            variant="danger"
+            size="sm"
+            className="w-full sm:w-auto"
           >
             Restore Factory Defaults
-          </button>
-        </div>
+          </Button>
+        </Alert>
 
         {/* ABOUT (Keep existing) */}
         {/* ... (Copy your About Card logic here if you want it) ... */}
@@ -1136,6 +1123,30 @@ export function Settings() {
 
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+
+      {/* Sticky Save Bar - Matches DetailsTab UX */}
+      <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div className="mx-auto max-w-3xl">
+          {hasUnsavedChanges && (
+            <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-orange-600">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
+              <span className="font-medium">You have unsaved changes</span>
+            </p>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges}
+            className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95 ${
+              hasUnsavedChanges
+                ? "bg-primary hover:bg-primary/90"
+                : "cursor-not-allowed bg-gray-300"
+            }`}
+          >
+            <Save className="h-5 w-5" />
+            {hasUnsavedChanges ? "Save Settings" : "All Changes Saved"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

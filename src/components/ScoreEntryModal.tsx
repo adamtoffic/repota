@@ -166,13 +166,13 @@ export function ScoreEntryModal({
               className="rounded-full p-2 transition-colors hover:bg-gray-200"
               title="Close (Esc)"
             >
-              <X className="text-muted h-5 w-5" />
+              <X className="tw-5" />
             </button>
           </div>
         </div>
 
         {/* TABS */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex flex-shrink-0 border-b border-gray-200 px-6">
           <button
             onClick={() => setActiveTab("ACADEMIC")}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
