@@ -103,7 +103,7 @@ describe("calculateGrade", () => {
 
   describe("Edge cases", () => {
     it("should handle invalid level", () => {
-      const result = calculateGrade(85, "INVALID" as any);
+      const result = calculateGrade(85, "INVALID" as unknown as SchoolLevel);
       expect(result.grade).toBe("F9");
       expect(result.remark).toBe("Invalid Level");
     });

@@ -41,7 +41,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
     setIsAddOpen(true);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // 1. DETERMINE THE SUBJECT LIST
