@@ -8,6 +8,7 @@ import {
   getRandomInterest,
 } from "../../utils/remarkGenerator";
 import { ImageUploader } from "../ImageUploader";
+import { Input } from "../ui";
 
 interface Props {
   student: ProcessedStudent;
@@ -99,29 +100,22 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
           {/* DETAILS COLUMN (Right on Desktop) */}
           <div className="flex-1 space-y-4">
-            <div>
-              <label className="text-muted mb-1 block text-xs font-bold uppercase">Full Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleFormChange({ name: e.target.value })}
-                className="text-main w-full rounded-lg border border-gray-300 p-3 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2.5"
-                placeholder="e.g. Kwame Mensah"
-              />
-            </div>
+            <Input
+              label="Full Name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleFormChange({ name: e.target.value })}
+              className="text-main font-bold"
+              placeholder="e.g. Kwame Mensah"
+            />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-                />
-              </div>
+              <Input
+                label="Date of Birth"
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
+              />
 
               <div>
                 <label className="text-muted mb-1 block text-xs font-bold uppercase">Gender</label>
@@ -165,7 +159,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
           <div>
             <label className="text-muted mb-1 block text-xs font-bold">Days Present</label>
             <div className="relative">
-              <input
+              <Input
                 type="number"
                 inputMode="numeric"
                 min="0"
@@ -174,7 +168,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 onChange={(e) =>
                   handleFormChange({ attendancePresent: Number(e.target.value) || 0 })
                 }
-                className="w-full rounded-lg border border-gray-300 p-3 pr-16 font-mono font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2 sm:pr-16"
+                className="pr-16 font-mono font-bold sm:pr-16"
                 placeholder="0"
               />
               <span className="pointer-events-none absolute top-2.5 right-3 text-xs text-gray-400">
@@ -206,46 +200,44 @@ export function DetailsTab({ student, onUpdate }: Props) {
         </h3>
         <div className="space-y-4">
           {/* CONDUCT */}
-          <div>
-            <label className="text-muted mb-1 flex justify-between text-xs font-bold">
-              <span>Conduct / Character</span>
-              <button
-                type="button"
-                onClick={() => handleFormChange({ conduct: getRandomConductTrait() })}
-                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
-              >
-                <RefreshCw className="h-3 w-3" /> Shuffle
-              </button>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Respectful and neat"
-              value={formData.conduct}
-              onChange={(e) => handleFormChange({ conduct: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-            />
-          </div>
+          <Input
+            label={
+              <span className="flex justify-between">
+                <span>Conduct / Character</span>
+                <button
+                  type="button"
+                  onClick={() => handleFormChange({ conduct: getRandomConductTrait() })}
+                  className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
+                >
+                  <RefreshCw className="h-3 w-3" /> Shuffle
+                </button>
+              </span>
+            }
+            type="text"
+            placeholder="e.g. Respectful and neat"
+            value={formData.conduct}
+            onChange={(e) => handleFormChange({ conduct: e.target.value })}
+          />
 
           {/* INTEREST */}
-          <div>
-            <label className="text-muted mb-1 flex justify-between text-xs font-bold">
-              <span>Interest / Talent</span>
-              <button
-                type="button"
-                onClick={() => handleFormChange({ interest: getRandomInterest() })}
-                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
-              >
-                <RefreshCw className="h-3 w-3" /> Shuffle
-              </button>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Football"
-              value={formData.interest}
-              onChange={(e) => handleFormChange({ interest: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
-            />
-          </div>
+          <Input
+            label={
+              <span className="flex justify-between">
+                <span>Interest / Talent</span>
+                <button
+                  type="button"
+                  onClick={() => handleFormChange({ interest: getRandomInterest() })}
+                  className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
+                >
+                  <RefreshCw className="h-3 w-3" /> Shuffle
+                </button>
+              </span>
+            }
+            type="text"
+            placeholder="e.g. Football"
+            value={formData.interest}
+            onChange={(e) => handleFormChange({ interest: e.target.value })}
+          />
 
           {/* TEACHER REMARK */}
           <div>
