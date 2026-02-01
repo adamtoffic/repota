@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
-  Save,
   Plus,
   AlertCircle,
   School,
@@ -17,6 +16,7 @@ import {
   Fingerprint,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ImageUploader } from "../components/ImageUploader";
@@ -56,14 +56,18 @@ export function Settings() {
     lastSaved,
   } = useSchoolData();
   const { showToast } = useToast();
-  const navigate = useNavigate({ from: "/settings" });
 
   const [formData, setFormData] = useState<SchoolSettings>(settings);
+  const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
+  const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
   const [newSubject, setNewSubject] = useState("");
   const [newComponentName, setNewComponentName] = useState("");
   const [newComponentMax, setNewComponentMax] = useState("");
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+
+  // Debounce form data for auto-save (500ms)
+  const debouncedFormData = useDebounce(formData, 500);
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showPinRecovery, setShowPinRecovery] = useState(false);
   const [showDisablePinModal, setShowDisablePinModal] = useState(false);
@@ -88,8 +92,46 @@ export function Settings() {
     })();
   }, []);
 
-  // Compute unsaved changes - derived state, no effect needed
-  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(settings);
+  // Compute unsaved changes
+  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
+
+  // Auto-save effect: saves low-risk changes automatically after debounce
+  useEffect(() => {
+    const debouncedString = JSON.stringify(debouncedFormData);
+
+    // Skip if no changes from last auto-save
+    if (debouncedString === lastAutoSaveRef.current) return;
+
+    // Check if this is a high-risk change that needs confirmation
+    const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
+
+    // Skip auto-save for class name changes when students exist
+    if (classNameChanged && students.length > 0) {
+      return;
+    }
+
+    // Auto-save low-risk changes
+    setSettings(debouncedFormData);
+    lastAutoSaveRef.current = debouncedString;
+
+    // Update last saved state after successful save (in a separate effect cycle)
+    requestAnimationFrame(() => {
+      setLastSavedSettings(debouncedFormData);
+    });
+  }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
+  useEffect(() => {
+    const classNameChanged = formData.className !== lastSavedSettings.className;
+    if (classNameChanged && students.length > 0 && !showClassUpdateModal) {
+      // Delay modal to avoid showing during typing
+      const timer = setTimeout(() => {
+        if (formData.className !== lastSavedSettings.className) {
+          setShowClassUpdateModal(true);
+        }
+      }, 1000); // Show modal 1s after user stops typing className
+
+      return () => clearTimeout(timer);
+    }
+  }, [formData.className, lastSavedSettings.className, students.length, showClassUpdateModal]);
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
@@ -207,25 +249,24 @@ export function Settings() {
     });
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.className !== settings.className && students.length > 0) {
-      setShowClassUpdateModal(true);
-      return;
-    }
-    finalizeSave();
-  };
-
+  // Handle class name update confirmation
   const finalizeSave = (shouldUpdateStudents = false) => {
     setSettings(formData);
+    setLastSavedSettings(formData);
 
     if (shouldUpdateStudents) {
       updateClassNameForAll(formData.className || "");
       showToast(`Updated class name for ${students.length} students`, "success");
     }
 
-    showToast("Configuration saved successfully!", "success");
-    navigate({ to: "/" });
+    setShowClassUpdateModal(false);
+  };
+
+  // Reset to last saved state
+  const handleReset = () => {
+    setFormData(lastSavedSettings);
+    setShowResetModal(false);
+    showToast("Changes discarded", "info");
   };
 
   return (
@@ -234,13 +275,24 @@ export function Settings() {
       <PageHeader
         schoolName={settings.schoolName}
         actions={
-          <Link
-            to="/"
-            className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
-          >
-            <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
-            <span className="hidden text-sm font-medium sm:inline">Back</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            {hasUnsavedChanges && (
+              <button
+                onClick={() => setShowResetModal(true)}
+                className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+            )}
+            <Link
+              to="/"
+              className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
+            >
+              <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="hidden text-sm font-medium sm:inline">Back</span>
+            </Link>
+          </div>
         }
       />
 
@@ -1124,29 +1176,16 @@ export function Settings() {
       {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
-      {/* Sticky Save Bar - Matches DetailsTab UX */}
-      <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <div className="mx-auto max-w-3xl">
-          {hasUnsavedChanges && (
-            <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-orange-600">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
-              <span className="font-medium">You have unsaved changes</span>
-            </p>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95 ${
-              hasUnsavedChanges
-                ? "bg-primary hover:bg-primary/90"
-                : "cursor-not-allowed bg-gray-300"
-            }`}
-          >
-            <Save className="h-5 w-5" />
-            {hasUnsavedChanges ? "Save Settings" : "All Changes Saved"}
-          </button>
-        </div>
-      </div>
+      {/* RESET CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={showResetModal}
+        title="Discard Changes?"
+        message="This will reset all fields to their last saved state. Any unsaved changes will be lost."
+        confirmText="Yes, Discard Changes"
+        isDangerous={true}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={handleReset}
+      />
     </div>
   );
 }
