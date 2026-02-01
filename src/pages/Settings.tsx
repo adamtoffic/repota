@@ -364,68 +364,65 @@ export function Settings() {
                     <span className="text-purple-900">Fee Schedule (GH₵)</span>
                   </Label>
                   <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        School Fees <span className="text-[10px] text-slate-600">(Per Term)</span>
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        value={formData.schoolGift || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            schoolGift: e.target.value ? parseFloat(e.target.value) : undefined,
-                          })
-                        }
-                        className={inputClass}
-                        placeholder="5.00"
-                      />
-                    </div>
+                    <Input
+                      label={
+                        <span>
+                          School Fees <span className="text-[10px] text-slate-600">(Per Term)</span>
+                        </span>
+                      }
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={formData.schoolGift || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          schoolGift: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="5.00"
+                    />
 
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        Canteen Fees <span className="text-[10px] text-purple-600">(Daily)</span>
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        value={formData.canteenFees || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            canteenFees: e.target.value ? parseFloat(e.target.value) : undefined,
-                          })
-                        }
-                        className={inputClass}
-                        placeholder="10.00"
-                      />
-                    </div>
+                    <Input
+                      label={
+                        <span>
+                          Canteen Fees <span className="text-[10px] text-purple-600">(Daily)</span>
+                        </span>
+                      }
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={formData.canteenFees || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          canteenFees: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="10.00"
+                    />
 
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-700">
-                        First Aid <span className="text-[10px] text-green-700">(Per Term)</span>
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        value={formData.firstAidFees || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            firstAidFees: e.target.value ? parseFloat(e.target.value) : undefined,
-                          })
-                        }
-                        className={inputClass}
-                        placeholder="5.00"
-                      />
-                    </div>
+                    <Input
+                      label={
+                        <span>
+                          First Aid <span className="text-[10px] text-green-700">(Per Term)</span>
+                        </span>
+                      }
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={formData.firstAidFees || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          firstAidFees: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="5.00"
+                    />
                   </div>
                 </div>
               )}
@@ -482,73 +479,65 @@ export function Settings() {
               <div>
                 <Label>Class Name</Label>
                 <div className="relative">
-                  <input
+                  <Input
                     type="text"
                     required
                     value={formData.className || ""}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                    className={`${inputClass} pl-9 font-bold`}
+                    className="pl-9 font-bold"
                     placeholder="e.g. Class 3"
                   />
                   <Users className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
                 </div>
               </div>
-              <div>
-                <Label>Class Size (Number on Roll)</Label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="200"
-                  value={formData.classSize || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, classSize: Number(e.target.value) || undefined })
-                  }
-                  className={`${inputClass} font-bold`}
-                  placeholder="e.g. 30"
-                />
-              </div>
+              <Input
+                label="Class Size (Number on Roll)"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="200"
+                value={formData.classSize || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, classSize: Number(e.target.value) || undefined })
+                }
+                className="font-bold"
+                placeholder="e.g. 30"
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Total Attendance Days</Label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  max="365"
-                  value={formData.totalAttendanceDays || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, totalAttendanceDays: Number(e.target.value) })
-                  }
-                  className={`${inputClass} font-bold`}
-                  placeholder="e.g. 70"
-                />
-              </div>
-              <div>
-                <Label>Next Term Begins</Label>
-                <input
-                  type="date"
-                  value={formData.nextTermStarts || ""}
-                  onChange={(e) => setFormData({ ...formData, nextTermStarts: e.target.value })}
-                  className={`${inputClass} font-bold`}
-                />
-              </div>
+              <Input
+                label="Total Attendance Days"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="365"
+                value={formData.totalAttendanceDays || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, totalAttendanceDays: Number(e.target.value) })
+                }
+                className="font-bold"
+                placeholder="e.g. 70"
+              />
+              <Input
+                label="Next Term Begins"
+                type="date"
+                value={formData.nextTermStarts || ""}
+                onChange={(e) => setFormData({ ...formData, nextTermStarts: e.target.value })}
+                className="font-bold"
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Academic Year</Label>
-                <input
-                  type="text"
-                  required
-                  value={formData.academicYear}
-                  onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-                  className={`${inputClass} font-bold`}
-                  placeholder="e.g. 2025/2026"
-                />
-              </div>
+              <Input
+                label="Academic Year"
+                type="text"
+                required
+                value={formData.academicYear}
+                onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
+                className="font-bold"
+                placeholder="e.g. 2025/2026"
+              />
               <div>
                 <Label>Term / Semester</Label>
                 <select
@@ -556,7 +545,7 @@ export function Settings() {
                   onChange={(e) =>
                     setFormData({ ...formData, term: e.target.value as AcademicPeriod })
                   }
-                  className={`${inputClass} bg-white font-bold`}
+                  className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm font-bold transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="First Term">First Term</option>
                   <option value="Second Term">Second Term</option>
