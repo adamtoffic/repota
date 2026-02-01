@@ -137,17 +137,14 @@ export function PrintPreview() {
         )}
       </div>
 
-      {/* 2. THE PREVIEW AREA */}
+      {/* 2. THE PREVIEW AREA - All rendered upfront for fast printing */}
       <div className="overflow-x-hidden print:m-0 print:w-full print:p-0">
-        {printableStudents.map((student, index) => (
+        {printableStudents.map((student) => (
           <div
             key={student.id}
-            className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:h-auto print:overflow-visible print:p-0"
-            style={{ pageBreakAfter: index < printableStudents.length - 1 ? "always" : "auto" }}
+            className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:overflow-visible print:p-0"
           >
-            {/* MOBILE RESPONSIVE WRAPPER */}
-            {/* ✅ FIXED: Changed scale from 0.45 to 0.40 to fit 320px screens */}
-            <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:h-full print:w-full print:scale-100 print:transform-none">
+            <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
               <div className="shadow-2xl print:m-0 print:p-0 print:shadow-none">
                 <ReportTemplate student={student} settings={settings} />
               </div>
@@ -163,5 +160,3 @@ export function PrintPreview() {
 }
 
 export default PrintPreview;
-
-// Debug: Check printableStudents count

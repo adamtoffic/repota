@@ -77,18 +77,18 @@ export function LazyReportCard({ student, settings, index, totalStudents }: Prop
   return (
     <div
       ref={wrapperRef}
-      className="report-wrapper mb-4 flex justify-center print:m-0 print:mb-0 print:block print:h-auto print:p-0"
+      className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:overflow-visible print:p-0"
       data-is-last={index === totalStudents - 1}
     >
       {isVisible ? (
-        <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:h-full print:w-full print:scale-100 print:transform-none">
+        <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
           <div className="shadow-2xl print:m-0 print:p-0 print:shadow-none">
             <ReportTemplate student={student} settings={settings} />
           </div>
         </div>
       ) : (
         // Placeholder with exact same height to prevent layout shift
-        <div className="flex h-full w-full items-center justify-center bg-gray-100">
+        <div className="flex h-[130mm] w-full items-center justify-center bg-gray-100 sm:h-[230mm] lg:h-auto">
           <div className="text-center">
             <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600"></div>
             <p className="text-sm text-gray-500">
