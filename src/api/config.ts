@@ -6,11 +6,12 @@
 // Environment configuration
 export const API_CONFIG = {
   // Set to 'local' for offline-first (current behavior)
-  // Set to 'backend' when ready to connect to server
-  MODE: (import.meta.env.VITE_API_MODE || "local") as "local" | "backend",
+  // Set to 'supabase' when ready to connect to Supabase
+  MODE: (import.meta.env.VITE_API_MODE || "local") as "local" | "supabase",
 
-  // Backend URL (when MODE is 'backend')
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
+  // Supabase configuration (when MODE is 'supabase')
+  SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || "",
+  SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
 
   // Request timeout (ms)
   TIMEOUT: 10000,
@@ -26,16 +27,21 @@ export const API_CONFIG = {
 export const isLocalMode = () => API_CONFIG.MODE === "local";
 
 /**
- * Check if app is in backend mode
+ * Check if app is in backend mode (Supabase)
  */
-export const isBackendMode = () => API_CONFIG.MODE === "backend";
+export const isBackendMode = () => API_CONFIG.MODE === "supabase";
 
 /**
- * Get full API endpoint URL
+ * Check if Supabase is configured
  */
-export const getEndpoint = (path: string) => {
-  if (isLocalMode()) {
-    return null; // No network calls in local mode
-  }
-  return `${API_CONFIG.BASE_URL}${path}`;
+export const isSupabaseConfigured = () => {
+  return !!(API_CONFIG.SUPABASE_URL && API_CONFIG.SUPABASE_ANON_KEY);
+};
+
+/**
+ * Get full API endpoint URL (deprecated - kept for backward compatibility)
+ * Use Supabase client instead
+ */
+export const getEndpoint = (_path: string) => {
+  return null; // Not used with Supabase
 };

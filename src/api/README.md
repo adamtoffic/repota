@@ -12,16 +12,20 @@ The API abstraction layer allows Repota to seamlessly switch between **offline-f
 ## Quick Start
 
 ### Local Mode (Default)
+
 No configuration needed. App works offline with IndexedDB storage.
 
 ### Backend Mode
+
 1. Create `.env` file:
+
 ```env
 VITE_API_MODE=backend
 VITE_API_BASE_URL=https://api.repota.com
 ```
 
 2. Restart dev server:
+
 ```bash
 npm run dev
 ```
@@ -29,18 +33,20 @@ npm run dev
 ## Architecture
 
 ### Files
+
 - `config.ts` - Environment configuration and mode detection
 - `client.ts` - HTTP client with retry logic, timeouts, error handling
 - `studentApi.ts` - Student CRUD operations
-- `settingsApi.ts` - School settings operations  
+- `settingsApi.ts` - School settings operations
 - `analyticsApi.ts` - Event tracking and stats aggregation
 - `index.ts` - Central export point
 
 ### Key Features
 
 **Smart Mode Detection**
+
 ```typescript
-import { isLocalMode, isBackendMode } from '@/api';
+import { isLocalMode, isBackendMode } from "@/api";
 
 if (isLocalMode()) {
   // Use IndexedDB
@@ -50,11 +56,13 @@ if (isLocalMode()) {
 ```
 
 **Automatic Retry Logic**
+
 - Max 3 retries with exponential backoff
 - 10-second timeout per request
 - No retry on 4xx errors (client mistakes)
 
 **Error Handling**
+
 ```typescript
 try {
   const students = await fetchStudents();
@@ -66,23 +74,26 @@ try {
 ```
 
 **Analytics Offline Queue**
+
 ```typescript
 // Events queued when offline, synced when online
-await trackEvent('student_created', { id, name });
+await trackEvent("student_created", { id, name });
 ```
 
 ## Integration Example
 
 ### Current (Local Mode)
+
 ```typescript
 // SchoolContext.tsx
 const students = await loadFromStorage(IDB_KEYS.STUDENTS);
 ```
 
 ### Future (Backend Mode)
+
 ```typescript
 // SchoolContext.tsx
-import { fetchStudents } from '@/api';
+import { fetchStudents } from "@/api";
 
 const students = await fetchStudents(); // Automatically uses backend
 ```
@@ -92,6 +103,7 @@ const students = await fetchStudents(); // Automatically uses backend
 ### Expected Endpoints
 
 **Students**
+
 - `GET /api/students` - List all students
 - `POST /api/students` - Create student
 - `PUT /api/students/:id` - Update student
@@ -99,14 +111,17 @@ const students = await fetchStudents(); // Automatically uses backend
 - `POST /api/students/bulk` - Bulk create
 
 **Settings**
+
 - `GET /api/settings` - Fetch school settings
 - `PUT /api/settings` - Update settings
 
 **Analytics**
+
 - `POST /api/analytics/events` - Batch event tracking
 - `GET /api/analytics/stats` - Aggregated stats
 
 ### Response Format
+
 ```typescript
 // Success
 {
