@@ -1,13 +1,27 @@
 import { useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, X, Share } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+// Detect if user is on iOS
+const isIOS = () => {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+};
+
+// Detect if user is on Safari
+const isSafari = () => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
+
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isIOSDevice] = useState(isIOS());
 
   // Check if app is already installed or dismissed recently
   const getInitialShowPrompt = () => {
@@ -26,7 +40,8 @@ export function PwaInstallPrompt() {
       }
     }
 
-    return false; // Start as false, will be set to true when event fires
+    // For iOS, show prompt after a delay since beforeinstallprompt won't fire
+    return false;
   };
 
   const [showPrompt, setShowPrompt] = useState(getInitialShowPrompt);
@@ -54,8 +69,33 @@ export function PwaInstallPrompt() {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
+
+    // For iOS Safari, show install instructions after a delay
+    // (beforeinstallprompt won't fire on iOS)
+    if (isIOSDevice && isSafari()) {
+      const timer = setTimeout(() => {
+        if (!window.matchMedia("(display-mode: standalone)").matches) {
+          const dismissed = localStorage.getItem("pwa-install-dismissed");
+          if (!dismissed) {
+            setShowPrompt(true);
+          } else {
+            const dismissedTime = parseInt(dismissed);
+            const sevenDays = 7 * 24 * 60 * 60 * 1000;
+            if (Date.now() - dismissedTime >= sevenDays) {
+              setShowPrompt(true);
+            }
+          }
+        }
+      }, 3000); // Show after 3 seconds
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("beforeinstallprompt", handler);
+      };
+    }
+
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [isIOSDevice]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -85,6 +125,60 @@ export function PwaInstallPrompt() {
 
   if (!showPrompt) return null;
 
+  // Different UI for iOS Safari (instructions instead of install button)
+  if (isIOSDevice && isSafari()) {
+    return (
+      <div className="animate-in slide-in-from-bottom fixed right-4 bottom-4 left-4 z-50 duration-300 sm:left-auto sm:w-96">
+        <div className="rounded-lg border border-blue-200 bg-white p-4 shadow-lg dark:border-blue-800 dark:bg-gray-900">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+              <Share className="size-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                Install Repota
+              </h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                To install this app on your iPhone or iPad:
+              </p>
+              <ol className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold">1.</span>
+                  <span>
+                    Tap the <Share className="mx-1 inline size-4" /> Share button below
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold">2.</span>
+                  <span>Scroll and tap "Add to Home Screen"</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold">3.</span>
+                  <span>Tap "Add" to confirm</span>
+                </li>
+              </ol>
+              <div className="mt-3">
+                <button
+                  onClick={handleDismiss}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default UI for Chrome/Edge (with install button)
   return (
     <div className="animate-in slide-in-from-bottom fixed right-4 bottom-4 left-4 z-50 duration-300 sm:left-auto sm:w-96">
       <div className="rounded-lg border border-blue-200 bg-white p-4 shadow-lg dark:border-blue-800 dark:bg-gray-900">
