@@ -29,7 +29,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: [
         "favicon.svg",
         "favicon.ico",
@@ -40,18 +40,41 @@ export default defineConfig({
       ],
 
       workbox: {
-        // Only precache essential files for faster initial load
-        globPatterns: ["**/*.{html,ico,png,svg,woff,woff2}"],
-        // Don't precache large JS chunks - load on demand
-        globIgnores: [
-          "**/recharts-*.js",
-          "**/CategoricalChart-*.js",
-          "**/Analytics-*.js",
-          "**/Settings-*.js",
-        ],
+        // Precache essential files for offline functionality
+        globPatterns: ["**/*.{html,js,css,ico,png,svg,woff,woff2}"],
+        // Don't precache large analytics chunks
+        globIgnores: ["**/recharts-*.js", "**/CategoricalChart-*.js"],
         // Maximum cache size
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
+        // Navigation fallback for offline support
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
+          // Cache JS/CSS files with NetworkFirst strategy
+          {
+            urlPattern: /^https?.*\.(js|css)$/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "assets-cache",
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+          // Cache images with CacheFirst strategy
+          {
+            urlPattern: /^https?.*\.(png|jpg|jpeg|svg|gif|webp)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images-cache",
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+          // Cache CDN resources
           {
             urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
             handler: "CacheFirst",
