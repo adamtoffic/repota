@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { SchoolProvider } from "./context/SchoolContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
+import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
 import { useState, useEffect, useCallback } from "react";
 import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
@@ -104,6 +105,9 @@ function App() {
 
         {/* Detect offline/online transitions */}
         <OfflineDetector />
+
+        {/* PWA Install Prompt */}
+        <PwaInstallPrompt />
 
         {/* Wrap Router with SchoolProvider */}
         <SchoolProvider>

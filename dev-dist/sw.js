@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-ca84f546'], (function (workbox) { 'use strict';
+define(['./workbox-80c8c1d8'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -78,13 +78,31 @@ define(['./workbox-ca84f546'], (function (workbox) { 'use strict';
    * See https://goo.gl/S9QRab
    */
   workbox.precacheAndRoute([{
-    "url": "index.html",
-    "revision": "0.lfi437hiu18"
+    "url": "registerSW.js",
+    "revision": "3ca0b8505b4bec776b69afdba2768812"
+  }, {
+    "url": "/index.html",
+    "revision": "0.ocmqpnknj4o"
   }], {});
   workbox.cleanupOutdatedCaches();
-  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-    allowlist: [/^\/$/]
+  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
+    allowlist: [/^\/$/],
+    denylist: [/^\/api/]
   }));
+  workbox.registerRoute(/^https?.*\.(js|css)$/, new workbox.NetworkFirst({
+    "cacheName": "assets-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 60,
+      maxAgeSeconds: 2592000
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https?.*\.(png|jpg|jpeg|svg|gif|webp)$/, new workbox.CacheFirst({
+    "cacheName": "images-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 60,
+      maxAgeSeconds: 2592000
+    })]
+  }), 'GET');
   workbox.registerRoute(/^https:\/\/cdnjs\.cloudflare\.com\/.*/i, new workbox.CacheFirst({
     "cacheName": "cdn-cache",
     plugins: [new workbox.ExpirationPlugin({
