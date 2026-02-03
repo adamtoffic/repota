@@ -1,8 +1,31 @@
 {
   "name": "repota",
-  "private": true,
+  "private": false,
   "version": "1.0.0",
   "type": "module",
+  "description": "Ghana's Professional Report Card Generator for Teachers - A free, offline-first PWA for GES-compliant report cards",
+  "author": "Repota Team <repota.team@proton.me>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adamtoffic/repota.git"
+  },
+  "bugs": {
+    "url": "https://github.com/adamtoffic/repota/issues"
+  },
+  "homepage": "https://repota.app",
+  "keywords": [
+    "ghana",
+    "education",
+    "report-card",
+    "ges",
+    "teacher",
+    "grading",
+    "pwa",
+    "offline-first",
+    "react",
+    "typescript"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
