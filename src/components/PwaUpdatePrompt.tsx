@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
@@ -16,29 +16,23 @@ export function PwaUpdatePrompt() {
     },
   });
 
-  const [showPrompt, setShowPrompt] = useState(false);
-
   useEffect(() => {
     if (offlineReady) {
       console.log("App ready to work offline");
     }
-    if (needRefresh) {
-      setShowPrompt(true);
-    }
-  }, [offlineReady, needRefresh]);
+  }, [offlineReady]);
 
   const handleUpdate = () => {
     updateServiceWorker(true);
-    setShowPrompt(false);
+    setNeedRefresh(false);
   };
 
   const handleDismiss = () => {
     setOfflineReady(false);
     setNeedRefresh(false);
-    setShowPrompt(false);
   };
 
-  if (!showPrompt) return null;
+  if (!needRefresh) return null;
 
   return (
     <div className="animate-in slide-in-from-bottom fixed right-4 bottom-4 left-4 z-50 duration-300 sm:left-auto sm:w-96">
