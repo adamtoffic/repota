@@ -2,10 +2,6 @@
 
 First off, thank you for considering contributing to Repota! It's people like you that make Repota such a great tool for Ghanaian teachers.
 
-## Code of Conduct
-
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
-
 ## How Can I Contribute?
 
 ### Reporting Bugs 🐛
