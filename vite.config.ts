@@ -8,7 +8,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 export default defineConfig({
   test: {
     globals: true,
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: "./src/test/setup.ts",
     css: true,
     coverage: {
