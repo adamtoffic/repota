@@ -29,6 +29,7 @@ import type {
   SchoolSettings,
   AcademicPeriod,
   ClassScoreComponentConfig,
+  AssessmentCategory,
 } from "../types";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
@@ -60,9 +61,12 @@ export function Settings() {
   const [formData, setFormData] = useState<SchoolSettings>(settings);
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
   const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
+
+  // Form States
   const [newSubject, setNewSubject] = useState("");
   const [newComponentName, setNewComponentName] = useState("");
   const [newComponentMax, setNewComponentMax] = useState("");
+  const [newComponentCategory, setNewComponentCategory] = useState<AssessmentCategory>("CAT");
 
   // Modal states
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
@@ -94,7 +98,6 @@ export function Settings() {
     setBiometricType(type);
   };
 
-  // Check biometric availability on mount
   useEffect(() => {
     (async () => {
       const { available, type } = await isBiometricAvailable();
@@ -103,43 +106,33 @@ export function Settings() {
     })();
   }, []);
 
-  // Compute unsaved changes
   const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
 
-  // Auto-save effect: saves low-risk changes automatically after debounce
   useEffect(() => {
     const debouncedString = JSON.stringify(debouncedFormData);
-
-    // Skip if no changes from last auto-save
     if (debouncedString === lastAutoSaveRef.current) return;
 
-    // Check if this is a high-risk change that needs confirmation
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
-
-    // Skip auto-save for class name changes when students exist
     if (classNameChanged && students.length > 0) {
       return;
     }
 
-    // Auto-save low-risk changes
     setSettings(debouncedFormData);
     lastAutoSaveRef.current = debouncedString;
 
-    // Update last saved state after successful save (in a separate effect cycle)
     requestAnimationFrame(() => {
       setLastSavedSettings(debouncedFormData);
     });
   }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
+
   useEffect(() => {
     const classNameChanged = formData.className !== lastSavedSettings.className;
     if (classNameChanged && students.length > 0 && !showClassUpdateModal) {
-      // Delay modal to avoid showing during typing
       const timer = setTimeout(() => {
         if (formData.className !== lastSavedSettings.className) {
           setShowClassUpdateModal(true);
         }
-      }, 1000); // Show modal 1s after user stops typing className
-
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [formData.className, lastSavedSettings.className, students.length, showClassUpdateModal]);
@@ -148,10 +141,9 @@ export function Settings() {
     setEnrollingBiometric(true);
     const { success, error } = await enrollBiometric();
     setEnrollingBiometric(false);
-
     if (success) {
       showToast(`${getBiometricName(biometricType)} enabled successfully!`, "success");
-      checkBiometric(); // Refresh state
+      checkBiometric();
     } else {
       showToast(error || "Failed to enable biometric", "error");
     }
@@ -160,12 +152,10 @@ export function Settings() {
   const handleDisableBiometric = () => {
     disableBiometric();
     showToast("Biometric authentication disabled", "info");
-    checkBiometric(); // Refresh state
+    checkBiometric();
   };
 
-  // --- HANDLERS ---
   const handleLevelChange = (newLevel: SchoolLevel) => {
-    // If changing level and subjects exist, show confirmation
     if (
       newLevel !== formData.level &&
       formData.defaultSubjects &&
@@ -175,8 +165,6 @@ export function Settings() {
       setShowLevelChangeModal(true);
       return;
     }
-
-    // Otherwise apply immediately
     applyLevelChange(newLevel);
   };
 
@@ -213,7 +201,6 @@ export function Settings() {
 
   const confirmDeleteSubject = () => {
     if (subjectToDelete === null) return;
-
     setFormData((prev) => ({
       ...prev,
       defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== subjectToDelete.index),
@@ -228,7 +215,7 @@ export function Settings() {
     const maxScore = parseInt(newComponentMax);
 
     if (!trimmed) {
-      showToast("Please enter a component name!", "error");
+      showToast("Please enter a task name!", "error");
       return;
     }
 
@@ -239,17 +226,26 @@ export function Settings() {
 
     const current = formData.componentLibrary || [];
     if (current.some((c) => c.name === trimmed)) {
-      showToast("This component already exists!", "error");
+      showToast("This task already exists!", "error");
       return;
     }
 
     setFormData((prev) => ({
       ...prev,
-      componentLibrary: [...current, { name: trimmed, maxScore }],
+      componentLibrary: [
+        ...current,
+        {
+          name: trimmed,
+          maxScore,
+          category: newComponentCategory,
+        },
+      ],
     }));
+
     setNewComponentName("");
     setNewComponentMax("");
-    showToast("Component added to library!", "success");
+    setNewComponentCategory("CAT");
+    showToast("SBA task added to library!", "success");
   };
 
   const removeComponent = (componentName: string) => {
@@ -259,19 +255,17 @@ export function Settings() {
 
   const confirmDeleteComponent = () => {
     if (!componentToDelete) return;
-
     setFormData((prev) => ({
       ...prev,
       componentLibrary: (prev.componentLibrary || []).filter(
         (config) => config.name !== componentToDelete,
       ),
     }));
-    showToast(`Deleted component: ${componentToDelete}`, "info");
+    showToast(`Deleted task: ${componentToDelete}`, "info");
     setShowDeleteComponentModal(false);
     setComponentToDelete(null);
   };
 
-  // Add component to a specific subject
   const addComponentToSubject = (subjectName: string, component: ClassScoreComponentConfig) => {
     setFormData((prev) => ({
       ...prev,
@@ -282,12 +276,10 @@ export function Settings() {
     }));
   };
 
-  // Remove component from a specific subject
   const removeComponentFromSubject = (subjectName: string, componentName: string) => {
     setFormData((prev) => {
       const currentComponents = prev.subjectComponentMap?.[subjectName] || [];
       const updatedComponents = currentComponents.filter((c) => c.name !== componentName);
-
       return {
         ...prev,
         subjectComponentMap: {
@@ -298,20 +290,16 @@ export function Settings() {
     });
   };
 
-  // Handle class name update confirmation
   const finalizeSave = (shouldUpdateStudents = false) => {
     setSettings(formData);
     setLastSavedSettings(formData);
-
     if (shouldUpdateStudents) {
       updateClassNameForAll(formData.className || "");
       showToast(`Updated class name for ${students.length} students`, "success");
     }
-
     setShowClassUpdateModal(false);
   };
 
-  // Reset to last saved state
   const handleReset = () => {
     setFormData(lastSavedSettings);
     setShowResetModal(false);
@@ -320,18 +308,15 @@ export function Settings() {
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
-      {/* HEADER */}
       <PageHeader
         schoolName={settings.schoolName}
         actions={
           <div className="flex items-center gap-2">
             {hasUnsavedChanges && (
               <>
-                {/* Mobile: Just icon with pulse */}
                 <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-2 py-2 sm:hidden">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
                 </div>
-                {/* Desktop: Full reset button */}
                 <button
                   onClick={() => setShowResetModal(true)}
                   className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
@@ -354,7 +339,7 @@ export function Settings() {
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
-        {/* Auto-Save Info Banner */}
+        {/* Auto-Save Info */}
         <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
           <div>
@@ -362,28 +347,8 @@ export function Settings() {
               Settings auto-save as you type{" "}
               <span className="hidden sm:inline">• No need to scroll for a save button</span>
             </p>
-            <p className="mt-1 text-blue-700 opacity-90">
-              High-risk changes (like deleting subjects) will ask for confirmation
-            </p>
           </div>
         </div>
-
-        {/* Unsaved Changes Banner - Mobile Only */}
-        {hasUnsavedChanges && (
-          <div className="animate-fade-in flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-3 sm:hidden">
-            <div className="flex items-center gap-2 text-sm text-orange-700">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
-              <span className="font-medium">Unsaved changes</span>
-            </div>
-            <button
-              onClick={() => setShowResetModal(true)}
-              className="flex items-center gap-1.5 rounded-md border border-orange-300 bg-white px-2.5 py-1.5 text-xs font-medium text-orange-700 transition-all active:scale-95"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </button>
-          </div>
-        )}
 
         {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
@@ -488,76 +453,6 @@ export function Settings() {
                   </label>
                 </div>
               </div>
-
-              {/* Private School Fees */}
-              {formData.schoolType === "PRIVATE" && (
-                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                  <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
-                    <span className="text-purple-900">Fee Schedule (GH₵)</span>
-                  </label>
-                  <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Input
-                      label={
-                        <span>
-                          School Fees <span className="text-[10px] text-slate-600">(Per Term)</span>
-                        </span>
-                      }
-                      type="number"
-                      inputMode="decimal"
-                      step="0.01"
-                      min="0"
-                      value={formData.schoolGift || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          schoolGift: e.target.value ? parseFloat(e.target.value) : undefined,
-                        })
-                      }
-                      placeholder="5.00"
-                    />
-
-                    <Input
-                      label={
-                        <span>
-                          Canteen Fees <span className="text-[10px] text-purple-600">(Daily)</span>
-                        </span>
-                      }
-                      type="number"
-                      inputMode="decimal"
-                      step="0.01"
-                      min="0"
-                      value={formData.canteenFees || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          canteenFees: e.target.value ? parseFloat(e.target.value) : undefined,
-                        })
-                      }
-                      placeholder="10.00"
-                    />
-
-                    <Input
-                      label={
-                        <span>
-                          First Aid <span className="text-[10px] text-green-700">(Per Term)</span>
-                        </span>
-                      }
-                      type="number"
-                      inputMode="decimal"
-                      step="0.01"
-                      min="0"
-                      value={formData.firstAidFees || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          firstAidFees: e.target.value ? parseFloat(e.target.value) : undefined,
-                        })
-                      }
-                      placeholder="5.00"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -594,17 +489,14 @@ export function Settings() {
                 ))}
               </div>
 
-              {/* Context Hint */}
               <div className="mt-3 flex gap-2 rounded-lg bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">
                 <AlertCircle className="h-4 w-4 shrink-0 text-blue-600" />
                 <p>
                   {formData.level === "KG" &&
                     "Kindergarten: Uses developmental grading (Gold, Silver, Bronze)."}
-                  {formData.level === "PRIMARY" &&
-                    "Primary: Uses standard descriptive grading (1-5)."}
-                  {formData.level === "JHS" &&
-                    "Junior High: Uses the Aggregate System (Core 4 + Best 2)."}
-                  {formData.level === "SHS" && "Senior High: Uses WASSCE Grading (A1 - F9)."}
+                  {formData.level === "PRIMARY" && "Primary: Standard descriptive grading (1-5)."}
+                  {formData.level === "JHS" && "JHS: Common Core SBA + Aggregate System."}
+                  {formData.level === "SHS" && "SHS: WASSCE Grading (A1 - F9)."}
                 </p>
               </div>
             </div>
@@ -621,7 +513,7 @@ export function Settings() {
                     value={formData.className || ""}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
                     className="pl-9 font-bold"
-                    placeholder="e.g. Class 3"
+                    placeholder="e.g. Basic 4"
                   />
                   <Users className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
                 </div>
@@ -692,14 +584,14 @@ export function Settings() {
               </div>
             </div>
 
-            {/* GRADING CONFIG */}
+            {/* GRADING CONFIG - SBA RENAMED */}
             <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
               <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
-                <AlertCircle className="h-4 w-4" /> Grading Limits
+                <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
               </h3>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <Input
-                  label="Class Score Max"
+                  label="Continuous Assessment %"
                   type="number"
                   inputMode="numeric"
                   min="0"
@@ -715,10 +607,10 @@ export function Settings() {
                     });
                   }}
                   className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
-                  placeholder="30"
+                  placeholder="50"
                 />
                 <Input
-                  label="Exam Score Max"
+                  label="Examination %"
                   type="number"
                   inputMode="numeric"
                   min="0"
@@ -734,67 +626,107 @@ export function Settings() {
                     });
                   }}
                   className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
-                  placeholder="70"
+                  placeholder="50"
                 />
               </div>
               <p className="mt-3 text-xs leading-relaxed text-yellow-800">
-                <span className="font-bold">Total must equal 100.</span> Changing one value
-                automatically adjusts the other. (Current:{" "}
-                {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)})
+                <span className="font-bold">Total must equal 100%.</span> (Current:{" "}
+                {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)}%)
               </p>
             </div>
 
-            {/* CLASS SCORE COMPONENTS */}
+            {/* CLASS SCORE COMPONENTS - SBA RENAMED - RESPONSIVE FIXED */}
             <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
               <div className="mb-3 flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-purple-700" />
                 <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
-                  Component Library (Optional)
+                  SBA Task Library
                 </h3>
               </div>
               <p className="mb-4 text-xs leading-relaxed text-purple-700">
-                Create a library of assessment components (e.g., "Class Test", "Project", "Quiz").
-                These can then be selectively added to individual subjects. Each component needs a
-                maximum score. Components are subject-specific - add only what you need per subject!
+                Define standard SBA tasks (e.g. Class Tests, Group Works, Projects) to use across
+                subjects.
               </p>
 
-              {/* Add Component Input */}
-              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-                <input
-                  type="text"
-                  value={newComponentName}
-                  onChange={(e) => setNewComponentName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      document.getElementById("max-score-input")?.focus();
-                    }
-                  }}
-                  className="flex-1 rounded-lg border border-purple-300 bg-white p-2.5 text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                  placeholder="e.g. Class Test, Project, Quiz"
-                />
-                <div className="flex gap-2">
+              {/* RESPONSIVE ADD COMPONENT INPUTS */}
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                {/* 1. Category Selector */}
+                <div className="w-full sm:w-32">
+                  <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                    Type
+                  </label>
+                  <select
+                    value={newComponentCategory}
+                    onChange={(e) => setNewComponentCategory(e.target.value as AssessmentCategory)}
+                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                  >
+                    <option value="CAT">CAT (Test)</option>
+                    <option value="GROUP">Group Work</option>
+                    <option value="PROJECT">Project</option>
+                    <option value="HOMEWORK">Homework</option>
+                  </select>
+                </div>
+
+                {/* 2. Name Input */}
+                <div className="flex-1">
+                  <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                    Task Name
+                  </label>
                   <input
-                    id="max-score-input"
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    max="100"
-                    value={newComponentMax}
-                    onChange={(e) => setNewComponentMax(e.target.value)}
+                    type="text"
+                    value={newComponentName}
+                    onChange={(e) => setNewComponentName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        addComponent();
+                        document.getElementById("max-score-input")?.focus();
                       }
                     }}
-                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:w-24"
-                    placeholder="Max Score"
+                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                    placeholder="e.g. Natural Science Project"
                   />
-                  <Button type="button" onClick={addComponent} variant="primary" size="sm">
-                    <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </Button>
+                </div>
+
+                {/* 3. Max Score & Button - RESPONSIVE FIXED */}
+                <div className="flex w-full gap-2 sm:w-auto">
+                  <div className="flex-1 sm:w-24 sm:flex-none">
+                    <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                      Max Score
+                    </label>
+                    <input
+                      id="max-score-input"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="100"
+                      value={newComponentMax}
+                      onChange={(e) => setNewComponentMax(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addComponent();
+                        }
+                      }}
+                      className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                      placeholder="15"
+                    />
+                  </div>
+
+                  <div className="flex-none">
+                    <label className="mb-1 block text-[10px] font-bold tracking-wider text-transparent uppercase">
+                      Add
+                    </label>
+                    <Button
+                      type="button"
+                      onClick={addComponent}
+                      variant="primary"
+                      size="sm"
+                      className="h-10 w-full sm:w-auto"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -802,17 +734,24 @@ export function Settings() {
               {(formData.componentLibrary || []).length > 0 ? (
                 <div className="space-y-3">
                   <p className="text-xs font-bold text-purple-800">
-                    {(formData.componentLibrary || []).length} Component
-                    {(formData.componentLibrary || []).length !== 1 ? "s" : ""} in Library
+                    {(formData.componentLibrary || []).length} Task
+                    {(formData.componentLibrary || []).length !== 1 ? "s" : ""} Defined
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {(formData.componentLibrary || []).map((config) => (
                       <div
                         key={config.name}
-                        className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm shadow-sm"
+                        className="flex items-center gap-3 rounded-lg border border-purple-200 bg-white py-2 pr-2 pl-3 text-sm shadow-sm"
                       >
-                        <span className="font-medium text-gray-700">{config.name}</span>
-                        <Badge variant="primary" size="sm">
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-xs font-bold text-gray-800">
+                            {config.name}
+                          </span>
+                          <span className="text-[10px] font-bold tracking-wide text-purple-500 uppercase">
+                            {config.category === "CAT" ? "CLASS TEST" : config.category}
+                          </span>
+                        </div>
+                        <Badge variant="primary" size="sm" className="ml-1">
                           /{config.maxScore}
                         </Badge>
                         <IconButton
@@ -822,7 +761,7 @@ export function Settings() {
                           size="sm"
                           aria-label={`Remove ${config.name}`}
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <X className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
                         </IconButton>
                       </div>
                     ))}
@@ -830,7 +769,7 @@ export function Settings() {
                 </div>
               ) : (
                 <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
-                  No components in library. Add components to use with subjects.
+                  No SBA tasks defined. Add tasks (e.g. CAT 1, Group Work) to use with subjects.
                 </div>
               )}
             </div>
@@ -883,7 +822,7 @@ export function Settings() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4">
             <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
-              Class Subjects
+              Class Subjects (Learning Areas)
             </h2>
             <p className="text-muted text-xs">
               These subjects will be added to all new students automatically.
@@ -930,18 +869,15 @@ export function Settings() {
           </div>
         </div>
 
-        {/* CARD 5: SUBJECT COMPONENT ASSIGNMENT */}
+        {/* CARD 5: SUBJECT COMPONENT ASSIGNMENT - SBA RENAMED */}
         {(formData.defaultSubjects || []).length > 0 &&
           (formData.componentLibrary || []).length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4">
                 <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
-                  Subject Components
+                  Subject Assessment Config
                 </h2>
-                <p className="text-muted text-xs">
-                  Assign components to subjects. All students will automatically get these
-                  components when graded.
-                </p>
+                <p className="text-muted text-xs">Assign specific SBA tasks to each subject.</p>
               </div>
 
               <div className="space-y-4">
@@ -956,21 +892,25 @@ export function Settings() {
                       <div className="mb-3 flex items-center justify-between">
                         <h3 className="font-bold text-gray-900">{subject}</h3>
                         {assignedComponents.length === 0 && (
-                          <span className="text-xs text-gray-400 italic">
-                            No components assigned
-                          </span>
+                          <span className="text-xs text-gray-400 italic">No tasks assigned</span>
                         )}
                       </div>
 
-                      {/* Assigned Components */}
                       {assignedComponents.length > 0 && (
                         <div className="mb-3 flex flex-wrap gap-2">
                           {assignedComponents.map((comp) => (
                             <div
                               key={comp.name}
-                              className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm"
+                              className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm sm:items-center"
                             >
-                              <span className="font-medium text-gray-700">{comp.name}</span>
+                              <div className="flex min-w-0 flex-col">
+                                <span className="truncate text-xs font-bold text-gray-700">
+                                  {comp.name}
+                                </span>
+                                <span className="text-[10px] font-bold tracking-wide text-blue-500 uppercase">
+                                  {comp.category === "CAT" ? "TEST" : comp.category}
+                                </span>
+                              </div>
                               <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
                                 /{comp.maxScore}
                               </span>
@@ -986,7 +926,6 @@ export function Settings() {
                         </div>
                       )}
 
-                      {/* Add Component Buttons - Mobile Optimized */}
                       {availableComponents.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {availableComponents.map((comp) => (
@@ -1002,11 +941,6 @@ export function Settings() {
                             </button>
                           ))}
                         </div>
-                      )}
-
-                      {/* Info message when all components assigned */}
-                      {availableComponents.length === 0 && assignedComponents.length > 0 && (
-                        <p className="text-xs text-gray-400 italic">All components assigned</p>
                       )}
                     </div>
                   );
@@ -1113,7 +1047,6 @@ export function Settings() {
               </div>
             )}
 
-            {/* Biometric Section - Only show if PIN is configured AND device supports it */}
             {isPinConfigured() && biometricAvailable && (
               <Alert
                 variant="info"
@@ -1192,9 +1125,6 @@ export function Settings() {
             Restore Factory Defaults
           </Button>
         </Alert>
-
-        {/* ABOUT (Keep existing) */}
-        {/* ... (Copy your About Card logic here if you want it) ... */}
       </main>
 
       {/* MODALS */}
@@ -1225,7 +1155,6 @@ export function Settings() {
         }}
       />
 
-      {/* PIN SETUP MODAL */}
       {showPinSetup && (
         <PinSetup
           onComplete={() => setShowPinSetup(false)}
@@ -1233,7 +1162,6 @@ export function Settings() {
         />
       )}
 
-      {/* PIN RECOVERY MODAL */}
       {showPinRecovery && (
         <PinRecovery
           onComplete={() => setShowPinRecovery(false)}
@@ -1241,7 +1169,6 @@ export function Settings() {
         />
       )}
 
-      {/* DISABLE PIN MODAL */}
       <ConfirmModal
         isOpen={showDisablePinModal}
         title="Disable PIN Lock?"
@@ -1256,15 +1183,12 @@ export function Settings() {
         }}
       />
 
-      {/* ✅ SCROLL BUTTON - Show when form is long (8+ subjects or 3+ components) */}
       {(formData.defaultSubjects.length >= 8 || (formData.componentLibrary?.length ?? 0) >= 3) && (
         <ScrollButton />
       )}
 
-      {/* ✅ AUTO-SAVE INDICATOR */}
       <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
-      {/* RESET CHANGES MODAL */}
       <ConfirmModal
         isOpen={showResetModal}
         title="Discard Changes?"
@@ -1275,7 +1199,6 @@ export function Settings() {
         onConfirm={handleReset}
       />
 
-      {/* DELETE SUBJECT CONFIRMATION */}
       <ConfirmModal
         isOpen={showDeleteSubjectModal}
         title="Delete Subject?"
@@ -1289,12 +1212,11 @@ export function Settings() {
         onConfirm={confirmDeleteSubject}
       />
 
-      {/* DELETE COMPONENT CONFIRMATION */}
       <ConfirmModal
         isOpen={showDeleteComponentModal}
-        title="Delete Component?"
-        message={`Are you sure you want to remove the "${componentToDelete}" component? Any subjects using this component will lose their score configuration.`}
-        confirmText="Yes, Delete Component"
+        title="Delete Task?"
+        message={`Are you sure you want to remove the "${componentToDelete}" task? Any subjects using this will lose their score configuration.`}
+        confirmText="Yes, Delete Task"
         isDangerous={true}
         onClose={() => {
           setShowDeleteComponentModal(false);
@@ -1303,7 +1225,6 @@ export function Settings() {
         onConfirm={confirmDeleteComponent}
       />
 
-      {/* LEVEL CHANGE CONFIRMATION */}
       <ConfirmModal
         isOpen={showLevelChangeModal}
         title="Change School Level?"
