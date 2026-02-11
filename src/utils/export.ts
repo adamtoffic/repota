@@ -10,32 +10,49 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
       throw new Error("Invalid filename");
     }
 
-    // 1. Define Columns
-    const headers = [
-      "Name",
-      "Class",
-      "Subjects Count",
-      "Total Score",
-      "Average",
-      "Position",
-      "Pass/Fail",
-    ];
+    // 1. Build dynamic subject columns across all students
+    const subjectNames = Array.from(
+      new Set(students.flatMap((student) => student.subjects.map((subject) => subject.name))),
+    );
 
-    // 2. Map Data
-    const rows = students.map((s) => [
-      `"${s.name}"`, // Quote strings to handle commas in names
-      `"${s.className}"`,
-      s.subjects.length,
-      s.totalScore,
-      s.averageScore,
-      `"${s.classPosition}"`,
-      s.averageScore >= 50 ? "Pass" : "Fail",
-    ]);
+    // 2. Define requested columns
+    const headers = ["Name", ...subjectNames, "Total", "Position", "Aggregate"];
 
-    // 3. Construct CSV String
+    const escapeCsv = (value: string | number | null | undefined): string => {
+      if (value === null || value === undefined) return "";
+      const stringValue = String(value).replace(/"/g, '""');
+      return `"${stringValue}"`;
+    };
+
+    // 3. Map Data
+    const rows = students.map((student) => {
+      const subjectScoreMap = new Map(
+        student.subjects.map((subject) => [
+          subject.name,
+          typeof subject.totalScore === "number"
+            ? subject.totalScore
+            : subject.classScore + subject.examScore,
+        ]),
+      );
+
+      const subjectScores = subjectNames.map((subjectName) => {
+        const score = subjectScoreMap.get(subjectName);
+        return score !== undefined ? escapeCsv(score) : "";
+      });
+
+      return [
+        escapeCsv(student.name),
+        ...subjectScores,
+        escapeCsv(student.totalScore),
+        escapeCsv(student.classPosition),
+        escapeCsv(student.aggregate),
+      ];
+    });
+
+    // 4. Construct CSV String
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
 
-    // 4. Trigger Download
+    // 5. Trigger Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
