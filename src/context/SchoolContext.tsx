@@ -663,7 +663,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
     if (demoStudents.length > 0) {
       setStudents((prev) => [...prev, ...demoStudents]);
-      showToast(`${demoStudents.length} demo students loaded with Ghanaian names!`, "success");
+      showToast(`${demoStudents.length} demo students loaded!`, "success");
     }
   };
 
