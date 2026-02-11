@@ -397,6 +397,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
               name: config.name,
               score: 0,
               maxScore: config.maxScore,
+              category: config.category, // Preserve category from settings
             };
           });
 

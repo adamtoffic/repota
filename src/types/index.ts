@@ -17,11 +17,15 @@ export interface ClassScoreComponent {
   name: string;
   score: number;
   maxScore: number; // Maximum possible score for this component
+  category?: AssessmentCategory;
 }
+
+export type AssessmentCategory = "CAT" | "GROUP" | "PROJECT" | "HOMEWORK";
 
 export interface ClassScoreComponentConfig {
   name: string;
   maxScore: number;
+  category?: AssessmentCategory;
 }
 
 export interface SavedSubject {
