@@ -68,11 +68,6 @@ npm run dev
 
 ## 📚 Documentation
 
-- [DATA-FLOW-OVERVIEW.md](DATA-FLOW-OVERVIEW.md)
-- [PERFORMANCE-OPTIMIZATION.md](PERFORMANCE-OPTIMIZATION.md)
-- [MOBILE-PERFORMANCE-OPTIMIZATION.md](MOBILE-PERFORMANCE-OPTIMIZATION.md)
-- [V1-PRODUCTION-READY.md](V1-PRODUCTION-READY.md)
-- [docs/ANDROID-DATA-PROTECTION.md](docs/ANDROID-DATA-PROTECTION.md)
 - [SECURITY.md](SECURITY.md)
 
 ---
@@ -85,7 +80,6 @@ Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for se
 
 ## 📞 Support
 
-- WhatsApp: [+233 24 814 0806](https://wa.me/233248140806?text=Hi!%20I%20need%20help%20with%20Repota)
 - Email: repota.team@proton.me
 - Issues: [GitHub Issues](https://github.com/adamtoffic/repota/issues)
 
