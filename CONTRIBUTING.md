@@ -89,7 +89,7 @@ npm run dev
 ```
 repota/
 ├── src/
-│   ├── api/              # API layer (local + future backend)
+│   ├── api/              # API layer
 │   ├── components/       # React components
 │   ├── context/          # React Context providers
 │   ├── hooks/            # Custom hooks
@@ -175,13 +175,6 @@ Design for mobile, enhance for desktop. PWA features are critical.
 - **Localization** (Twi, Ga, Ewe, etc.)
 - **Analytics features** (more insights for teachers)
 - **Export formats** (PDF, Excel, etc.)
-
-### Future Features 🚀
-
-- Supabase backend integration
-- Multi-device sync
-- Teacher collaboration
-- Bulk SMS/WhatsApp delivery
 
 ## Questions?
 
