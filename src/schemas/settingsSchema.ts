@@ -16,6 +16,21 @@ export const academicPeriodSchema = z.enum([
   "Second Semester",
 ]);
 
+export const assessmentCategorySchema = z.enum(["CAT", "GROUP", "PROJECT", "HOMEWORK"]);
+
+/**
+ * Reusable schema for a single assessment component config (used in both
+ * componentLibrary and subjectComponentMap values).
+ */
+export const classScoreComponentConfigSchema = z.object({
+  name: z.string().min(1, "Component name required").max(100, "Component name too long"),
+  maxScore: z
+    .number()
+    .min(1, "Max score must be at least 1")
+    .max(100, "Max score cannot exceed 100"),
+  category: assessmentCategorySchema.optional(),
+});
+
 export const schoolSettingsSchema = z
   .object({
     // School Identity
@@ -102,22 +117,20 @@ export const schoolSettingsSchema = z
 
     // Component library - available assessment components that can be added to subjects
     componentLibrary: z
-      .array(
-        z.object({
-          name: z.string().min(1, "Component name required").max(100, "Component name too long"),
-          maxScore: z
-            .number()
-            .min(1, "Max score must be at least 1")
-            .max(100, "Max score cannot exceed 100"),
-        }),
-      )
-      .max(10, "Too many components in library")
+      .array(classScoreComponentConfigSchema)
+      .max(15, "Too many components in library")
       .optional(),
+
+    // Subject-component mapping - which library components each subject uses
+    subjectComponentMap: z.record(z.string(), z.array(classScoreComponentConfigSchema)).optional(),
 
     // Private School Fees
     schoolGift: z.number().min(0).max(10000).optional(), // Daily school fees
     canteenFees: z.number().min(0).max(10000).optional(), // Daily canteen fees
     firstAidFees: z.number().min(0).max(10000).optional(), // Termly first aid
+
+    // Security
+    autoLockTimeout: z.number().min(1, "Min 1 minute").max(60, "Max 60 minutes").optional(),
   })
   .refine((data) => data.classScoreMax + data.examScoreMax === 100, {
     message: "Max class score + max exam score must equal 100",
