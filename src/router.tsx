@@ -6,7 +6,9 @@ import { PageLoader } from "./components/PageLoader";
 
 // Code-split heavy pages
 const Settings = lazy(() => import("./pages/Settings"));
-const PrintPreview = lazy(() => import("./pages/PrintPreview"));
+const PrintPreview = lazy(() =>
+  import("./pages/PrintPreview").then((module) => ({ default: module.PrintPreview })),
+);
 const Analytics = lazy(() => import("./pages/Analytics"));
 
 // 2. Define the Root Layout (The Shell)

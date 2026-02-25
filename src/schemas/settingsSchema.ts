@@ -129,6 +129,8 @@ export const schoolSettingsSchema = z
     canteenFees: z.number().min(0).max(10000).optional(), // Daily canteen fees
     firstAidFees: z.number().min(0).max(10000).optional(), // Termly first aid
 
+    templateId: z.string().default("original_v1").optional(),
+
     // Security
     autoLockTimeout: z.number().min(1, "Min 1 minute").max(60, "Max 60 minutes").optional(),
   })
