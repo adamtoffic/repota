@@ -1,9 +1,14 @@
 import { useState } from "react";
-import type { SchoolSettings } from "../types";
-import { School, Save, Plus, X } from "lucide-react";
+import type { AssessmentCategory, SchoolSettings } from "../types";
+import { School, Save, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Tooltip } from "./ui/Tooltip";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
+import {
+  addToLibrary,
+  removeFromLibrary,
+  toggleComponentForSubject,
+} from "../utils/componentRegistry";
 
 interface Props {
   initialSettings: SchoolSettings;
@@ -14,6 +19,9 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
   const [formData, setFormData] = useState<SchoolSettings>(initialSettings);
   const [newComponentName, setNewComponentName] = useState("");
   const [newComponentMax, setNewComponentMax] = useState("");
+  const [newComponentCategory, setNewComponentCategory] = useState<AssessmentCategory | "">("");
+  const [componentError, setComponentError] = useState<string | null>(null);
+  const [showSubjectMap, setShowSubjectMap] = useState(false);
 
   const handleChange = (field: keyof SchoolSettings, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -28,30 +36,49 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
     const trimmed = newComponentName.trim();
     if (!trimmed) return;
 
-    const current = formData.componentLibrary || [];
-    if (current.some((c) => c.name === trimmed)) {
-      alert("This component already exists!");
+    const current = formData.componentLibrary ?? [];
+    const config = {
+      name: trimmed,
+      maxScore: parseFloat(newComponentMax) || 10,
+      ...(newComponentCategory ? { category: newComponentCategory as AssessmentCategory } : {}),
+    };
+
+    const { library, error } = addToLibrary(current, config);
+    if (error) {
+      setComponentError(error);
+      setTimeout(() => setComponentError(null), 3000);
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      componentLibrary: [
-        ...current,
-        { name: trimmed, maxScore: parseFloat(newComponentMax) || 10 },
-      ],
-    }));
+    setFormData((prev) => ({ ...prev, componentLibrary: library }));
     setNewComponentName("");
     setNewComponentMax("");
+    setNewComponentCategory("");
+    setComponentError(null);
   };
 
   const handleRemoveComponent = (componentName: string) => {
+    const library = formData.componentLibrary ?? [];
+    const map = formData.subjectComponentMap ?? {};
+    const { library: updatedLibrary, subjectComponentMap: updatedMap } = removeFromLibrary(
+      library,
+      map,
+      componentName,
+    );
     setFormData((prev) => ({
       ...prev,
-      componentLibrary: (prev.componentLibrary || []).filter(
-        (config) => config.name !== componentName,
-      ),
+      componentLibrary: updatedLibrary,
+      subjectComponentMap: updatedMap,
     }));
+  };
+
+  const handleToggleSubjectComponent = (subjectName: string, componentName: string) => {
+    const library = formData.componentLibrary ?? [];
+    const config = library.find((c) => c.name === componentName);
+    if (!config) return;
+    const map = formData.subjectComponentMap ?? {};
+    const updatedMap = toggleComponentForSubject(map, subjectName, config);
+    setFormData((prev) => ({ ...prev, subjectComponentMap: updatedMap }));
   };
 
   return (
@@ -243,17 +270,16 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
       {/* Class Score Components Section */}
       <div className="mt-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-purple-900">
-          Class Score Components (Optional)
-          <Tooltip content="Break down class scores into components like 'Class Test', 'Project', 'Assignment'" />
+          SBA Task Library (Optional)
+          <Tooltip content="Define reusable assessment tasks (Class Test, Project, etc.) that can be assigned to specific subjects." />
         </h3>
         <p className="mb-4 text-xs text-purple-700">
-          Add components like "Class Test", "Project", "Assignment" to break down class scores.
-          Teachers will enter raw scores (0-100) for each component, which will auto-calculate to
-          the class score percentage.
+          Add tasks like "CAT 1 /15", "Group Work /30". Each task can optionally have a category.
+          Teachers enter raw scores which auto-calculate to the class score percentage.
         </p>
 
         {/* Add Component Input */}
-        <div className="mb-3 flex gap-2">
+        <div className="mb-3 grid grid-cols-[1fr_auto_auto_auto] gap-2">
           <input
             type="text"
             value={newComponentName}
@@ -264,8 +290,8 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
                 handleAddComponent();
               }
             }}
-            className="flex-1 rounded border border-purple-300 p-2 text-sm outline-none focus:ring-2 focus:ring-purple-500"
-            placeholder="e.g. Class Test, Project, Assignment"
+            className="rounded border border-purple-300 p-2 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="e.g. CAT 1, Group Work, Project"
           />
           <input
             type="number"
@@ -282,6 +308,17 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
             min="1"
             max="100"
           />
+          <select
+            value={newComponentCategory}
+            onChange={(e) => setNewComponentCategory(e.target.value as AssessmentCategory | "")}
+            className="rounded border border-purple-300 bg-white p-2 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="">Category</option>
+            <option value="CAT">CAT</option>
+            <option value="GROUP">Group</option>
+            <option value="PROJECT">Project</option>
+            <option value="HOMEWORK">Homework</option>
+          </select>
           <button
             onClick={handleAddComponent}
             className="flex items-center gap-1 rounded bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700"
@@ -291,22 +328,34 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
           </button>
         </div>
 
+        {componentError && (
+          <p className="mb-2 rounded bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600">
+            ⚠️ {componentError}
+          </p>
+        )}
+
         {/* Component List */}
-        {(formData.componentLibrary || []).length > 0 && (
+        {(formData.componentLibrary ?? []).length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-bold text-purple-800">
-              {(formData.componentLibrary || []).length} Component
-              {(formData.componentLibrary || []).length !== 1 ? "s" : ""}:
+              {(formData.componentLibrary ?? []).length} Component
+              {(formData.componentLibrary ?? []).length !== 1 ? "s" : ""}:
             </p>
             <div className="flex flex-wrap gap-2">
-              {(formData.componentLibrary || []).map((config) => (
+              {(formData.componentLibrary ?? []).map((config) => (
                 <div
                   key={config.name}
                   className="flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-sm"
                 >
                   <span className="font-medium text-gray-700">
-                    {config.name} ({config.maxScore})
+                    {config.name}
+                    <span className="ml-1 text-purple-500">/{config.maxScore}</span>
                   </span>
+                  {config.category && (
+                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 uppercase">
+                      {config.category}
+                    </span>
+                  )}
                   <button
                     onClick={() => handleRemoveComponent(config.name)}
                     className="rounded p-0.5 text-purple-500 hover:bg-purple-100 hover:text-purple-700"
@@ -319,12 +368,69 @@ export function SchoolSettingsForm({ initialSettings, onSave }: Props) {
           </div>
         )}
 
-        {(formData.componentLibrary || []).length === 0 && (
+        {(formData.componentLibrary ?? []).length === 0 && (
           <div className="rounded border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
             No components added. Class score will be entered directly.
           </div>
         )}
       </div>
+
+      {/* Subject-Component Assignment (only shown when library + subjects both exist) */}
+      {(formData.componentLibrary ?? []).length > 0 &&
+        (formData.defaultSubjects ?? []).length > 0 && (
+          <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+            <button
+              onClick={() => setShowSubjectMap((v) => !v)}
+              className="flex w-full items-center justify-between text-sm font-bold text-indigo-900"
+            >
+              <span className="flex items-center gap-1.5">
+                Subject Assessment Config
+                <Tooltip content="Assign SBA tasks from your library to individual subjects. Only assigned tasks will appear in the score entry screen." />
+              </span>
+              {showSubjectMap ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+
+            {showSubjectMap && (
+              <div className="mt-3 space-y-3">
+                {(formData.defaultSubjects ?? []).map((subject) => {
+                  const assigned = (formData.subjectComponentMap ?? {})[subject] ?? [];
+                  return (
+                    <div key={subject} className="rounded-lg border border-indigo-200 bg-white p-3">
+                      <p className="mb-2 text-xs font-bold text-indigo-800 uppercase">{subject}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(formData.componentLibrary ?? []).map((config) => {
+                          const isOn = assigned.some((c) => c.name === config.name);
+                          return (
+                            <button
+                              key={config.name}
+                              onClick={() => handleToggleSubjectComponent(subject, config.name)}
+                              className={`rounded px-2.5 py-1 text-xs font-bold transition-colors ${
+                                isOn
+                                  ? "bg-indigo-600 text-white"
+                                  : "border border-indigo-300 bg-white text-indigo-600 hover:bg-indigo-50"
+                              }`}
+                            >
+                              {config.name} /{config.maxScore}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {assigned.length === 0 && (
+                        <p className="mt-1 text-[10px] text-indigo-400">
+                          No tasks assigned — class score entered directly.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
       <button
         onClick={() => onSave(formData)}

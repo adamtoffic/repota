@@ -12,6 +12,8 @@ export type AcademicPeriod = TermSystem | SemesterSystem;
 
 export type Grade = KGGrade | PRIMARYGrade | JHSGrade | SHSGrade;
 
+export type PrintMode = "color" | "bw";
+
 export interface ClassScoreComponent {
   id: string;
   name: string;
@@ -89,6 +91,8 @@ export interface SchoolSettings {
   canteenFees?: number; // Daily canteen fees
   firstAidFees?: number; // Termly first aid fees
 
+  templateId?: string; // ID of the selected report template
+
   // Security settings
   autoLockTimeout?: number; // Minutes of inactivity before auto-lock (default: 5)
 }
@@ -116,4 +120,17 @@ export interface ReportExtras {
   attendanceTotal?: number;
   conduct?: string;
   teacherRemark?: string;
+}
+
+export interface ReportTemplateProps {
+  student: ProcessedStudent;
+  settings: SchoolSettings;
+  printMode?: PrintMode;
+}
+
+export interface TemplateDefinition {
+  id: string;
+  name: string;
+  description: string;
+  component: React.FC<ReportTemplateProps>;
 }

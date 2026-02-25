@@ -1,4 +1,5 @@
 // src/components/ReportTemplate.tsx
+import { Fragment } from "react";
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { PrivateSchoolReport } from "./reports/PrivateSchoolReport";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
@@ -273,53 +274,80 @@ export function ReportTemplate({ student, settings }: Props) {
             </thead>
             <tbody className="divide-y-2 divide-blue-950 border-b-2 border-blue-950">
               {student.subjects.map((sub, idx) => (
-                <tr
-                  key={sub.id}
-                  className={`divide-x-2 divide-blue-950 ${density.padding} ${idx % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
-                >
-                  <td
-                    className={`text-main px-2 font-black uppercase ${density.textSize} truncate`}
+                <Fragment key={sub.id}>
+                  <tr
+                    className={`divide-x-2 divide-blue-950 ${density.padding} ${idx % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
                   >
-                    {sub.name}
-                  </td>
+                    <td
+                      className={`text-main px-2 font-black uppercase ${density.textSize} truncate`}
+                    >
+                      {sub.name}
+                    </td>
 
-                  <td
-                    className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
-                  >
-                    {sub.classScore || "-"}
-                  </td>
-                  <td
-                    className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
-                  >
-                    {sub.examScore || "-"}
-                  </td>
-                  <td className={`text-main text-center font-mono font-black ${density.textSize}`}>
-                    {sub.totalScore}
-                  </td>
+                    <td
+                      className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
+                    >
+                      {sub.classScore || "-"}
+                    </td>
+                    <td
+                      className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
+                    >
+                      {sub.examScore || "-"}
+                    </td>
+                    <td
+                      className={`text-main text-center font-mono font-black ${density.textSize}`}
+                    >
+                      {sub.totalScore}
+                    </td>
 
-                  <td
-                    className={`text-main bg-slate-100 text-center font-mono font-black print:bg-gray-100 ${density.textSize}`}
-                  >
-                    {sub.subjectPosition || "-"}
-                  </td>
+                    <td
+                      className={`text-main bg-slate-100 text-center font-mono font-black print:bg-gray-100 ${density.textSize}`}
+                    >
+                      {sub.subjectPosition || "-"}
+                    </td>
 
-                  {/* 🔥 RED (color) + UNDERLINE (B&W) - Perfect hybrid! */}
-                  <td
-                    className={`text-center font-black ${density.textSize} ${
-                      String(sub.grade).includes("9") || sub.grade === "F9"
-                        ? "text-red-600 underline decoration-2 underline-offset-2 print:text-black"
-                        : "text-main"
-                    }`}
-                  >
-                    {sub.grade}
-                  </td>
+                    {/* 🔥 RED (color) + UNDERLINE (B&W) - Perfect hybrid! */}
+                    <td
+                      className={`text-center font-black ${density.textSize} ${
+                        String(sub.grade).includes("9") || sub.grade === "F9"
+                          ? "text-red-600 underline decoration-2 underline-offset-2 print:text-black"
+                          : "text-main"
+                      }`}
+                    >
+                      {sub.grade}
+                    </td>
 
-                  <td
-                    className={`truncate px-2 font-semibold text-slate-800 uppercase ${density.textSize}`}
-                  >
-                    {sub.remark}
-                  </td>
-                </tr>
+                    <td
+                      className={`truncate px-2 font-semibold text-slate-800 uppercase ${density.textSize}`}
+                    >
+                      {sub.remark}
+                    </td>
+                  </tr>
+
+                  {/* Component Breakdown — only when SBA components are recorded */}
+                  {sub.classScoreComponents && sub.classScoreComponents.length > 0 && (
+                    <tr
+                      key={`${sub.id}-breakdown`}
+                      className={`divide-blue-950 border-t border-purple-100 ${idx % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
+                    >
+                      <td colSpan={7} className="px-3 pt-0 pb-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0">
+                          <span className="text-[8px] font-black tracking-wider text-purple-500 uppercase">
+                            SBA:
+                          </span>
+                          {sub.classScoreComponents.map((comp) => (
+                            <span key={comp.id} className="text-[8px] font-semibold text-slate-500">
+                              {comp.name}&nbsp;
+                              <span className="font-black text-slate-700">
+                                {comp.score}/{comp.maxScore}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
 
               {/* FILLER ROWS */}
