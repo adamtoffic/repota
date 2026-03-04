@@ -31,6 +31,7 @@ import type {
   AcademicPeriod,
   ClassScoreComponentConfig,
   AssessmentCategory,
+  ExamType,
 } from "../types";
 import { ScrollButton } from "../components/ScrollButton";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
@@ -656,7 +657,49 @@ export function Settings() {
               </div>
             </div>
 
-            {/* GRADING CONFIG - SBA RENAMED */}
+            {/* EXAM TYPE SELECTOR */}
+            <div>
+              <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+                Exam Type
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["TERMLY", "MOCK"] as ExamType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      const isMock = type === "MOCK";
+                      setFormData({
+                        ...formData,
+                        examType: type,
+                        classScoreMax: isMock ? 0 : 50,
+                        examScoreMax: isMock ? 100 : 50,
+                      });
+                    }}
+                    className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
+                      (formData.examType ?? "TERMLY") === type
+                        ? type === "MOCK"
+                          ? "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200"
+                          : "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50/50"
+                    }`}
+                  >
+                    {type === "TERMLY" ? "📚 Termly" : "📃 Mock Exam"}
+                  </button>
+                ))}
+              </div>
+              {formData.examType === "MOCK" && (
+                <div className="mt-3 flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                  <p>
+                    <strong>Mock Exam mode:</strong> Only exam scores (0–100) are recorded. Class
+                    scores and SBA components are disabled. Grades use the same system.
+                  </p>
+                </div>
+              )}
+            </div>
+            {/* GRADING CONFIG - SBA RENAMED — hidden in mock exam mode */}
+            {formData.examType !== "MOCK" && (
             <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
               <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
                 <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
@@ -706,8 +749,10 @@ export function Settings() {
                 {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)}%)
               </p>
             </div>
+            )}
 
-            {/* CLASS SCORE COMPONENTS - SBA RENAMED - RESPONSIVE FIXED */}
+            {/* CLASS SCORE COMPONENTS - SBA RENAMED - RESPONSIVE FIXED — hidden in mock exam mode */}
+            {formData.examType !== "MOCK" && (
             <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
               <div className="mb-3 flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-purple-700" />
@@ -845,6 +890,7 @@ export function Settings() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
 
