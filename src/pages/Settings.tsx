@@ -700,196 +700,198 @@ export function Settings() {
             </div>
             {/* GRADING CONFIG - SBA RENAMED — hidden in mock exam mode */}
             {formData.examType !== "MOCK" && (
-            <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
-              <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
-                <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
-              </h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                <Input
-                  label="Continuous Assessment %"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="100"
-                  value={formData.classScoreMax || ""}
-                  onChange={(e) => {
-                    const classScore = Number(e.target.value) || 0;
-                    const examScore = 100 - classScore;
-                    setFormData({
-                      ...formData,
-                      classScoreMax: classScore,
-                      examScoreMax: examScore,
-                    });
-                  }}
-                  className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
-                  placeholder="50"
-                />
-                <Input
-                  label="Examination %"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="100"
-                  value={formData.examScoreMax || ""}
-                  onChange={(e) => {
-                    const examScore = Number(e.target.value) || 0;
-                    const classScore = 100 - examScore;
-                    setFormData({
-                      ...formData,
-                      classScoreMax: classScore,
-                      examScoreMax: examScore,
-                    });
-                  }}
-                  className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
-                  placeholder="50"
-                />
+              <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
+                <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
+                  <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
+                </h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                  <Input
+                    label="Continuous Assessment %"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="100"
+                    value={formData.classScoreMax || ""}
+                    onChange={(e) => {
+                      const classScore = Number(e.target.value) || 0;
+                      const examScore = 100 - classScore;
+                      setFormData({
+                        ...formData,
+                        classScoreMax: classScore,
+                        examScoreMax: examScore,
+                      });
+                    }}
+                    className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
+                    placeholder="50"
+                  />
+                  <Input
+                    label="Examination %"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="100"
+                    value={formData.examScoreMax || ""}
+                    onChange={(e) => {
+                      const examScore = Number(e.target.value) || 0;
+                      const classScore = 100 - examScore;
+                      setFormData({
+                        ...formData,
+                        classScoreMax: classScore,
+                        examScoreMax: examScore,
+                      });
+                    }}
+                    className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
+                    placeholder="50"
+                  />
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-yellow-800">
+                  <span className="font-bold">Total must equal 100%.</span> (Current:{" "}
+                  {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)}%)
+                </p>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-yellow-800">
-                <span className="font-bold">Total must equal 100%.</span> (Current:{" "}
-                {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)}%)
-              </p>
-            </div>
             )}
 
             {/* CLASS SCORE COMPONENTS - SBA RENAMED - RESPONSIVE FIXED — hidden in mock exam mode */}
             {formData.examType !== "MOCK" && (
-            <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-purple-700" />
-                <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
-                  SBA Task Library
-                </h3>
-              </div>
-              <p className="mb-4 text-xs leading-relaxed text-purple-700">
-                Define standard SBA tasks (e.g. Class Tests, Group Works, Projects) to use across
-                subjects.
-              </p>
-
-              {/* RESPONSIVE ADD COMPONENT INPUTS */}
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-                {/* 1. Category Selector */}
-                <div className="w-full sm:w-32">
-                  <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
-                    Type
-                  </label>
-                  <select
-                    value={newComponentCategory}
-                    onChange={(e) => setNewComponentCategory(e.target.value as AssessmentCategory)}
-                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
-                  >
-                    <option value="CAT">CAT (Test)</option>
-                    <option value="GROUP">Group Work</option>
-                    <option value="PROJECT">Project</option>
-                    <option value="HOMEWORK">Homework</option>
-                  </select>
+              <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-purple-700" />
+                  <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
+                    SBA Task Library
+                  </h3>
                 </div>
+                <p className="mb-4 text-xs leading-relaxed text-purple-700">
+                  Define standard SBA tasks (e.g. Class Tests, Group Works, Projects) to use across
+                  subjects.
+                </p>
 
-                {/* 2. Name Input */}
-                <div className="flex-1">
-                  <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
-                    Task Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newComponentName}
-                    onChange={(e) => setNewComponentName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        document.getElementById("max-score-input")?.focus();
-                      }
-                    }}
-                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
-                    placeholder="e.g. Natural Science Project"
-                  />
-                </div>
-
-                {/* 3. Max Score & Button - RESPONSIVE FIXED */}
-                <div className="flex w-full gap-2 sm:w-auto">
-                  <div className="flex-1 sm:w-24 sm:flex-none">
+                {/* RESPONSIVE ADD COMPONENT INPUTS */}
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                  {/* 1. Category Selector */}
+                  <div className="w-full sm:w-32">
                     <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
-                      Max Score
+                      Type
+                    </label>
+                    <select
+                      value={newComponentCategory}
+                      onChange={(e) =>
+                        setNewComponentCategory(e.target.value as AssessmentCategory)
+                      }
+                      className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                    >
+                      <option value="CAT">CAT (Test)</option>
+                      <option value="GROUP">Group Work</option>
+                      <option value="PROJECT">Project</option>
+                      <option value="HOMEWORK">Homework</option>
+                    </select>
+                  </div>
+
+                  {/* 2. Name Input */}
+                  <div className="flex-1">
+                    <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                      Task Name
                     </label>
                     <input
-                      id="max-score-input"
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      max="100"
-                      value={newComponentMax}
-                      onChange={(e) => setNewComponentMax(e.target.value)}
+                      type="text"
+                      value={newComponentName}
+                      onChange={(e) => setNewComponentName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
-                          addComponent();
+                          document.getElementById("max-score-input")?.focus();
                         }
                       }}
-                      className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm outline-none focus:ring-2 focus:ring-purple-200"
-                      placeholder="15"
+                      className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                      placeholder="e.g. Natural Science Project"
                     />
                   </div>
 
-                  <div className="flex-none">
-                    <label className="mb-1 block text-[10px] font-bold tracking-wider text-transparent uppercase">
-                      Add
-                    </label>
-                    <Button
-                      type="button"
-                      onClick={addComponent}
-                      variant="primary"
-                      size="sm"
-                      className="h-10 w-full sm:w-auto"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Add</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                  {/* 3. Max Score & Button - RESPONSIVE FIXED */}
+                  <div className="flex w-full gap-2 sm:w-auto">
+                    <div className="flex-1 sm:w-24 sm:flex-none">
+                      <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                        Max Score
+                      </label>
+                      <input
+                        id="max-score-input"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        max="100"
+                        value={newComponentMax}
+                        onChange={(e) => setNewComponentMax(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addComponent();
+                          }
+                        }}
+                        className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                        placeholder="15"
+                      />
+                    </div>
 
-              {/* Component List */}
-              {(formData.componentLibrary || []).length > 0 ? (
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-purple-800">
-                    {(formData.componentLibrary || []).length} Task
-                    {(formData.componentLibrary || []).length !== 1 ? "s" : ""} Defined
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {(formData.componentLibrary || []).map((config) => (
-                      <div
-                        key={config.name}
-                        className="flex items-center gap-3 rounded-lg border border-purple-200 bg-white py-2 pr-2 pl-3 text-sm shadow-sm"
+                    <div className="flex-none">
+                      <label className="mb-1 block text-[10px] font-bold tracking-wider text-transparent uppercase">
+                        Add
+                      </label>
+                      <Button
+                        type="button"
+                        onClick={addComponent}
+                        variant="primary"
+                        size="sm"
+                        className="h-10 w-full sm:w-auto"
                       >
-                        <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-xs font-bold text-gray-800">
-                            {config.name}
-                          </span>
-                          <span className="text-[10px] font-bold tracking-wide text-purple-500 uppercase">
-                            {config.category === "CAT" ? "CLASS TEST" : config.category}
-                          </span>
-                        </div>
-                        <Badge variant="primary" size="sm" className="ml-1">
-                          /{config.maxScore}
-                        </Badge>
-                        <IconButton
-                          type="button"
-                          onClick={() => removeComponent(config.name)}
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Remove ${config.name}`}
-                        >
-                          <X className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
-                        </IconButton>
-                      </div>
-                    ))}
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Add</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
-                  No SBA tasks defined. Add tasks (e.g. CAT 1, Group Work) to use with subjects.
-                </div>
-              )}
-            </div>
+
+                {/* Component List */}
+                {(formData.componentLibrary || []).length > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-purple-800">
+                      {(formData.componentLibrary || []).length} Task
+                      {(formData.componentLibrary || []).length !== 1 ? "s" : ""} Defined
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(formData.componentLibrary || []).map((config) => (
+                        <div
+                          key={config.name}
+                          className="flex items-center gap-3 rounded-lg border border-purple-200 bg-white py-2 pr-2 pl-3 text-sm shadow-sm"
+                        >
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate text-xs font-bold text-gray-800">
+                              {config.name}
+                            </span>
+                            <span className="text-[10px] font-bold tracking-wide text-purple-500 uppercase">
+                              {config.category === "CAT" ? "CLASS TEST" : config.category}
+                            </span>
+                          </div>
+                          <Badge variant="primary" size="sm" className="ml-1">
+                            /{config.maxScore}
+                          </Badge>
+                          <IconButton
+                            type="button"
+                            onClick={() => removeComponent(config.name)}
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Remove ${config.name}`}
+                          >
+                            <X className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
+                          </IconButton>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
+                    No SBA tasks defined. Add tasks (e.g. CAT 1, Group Work) to use with subjects.
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
