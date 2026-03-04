@@ -91,6 +91,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       headTeacherSignature: "",
       teacherSignature: "",
       schoolType: "STANDARD",
+      examType: "TERMLY",
       componentLibrary: [], // Clear component library
       subjectComponentMap: {}, // Clear subject-component assignments
     };
