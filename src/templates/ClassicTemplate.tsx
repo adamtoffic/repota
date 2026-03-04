@@ -3,6 +3,7 @@ import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 
 export function ClassicTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isKG = settings.level === "KG";
+  const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
   const isPrivate = settings.schoolType === "PRIVATE";
   const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
@@ -15,18 +16,18 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
   const imgFilter = isBW ? "grayscale" : "";
 
   // ── Brand Color Variables ──────────────────────────────────────────────────
-  const borderColor   = isBW ? "border-black"             : "border-emerald-700";
-  const divideColor   = isBW ? "divide-gray-400"           : "divide-emerald-300";
-  const titleBg       = isBW ? "bg-black text-white"       : "bg-emerald-700 text-white";
+  const borderColor = isBW ? "border-black" : "border-emerald-700";
+  const divideColor = isBW ? "divide-gray-400" : "divide-emerald-300";
+  const titleBg = isBW ? "bg-black text-white" : "bg-emerald-700 text-white";
   const tableHeaderBg = isBW ? "bg-gray-200 text-gray-900" : "bg-emerald-50 text-emerald-900";
-  const zebraBg       = isBW ? "bg-gray-50"               : "bg-emerald-50/40";
-  const remarkBg      = isBW ? "bg-gray-50"               : "bg-emerald-50";
-  const summaryBg     = isBW ? "bg-gray-100"              : "bg-emerald-50";
-  const promoText     = isBW ? "text-black"               : "text-emerald-700";
-  const sigLine       = isBW ? "border-gray-700"          : "border-emerald-700";
-  const infoRowBorder = isBW ? "border-gray-300"          : "border-emerald-200";
-  const mottoColor    = isBW ? "text-gray-700"            : "text-emerald-800";
-  const redText       = isBW ? "text-black underline decoration-2 underline-offset-2" : "text-red-600";
+  const zebraBg = isBW ? "bg-gray-50" : "bg-emerald-50/40";
+  const remarkBg = isBW ? "bg-gray-50" : "bg-emerald-50";
+  const summaryBg = isBW ? "bg-gray-100" : "bg-emerald-50";
+  const promoText = isBW ? "text-black" : "text-emerald-700";
+  const sigLine = isBW ? "border-gray-700" : "border-emerald-700";
+  const infoRowBorder = isBW ? "border-gray-300" : "border-emerald-200";
+  const mottoColor = isBW ? "text-gray-700" : "text-emerald-800";
+  const redText = isBW ? "text-black underline decoration-2 underline-offset-2" : "text-red-600";
 
   return (
     <div
@@ -141,21 +142,39 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
               <th className={`w-1/3 border ${borderColor} px-2 py-2 text-left`}>Subject</th>
               {!isKG && (
                 <>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
-                    Class
-                    <br />
-                    <span className="text-[10px]">({settings.classScoreMax}%)</span>
-                  </th>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
-                    Exam
-                    <br />
-                    <span className="text-[10px]">({settings.examScoreMax}%)</span>
-                  </th>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
-                    Total
-                    <br />
-                    <span className="text-[10px]">(100%)</span>
-                  </th>
+                  {!isMock ? (
+                    <>
+                      <th
+                        className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
+                      >
+                        Class
+                        <br />
+                        <span className="text-[10px]">({settings.classScoreMax}%)</span>
+                      </th>
+                      <th
+                        className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
+                      >
+                        Exam
+                        <br />
+                        <span className="text-[10px]">({settings.examScoreMax}%)</span>
+                      </th>
+                      <th
+                        className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
+                      >
+                        Total
+                        <br />
+                        <span className="text-[10px]">(100%)</span>
+                      </th>
+                    </>
+                  ) : (
+                    <th
+                      className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
+                    >
+                      Score
+                      <br />
+                      <span className="text-[10px]">(100%)</span>
+                    </th>
+                  )}
                 </>
               )}
               <th className={`w-16 border ${borderColor} px-2 py-2 text-center`}>Grade</th>
@@ -169,15 +188,23 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
                 <td className={`border ${borderColor} px-2 py-1.5 font-medium`}>{sub.name}</td>
                 {!isKG && (
                   <>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
-                      {sub.classScore}
-                    </td>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
-                      {sub.examScore}
-                    </td>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
-                      {sub.totalScore}
-                    </td>
+                    {!isMock ? (
+                      <>
+                        <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
+                          {sub.classScore}
+                        </td>
+                        <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
+                          {sub.examScore}
+                        </td>
+                        <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
+                          {sub.totalScore}
+                        </td>
+                      </>
+                    ) : (
+                      <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
+                        {sub.totalScore}
+                      </td>
+                    )}
                   </>
                 )}
                 <td
@@ -199,7 +226,9 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
         </table>
 
         {!isKG && (
-          <div className={`mt-3 flex justify-end gap-4 rounded border-2 ${borderColor} ${summaryBg} px-4 py-2 text-sm`}>
+          <div
+            className={`mt-3 flex justify-end gap-4 rounded border-2 ${borderColor} ${summaryBg} px-4 py-2 text-sm`}
+          >
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-600">Total Score:</span>
               <span className={`rounded border-2 ${borderColor} ${summaryBg} px-3 py-1 font-black`}>
@@ -268,9 +297,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
             >
               Head Teacher's Remark
             </span>
-            <p className="mt-2 min-h-10 text-[13px] italic">
-              {headmasterRemark || "Keep it up."}
-            </p>
+            <p className="mt-2 min-h-10 text-[13px] italic">{headmasterRemark || "Keep it up."}</p>
           </div>
         </div>
 

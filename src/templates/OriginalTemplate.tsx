@@ -5,6 +5,7 @@ import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 export function OriginalTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isIslamic = settings.schoolType === "ISLAMIC";
   const isPrivate = settings.schoolType === "PRIVATE";
+  const isMock = settings.examType === "MOCK";
   const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
 
@@ -238,25 +239,37 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
               </th>
               {settings.level !== "KG" && (
                 <>
-                  <th
-                    className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                  >
-                    Class
-                    <br />({settings.classScoreMax})
-                  </th>
-                  <th
-                    className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                  >
-                    Exam
-                    <br />({settings.examScoreMax})
-                  </th>
-                  <th
-                    className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                  >
-                    Total
-                    <br />
-                    (100)
-                  </th>
+                  {!isMock ? (
+                    <>
+                      <th
+                        className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                      >
+                        Class
+                        <br />({settings.classScoreMax})
+                      </th>
+                      <th
+                        className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                      >
+                        Exam
+                        <br />({settings.examScoreMax})
+                      </th>
+                      <th
+                        className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                      >
+                        Total
+                        <br />
+                        (100)
+                      </th>
+                    </>
+                  ) : (
+                    <th
+                      className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                    >
+                      Score
+                      <br />
+                      (100)
+                    </th>
+                  )}
                 </>
               )}
               <th className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}>
@@ -285,19 +298,27 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                   </td>
                   {settings.level !== "KG" && (
                     <>
-                      <td
-                        className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
-                      >
-                        {sub.classScore || "-"}
-                      </td>
-                      <td
-                        className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
-                      >
-                        {sub.examScore || "-"}
-                      </td>
-                      <td className={`text-center font-mono font-black ${density.textSize}`}>
-                        {sub.totalScore}
-                      </td>
+                      {!isMock ? (
+                        <>
+                          <td
+                            className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
+                          >
+                            {sub.classScore || "-"}
+                          </td>
+                          <td
+                            className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
+                          >
+                            {sub.examScore || "-"}
+                          </td>
+                          <td className={`text-center font-mono font-black ${density.textSize}`}>
+                            {sub.totalScore}
+                          </td>
+                        </>
+                      ) : (
+                        <td className={`text-center font-mono font-black ${density.textSize}`}>
+                          {sub.totalScore}
+                        </td>
+                      )}
                     </>
                   )}
                   <td
@@ -316,7 +337,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                     {sub.remark}
                   </td>
                 </tr>
-                {sub.classScoreComponents && sub.classScoreComponents.length > 0 && (
+                {!isMock && sub.classScoreComponents && sub.classScoreComponents.length > 0 && (
                   <tr
                     key={`${sub.id}-breakdown`}
                     className={`border-t border-gray-200 ${idx % 2 === 1 ? zebraBg : "bg-white"}`}
@@ -348,7 +369,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                 key={`empty-${i}`}
                 className={`divide-x-2 ${divideColor} ${density.padding} ${(student.subjects.length + i) % 2 === 1 ? zebraBg : "bg-white"}`}
               >
-                <td colSpan={settings.level === "KG" ? 3 : 7}>&nbsp;</td>
+                <td colSpan={settings.level === "KG" ? 3 : isMock ? 5 : 7}>&nbsp;</td>
               </tr>
             ))}
           </tbody>
