@@ -10,6 +10,7 @@ interface Props {
   maxClassScore: number;
   maxExamScore: number;
   componentLibrary?: ClassScoreComponentConfig[]; // Available component templates
+  isMockExam?: boolean; // When true, only exam score entry is shown
   onChange: (updated: SavedSubject) => void;
   onDelete?: () => void;
 }
@@ -20,11 +21,13 @@ export function SubjectRow({
   maxClassScore,
   maxExamScore,
   componentLibrary,
+  isMockExam = false,
   onChange,
   onDelete,
 }: Props) {
-  const hasComponents = subject.classScoreComponents && subject.classScoreComponents.length > 0;
-  const hasLibrary = componentLibrary && componentLibrary.length > 0;
+  const hasComponents =
+    !isMockExam && subject.classScoreComponents && subject.classScoreComponents.length > 0;
+  const hasLibrary = !isMockExam && componentLibrary && componentLibrary.length > 0;
   // Auto-expand components when they exist
   const [showComponents, setShowComponents] = useState(hasComponents);
 
@@ -175,7 +178,7 @@ export function SubjectRow({
                 <span className="truncate text-sm font-bold text-gray-800 sm:text-base">
                   {subject.name}
                 </span>
-                {(hasComponents || hasLibrary) && (
+                {!isMockExam && (hasComponents || hasLibrary) && (
                   <button
                     onClick={() => setShowComponents(!showComponents)}
                     className="flex shrink-0 items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-purple-700 hover:bg-purple-200"
@@ -220,58 +223,62 @@ export function SubjectRow({
           </div>
 
           {/* 2. INPUTS AREA */}
-          <div className="grid grid-cols-6 gap-2 sm:flex sm:w-auto sm:items-center">
-            {/* Class Score Input */}
-            <div className="col-span-2 sm:w-20">
-              <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
-                Class
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max={maxClassScore}
-                  value={subject.classScore === 0 ? "" : subject.classScore}
-                  onChange={(e) => handleClassChange(e.target.value)}
-                  onBlur={() => handleBlur("classScore")}
-                  disabled={hasComponents}
-                  className={`w-full rounded-lg border px-2 py-2 text-center text-base font-bold transition-all outline-none focus:ring-2 sm:p-2.5 ${
-                    hasComponents
-                      ? "cursor-not-allowed border-purple-200 bg-purple-50 text-purple-700"
-                      : classScoreError
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
-                        : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
-                  }`}
-                  placeholder={hasComponents ? "Auto" : `/${maxClassScore}`}
-                  title={
-                    hasComponents
-                      ? `Auto-calculated: ${subject.classScore}/${maxClassScore}`
-                      : `Enter class score (0-${maxClassScore})`
-                  }
-                />
-                {showClassSaved && !hasComponents && (
-                  <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
-                    <Check size={16} className="text-green-600" strokeWidth={3} />
-                  </div>
+          <div
+            className={`grid gap-2 sm:flex sm:w-auto sm:items-center ${isMockExam ? "grid-cols-4" : "grid-cols-6"}`}
+          >
+            {/* Class Score Input — hidden in mock exam mode */}
+            {!isMockExam && (
+              <div className="col-span-2 sm:w-20">
+                <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
+                  Class
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max={maxClassScore}
+                    value={subject.classScore === 0 ? "" : subject.classScore}
+                    onChange={(e) => handleClassChange(e.target.value)}
+                    onBlur={() => handleBlur("classScore")}
+                    disabled={hasComponents}
+                    className={`w-full rounded-lg border px-2 py-2 text-center text-base font-bold transition-all outline-none focus:ring-2 sm:p-2.5 ${
+                      hasComponents
+                        ? "cursor-not-allowed border-purple-200 bg-purple-50 text-purple-700"
+                        : classScoreError
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-200"
+                    }`}
+                    placeholder={hasComponents ? "Auto" : `/${maxClassScore}`}
+                    title={
+                      hasComponents
+                        ? `Auto-calculated: ${subject.classScore}/${maxClassScore}`
+                        : `Enter class score (0-${maxClassScore})`
+                    }
+                  />
+                  {showClassSaved && !hasComponents && (
+                    <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
+                      <Check size={16} className="text-green-600" strokeWidth={3} />
+                    </div>
+                  )}
+                </div>
+                {hasComponents && (
+                  <p className="mt-1 text-center text-[10px] text-purple-600">
+                    = {subject.classScore}/{maxClassScore}
+                  </p>
+                )}
+                {classScoreError && (
+                  <p className="mt-1 text-center text-[10px] font-bold text-red-600">
+                    ⚠️ {classScoreError}
+                  </p>
                 )}
               </div>
-              {hasComponents && (
-                <p className="mt-1 text-center text-[10px] text-purple-600">
-                  = {subject.classScore}/{maxClassScore}
-                </p>
-              )}
-              {classScoreError && (
-                <p className="mt-1 text-center text-[10px] font-bold text-red-600">
-                  ⚠️ {classScoreError}
-                </p>
-              )}
-            </div>
+            )}
 
             {/* Exam Score Input */}
             <div className="col-span-2 sm:w-20">
               <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
-                Exam
+                {isMockExam ? "Score" : "Exam"}
               </label>
               <div className="relative">
                 <input
@@ -288,7 +295,11 @@ export function SubjectRow({
                       : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
                   }`}
                   placeholder="/100"
-                  title={`Enter raw score (0-100). Converts to ${maxExamScore}%`}
+                  title={
+                    isMockExam
+                      ? "Enter exam score (0-100)"
+                      : `Enter raw score (0-100). Converts to ${maxExamScore}%`
+                  }
                 />
                 {showExamSaved && (
                   <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
@@ -296,9 +307,11 @@ export function SubjectRow({
                   </div>
                 )}
               </div>
-              <p className="mt-1 text-center text-[10px] text-blue-600">
-                = {subject.examScore}/{maxExamScore}
-              </p>
+              {!isMockExam && (
+                <p className="mt-1 text-center text-[10px] text-blue-600">
+                  = {subject.examScore}/{maxExamScore}
+                </p>
+              )}
               {examScoreError && (
                 <p className="mt-1 text-center text-[10px] font-bold text-red-600">
                   ⚠️ {examScoreError}
@@ -340,8 +353,8 @@ export function SubjectRow({
         </div>
       </div>
 
-      {/* Class Score Components Section */}
-      {(hasComponents || hasLibrary) && showComponents && (
+      {/* Class Score Components Section — hidden in mock exam mode */}
+      {!isMockExam && (hasComponents || hasLibrary) && showComponents && (
         <div className="border-t border-purple-200 bg-purple-50/50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-bold text-purple-900">Component Breakdown</p>

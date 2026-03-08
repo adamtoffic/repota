@@ -3,6 +3,7 @@ import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 
 export function MinimalTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isKG = settings.level === "KG";
+  const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
   const isPrivate = settings.schoolType === "PRIVATE";
   const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
@@ -78,7 +79,8 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
           <h2
             className={`text-base font-black tracking-[0.2em] uppercase underline underline-offset-4 ${titleColor}`}
           >
-            Official Academic Transcript
+            {" "}
+            {isMock ? "Mock Examination Results" : "Official Academic Transcript"}
           </h2>
           <p className="mt-1 text-xs text-gray-500">
             {settings.academicYear} &nbsp;·&nbsp; {settings.term}
@@ -141,13 +143,19 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
               <th className="px-1 py-2.5 font-bold">Course / Subject</th>
               {!isKG && (
                 <>
-                  <th className="px-1 py-2.5 text-center font-bold">
-                    Class ({settings.classScoreMax})
-                  </th>
-                  <th className="px-1 py-2.5 text-center font-bold">
-                    Exam ({settings.examScoreMax})
-                  </th>
-                  <th className="px-1 py-2.5 text-center font-bold">Total (100)</th>
+                  {!isMock ? (
+                    <>
+                      <th className="px-1 py-2.5 text-center font-bold">
+                        Class ({settings.classScoreMax})
+                      </th>
+                      <th className="px-1 py-2.5 text-center font-bold">
+                        Exam ({settings.examScoreMax})
+                      </th>
+                      <th className="px-1 py-2.5 text-center font-bold">Total (100)</th>
+                    </>
+                  ) : (
+                    <th className="px-1 py-2.5 text-center font-bold">Score (100)</th>
+                  )}
                 </>
               )}
               <th className="px-1 py-2.5 text-center font-bold">Grade</th>
@@ -161,9 +169,15 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
                 <td className="px-1 py-2.5 font-medium">{sub.name}</td>
                 {!isKG && (
                   <>
-                    <td className="px-1 py-2.5 text-center">{sub.classScore}</td>
-                    <td className="px-1 py-2.5 text-center">{sub.examScore}</td>
-                    <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
+                    {!isMock ? (
+                      <>
+                        <td className="px-1 py-2.5 text-center">{sub.classScore}</td>
+                        <td className="px-1 py-2.5 text-center">{sub.examScore}</td>
+                        <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
+                      </>
+                    ) : (
+                      <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
+                    )}
                   </>
                 )}
                 <td

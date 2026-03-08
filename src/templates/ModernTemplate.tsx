@@ -3,6 +3,7 @@ import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 
 export function ModernTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isKG = settings.level === "KG";
+  const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
   const isPrivate = settings.schoolType === "PRIVATE";
   const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
@@ -81,7 +82,7 @@ export function ModernTemplate({ student, settings, printMode }: ReportTemplateP
             <span
               className={`inline-block rounded-md px-6 py-1 text-[11px] font-black tracking-[0.2em] text-white uppercase shadow-sm ${badgeBg}`}
             >
-              Terminal Report
+              {isMock ? "Mock Exam Report" : "Terminal Report"}
             </span>
           </div>
         </div>
@@ -116,31 +117,43 @@ export function ModernTemplate({ student, settings, printMode }: ReportTemplateP
                   </th>
                   {!isKG && (
                     <>
-                      <th
-                        className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
-                      >
-                        Class
-                        <br />
-                        <span className="text-[9px] font-semibold normal-case">
-                          ({settings.classScoreMax})
-                        </span>
-                      </th>
-                      <th
-                        className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
-                      >
-                        Exam
-                        <br />
-                        <span className="text-[9px] font-semibold normal-case">
-                          ({settings.examScoreMax})
-                        </span>
-                      </th>
-                      <th
-                        className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
-                      >
-                        Total
-                        <br />
-                        <span className="text-[9px] font-semibold normal-case">(100)</span>
-                      </th>
+                      {!isMock ? (
+                        <>
+                          <th
+                            className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                          >
+                            Class
+                            <br />
+                            <span className="text-[9px] font-semibold normal-case">
+                              ({settings.classScoreMax})
+                            </span>
+                          </th>
+                          <th
+                            className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                          >
+                            Exam
+                            <br />
+                            <span className="text-[9px] font-semibold normal-case">
+                              ({settings.examScoreMax})
+                            </span>
+                          </th>
+                          <th
+                            className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                          >
+                            Total
+                            <br />
+                            <span className="text-[9px] font-semibold normal-case">(100)</span>
+                          </th>
+                        </>
+                      ) : (
+                        <th
+                          className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                        >
+                          Score
+                          <br />
+                          <span className="text-[9px] font-semibold normal-case">(100)</span>
+                        </th>
+                      )}
                     </>
                   )}
                   <th
@@ -163,11 +176,21 @@ export function ModernTemplate({ student, settings, printMode }: ReportTemplateP
                     <td className="px-3 py-2 font-semibold text-gray-800">{sub.name}</td>
                     {!isKG && (
                       <>
-                        <td className="px-2 py-2 text-center text-gray-600">{sub.classScore}</td>
-                        <td className="px-2 py-2 text-center text-gray-600">{sub.examScore}</td>
-                        <td className={`px-2 py-2 text-center font-bold ${brandTextDark}`}>
-                          {sub.totalScore}
-                        </td>
+                        {!isMock ? (
+                          <>
+                            <td className="px-2 py-2 text-center text-gray-600">
+                              {sub.classScore}
+                            </td>
+                            <td className="px-2 py-2 text-center text-gray-600">{sub.examScore}</td>
+                            <td className={`px-2 py-2 text-center font-bold ${brandTextDark}`}>
+                              {sub.totalScore}
+                            </td>
+                          </>
+                        ) : (
+                          <td className={`px-2 py-2 text-center font-bold ${brandTextDark}`}>
+                            {sub.totalScore}
+                          </td>
+                        )}
                       </>
                     )}
                     <td

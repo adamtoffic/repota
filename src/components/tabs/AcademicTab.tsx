@@ -33,7 +33,8 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
   // Detect component mismatches
   const { hasOutdated, hasMissing } = detectComponentMismatches();
-  const showComponentSyncAlert = hasOutdated || hasMissing;
+  const isMockExam = settings.examType === "MOCK";
+  const showComponentSyncAlert = !isMockExam && (hasOutdated || hasMissing);
 
   // Filter subjects if filterSubject is set
   const displayedSubjects = filterSubject
@@ -223,6 +224,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
                   maxClassScore={settings.classScoreMax}
                   maxExamScore={settings.examScoreMax}
                   componentLibrary={settings.componentLibrary}
+                  isMockExam={isMockExam}
                 />
                 {isObsolete && (
                   <p className="mt-1 text-right text-[10px] font-bold text-red-500">

@@ -1,4 +1,5 @@
 export type SchoolLevel = "KG" | "PRIMARY" | "JHS" | "SHS";
+export type ExamType = "TERMLY" | "MOCK";
 
 export type SHSGrade = "A1" | "B2" | "B3" | "C4" | "C5" | "C6" | "D7" | "E8" | "F9";
 export type JHSGrade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -92,6 +93,8 @@ export interface SchoolSettings {
   firstAidFees?: number; // Termly first aid fees
 
   templateId?: string; // ID of the selected report template
+
+  examType?: ExamType; // Whether this is a standard termly exam or a mock exam
 
   // Security settings
   autoLockTimeout?: number; // Minutes of inactivity before auto-lock (default: 5)

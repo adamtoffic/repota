@@ -21,6 +21,7 @@ export function ReportTemplate({ student, settings }: Props) {
 
   // Logic to hide aggregate for KG
   const showAggregate = settings.level !== "KG" && student.aggregate !== null;
+  const isMock = settings.examType === "MOCK";
 
   // ---------------------------------------------------------------------------
   // 📐 DENSITY LOGIC (The "3 Gears" System)
@@ -236,25 +237,37 @@ export function ReportTemplate({ student, settings }: Props) {
                 >
                   Subject
                 </th>
-                <th
-                  className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
-                >
-                  Class
-                  <br />({settings.classScoreMax})
-                </th>
-                <th
-                  className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
-                >
-                  Exam
-                  <br />({settings.examScoreMax})
-                </th>
-                <th
-                  className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
-                >
-                  Total
-                  <br />
-                  (100)
-                </th>
+                {!isMock ? (
+                  <>
+                    <th
+                      className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
+                    >
+                      Class
+                      <br />({settings.classScoreMax})
+                    </th>
+                    <th
+                      className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
+                    >
+                      Exam
+                      <br />({settings.examScoreMax})
+                    </th>
+                    <th
+                      className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
+                    >
+                      Total
+                      <br />
+                      (100)
+                    </th>
+                  </>
+                ) : (
+                  <th
+                    className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
+                  >
+                    Score
+                    <br />
+                    (100)
+                  </th>
+                )}
                 <th
                   className={`w-[8%] bg-slate-200 p-1 text-center font-black text-slate-800 uppercase print:bg-gray-300 ${density.headerSize}`}
                 >
@@ -284,21 +297,31 @@ export function ReportTemplate({ student, settings }: Props) {
                       {sub.name}
                     </td>
 
-                    <td
-                      className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
-                    >
-                      {sub.classScore || "-"}
-                    </td>
-                    <td
-                      className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
-                    >
-                      {sub.examScore || "-"}
-                    </td>
-                    <td
-                      className={`text-main text-center font-mono font-black ${density.textSize}`}
-                    >
-                      {sub.totalScore}
-                    </td>
+                    {!isMock ? (
+                      <>
+                        <td
+                          className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
+                        >
+                          {sub.classScore || "-"}
+                        </td>
+                        <td
+                          className={`text-center font-mono font-bold text-slate-700 ${density.textSize}`}
+                        >
+                          {sub.examScore || "-"}
+                        </td>
+                        <td
+                          className={`text-main text-center font-mono font-black ${density.textSize}`}
+                        >
+                          {sub.totalScore}
+                        </td>
+                      </>
+                    ) : (
+                      <td
+                        className={`text-main text-center font-mono font-black ${density.textSize}`}
+                      >
+                        {sub.totalScore}
+                      </td>
+                    )}
 
                     <td
                       className={`text-main bg-slate-100 text-center font-mono font-black print:bg-gray-100 ${density.textSize}`}
@@ -325,7 +348,7 @@ export function ReportTemplate({ student, settings }: Props) {
                   </tr>
 
                   {/* Component Breakdown — only when SBA components are recorded */}
-                  {sub.classScoreComponents && sub.classScoreComponents.length > 0 && (
+                  {!isMock && sub.classScoreComponents && sub.classScoreComponents.length > 0 && (
                     <tr
                       key={`${sub.id}-breakdown`}
                       className={`divide-blue-950 border-t border-purple-100 ${idx % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
@@ -356,7 +379,7 @@ export function ReportTemplate({ student, settings }: Props) {
                   key={`empty-${i}`}
                   className={`divide-x-2 divide-blue-950 ${density.padding} ${(student.subjects.length + i) % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
                 >
-                  <td colSpan={7}>&nbsp;</td>
+                  <td colSpan={isMock ? 5 : 7}>&nbsp;</td>
                 </tr>
               ))}
             </tbody>

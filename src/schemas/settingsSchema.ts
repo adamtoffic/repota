@@ -8,6 +8,7 @@ import { z } from "zod";
 
 export const schoolLevelSchema = z.enum(["KG", "PRIMARY", "JHS", "SHS"]);
 export const schoolTypeSchema = z.enum(["STANDARD", "ISLAMIC", "PRIVATE"]);
+export const examTypeSchema = z.enum(["TERMLY", "MOCK"]);
 export const academicPeriodSchema = z.enum([
   "First Term",
   "Second Term",
@@ -91,7 +92,7 @@ export const schoolSettingsSchema = z
 
     classScoreMax: z
       .number()
-      .min(10, "Max class score too low")
+      .min(0, "Max class score cannot be negative")
       .max(100, "Max class score cannot exceed 100"),
 
     examScoreMax: z
@@ -131,15 +132,26 @@ export const schoolSettingsSchema = z
 
     templateId: z.string().default("original_v1").optional(),
 
+    examType: examTypeSchema.default("TERMLY"),
+
     // Security
     autoLockTimeout: z.number().min(1, "Min 1 minute").max(60, "Max 60 minutes").optional(),
   })
-  .refine((data) => data.classScoreMax + data.examScoreMax === 100, {
-    message: "Max class score + max exam score must equal 100",
-    path: ["examScoreMax"],
-  });
+  .refine(
+    (data) => {
+      if (data.examType === "MOCK") {
+        return data.classScoreMax === 0 && data.examScoreMax === 100;
+      }
+      return data.classScoreMax + data.examScoreMax === 100;
+    },
+    {
+      message: "Max class score + max exam score must equal 100",
+      path: ["examScoreMax"],
+    },
+  );
 
 export type SchoolSettings = z.infer<typeof schoolSettingsSchema>;
 export type SchoolLevel = z.infer<typeof schoolLevelSchema>;
 export type SchoolType = z.infer<typeof schoolTypeSchema>;
 export type AcademicPeriod = z.infer<typeof academicPeriodSchema>;
+export type ExamType = z.infer<typeof examTypeSchema>;
