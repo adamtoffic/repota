@@ -41,11 +41,6 @@ export function Dashboard() {
 
   const { showToast } = useToast();
 
-  // Welcome Banner State
-  const [showWelcome, setShowWelcome] = useState(() => {
-    return !localStorage.getItem("classSync_welcome_seen");
-  });
-
   const [confirmCleanModal, setConfirmCleanModal] = useState(false);
   const [confirmClearScoresModal, setConfirmClearScoresModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -100,11 +95,6 @@ export function Dashboard() {
     setEditingStudentId(newId); // Open modal immediately for editing
   };
 
-  const handleDismiss = () => {
-    setShowWelcome(false);
-    localStorage.setItem("classSync_welcome_seen", "true");
-  };
-
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
@@ -148,83 +138,32 @@ export function Dashboard() {
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        {/* WELCOME BANNER */}
-        {showWelcome ? (
-          <div className="animate-in fade-in slide-in-from-top-4 bg-primary relative mb-6 overflow-hidden rounded-xl p-6 text-white shadow-lg duration-300">
-            <button
-              onClick={handleDismiss}
-              className="absolute top-3 right-3 rounded-full p-1.5 transition-colors hover:bg-white/20 active:scale-95"
-            >
-              <X size={18} className="text-white" />
-            </button>
-            <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">Welcome to Repota! 🚀</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-blue-50">
-                  New here? Watch this quick 2-minute video to learn how to generate error-free
-                  reports instantly, or chat with us if you need help.
+        {/* MAIN CONTENT AREA */}
+        {students.length === 0 && (
+          <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                <HelpCircle className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-main font-bold">Need help getting started?</h3>
+                <p className="text-muted mt-1 text-sm leading-relaxed">
+                  Add your first student or reach out on WhatsApp if you're stuck.
                 </p>
-                <div className="mt-4 flex flex-wrap gap-3">
+                <div className="mt-3">
                   <a
-                    href="YOUR_YOUTUBE_LINK"
+                    href="https://wa.me/233248140806?text=Hi!%20I%20need%20help%20starting"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold shadow-sm transition-all active:scale-95"
+                    className="text-success hover:text-success/80 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:underline"
                   >
-                    ▶ Watch Tutorial
-                  </a>
-
-                  <a
-                    href="https://wa.me/233248140806?text=Hi!%20I%20am%20new%20to%20Repota"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary-foreground hover:bg-primary-foreground/10 inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-bold backdrop-blur-sm transition-all active:scale-95"
-                  >
-                    💬 Chat Support
+                    💬 Ask for help on WhatsApp →
                   </a>
                 </div>
               </div>
             </div>
           </div>
-        ) : (
-          /* Quick Help Card - Shows for first-time users */
-          students.length === 0 && (
-            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-                  <HelpCircle className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-main font-bold">Ready to start?</h3>
-                  <p className="text-muted mt-1 text-sm leading-relaxed">
-                    You don't have any students yet. Add your first student or chat with us if
-                    you're stuck.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    <a
-                      href="https://wa.me/233248140806?text=Hi!%20I%20need%20help%20starting"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-success hover:text-success/80 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:underline"
-                    >
-                      💬 Ask for help on WhatsApp →
-                    </a>
-                    <a
-                      href="https://youtu.be/..."
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-primary hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
-                    >
-                      ▶ Watch Video
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
         )}
-
-        {/* MAIN CONTENT AREA */}
         {students.length === 0 ? (
           <EmptyState onAddStudent={handleAddNew} onLoadDemo={() => setShowDemoModal(true)} />
         ) : (
