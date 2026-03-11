@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
+import posthog from "posthog-js";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
@@ -173,6 +174,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     setStudents((prev) => [...prev, student]);
     if (!silent && student.name !== "New Student") {
       showToast(`Student "${student.name}" added successfully!`, "success");
+      posthog.capture("Added_Student", {
+        school_level: settings.level || "unknown",
+        school_type: settings.schoolType || "unknown",
+      });
     }
   };
 
@@ -665,6 +670,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     if (demoStudents.length > 0) {
       setStudents((prev) => [...prev, ...demoStudents]);
       showToast(`${demoStudents.length} demo students loaded!`, "success");
+      posthog.capture("Loaded_Demo_Data", {
+        school_level: settings.level || "unknown",
+      });
     }
   };
 
@@ -740,6 +748,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     // C. Save everyone at once
     setStudents(updatedStudents);
     showToast("Remarks auto-generated and distributed uniquely!", "success");
+    posthog.capture("Auto_Remarks_Generated", {
+      students_count: students.length,
+    });
   };
 
   return (

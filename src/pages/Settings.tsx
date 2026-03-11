@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
+import posthog from "posthog-js";
 import {
   ArrowLeft,
   Plus,
@@ -182,6 +183,7 @@ export function Settings() {
       className: defaultClass,
     }));
     showToast(`Loaded presets for ${newLevel}`, "info");
+    posthog.capture("School_Level_Changed", { new_level: newLevel });
     setShowLevelChangeModal(false);
     setPendingLevel(null);
   };
@@ -1088,7 +1090,10 @@ export function Settings() {
               <button
                 key={template.id}
                 type="button"
-                onClick={() => setFormData({ ...formData, templateId: template.id })}
+                onClick={() => {
+                  setFormData({ ...formData, templateId: template.id });
+                  posthog.capture("Template_Changed", { template_id: template.id });
+                }}
                 className={`relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all active:scale-95 ${
                   (formData.templateId || "original_v1") === template.id
                     ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"

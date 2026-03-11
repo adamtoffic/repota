@@ -3,6 +3,7 @@ import { X, Upload, CheckCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import type { StudentRecord } from "../types";
+import posthog from "posthog-js";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { Textarea } from "./ui/Textarea";
@@ -62,6 +63,9 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
         `Successfully imported ${addedCount} student${addedCount > 1 ? "s" : ""}!`,
         "success",
       );
+      posthog.capture("Bulk_Import_Success", {
+        students_imported: addedCount,
+      });
     }
 
     onClose();

@@ -2,6 +2,7 @@ import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useEffect, useState } from "react";
+import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
 import { getTemplateById } from "../templates/registry";
 import type { PrintMode } from "../types";
@@ -70,6 +71,21 @@ export function PrintPreview() {
   const studentsWithMissingPhotos = printableStudents.filter((student) => !student.pictureUrl);
 
   const SelectedTemplate = getTemplateById(settings.templateId);
+
+  const handlePrint = () => {
+    try {
+      posthog.capture("Printed_Reports", {
+        students_count: printableStudents.length,
+        template_id: settings.templateId || "original_v1",
+        print_mode: printMode,
+        school_level: settings.level || "unknown",
+        school_type: settings.schoolType || "unknown",
+      });
+    } catch {
+      // Analytics must never block printing
+    }
+    window.print();
+  };
 
   if (printableStudents.length === 0) {
     return (
@@ -170,7 +186,7 @@ export function PrintPreview() {
             {/* ──────────────────────────────────────────────────────── */}
 
             <button
-              onClick={() => window.print()}
+              onClick={handlePrint}
               className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm transition-all active:scale-95 sm:px-6"
             >
               <Printer className="h-4 w-4 shrink-0" />
