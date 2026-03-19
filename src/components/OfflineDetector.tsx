@@ -20,19 +20,16 @@ export const OfflineDetector = () => {
 
     const checkStorage = async () => {
       const isPersisted = await checkStoragePersistence();
-      
+
       if (!isPersisted) {
         // Request persistent storage
         const granted = await requestPersistentStorage();
-        
+
         if (granted) {
           showToast("✓ Storage protected - your data won't be auto-deleted", "success");
         } else {
           // Only show this once, on first load
-          showToast(
-            "💾 Remember to backup your data regularly",
-            "info"
-          );
+          showToast("💾 Remember to backup your data regularly", "info");
         }
       }
     };
