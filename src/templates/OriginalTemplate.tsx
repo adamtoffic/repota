@@ -182,7 +182,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
             <div className={`${primaryBg} p-2 text-center text-white`}>
               <span className="block text-[9px] font-black uppercase opacity-90">Pos.</span>
               <span className="block text-xl leading-tight font-black">
-                {settings.level === "KG" ? "N/A" : student.classPosition}
+                {student.classPosition || "-"}
               </span>
             </div>
           </div>
@@ -237,7 +237,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
               <th className={`w-4/12 p-1.5 text-left font-black uppercase ${density.headerSize}`}>
                 Subject
               </th>
-              {settings.level !== "KG" && (
+              {settings.level && (
                 <>
                   {!isMock ? (
                     <>
@@ -275,7 +275,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
               <th className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}>
                 Grd
               </th>
-              {settings.level !== "KG" && (
+              {settings.level && (
                 <th
                   className={`w-[8%] p-1 text-center font-black uppercase ${mutedBg} ${density.headerSize}`}
                 >
@@ -296,7 +296,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                   <td className={`px-2 font-black uppercase ${density.textSize} truncate`}>
                     {sub.name}
                   </td>
-                  {settings.level !== "KG" && (
+                  {settings.level && (
                     <>
                       {!isMock ? (
                         <>
@@ -326,7 +326,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                   >
                     {sub.grade}
                   </td>
-                  {settings.level !== "KG" && (
+                  {settings.level && (
                     <td
                       className={`text-center font-mono font-black ${tableHeaderBg} ${density.textSize}`}
                     >
@@ -355,7 +355,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
       {/* =================================================================================
           SECTION 4: PERFORMANCE SUMMARY
          ================================================================================= */}
-      {settings.level !== "KG" && (
+      {settings.level && (
         <section
           className={`relative z-10 grid grid-cols-[1fr_auto] border-2 ${borderColor} ${tableHeaderBg}`}
         >
