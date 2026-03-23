@@ -337,30 +337,6 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                     {sub.remark}
                   </td>
                 </tr>
-                {!isMock && sub.classScoreComponents && sub.classScoreComponents.length > 0 && (
-                  <tr
-                    key={`${sub.id}-breakdown`}
-                    className={`border-t border-gray-200 ${idx % 2 === 1 ? zebraBg : "bg-white"}`}
-                  >
-                    <td colSpan={settings.level === "KG" ? 3 : 7} className="px-3 pt-0 pb-1">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0">
-                        <span
-                          className={`text-[8px] font-black tracking-wider uppercase ${isBW ? "text-black" : "text-purple-600"}`}
-                        >
-                          SBA:
-                        </span>
-                        {sub.classScoreComponents.map((comp) => (
-                          <span key={comp.id} className="text-[8px] font-semibold text-gray-600">
-                            {comp.name}&nbsp;
-                            <span className="font-black text-gray-900">
-                              {comp.score}/{comp.maxScore}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </Fragment>
             ))}
             {/* FILLER ROWS */}
