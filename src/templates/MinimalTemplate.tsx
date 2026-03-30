@@ -141,22 +141,18 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
           <thead>
             <tr className={`border-y-2 ${tableBorder}`}>
               <th className="px-1 py-2.5 font-bold">Course / Subject</th>
-              {!isKG && (
+              {!isMock ? (
                 <>
-                  {!isMock ? (
-                    <>
-                      <th className="px-1 py-2.5 text-center font-bold">
-                        Class ({settings.classScoreMax})
-                      </th>
-                      <th className="px-1 py-2.5 text-center font-bold">
-                        Exam ({settings.examScoreMax})
-                      </th>
-                      <th className="px-1 py-2.5 text-center font-bold">Total (100)</th>
-                    </>
-                  ) : (
-                    <th className="px-1 py-2.5 text-center font-bold">Score (100)</th>
-                  )}
+                  <th className="px-1 py-2.5 text-center font-bold">
+                    Class ({settings.classScoreMax})
+                  </th>
+                  <th className="px-1 py-2.5 text-center font-bold">
+                    Exam ({settings.examScoreMax})
+                  </th>
+                  <th className="px-1 py-2.5 text-center font-bold">Total (100)</th>
                 </>
+              ) : (
+                <th className="px-1 py-2.5 text-center font-bold">Score (100)</th>
               )}
               <th className="px-1 py-2.5 text-center font-bold">Grade</th>
               {!isKG && <th className="px-1 py-2.5 text-center font-bold">Pos</th>}
@@ -167,18 +163,14 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
             {student.subjects.map((sub) => (
               <tr key={sub.id} className={`border-b ${tableRowDiv}`}>
                 <td className="px-1 py-2.5 font-medium">{sub.name}</td>
-                {!isKG && (
+                {!isMock ? (
                   <>
-                    {!isMock ? (
-                      <>
-                        <td className="px-1 py-2.5 text-center">{sub.classScore}</td>
-                        <td className="px-1 py-2.5 text-center">{sub.examScore}</td>
-                        <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
-                      </>
-                    ) : (
-                      <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
-                    )}
+                    <td className="px-1 py-2.5 text-center">{sub.classScore}</td>
+                    <td className="px-1 py-2.5 text-center">{sub.examScore}</td>
+                    <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
                   </>
+                ) : (
+                  <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
                 )}
                 <td
                   className={`px-1 py-2.5 text-center font-bold ${
@@ -196,24 +188,28 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
           </tbody>
         </table>
 
-        {!isKG && (
-          <div className="mb-8 flex justify-end gap-6 font-sans text-sm">
+        <div className="mb-8 flex justify-end gap-6 font-sans text-sm">
+          <p>
+            <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Total Score:</span>{" "}
+            <strong className={summaryStrong}>{student.totalScore}</strong>
+          </p>
+          <p>
+            <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Average:</span>{" "}
+            <strong className={summaryStrong}>{student.averageScore.toFixed(2)}</strong>
+          </p>
+          {!isKG && (
             <p>
-              <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Total Score:</span>{" "}
-              <strong className={summaryStrong}>{student.totalScore}</strong>
+              <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Position:</span>{" "}
+              <strong className={summaryStrong}>{student.classPosition || "-"}</strong>
             </p>
+          )}
+          {!isKG && student.aggregate !== null && (
             <p>
-              <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Average:</span>{" "}
-              <strong className={summaryStrong}>{student.averageScore.toFixed(2)}</strong>
+              <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Aggregate:</span>{" "}
+              <strong className={aggregateBox}>{student.aggregate}</strong>
             </p>
-            {student.aggregate !== null && (
-              <p>
-                <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Aggregate:</span>{" "}
-                <strong className={aggregateBox}>{student.aggregate}</strong>
-              </p>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
       {/* ==========================================
