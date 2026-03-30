@@ -127,7 +127,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-gray-600">Position in Class:</span>
-            <span className="font-bold">{student.classPosition}</span>
+            <span className="font-bold">{student.classPosition || "-"}</span>
           </div>
         </div>
       </header>

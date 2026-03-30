@@ -462,7 +462,9 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
             )}
             <div className={`w-full border-t-2 border-dotted ${borderColor} pt-1`} />
             <p className="mt-1 text-[9px] font-black tracking-wider text-gray-600 uppercase">
-              {settings.headTeacherName + " (HEAD TEACHER)" || "Head Teacher"}
+              {settings.headTeacherName
+                ? `${settings.headTeacherName} (HEAD TEACHER)`
+                : "Head Teacher"}
             </p>
           </div>
         </div>
