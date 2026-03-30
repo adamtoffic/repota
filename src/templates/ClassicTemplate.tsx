@@ -40,7 +40,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
       {/* ==========================================
           ROW 1: HEADER & STUDENT PROFILE
           ========================================== */}
-      <header className={`mb-6 border-b-2 ${borderColor} pb-4`}>
+      <header className={`mb-1 border-b-2 ${borderColor} pb-1`}>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex h-24 w-24 items-center justify-center">
             {settings.logoUrl ? (
@@ -127,7 +127,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-gray-600">Position in Class:</span>
-            <span className="font-bold">{isKG ? "N/A" : student.classPosition}</span>
+            <span className="font-bold">{student.classPosition}</span>
           </div>
         </div>
       </header>
@@ -135,47 +135,35 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
       {/* ==========================================
           ROW 2: ACADEMIC TABLE
           ========================================== */}
-      <main className="mb-6 min-h-0 overflow-hidden">
+      <main className="mb-1 min-h-0 overflow-hidden">
         <table className={`w-full border-collapse border-2 ${borderColor} text-[13px]`}>
           <thead>
             <tr className={`border-b-2 ${borderColor} ${tableHeaderBg}`}>
               <th className={`w-1/3 border ${borderColor} px-2 py-2 text-left`}>Subject</th>
-              {!isKG && (
+              {!isMock ? (
                 <>
-                  {!isMock ? (
-                    <>
-                      <th
-                        className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
-                      >
-                        Class
-                        <br />
-                        <span className="text-[10px]">({settings.classScoreMax}%)</span>
-                      </th>
-                      <th
-                        className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
-                      >
-                        Exam
-                        <br />
-                        <span className="text-[10px]">({settings.examScoreMax}%)</span>
-                      </th>
-                      <th
-                        className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
-                      >
-                        Total
-                        <br />
-                        <span className="text-[10px]">(100%)</span>
-                      </th>
-                    </>
-                  ) : (
-                    <th
-                      className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}
-                    >
-                      Score
-                      <br />
-                      <span className="text-[10px]">(100%)</span>
-                    </th>
-                  )}
+                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                    Class
+                    <br />
+                    <span className="text-[10px]">({settings.classScoreMax}%)</span>
+                  </th>
+                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                    Exam
+                    <br />
+                    <span className="text-[10px]">({settings.examScoreMax}%)</span>
+                  </th>
+                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                    Total
+                    <br />
+                    <span className="text-[10px]">(100%)</span>
+                  </th>
                 </>
+              ) : (
+                <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                  Score
+                  <br />
+                  <span className="text-[10px]">(100%)</span>
+                </th>
               )}
               <th className={`w-16 border ${borderColor} px-2 py-2 text-center`}>Grade</th>
               {!isKG && <th className={`w-16 border ${borderColor} px-2 py-2 text-center`}>Pos</th>}
@@ -186,26 +174,22 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
             {student.subjects.map((sub, idx) => (
               <tr key={sub.id} className={idx % 2 === 1 ? zebraBg : "bg-white"}>
                 <td className={`border ${borderColor} px-2 py-1.5 font-medium`}>{sub.name}</td>
-                {!isKG && (
+                {!isMock ? (
                   <>
-                    {!isMock ? (
-                      <>
-                        <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
-                          {sub.classScore}
-                        </td>
-                        <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
-                          {sub.examScore}
-                        </td>
-                        <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
-                          {sub.totalScore}
-                        </td>
-                      </>
-                    ) : (
-                      <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
-                        {sub.totalScore}
-                      </td>
-                    )}
+                    <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
+                      {sub.classScore}
+                    </td>
+                    <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
+                      {sub.examScore}
+                    </td>
+                    <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
+                      {sub.totalScore}
+                    </td>
                   </>
+                ) : (
+                  <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
+                    {sub.totalScore}
+                  </td>
                 )}
                 <td
                   className={`border ${borderColor} px-2 py-1.5 text-center font-bold ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
@@ -225,55 +209,59 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           </tbody>
         </table>
 
-        {!isKG && (
-          <div
-            className={`mt-3 flex justify-end gap-4 rounded border-2 ${borderColor} ${summaryBg} px-4 py-2 text-sm`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-600">Total Score:</span>
-              <span className={`rounded border-2 ${borderColor} ${summaryBg} px-3 py-1 font-black`}>
-                {student.totalScore}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-600">Average:</span>
-              <span className={`rounded border-2 ${borderColor} ${summaryBg} px-3 py-1 font-black`}>
-                {student.averageScore.toFixed(1)}
-              </span>
-            </div>
-            {student.aggregate !== null && (
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-600">Aggregate:</span>
-                <span className={`rounded ${titleBg} px-3 py-1 font-bold shadow-sm`}>
-                  {student.aggregate}
-                </span>
-              </div>
-            )}
+        <div
+          className={`mt-1 flex justify-end gap-4 rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 text-sm`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-600">Total Score:</span>
+            <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`}>
+              {student.totalScore}
+            </span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-600">Average:</span>
+            <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`}>
+              {student.averageScore.toFixed(1)}
+            </span>
+          </div>
+          {!isKG && (
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-600">Position:</span>
+              <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`}>
+                {student.classPosition || "-"}
+              </span>
+            </div>
+          )}
+          {!isKG && student.aggregate !== null && (
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-600">Aggregate:</span>
+              <span className={`rounded ${titleBg} px-1 py-1 font-bold shadow-sm`}>
+                {student.aggregate}
+              </span>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* ==========================================
           ROW 3: FOOTER
           ========================================== */}
-      <footer className="space-y-4 text-sm">
+      <footer className="space-y-2 text-sm">
         <div className="flex flex-wrap gap-4">
           <div className={`flex-1 rounded border ${borderColor} p-2`}>
-            <span className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
-              Attendance
-            </span>
+            <span className="block text-xs font-semibold text-gray-600 uppercase">Attendance</span>
             <div className="text-sm font-bold">
               {student.attendancePresent || 0} out of {settings.totalAttendanceDays || "-"} days
             </div>
           </div>
           <div className={`flex-2 rounded border ${borderColor} p-2`}>
-            <span className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+            <span className="block text-xs font-semibold text-gray-600 uppercase">
               Conduct / Character
             </span>
             <div className="text-sm italic">{student.conduct || "Satisfactory"}</div>
           </div>
           <div className={`flex-2 rounded border ${borderColor} p-2`}>
-            <span className="mb-1 block text-xs font-semibold text-gray-600 uppercase">
+            <span className="block text-xs font-semibold text-gray-600 uppercase">
               Interest / Talent
             </span>
             <div className="text-sm italic">{student.interest || "Active in class"}</div>
@@ -302,7 +290,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
         </div>
 
         {(isThirdTerm || (isPrivate && hasAnyFee)) && (
-          <div className={`flex gap-4 rounded border ${borderColor} p-3`}>
+          <div className={`flex gap-2 rounded border ${borderColor} p-1`}>
             {isThirdTerm && (
               <div className={`flex-1 border-r ${borderColor} pr-4`}>
                 <span className="text-xs font-bold text-gray-600 uppercase">Promotion Status:</span>
@@ -338,7 +326,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           </div>
         )}
 
-        <div className="mt-6 flex items-end justify-between pt-4">
+        <div className="mt-2 flex items-end justify-between pt-4">
           <div className="w-48 text-center">
             <div className="mb-1 flex h-12 items-end justify-center">
               {settings.teacherSignature ? (
@@ -376,7 +364,9 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
               )}
             </div>
             <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`}>
-              {settings.headTeacherName || "Head Teacher"}
+              {settings.headTeacherName
+                ? `${settings.headTeacherName} (HEAD TEACHER)`
+                : "Head Teacher"}
             </p>
           </div>
         </div>

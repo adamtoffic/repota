@@ -5,12 +5,13 @@ import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 export function OriginalTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isIslamic = settings.schoolType === "ISLAMIC";
   const isPrivate = settings.schoolType === "PRIVATE";
+  const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
 
   // Logic to hide aggregate for KG
-  const showAggregate = settings.level !== "KG" && student.aggregate !== null;
+  const showAggregate = !isKG && student.aggregate !== null;
 
   // ---------------------------------------------------------------------------
   // 🎨 PRINT MODE LOGIC (Color vs B&W)
@@ -26,14 +27,13 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
   const redText = isBW ? "text-black underline decoration-2 underline-offset-2" : "text-red-600";
 
   // ---------------------------------------------------------------------------
-  // 📐 DENSITY LOGIC (The "3 Gears" System)
+  // 📐 DENSITY LOGIC (Responsive Padding & Text Sizing)
   // ---------------------------------------------------------------------------
   const subjectCount = student.subjects.length;
   let density = {
     padding: "py-3",
     textSize: "text-sm",
     headerSize: "text-xs",
-    fillerCount: 12,
   };
 
   if (subjectCount > 10 && subjectCount <= 15) {
@@ -41,18 +41,14 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
       padding: "py-1.5",
       textSize: "text-xs",
       headerSize: "text-[10px]",
-      fillerCount: 15,
     };
   } else if (subjectCount > 15) {
     density = {
       padding: "py-[2px]",
       textSize: "text-[10px]",
       headerSize: "text-[9px]",
-      fillerCount: 0,
     };
   }
-
-  const fillersNeeded = Math.max(0, density.fillerCount - subjectCount);
 
   return (
     // We use your exact grid-rows, but enforced A4 sizing
@@ -237,45 +233,39 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
               <th className={`w-4/12 p-1.5 text-left font-black uppercase ${density.headerSize}`}>
                 Subject
               </th>
-              {settings.level && (
+              {!isMock ? (
                 <>
-                  {!isMock ? (
-                    <>
-                      <th
-                        className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                      >
-                        Class
-                        <br />({settings.classScoreMax})
-                      </th>
-                      <th
-                        className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                      >
-                        Exam
-                        <br />({settings.examScoreMax})
-                      </th>
-                      <th
-                        className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                      >
-                        Total
-                        <br />
-                        (100)
-                      </th>
-                    </>
-                  ) : (
-                    <th
-                      className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
-                    >
-                      Score
-                      <br />
-                      (100)
-                    </th>
-                  )}
+                  <th
+                    className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                  >
+                    Class
+                    <br />({settings.classScoreMax})
+                  </th>
+                  <th
+                    className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                  >
+                    Exam
+                    <br />({settings.examScoreMax})
+                  </th>
+                  <th
+                    className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}
+                  >
+                    Total
+                    <br />
+                    (100)
+                  </th>
                 </>
+              ) : (
+                <th className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}>
+                  Score
+                  <br />
+                  (100)
+                </th>
               )}
               <th className={`w-[8%] p-1 text-center font-black uppercase ${density.headerSize}`}>
                 Grd
               </th>
-              {settings.level && (
+              {!isKG && (
                 <th
                   className={`w-[8%] p-1 text-center font-black uppercase ${mutedBg} ${density.headerSize}`}
                 >
@@ -296,37 +286,33 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                   <td className={`px-2 font-black uppercase ${density.textSize} truncate`}>
                     {sub.name}
                   </td>
-                  {settings.level && (
+                  {!isMock ? (
                     <>
-                      {!isMock ? (
-                        <>
-                          <td
-                            className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
-                          >
-                            {sub.classScore || "-"}
-                          </td>
-                          <td
-                            className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
-                          >
-                            {sub.examScore || "-"}
-                          </td>
-                          <td className={`text-center font-mono font-black ${density.textSize}`}>
-                            {sub.totalScore}
-                          </td>
-                        </>
-                      ) : (
-                        <td className={`text-center font-mono font-black ${density.textSize}`}>
-                          {sub.totalScore}
-                        </td>
-                      )}
+                      <td
+                        className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
+                      >
+                        {sub.classScore || "-"}
+                      </td>
+                      <td
+                        className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
+                      >
+                        {sub.examScore || "-"}
+                      </td>
+                      <td className={`text-center font-mono font-black ${density.textSize}`}>
+                        {sub.totalScore}
+                      </td>
                     </>
+                  ) : (
+                    <td className={`text-center font-mono font-black ${density.textSize}`}>
+                      {sub.totalScore}
+                    </td>
                   )}
                   <td
                     className={`text-center font-black ${density.textSize} ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
                   >
                     {sub.grade}
                   </td>
-                  {settings.level && (
+                  {!isKG && (
                     <td
                       className={`text-center font-mono font-black ${tableHeaderBg} ${density.textSize}`}
                     >
@@ -339,15 +325,6 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
                 </tr>
               </Fragment>
             ))}
-            {/* FILLER ROWS */}
-            {Array.from({ length: fillersNeeded }).map((_, i) => (
-              <tr
-                key={`empty-${i}`}
-                className={`divide-x-2 ${divideColor} ${density.padding} ${(student.subjects.length + i) % 2 === 1 ? zebraBg : "bg-white"}`}
-              >
-                <td colSpan={settings.level === "KG" ? 3 : isMock ? 5 : 7}>&nbsp;</td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </section>
@@ -355,43 +332,49 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
       {/* =================================================================================
           SECTION 4: PERFORMANCE SUMMARY
          ================================================================================= */}
-      {settings.level && (
-        <section
-          className={`relative z-10 grid grid-cols-[1fr_auto] border-2 ${borderColor} ${tableHeaderBg}`}
-        >
-          <div className={`flex divide-x-2 ${divideColor}`}>
-            <div className="flex flex-col justify-center px-4 py-2">
-              <span className="text-[9px] font-black text-gray-500 uppercase">Overall Score</span>
-              <span className="text-2xl leading-none font-black">{student.totalScore}</span>
-            </div>
-            <div className="flex flex-col justify-center px-4 py-2">
-              <span className="text-[9px] font-black text-gray-500 uppercase">Average</span>
-              <span className="text-2xl leading-none font-black">{student.averageScore}%</span>
-            </div>
-            {showAggregate && (
-              <div className={`flex flex-col justify-center px-4 py-2 text-white ${primaryBg}`}>
-                <span className="text-[9px] font-black uppercase">Aggregate</span>
-                <span className="text-center text-2xl leading-none font-black">
-                  {student.aggregate}
-                </span>
-              </div>
-            )}
+      <section
+        className={`relative z-10 grid grid-cols-[1fr_auto] border-2 ${borderColor} ${tableHeaderBg}`}
+      >
+        <div className={`flex divide-x-2 ${divideColor}`}>
+          <div className="flex flex-col justify-center px-4 py-2">
+            <span className="text-[9px] font-black text-gray-500 uppercase">Overall Score</span>
+            <span className="text-2xl leading-none font-black">{student.totalScore}</span>
           </div>
-
-          {settings.term === "Third Term" && student.promotionStatus && (
-            <div className={`flex items-center border-l-2 ${borderColor} px-6 py-2`}>
-              <div className="text-right">
-                <span className="block text-[9px] font-black text-gray-500 uppercase">Status</span>
-                <span
-                  className={`block text-base font-black uppercase underline decoration-2 underline-offset-2 ${accentText}`}
-                >
-                  {student.promotionStatus}
-                </span>
-              </div>
+          <div className="flex flex-col justify-center px-4 py-2">
+            <span className="text-[9px] font-black text-gray-500 uppercase">Average</span>
+            <span className="text-2xl leading-none font-black">{student.averageScore}%</span>
+          </div>
+          {!isKG && (
+            <div className="flex flex-col justify-center px-4 py-2">
+              <span className="text-[9px] font-black text-gray-500 uppercase">Position</span>
+              <span className="text-2xl leading-none font-black">
+                {student.classPosition || "-"}
+              </span>
             </div>
           )}
-        </section>
-      )}
+          {showAggregate && (
+            <div className={`flex flex-col justify-center px-4 py-2 text-white ${primaryBg}`}>
+              <span className="text-[9px] font-black uppercase">Aggregate</span>
+              <span className="text-center text-2xl leading-none font-black">
+                {student.aggregate}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {settings.term === "Third Term" && student.promotionStatus && (
+          <div className={`flex items-center border-l-2 ${borderColor} px-6 py-2`}>
+            <div className="text-right">
+              <span className="block text-[9px] font-black text-gray-500 uppercase">Status</span>
+              <span
+                className={`block text-base font-black uppercase underline decoration-2 underline-offset-2 ${accentText}`}
+              >
+                {student.promotionStatus}
+              </span>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* =================================================================================
           SECTION 5: FOOTER (Remarks & Signatures)
@@ -437,7 +420,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
             <div
               className={`flex items-center border-r-2 ${borderColor} ${tableHeaderBg} p-2 text-[10px] font-black text-gray-700 uppercase`}
             >
-              Class Teacher
+              Class Teacher's Remark
             </div>
             <div className="p-2 text-xs font-semibold italic">{student.teacherRemark}</div>
           </div>
@@ -445,7 +428,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
             <div
               className={`flex items-center border-r-2 ${borderColor} ${tableHeaderBg} p-2 text-[10px] font-black text-gray-700 uppercase`}
             >
-              Head Teacher
+              Head Teacher's Remark
             </div>
             <div className="p-2 text-xs font-semibold italic">{headmasterRemark}</div>
           </div>
@@ -464,7 +447,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
             )}
             <div className={`w-full border-t-2 border-dotted ${borderColor} pt-1`} />
             <p className="mt-1 text-[9px] font-black tracking-wider text-gray-600 uppercase">
-              Class Teacher's Signature
+              {settings.classTeacherName || "Class Teacher"}
             </p>
           </div>
           <div className="flex flex-col items-center justify-end">
@@ -479,7 +462,7 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
             )}
             <div className={`w-full border-t-2 border-dotted ${borderColor} pt-1`} />
             <p className="mt-1 text-[9px] font-black tracking-wider text-gray-600 uppercase">
-              Head Teacher's Signature
+              {settings.headTeacherName + " (HEAD TEACHER)" || "Head Teacher"}
             </p>
           </div>
         </div>
