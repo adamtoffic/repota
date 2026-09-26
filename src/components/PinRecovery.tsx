@@ -90,7 +90,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
       return;
     }
 
-    let success = false;
+    let success: boolean;
     if (method === "code") {
       success = await resetPinWithRecoveryCode(recoveryCode, newPin);
     } else {
