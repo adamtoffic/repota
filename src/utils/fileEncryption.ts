@@ -102,7 +102,7 @@ export async function encryptBackupFile(
     };
   } catch (error) {
     console.error("Encryption error:", error);
-    throw new Error("Failed to encrypt file. Please try again.");
+    throw new Error("Failed to encrypt file. Please try again.", { cause: error });
   }
 }
 
@@ -141,10 +141,10 @@ export async function decryptBackupFile<T>(
   } catch (error) {
     // AES-GCM will fail if password is wrong
     if (error instanceof Error && error.message.includes("operation-specific")) {
-      throw new Error("Incorrect password. Please try again.");
+      throw new Error("Incorrect password. Please try again.", { cause: error });
     }
     console.error("Decryption error:", error);
-    throw new Error("Failed to decrypt file. The password may be incorrect.");
+    throw new Error("Failed to decrypt file. The password may be incorrect.", { cause: error });
   }
 }
 
