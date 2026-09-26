@@ -54,7 +54,7 @@ export const generateHeadmasterRemark = (
   const isPromotionalTerm =
     term.toLowerCase().includes("third") || term.toLowerCase().includes("3rd");
 
-  let pool = HEADMASTER_BANK.GENERAL.AVERAGE;
+  let pool: string[];
 
   if (isPromotionalTerm) {
     // Only show promotional remarks for students with passing grades
