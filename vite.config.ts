@@ -164,16 +164,19 @@ export default defineConfig({
     target: "es2015",
     minify: "esbuild",
     cssMinify: true,
-    chunkSizeWarningLimit: 400, // Warn if chunks exceed 400KB
+    chunkSizeWarningLimit: 400,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React libraries
-          vendor: ["react", "react-dom"],
-          router: ["@tanstack/react-router"],
-          icons: ["lucide-react"],
-          // Don't manually chunk recharts - let lazy loading handle it
-          // recharts: ["recharts"],
+        manualChunks(id) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) {
+            return "vendor";
+          }
+          if (id.includes("node_modules/@tanstack/react-router")) {
+            return "router";
+          }
+          if (id.includes("node_modules/lucide-react")) {
+            return "icons";
+          }
         },
       },
     },
