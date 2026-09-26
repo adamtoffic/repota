@@ -39,6 +39,28 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
     }
   };
 
+  const attemptBiometricUnlock = async () => {
+    setError("");
+
+    try {
+      const { success, error: biometricError } = await verifyBiometric();
+
+      if (success) {
+        setIsUnlocking(true);
+        setTimeout(() => {
+          onUnlock();
+        }, 400);
+      } else if (biometricError && !biometricError.includes("cancelled")) {
+        // Only show error if not cancelled by user
+        // Don't show error on auto-prompt (silent fail to PIN)
+        console.log("Biometric failed:", biometricError);
+      }
+    } catch (err) {
+      console.error("Biometric error:", err);
+      // Silent fail - user can use PIN
+      throw new Error("Failed to verify biometric.", { cause: err });
+    }
+  };
   // Auto-prompt biometric on mount - with iOS-safe delay
   useEffect(() => {
     // Longer delay for iOS to ensure DOM is ready
@@ -60,28 +82,6 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
       });
     }
   }, [inputReady, isUnlocking]);
-
-  const attemptBiometricUnlock = async () => {
-    setError("");
-
-    try {
-      const { success, error: biometricError } = await verifyBiometric();
-
-      if (success) {
-        setIsUnlocking(true);
-        setTimeout(() => {
-          onUnlock();
-        }, 400);
-      } else if (biometricError && !biometricError.includes("cancelled")) {
-        // Only show error if not cancelled by user
-        // Don't show error on auto-prompt (silent fail to PIN)
-        console.log("Biometric failed:", biometricError);
-      }
-    } catch (err) {
-      console.error("Biometric error:", err);
-      // Silent fail - user can use PIN
-    }
-  };
 
   const handlePinChange = (value: string) => {
     // Only allow numeric input
