@@ -118,6 +118,16 @@ export function Settings() {
 
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
     if (classNameChanged && students.length > 0) {
+      const savedFormData = {
+        ...debouncedFormData,
+        className: lastSavedSettings.className,
+      };
+      setSettings(savedFormData);
+      lastAutoSaveRef.current = JSON.stringify(savedFormData);
+
+      requestAnimationFrame(() => {
+        setLastSavedSettings(savedFormData);
+      });
       return;
     }
 
@@ -131,9 +141,17 @@ export function Settings() {
 
   useEffect(() => {
     const classNameChanged = formData.className !== lastSavedSettings.className;
-    if (classNameChanged && students.length > 0 && !showClassUpdateModal) {
+    if (
+      classNameChanged &&
+      (formData.className ?? "").trim() &&
+      students.length > 0 &&
+      !showClassUpdateModal
+    ) {
       const timer = setTimeout(() => {
-        if (formData.className !== lastSavedSettings.className) {
+        if (
+          (formData.className ?? "").trim() &&
+          formData.className !== lastSavedSettings.className
+        ) {
           setShowClassUpdateModal(true);
         }
       }, 1000);
@@ -157,6 +175,11 @@ export function Settings() {
     disableBiometric();
     showToast("Biometric authentication disabled", "info");
     checkBiometric();
+  };
+
+  const handleKeepOldClassName = () => {
+    setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
+    setShowClassUpdateModal(false);
   };
 
   const handleLevelChange = (newLevel: SchoolLevel) => {
@@ -1302,6 +1325,7 @@ export function Settings() {
         confirmText="Yes, Update Everyone"
         cancelText="No, Keep Old Name"
         onClose={() => setShowClassUpdateModal(false)}
+        onCancel={handleKeepOldClassName}
         onConfirm={() => {
           setShowClassUpdateModal(false);
           finalizeSave(true);
