@@ -116,8 +116,8 @@ describe("DataBackup", () => {
     expect(() => validateBackup({ students: [{ name: "Missing ID" }], settings })).toThrow(
       /student at index 0/i,
     );
-    expect(() => validateBackup({ students, settings: { schoolName: "x" } })).toThrow(
-      /settings are invalid/i,
+    expect(() => validateBackup({ students, settings: "bad" })).toThrow(
+      /settings must be an object/i,
     );
     expect(validateBackup(createBackupPayload(students, settings))).toMatchObject({
       students,
@@ -159,6 +159,46 @@ describe("DataBackup", () => {
     ).not.toThrow();
   });
 
+  it("accepts values the UI can store and reports unusual content", () => {
+    const uiPayload = createBackupPayload(
+      [{
+        ...students[0],
+        id: "student-1",
+        name: "Ɔ",
+        className: "Basic Science 2",
+        subjects: [{ id: "subject-1", name: "ɛ", classScore: 0, examScore: 0 }],
+      }],
+      {
+        ...settings,
+        schoolName: "X",
+        academicYear: "2025-2026",
+      },
+    );
+
+    expect(validateBackup(uiPayload)).toMatchObject({
+      students: uiPayload.students,
+      settings: uiPayload.settings,
+    });
+    expect(validateBackup(uiPayload).warningCount).toBeGreaterThan(0);
+  });
+
+  it("merges settings over defaults when optional settings are absent", () => {
+    const payload = createBackupPayload(students, {
+      schoolName: "Old School",
+      academicYear: "2025/2026",
+      term: "First Term",
+      level: "PRIMARY",
+      defaultSubjects: ["English"],
+      classScoreMax: 50,
+      examScoreMax: 50,
+    });
+
+    expect(validateBackup(payload).settings).toMatchObject({
+      schoolName: "Old School",
+      schoolType: "STANDARD",
+    });
+  });
+
   it("uses the same validator for decrypted backup payloads", () => {
     const encryptedPayload = createBackupPayload(students, settings);
     expect(validateBackup(encryptedPayload)).toMatchObject({
@@ -190,7 +230,10 @@ describe("DataBackup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
 
     await vi.waitFor(() => expect(storage.saveToStorage).toHaveBeenCalledWith("students", students));
-    expect(storage.saveToStorage).toHaveBeenCalledWith("settings", settings);
+    expect(storage.saveToStorage).toHaveBeenCalledWith(
+      "settings",
+      expect.objectContaining(settings),
+    );
     expect(contextValue.suspendPersistence).toHaveBeenCalled();
     expect(contextValue.suspendPersistence.mock.invocationCallOrder[0]).toBeLessThan(
       storage.saveToStorage.mock.invocationCallOrder[0],

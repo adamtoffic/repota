@@ -24,3 +24,11 @@ Manual verification:
 2. Desktop Chrome: configure a PIN, open Print Preview, click Print, cancel/close the system print dialog, and verify no immediate lock. Switch tabs for less than 30 seconds and return; verify no lock. Leave the tab hidden for at least 30 seconds and return; verify the lock screen appears.
 
 The repository tests cannot verify native print-dialog visibility events, iOS PWA lifecycle behavior, Face ID timing, or file-picker behavior. Those require the listed devices/browsers.
+
+## Goal 3: backup restore compatibility
+
+Backup validation now separates structure from content format. It rejects wrong container types, missing/non-empty IDs, missing required student fields, wrong field types, and unsupported enum values before any write. It does not reject UI-storable content such as Unicode names, one-character names, hyphenated academic years, or spaces/digits in class names; the existing strict schemas are used only to count unusual values for the import confirmation.
+
+Imported settings are merged over the shared application defaults, so older files with omitted optional settings remain loadable without changing stored keys or the backup format. The existing atomic write and rollback path remains in use, and encrypted payloads pass through the same validator after decryption.
+
+Tests cover UI-shaped unusual values (`Ɔ`, `ɛ`, `2025-2026`, `Basic Science 2`, and a one-character name), structural rejection before writes, default merging, round-trip export validation, duplicate IDs, and encrypted-path validation reuse.

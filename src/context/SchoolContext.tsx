@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import posthog from "posthog-js";
-import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
+import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
@@ -44,29 +44,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const loadAttemptRef = useRef(0);
   const persistenceSuspendedRef = useRef(false);
 
-  const [settings, setSettings] = useState<SchoolSettings>({
-    schoolName: "My School Name",
-    academicYear: "2025/2026",
-    term: "First Term",
-    level: "PRIMARY",
-    defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-    totalAttendanceDays: 70,
-    classScoreMax: 50,
-    examScoreMax: 50,
-    classSize: 30,
-    nextTermStarts: "",
-    headTeacherName: "",
-    classTeacherName: "",
-    className: "",
-    phoneNumber: "",
-    address: "",
-    email: "",
-    schoolMotto: "",
-    logoUrl: "",
-    headTeacherSignature: "",
-    teacherSignature: "",
-    schoolType: "STANDARD",
-  });
+  const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
 
   const { showToast } = useToast();
 
@@ -81,30 +59,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
   const restoreDefaults = () => {
     const defaultSettings: SchoolSettings = {
-      schoolName: "My School Name",
-      academicYear: "2025/2026",
-      term: "First Term",
-      level: "PRIMARY",
-      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-      totalAttendanceDays: 70,
-      classScoreMax: 50,
-      examScoreMax: 50,
-      classSize: 30,
-      nextTermStarts: "",
-      headTeacherName: "",
-      classTeacherName: "",
-      className: "",
-      phoneNumber: "",
-      address: "",
-      email: "",
-      schoolMotto: "",
-      logoUrl: "",
-      headTeacherSignature: "",
-      teacherSignature: "",
-      schoolType: "STANDARD",
+      ...DEFAULT_SETTINGS,
       examType: "TERMLY",
-      componentLibrary: [], // Clear component library
-      subjectComponentMap: {}, // Clear subject-component assignments
+      componentLibrary: [],
+      subjectComponentMap: {},
     };
 
     setSettings(defaultSettings);

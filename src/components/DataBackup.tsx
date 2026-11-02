@@ -39,7 +39,12 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [importStats, setImportStats] = useState({ count: 0, school: "", currentCount: 0 });
+  const [importStats, setImportStats] = useState({
+    count: 0,
+    school: "",
+    currentCount: 0,
+    warningCount: 0,
+  });
   const [decryptedBackupData, setDecryptedBackupData] = useState<{
     students: unknown[];
     settings: Record<string, unknown>;
@@ -180,6 +185,7 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
           count: validated.students.length,
           school: (validated.settings.schoolName as string) || "Unknown School",
           currentCount: students.length,
+          warningCount: validated.warningCount,
         });
         setShowImportModal(true);
       } catch {
@@ -220,6 +226,7 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
           count: validated.students.length,
           school: (validated.settings.schoolName as string) || "Unknown School",
           currentCount: students.length,
+          warningCount: validated.warningCount,
         });
         setDecryptedBackupData(validated); // Store validated data
         setShowImportPasswordModal(false);
@@ -395,7 +402,7 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
       <ConfirmModal
         isOpen={showImportModal}
         title="Load New Class Data?"
-        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will replace ${importStats.currentCount} current students on this device.`}
+        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will replace ${importStats.currentCount} current students on this device.${importStats.warningCount > 0 ? ` ${importStats.warningCount} values look unusual and will be imported as-is.` : ""}`}
         confirmText="Yes, Load File"
         cancelText="Cancel"
         isDangerous={true}
