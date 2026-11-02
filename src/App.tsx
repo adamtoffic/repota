@@ -10,23 +10,14 @@ import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
 import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
-import { loadFromStorage } from "./utils/idbStorage";
-import type { SchoolSettings } from "./types";
+import { useSchoolData } from "./hooks/useSchoolData";
 
-function App() {
+function AppContent() {
   const [isLocked, setIsLocked] = useState(() => isPinConfigured());
   const [showRecovery, setShowRecovery] = useState(false);
-  const [idleTimeout, setIdleTimeout] = useState(5 * 60 * 1000); // Default 5 minutes
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  // Load auto-lock timeout from settings
-  useEffect(() => {
-    loadFromStorage<{ settings: SchoolSettings }>("app-data").then((data) => {
-      if (data?.settings?.autoLockTimeout) {
-        setIdleTimeout(data.settings.autoLockTimeout * 60 * 1000);
-      }
-    });
-  }, []);
+  const { settings } = useSchoolData();
+  const idleTimeout = (settings.autoLockTimeout ?? 5) * 60 * 1000;
 
   // Auto-lock after idle time
   const handleIdle = useCallback(() => {
@@ -109,11 +100,18 @@ function App() {
         {/* PWA Install Prompt */}
         <PwaInstallPrompt />
 
-        {/* Wrap Router with SchoolProvider */}
-        <SchoolProvider>
-          <RouterProvider router={router} />
-        </SchoolProvider>
+        <RouterProvider router={router} />
       </div>
+    </ErrorBoundary>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <SchoolProvider>
+        <AppContent />
+      </SchoolProvider>
     </ErrorBoundary>
   );
 }
