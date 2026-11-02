@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { Dashboard } from "./pages/Dashboard";
 import { PageLoader } from "./components/PageLoader";
+import { DataGate } from "./components/DataGate";
 
 // Code-split heavy pages
 const Settings = lazy(() => import("./pages/Settings"));
@@ -27,19 +28,31 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: Dashboard,
+  component: () => (
+    <DataGate>
+      <Dashboard />
+    </DataGate>
+  ),
 });
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
-  component: Settings,
+  component: () => (
+    <DataGate>
+      <Settings />
+    </DataGate>
+  ),
 });
 
 const printRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/print",
-  component: PrintPreview,
+  component: () => (
+    <DataGate>
+      <PrintPreview />
+    </DataGate>
+  ),
   // This tells TypeScript: "Hey, we accept an optional 'id' in the URL"
   validateSearch: (search: Record<string, unknown>): { id?: string } => {
     return {
@@ -51,7 +64,11 @@ const printRoute = createRoute({
 const analyticsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/analytics",
-  component: Analytics,
+  component: () => (
+    <DataGate>
+      <Analytics />
+    </DataGate>
+  ),
 });
 
 // 4. Build the Tree
