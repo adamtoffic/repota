@@ -11,3 +11,16 @@ Validation:
 - `npm run lint` — passed
 - `npx tsc -b` — passed
 - `npm test -- --run` — passed (15 files, 191 tests)
+
+## Goal 2: lock suppression during transient hiding and print
+
+The visibility handler now records when the document becomes hidden and only locks a PIN-protected app when it returns after at least 30 seconds. Print starts are signaled immediately before `window.print()` from Print Preview and the shared print helper. App suppresses visibility locking until `afterprint` or a named two-minute timeout.
+
+Tests use fake timers and mocked visibility for the under-30-second grace period, the 30-second lock, active print suppression, timeout expiry, and `afterprint` clearing.
+
+Manual verification:
+
+1. Installed iPhone PWA: configure a PIN and biometric unlock, open a report, tap Print, allow the print sheet, return to the app, and verify it does not immediately show LockScreen. Background the PWA for less than 30 seconds and return; verify it remains unlocked. Background it for at least 30 seconds and return; verify it locks. Repeat after Face ID unlock and after opening a file picker.
+2. Desktop Chrome: configure a PIN, open Print Preview, click Print, cancel/close the system print dialog, and verify no immediate lock. Switch tabs for less than 30 seconds and return; verify no lock. Leave the tab hidden for at least 30 seconds and return; verify the lock screen appears.
+
+The repository tests cannot verify native print-dialog visibility events, iOS PWA lifecycle behavior, Face ID timing, or file-picker behavior. Those require the listed devices/browsers.

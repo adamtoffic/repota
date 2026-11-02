@@ -5,12 +5,16 @@ import { SchoolProvider } from "./context/SchoolContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
 import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
 import { useSchoolData } from "./hooks/useSchoolData";
+import { PRINT_STARTED_EVENT } from "./utils/printHandler";
+
+export const HIDDEN_LOCK_GRACE_MS = 30_000;
+export const PRINT_LOCK_SUPPRESSION_MS = 2 * 60_000;
 
 function AppContent() {
   const [isLocked, setIsLocked] = useState(() => isPinConfigured());
@@ -18,6 +22,9 @@ function AppContent() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { settings } = useSchoolData();
   const idleTimeout = (settings.autoLockTimeout ?? 5) * 60 * 1000;
+  const hiddenAtRef = useRef<number | null>(null);
+  const printInProgressRef = useRef(false);
+  const printTimeoutRef = useRef<number | null>(null);
 
   // Auto-lock after idle time
   const handleIdle = useCallback(() => {
@@ -34,14 +41,53 @@ function AppContent() {
 
   // Lock app when it becomes hidden (user switches tabs/apps)
   useEffect(() => {
+    const clearPrintState = () => {
+      printInProgressRef.current = false;
+      if (printTimeoutRef.current !== null) {
+        window.clearTimeout(printTimeoutRef.current);
+        printTimeoutRef.current = null;
+      }
+    };
+
+    const markPrintInProgress = () => {
+      printInProgressRef.current = true;
+      if (printTimeoutRef.current !== null) {
+        window.clearTimeout(printTimeoutRef.current);
+      }
+      printTimeoutRef.current = window.setTimeout(clearPrintState, PRINT_LOCK_SUPPRESSION_MS);
+    };
+
     const handleVisibilityChange = () => {
-      if (document.hidden && isPinConfigured()) {
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      const hiddenAt = hiddenAtRef.current;
+      hiddenAtRef.current = null;
+      if (
+        hiddenAt !== null &&
+        !printInProgressRef.current &&
+        Date.now() - hiddenAt >= HIDDEN_LOCK_GRACE_MS &&
+        isPinConfigured()
+      ) {
         setIsLocked(true);
       }
     };
 
+    window.addEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
+    window.addEventListener("beforeprint", markPrintInProgress);
+    window.addEventListener("afterprint", clearPrintState);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
+      window.removeEventListener("beforeprint", markPrintInProgress);
+      window.removeEventListener("afterprint", clearPrintState);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (printTimeoutRef.current !== null) {
+        window.clearTimeout(printTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleUnlock = () => {

@@ -6,6 +6,7 @@ import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
 import { getTemplateById } from "../templates/registry";
 import type { PrintMode } from "../types";
+import { markPrintStarted } from "../utils/printHandler";
 
 export function PrintPreview() {
   const { students, settings } = useSchoolData();
@@ -84,6 +85,7 @@ export function PrintPreview() {
     } catch {
       // Analytics must never block printing
     }
+    markPrintStarted();
     window.print();
   };
 

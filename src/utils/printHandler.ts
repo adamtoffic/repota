@@ -3,6 +3,12 @@
 
 import { triggerHaptic } from "./iosInteraction";
 
+export const PRINT_STARTED_EVENT = "repota:print-started";
+
+export const markPrintStarted = () => {
+  window.dispatchEvent(new Event(PRINT_STARTED_EVENT));
+};
+
 /**
  * Create a user-initiated print button handler for iOS PWA
  * Ensures iOS recognizes it as a legitimate user action (not bot)
@@ -25,6 +31,7 @@ export const createPrintHandler = (haptic: boolean = true) => {
 
     // Give components time to render before printing (especially in PWA)
     setTimeout(() => {
+      markPrintStarted();
       window.print();
     }, 100);
   };
@@ -40,6 +47,7 @@ export const createKeyboardPrintHandler = () => {
       // Dispatch custom event to force all lazy components to render
       window.dispatchEvent(new Event("beforeprint"));
       setTimeout(() => {
+        markPrintStarted();
         window.print();
       }, 100);
     }
