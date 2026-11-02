@@ -108,24 +108,39 @@ export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> 
   }
 };
 
+export type StorageLoadResult<T> =
+  | { status: "found"; value: T }
+  | { status: "empty" }
+  | { status: "error" };
+
 /**
  * Load data from storage (IndexedDB or localStorage fallback)
  */
-export const loadFromStorage = async <T>(key: string): Promise<T | null> => {
+export const loadFromStorageResult = async <T>(key: string): Promise<StorageLoadResult<T>> => {
   try {
     if (isIndexedDBAvailable && db) {
       // IndexedDB
       const value = await db.get(STORE_NAME, key);
-      return (value as T) ?? null;
+      return value == null ? { status: "empty" } : { status: "found", value: value as T };
     } else {
       // localStorage fallback
       const jsonString = localStorage.getItem(key);
-      return jsonString ? (JSON.parse(jsonString) as T) : null;
+      return jsonString
+        ? { status: "found", value: JSON.parse(jsonString) as T }
+        : { status: "empty" };
     }
   } catch (error) {
     console.error("Storage load error:", error);
-    return null;
+    return { status: "error" };
   }
+};
+
+/**
+ * Load data from storage, preserving the legacy null-on-error API.
+ */
+export const loadFromStorage = async <T>(key: string): Promise<T | null> => {
+  const result = await loadFromStorageResult<T>(key);
+  return result.status === "found" ? result.value : null;
 };
 
 /**
