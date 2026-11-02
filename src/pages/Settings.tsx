@@ -51,6 +51,10 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { TEMPLATE_REGISTRY } from "../templates/registry";
 
 export function Settings() {
+  return <SettingsContent />;
+}
+
+function SettingsContent() {
   const {
     settings,
     setSettings,
