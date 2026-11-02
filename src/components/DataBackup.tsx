@@ -12,18 +12,34 @@ import {
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "./ConfirmModal";
 import { recordBackup } from "../utils/dataProtection";
-import { loadFromStorage, saveToStorage, IDB_KEYS } from "../utils/idbStorage";
+import {
+  loadFromStorageResult,
+  saveToStorage,
+  IDB_KEYS,
+} from "../utils/idbStorage";
 import { encryptBackupFile, decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
 import { Input } from "./ui";
+import { useSchoolData } from "../hooks/useSchoolData";
+import {
+  createBackupPayload,
+  importBackupAtomically,
+  validateBackup,
+} from "../utils/backupValidation";
 
-export function DataBackup() {
+interface DataBackupProps {
+  recoveryOnly?: boolean;
+}
+
+export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
+  const { loadError, students, suspendPersistence, resumePersistence } = useSchoolData();
+  const [showReloadOverlay, setShowReloadOverlay] = useState(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [importStats, setImportStats] = useState({ count: 0, school: "" });
+  const [importStats, setImportStats] = useState({ count: 0, school: "", currentCount: 0 });
   const [decryptedBackupData, setDecryptedBackupData] = useState<{
     students: unknown[];
     settings: Record<string, unknown>;
@@ -57,18 +73,21 @@ export function DataBackup() {
 
   const handleExport = async () => {
     try {
-      const students = await loadFromStorage(IDB_KEYS.STUDENTS);
-      const settings = await loadFromStorage(IDB_KEYS.SETTINGS);
+      if (loadError) {
+        throw new Error("Data could not be read. Please use Try again before exporting.");
+      }
+      const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
+      const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);
+      if (studentsResult.status === "error" || settingsResult.status === "error") {
+        throw new Error("Data could not be read. Please use Try again before exporting.");
+      }
+      const parsedStudents = studentsResult.status === "found" ? studentsResult.value : [];
+      const parsedSettings = settingsResult.status === "found" ? settingsResult.value : {};
+      if (parsedStudents.length === 0 && !window.confirm("No students found. This backup will contain no students.")) {
+        return;
+      }
 
-      const parsedSettings = (settings || {}) as Record<string, unknown>;
-      const parsedStudents = students || [];
-
-      const backup = {
-        version: "1.0",
-        exportDate: new Date().toISOString(),
-        students: parsedStudents,
-        settings: parsedSettings,
-      };
+      const backup = createBackupPayload(parsedStudents, parsedSettings);
 
       let finalData: unknown = backup;
       let fileExtension = "json";
@@ -128,9 +147,11 @@ export function DataBackup() {
       setTimeout(() => setStatus("idle"), 5000);
     } catch (error) {
       setStatus("error");
-      setMessage("Failed to save file.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Export failed. Please try again.";
+      setMessage(errorMessage);
       console.error(error);
-      showToast("Export failed. Please try again.", "error");
+      showToast(errorMessage, "error");
     }
   };
 
@@ -153,14 +174,12 @@ export function DataBackup() {
           return;
         }
 
-        // Plain JSON file
-        if (!data.students || !data.settings) {
-          throw new Error("Invalid file format");
-        }
+        const validated = validateBackup(data);
         setPendingFile(file);
         setImportStats({
-          count: data.students.length,
-          school: (data.settings.schoolName as string) || "Unknown School",
+          count: validated.students.length,
+          school: (validated.settings.schoolName as string) || "Unknown School",
+          currentCount: students.length,
         });
         setShowImportModal(true);
       } catch {
@@ -194,16 +213,15 @@ export function DataBackup() {
         }>(encryptedData, importPassword);
 
         // Validate decrypted data
-        if (!decryptedBackup.students || !decryptedBackup.settings) {
-          throw new Error("Invalid backup data");
-        }
+        const validated = validateBackup(decryptedBackup);
 
         // Show confirmation modal with decrypted stats
         setImportStats({
-          count: decryptedBackup.students.length,
-          school: (decryptedBackup.settings.schoolName as string) || "Unknown School",
+          count: validated.students.length,
+          school: (validated.settings.schoolName as string) || "Unknown School",
+          currentCount: students.length,
         });
-        setDecryptedBackupData(decryptedBackup); // Store decrypted data
+        setDecryptedBackupData(validated); // Store validated data
         setShowImportPasswordModal(false);
         setShowImportModal(true);
         setImportPassword("");
@@ -242,17 +260,23 @@ export function DataBackup() {
         throw new Error("No file to import");
       }
 
-      await saveToStorage(IDB_KEYS.STUDENTS, backup.students);
-      await saveToStorage(IDB_KEYS.SETTINGS, backup.settings);
+      suspendPersistence();
+      try {
+        await importBackupAtomically(backup, loadFromStorageResult, saveToStorage, recoveryOnly);
+      } catch (error) {
+        resumePersistence();
+        throw error;
+      }
 
       setStatus("success");
       showToast("Class data loaded successfully!", "success");
 
       // Clean up
       setDecryptedBackupData(null);
+      setShowReloadOverlay(true);
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      showToast("Failed to import file. Please try again.", "error");
+      showToast(error instanceof Error ? error.message : "Failed to import file. Please try again.", "error");
       console.error(error);
     } finally {
       setShowImportModal(false);
@@ -261,6 +285,20 @@ export function DataBackup() {
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      {showReloadOverlay && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6">
+          <div className="rounded-xl bg-white p-6 text-center shadow-2xl">
+            <h2 className="text-lg font-bold text-gray-900">Backup loaded. Reloading...</h2>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white"
+            >
+              Reload now
+            </button>
+          </div>
+        </div>
+      )}
       <div className="mb-4 flex items-center gap-2">
         <div className="rounded-lg bg-blue-50 p-2">
           <Share2 className="h-5 w-5 text-blue-600" />
@@ -270,11 +308,11 @@ export function DataBackup() {
         </h2>
       </div>
 
-      <p className="mb-6 text-sm leading-relaxed text-gray-600">
+      {!recoveryOnly && <p className="mb-6 text-sm leading-relaxed text-gray-600">
         Need to switch from your phone to a laptop? Or send this class to another teacher?
         <br />
         Save this file and send it via <strong>WhatsApp (Document)</strong> or Bluetooth.
-      </p>
+      </p>}
 
       {/* Status Message */}
       {status !== "idle" && (
@@ -292,7 +330,7 @@ export function DataBackup() {
         </div>
       )}
 
-      {/* Password Protection Toggle */}
+      {!recoveryOnly && (
       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <label className="flex cursor-pointer items-start gap-3">
           <input
@@ -313,16 +351,17 @@ export function DataBackup() {
           </div>
         </label>
       </div>
+      )}
 
       {/* Action Buttons */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <button
+        {!recoveryOnly && <button
           onClick={initiateExport}
           className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95"
         >
           {usePassword ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
           {usePassword ? "Save Encrypted File" : "Save Class File"}
-        </button>
+        </button>}
 
         <label className="bg-background flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95">
           <Upload className="h-4 w-4" />
@@ -356,7 +395,7 @@ export function DataBackup() {
       <ConfirmModal
         isOpen={showImportModal}
         title="Load New Class Data?"
-        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will REPLACE the current data on this device.`}
+        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will replace ${importStats.currentCount} current students on this device.`}
         confirmText="Yes, Load File"
         cancelText="Cancel"
         isDangerous={true}
