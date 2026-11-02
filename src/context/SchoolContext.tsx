@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import posthog from "posthog-js";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
@@ -23,16 +23,26 @@ import {
 // IndexedDB storage
 import {
   initStorage,
-  loadFromStorage,
+  loadFromStorageResult,
   saveToStorage,
   IDB_KEYS,
   migrateFromLocalStorage,
 } from "../utils/idbStorage";
+import { ConfirmModal } from "../components/ConfirmModal";
+
+const LOAD_TIMEOUT_MS = 10_000;
+type LoadKeyStatus = "ok" | "error";
+type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
 
 export function SchoolProvider({ children }: { children: ReactNode }) {
   // State with empty initialization (will load from IndexedDB)
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<LoadStatus>({ students: "ok", settings: "ok" });
+  const [showFreshConfirm, setShowFreshConfirm] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const loadAttemptRef = useRef(0);
+  const persistenceSuspendedRef = useRef(false);
 
   const [settings, setSettings] = useState<SchoolSettings>({
     schoolName: "My School Name",
@@ -103,55 +113,110 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // ✅ INITIALIZE INDEXEDDB AND LOAD DATA
   useEffect(() => {
-    const initializeStorage = async () => {
-      // 1. Initialize IndexedDB
-      await initStorage();
-
-      // 2. Migrate from localStorage if needed
-      const migration = await migrateFromLocalStorage();
-      if (
-        migration.success &&
-        migration.studentsCount !== undefined &&
-        migration.studentsCount > 0 &&
-        !migration.error?.includes("already")
-      ) {
-        console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
-        // Only show toast on actual migration, not on every reload
-      }
-
-      // 3. Load students
-      const loadedStudents = await loadFromStorage<StudentRecord[]>(IDB_KEYS.STUDENTS);
-      if (loadedStudents && loadedStudents.length > 0) {
-        setStudents(loadedStudents);
-      }
-
-      // 4. Load settings
-      const loadedSettings = await loadFromStorage<SchoolSettings>(IDB_KEYS.SETTINGS);
-      if (loadedSettings) {
-        setSettings(loadedSettings);
-      }
-
+    const attempt = loadAttempt + 1;
+    loadAttemptRef.current = attempt;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      if (loadAttemptRef.current !== attempt) return;
+      timedOut = true;
+      setLoadStatus({ students: "error", settings: "error" });
       setIsDataLoaded(true);
+    }, LOAD_TIMEOUT_MS);
+
+    const initializeStorage = async () => {
+      try {
+        // 1. Initialize IndexedDB
+        await initStorage();
+
+        // 2. Migrate from localStorage if needed
+        const migration = await migrateFromLocalStorage();
+        if (
+          migration.success &&
+          migration.studentsCount !== undefined &&
+          migration.studentsCount > 0 &&
+          !migration.error?.includes("already")
+        ) {
+          console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
+          // Only show toast on actual migration, not on every reload
+        }
+
+        // 3. Load students
+        const studentsResult = await loadFromStorageResult<StudentRecord[]>(IDB_KEYS.STUDENTS);
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        if (studentsResult.status === "found") {
+          setStudents(studentsResult.value);
+        }
+
+        // 4. Load settings
+        const settingsResult = await loadFromStorageResult<SchoolSettings>(IDB_KEYS.SETTINGS);
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        if (settingsResult.status === "found") {
+          setSettings(settingsResult.value);
+        }
+        setLoadStatus({
+          students: studentsResult.status === "error" ? "error" : "ok",
+          settings: settingsResult.status === "error" ? "error" : "ok",
+        });
+      } catch (error) {
+        console.error("Failed to load school data:", error);
+        if (loadAttemptRef.current === attempt && !timedOut) {
+          setLoadStatus({ students: "error", settings: "error" });
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (loadAttemptRef.current === attempt && !timedOut) {
+          setIsDataLoaded(true);
+        }
+      }
     };
 
     initializeStorage();
-  }, []); // Run once on mount
+    return () => window.clearTimeout(timeoutId);
+  }, [loadAttempt]); // Run on mount and explicit retry
+
+  const hasLoadError = loadStatus.students === "error" || loadStatus.settings === "error";
 
   useEffect(() => {
     if (!isDataLoaded) return; // Don't save until initial load complete
+    if (persistenceSuspendedRef.current) return;
+    if (loadStatus.students === "error") return;
+    if (debouncedStudents !== students) return; // Wait for the hydrated snapshot to settle
 
     saveToStorage(IDB_KEYS.STUDENTS, debouncedStudents);
-    createBackupHeartbeat();
+    if (!hasLoadError) createBackupHeartbeat();
     queueMicrotask(() => setLastSaved(new Date()));
-  }, [debouncedStudents, isDataLoaded]);
+  }, [debouncedStudents, hasLoadError, isDataLoaded, loadStatus.students, students]);
 
   useEffect(() => {
     if (!isDataLoaded) return; // Don't save until initial load complete
+    if (persistenceSuspendedRef.current) return;
+    if (loadStatus.settings === "error") return;
+    if (debouncedSettings !== settings) return; // Wait for the hydrated snapshot to settle
 
     saveToStorage(IDB_KEYS.SETTINGS, debouncedSettings);
-    createBackupHeartbeat();
+    if (!hasLoadError) createBackupHeartbeat();
     queueMicrotask(() => setLastSaved(new Date()));
-  }, [debouncedSettings, isDataLoaded]);
+  }, [debouncedSettings, hasLoadError, isDataLoaded, loadStatus.settings, settings]);
+
+  const retryLoad = () => {
+    setIsDataLoaded(false);
+    setLoadStatus({ students: "ok", settings: "ok" });
+    setLoadAttempt((current) => current + 1);
+  };
+
+  const startFresh = () => {
+    setStudents([]);
+    restoreDefaults();
+    setLoadStatus({ students: "ok", settings: "ok" });
+    setIsDataLoaded(true);
+    setShowFreshConfirm(false);
+  };
+  const suspendPersistence = () => {
+    persistenceSuspendedRef.current = true;
+  };
+  const resumePersistence = () => {
+    persistenceSuspendedRef.current = false;
+  };
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {
@@ -773,11 +838,28 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         checkDuplicateName,
         restoreDefaults,
         autoGenerateRemarks,
+        isDataLoaded,
+        loadStatus,
+        loadError: hasLoadError,
+        retryLoad,
+        startFresh: () => setShowFreshConfirm(true),
+        suspendPersistence,
+        resumePersistence,
         isSaving,
         lastSaved,
       }}
     >
       {children}
+      <ConfirmModal
+        isOpen={showFreshConfirm}
+        title="Start fresh?"
+        message="This replaces any saved data on this device. Restore a backup first if you need it."
+        confirmText="Start fresh"
+        cancelText="Cancel"
+        isDangerous
+        onConfirm={startFresh}
+        onClose={() => setShowFreshConfirm(false)}
+      />
     </SchoolContext.Provider>
   );
 }
