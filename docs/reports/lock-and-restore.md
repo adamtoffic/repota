@@ -32,3 +32,13 @@ Backup validation now separates structure from content format. It rejects wrong 
 Imported settings are merged over the shared application defaults, so older files with omitted optional settings remain loadable without changing stored keys or the backup format. The existing atomic write and rollback path remains in use, and encrypted payloads pass through the same validator after decryption.
 
 Tests cover UI-shaped unusual values (`Ɔ`, `ɛ`, `2025-2026`, `Basic Science 2`, and a one-character name), structural rejection before writes, default merging, round-trip export validation, duplicate IDs, and encrypted-path validation reuse.
+
+## Summary for reviewer
+
+- Saved auto-lock settings now drive App immediately, with a five-minute fallback.
+- Visibility locking has a 30-second return grace period.
+- Print suppresses visibility locking until `afterprint` or two minutes.
+- Backup restore separates structural rejection from unusual-content warnings.
+- Older backups merge missing settings over shared defaults.
+- All 15 test files and 198 tests pass; lint and TypeScript build pass.
+- Native iOS PWA and system print lifecycle behavior remain device-only checks.
