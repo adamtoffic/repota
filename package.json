@@ -39,7 +39,6 @@
   "dependencies": {
     "@tanstack/react-router": "^1.146.0",
     "@tanstack/react-virtual": "^3.13.18",
-    "@vercel/analytics": "^1.6.1",
     "idb": "^8.0.3",
     "lucide-react": "^0.562.0",
     "posthog-js": "^1.360.0",
