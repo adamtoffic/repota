@@ -223,7 +223,7 @@ export function PrintPreview() {
         {printableStudents.map((student) => (
           <div
             key={student.id}
-            className="report-wrapper mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:overflow-hidden print:p-0"
+            className="report-wrapper ph-no-capture mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:overflow-hidden print:p-0"
           >
             <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
               <div className="bg-white shadow-2xl print:m-0 print:p-0 print:shadow-none">
