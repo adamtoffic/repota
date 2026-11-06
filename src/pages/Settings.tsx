@@ -388,7 +388,9 @@ function SettingsContent() {
             <div className="rounded-lg bg-blue-100 p-2.5">
               <School className="h-5 w-5 text-blue-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">School Identity</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              School Identity
+            </h2>
           </div>
 
           <div className="grid gap-6 md:grid-cols-[140px_1fr]">
@@ -565,7 +567,9 @@ function SettingsContent() {
             <div className="rounded-lg bg-orange-100 p-2.5">
               <BookOpen className="h-5 w-5 text-orange-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Academic Session</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              Academic Session
+            </h2>
           </div>
 
           <div className="grid gap-6">
@@ -730,7 +734,10 @@ function SettingsContent() {
             {/* GRADING CONFIG - SBA RENAMED — hidden in mock exam mode */}
             {formData.examType !== "MOCK" && (
               <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
-                <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
+                <h3
+                  className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase"
+                  data-record="true"
+                >
                   <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
                 </h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -785,7 +792,10 @@ function SettingsContent() {
               <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Calculator className="h-4 w-4 text-purple-700" />
-                  <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
+                  <h3
+                    className="text-xs font-bold tracking-wider text-purple-900 uppercase"
+                    data-record="true"
+                  >
                     SBA Task Library
                   </h3>
                 </div>
@@ -931,7 +941,9 @@ function SettingsContent() {
             <div className="rounded-lg bg-purple-100 p-2.5">
               <Briefcase className="h-5 w-5 text-purple-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Staff Details</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              Staff Details
+            </h2>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2">
@@ -970,7 +982,7 @@ function SettingsContent() {
         {/* CARD 4: SUBJECTS */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4">
-            <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+            <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase" data-record="true">
               Class Subjects (Learning Areas)
             </h2>
             <p className="text-muted text-xs">
@@ -1023,7 +1035,10 @@ function SettingsContent() {
           (formData.componentLibrary || []).length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4">
-                <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+                <h2
+                  className="text-base font-bold tracking-wide text-gray-800 uppercase"
+                  data-record="true"
+                >
                   Subject Assessment Config
                 </h2>
                 <p className="text-muted text-xs">Assign specific SBA tasks to each subject.</p>
@@ -1105,7 +1120,9 @@ function SettingsContent() {
               <LayoutTemplate className="h-5 w-5 text-indigo-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Report Card Design</h2>
+              <h2 className="text-lg font-bold text-gray-800" data-record="true">
+                Report Card Design
+              </h2>
               <p className="text-muted text-xs">
                 Choose the visual layout for your printed reports.
               </p>
@@ -1149,7 +1166,9 @@ function SettingsContent() {
             <div className="rounded-lg bg-green-100 p-2.5">
               <Lock className="h-5 w-5 text-green-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Security & Privacy</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              Security & Privacy
+            </h2>
           </div>
 
           <div className="space-y-4">
@@ -1214,7 +1233,9 @@ function SettingsContent() {
 
             {isPinConfigured() && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-2 font-bold text-blue-900">Auto-Lock Timer</h3>
+                <h3 className="mb-2 font-bold text-blue-900" data-record="true">
+                  Auto-Lock Timer
+                </h3>
                 <p className="mb-3 text-sm text-blue-800">
                   Automatically lock the app after a period of inactivity.
                 </p>

@@ -19,7 +19,7 @@ posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
     maskTextSelector: "*",
     blockSelector: "img",
     maskTextFn: (text, element) =>
-      element?.dataset?.record === "true" ? text : "*".repeat(text.length),
+      element?.closest('[data-record="true"]') ? text : "*".repeat(text.length),
   },
 });
 
