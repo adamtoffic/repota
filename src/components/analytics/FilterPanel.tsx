@@ -38,7 +38,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-main flex items-center gap-2 text-base font-bold">
+        <h3 className="text-main flex items-center gap-2 text-base font-bold" data-record="true">
           <Filter className="h-4 w-4" />
           Filters
         </h3>
@@ -46,6 +46,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           <button
             onClick={clearFilters}
             className="text-primary hover:text-primary/80 flex items-center gap-1 text-xs font-bold transition-colors sm:text-sm"
+            data-record="true"
           >
             <X size={14} />
             Clear
@@ -56,7 +57,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       <div className="space-y-3 sm:space-y-4">
         {/* Gender Filter */}
         <div>
-          <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+          <label
+            className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
+            data-record="true"
+          >
             Gender
           </label>
           <select
@@ -77,7 +81,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {/* Performance Level Filter */}
         <div>
-          <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+          <label
+            className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
+            data-record="true"
+          >
             Performance Level
           </label>
           <select
@@ -99,7 +106,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {/* Subject Filter */}
         <div>
-          <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+          <label
+            className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
+            data-record="true"
+          >
             Subject Focus
           </label>
           <select
@@ -123,7 +133,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {/* Score Range Filter */}
         <div>
-          <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+          <label
+            className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
+            data-record="true"
+          >
             Score Range
           </label>
           <div className="space-y-2">

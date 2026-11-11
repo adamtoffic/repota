@@ -34,7 +34,12 @@ export const StatCard: React.FC<StatCardProps> = ({
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-muted text-xs font-bold tracking-wide uppercase sm:text-sm">{title}</p>
+          <p
+            className="text-muted text-xs font-bold tracking-wide uppercase sm:text-sm"
+            data-record="true"
+          >
+            {title}
+          </p>
           <p className="text-main mt-2 text-2xl font-black sm:text-3xl">{value}</p>
           {subtitle && <p className="text-muted mt-1 text-xs">{subtitle}</p>}
           {trend && (
@@ -46,7 +51,9 @@ export const StatCard: React.FC<StatCardProps> = ({
               >
                 {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
               </span>
-              <span className="text-muted text-xs">vs last term</span>
+              <span className="text-muted text-xs" data-record="true">
+                vs last term
+              </span>
             </div>
           )}
         </div>

@@ -237,14 +237,17 @@ export const Analytics: React.FC = () => {
           <button
             onClick={() => navigate({ to: "/" })}
             className="text-muted hover:text-main mb-4 flex items-center gap-2 text-sm font-medium transition-colors sm:mb-6"
+            data-record="true"
           >
             <ArrowLeft size={18} />
             Back to Dashboard
           </button>
           <Card padding="lg" className="text-center">
             <BarChart3 size={48} className="mx-auto mb-4 text-gray-400" />
-            <h3 className="text-main mb-2 text-lg font-bold sm:text-xl">No Data Available</h3>
-            <p className="text-muted text-sm sm:text-base">
+            <h3 data-record="true" className="text-main mb-2 text-lg font-bold sm:text-xl">
+              No Data Available
+            </h3>
+            <p data-record="true" className="text-muted text-sm sm:text-base">
               Add students and their scores to view advanced analytics
             </p>
           </Card>
@@ -264,13 +267,17 @@ export const Analytics: React.FC = () => {
           <button
             onClick={() => navigate({ to: "/" })}
             className="text-muted hover:text-main mb-3 flex items-center gap-2 text-sm font-medium transition-colors sm:mb-4"
+            data-record="true"
           >
             <ArrowLeft size={18} />
             Back to Dashboard
           </button>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-main text-2xl font-black tracking-tight sm:text-3xl">
+              <h1
+                data-record="true"
+                className="text-main text-2xl font-black tracking-tight sm:text-3xl"
+              >
                 📊 Advanced Analytics
               </h1>
               <p className="text-muted mt-1 text-sm">
@@ -283,6 +290,7 @@ export const Analytics: React.FC = () => {
             <div className="flex items-center gap-2" data-no-print="true">
               <button
                 onClick={handleExportData}
+                data-record="true"
                 className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95"
                 title="Export analytics data as CSV"
               >
@@ -291,6 +299,7 @@ export const Analytics: React.FC = () => {
               </button>
               <button
                 onClick={handleExportPDF}
+                data-record="true"
                 className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
                 title="Export analytics as PDF"
               >
@@ -313,6 +322,7 @@ export const Analytics: React.FC = () => {
             return (
               <button
                 key={view.id}
+                data-record="true"
                 onClick={() =>
                   setActiveView(view.id as "overview" | "subjects" | "demographics" | "insights")
                 }
@@ -474,7 +484,9 @@ export const Analytics: React.FC = () => {
                         <div className="mt-4 space-y-2 border-t pt-4">
                           {genderAnalysis.maleCount > 0 && (
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Male Average:</span>
+                              <span data-record="true" className="text-gray-600">
+                                Male Average:
+                              </span>
                               <span className="font-semibold text-blue-600">
                                 {genderAnalysis.maleAverage}%
                               </span>
@@ -482,7 +494,9 @@ export const Analytics: React.FC = () => {
                           )}
                           {genderAnalysis.femaleCount > 0 && (
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Female Average:</span>
+                              <span data-record="true" className="text-gray-600">
+                                Female Average:
+                              </span>
                               <span className="font-semibold text-pink-600">
                                 {genderAnalysis.femaleAverage}%
                               </span>
@@ -490,7 +504,9 @@ export const Analytics: React.FC = () => {
                           )}
                           {genderAnalysis.maleCount > 0 && genderAnalysis.femaleCount > 0 && (
                             <div className="flex justify-between text-sm font-bold">
-                              <span className="text-gray-700">Performance Gap:</span>
+                              <span data-record="true" className="text-gray-700">
+                                Performance Gap:
+                              </span>
                               <span
                                 className={
                                   Math.abs(
@@ -648,10 +664,13 @@ export const Analytics: React.FC = () => {
                 {/* Subject Variance/Consistency Analysis */}
                 {subjectVariance.length > 0 && (
                   <Card>
-                    <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
+                    <h3
+                      data-record="true"
+                      className="text-main mb-4 text-base font-bold sm:text-lg"
+                    >
                       Subject Performance Consistency
                     </h3>
-                    <p className="text-muted mb-4 text-sm">
+                    <p data-record="true" className="text-muted mb-4 text-sm">
                       Measures how consistent student scores are within each subject. Low variance =
                       students perform similarly. High variance = wide performance gap.
                     </p>
@@ -659,16 +678,28 @@ export const Analytics: React.FC = () => {
                       <table className="w-full min-w-150">
                         <thead className="bg-gray-50">
                           <tr className="border-b">
-                            <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Subject
                             </th>
-                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Std. Deviation
                             </th>
-                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Consistency
                             </th>
-                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Interpretation
                             </th>
                           </tr>
@@ -712,29 +743,50 @@ export const Analytics: React.FC = () => {
 
                 {/* Subject Details Table */}
                 <Card>
-                  <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
+                  <h3
+                    data-record="true"
+                    className="text-main mb-4 text-base font-bold sm:text-lg"
+                  >
                     Detailed Subject Statistics
                   </h3>
                   <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
                     <table className="w-full min-w-150">
                       <thead className="bg-gray-50">
                         <tr className="border-b">
-                          <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                          <th
+                            data-record="true"
+                            className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                          >
                             Subject
                           </th>
-                          <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                          <th
+                            data-record="true"
+                            className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                          >
                             Average
                           </th>
-                          <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                          <th
+                            data-record="true"
+                            className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                          >
                             High
                           </th>
-                          <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                          <th
+                            data-record="true"
+                            className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                          >
                             Low
                           </th>
-                          <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                          <th
+                            data-record="true"
+                            className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                          >
                             Pass Rate
                           </th>
-                          <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                          <th
+                            data-record="true"
+                            className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                          >
                             Students
                           </th>
                         </tr>
@@ -833,13 +885,17 @@ export const Analytics: React.FC = () => {
                       />
                       <div className="mt-4 flex justify-around border-t pt-4">
                         <div className="text-center">
-                          <p className="text-xs text-gray-600">Male Avg Rate</p>
+                          <p data-record="true" className="text-xs text-gray-600">
+                            Male Avg Rate
+                          </p>
                           <p className="text-lg font-black text-blue-600">
                             {attendanceByGender.maleAttendanceRate}%
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-600">Female Avg Rate</p>
+                          <p data-record="true" className="text-xs text-gray-600">
+                            Female Avg Rate
+                          </p>
                           <p className="text-lg font-black text-pink-600">
                             {attendanceByGender.femaleAttendanceRate}%
                           </p>
@@ -889,23 +945,38 @@ export const Analytics: React.FC = () => {
                 {/* Gender Breakdown Table */}
                 {ageDistribution.length > 0 && (
                   <Card>
-                    <h3 className="text-main mb-4 text-base font-bold sm:text-lg">
+                    <h3
+                      data-record="true"
+                      className="text-main mb-4 text-base font-bold sm:text-lg"
+                    >
                       Gender Breakdown by Age
                     </h3>
                     <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
                       <table className="w-full min-w-100">
                         <thead className="bg-gray-50">
                           <tr className="border-b">
-                            <th className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Age Range
                             </th>
-                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Male
                             </th>
-                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Female
                             </th>
-                            <th className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm">
+                            <th
+                              data-record="true"
+                              className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
+                            >
                               Total
                             </th>
                           </tr>
@@ -947,11 +1018,14 @@ export const Analytics: React.FC = () => {
                 {/* At-Risk Students - Priority Alert */}
                 {atRiskStudents.length > 0 && (
                   <Card>
-                    <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
+                    <h3
+                      data-record="true"
+                      className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
+                    >
                       <AlertTriangle className="h-5 w-5 text-red-600" />
                       Students Requiring Immediate Attention
                     </h3>
-                    <p className="text-muted mb-4 text-sm">
+                    <p data-record="true" className="text-muted mb-4 text-sm">
                       Students identified based on low performance, poor attendance, or multiple
                       failed subjects. Prioritized by risk level.
                     </p>
@@ -998,31 +1072,42 @@ export const Analytics: React.FC = () => {
 
                 {/* Performance Quartiles */}
                 <Card>
-                  <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
+                  <h3
+                    data-record="true"
+                    className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
+                  >
                     <Brain className="h-5 w-5" />
                     Performance Distribution Analysis
                   </h3>
                   <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                     <div className="rounded-lg bg-green-50 p-4 text-center">
-                      <p className="text-xs font-bold text-green-700 uppercase">Top 25%</p>
+                      <p data-record="true" className="text-xs font-bold text-green-700 uppercase">
+                        Top 25%
+                      </p>
                       <p className="mt-2 text-2xl font-black text-green-900">
                         {performanceQuartiles.q3}%+
                       </p>
                     </div>
                     <div className="rounded-lg bg-blue-50 p-4 text-center">
-                      <p className="text-xs font-bold text-blue-700 uppercase">Median</p>
+                      <p data-record="true" className="text-xs font-bold text-blue-700 uppercase">
+                        Median
+                      </p>
                       <p className="mt-2 text-2xl font-black text-blue-900">
                         {performanceQuartiles.q2}%
                       </p>
                     </div>
                     <div className="rounded-lg bg-amber-50 p-4 text-center">
-                      <p className="text-xs font-bold text-amber-700 uppercase">Bottom 25%</p>
+                      <p data-record="true" className="text-xs font-bold text-amber-700 uppercase">
+                        Bottom 25%
+                      </p>
                       <p className="mt-2 text-2xl font-black text-amber-900">
                         {performanceQuartiles.q1}%
                       </p>
                     </div>
                     <div className="rounded-lg bg-purple-50 p-4 text-center">
-                      <p className="text-xs font-bold text-purple-700 uppercase">Top Quartile</p>
+                      <p data-record="true" className="text-xs font-bold text-purple-700 uppercase">
+                        Top Quartile
+                      </p>
                       <p className="mt-2 text-2xl font-black text-purple-900">
                         {performanceQuartiles.q4Count}
                       </p>
@@ -1032,7 +1117,10 @@ export const Analytics: React.FC = () => {
                   {/* Struggling Students */}
                   {performanceQuartiles.strugglingStudents.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-                      <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900">
+                      <h4
+                        data-record="true"
+                        className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900"
+                      >
                         <AlertTriangle className="h-4 w-4" />
                         Students Needing Support
                       </h4>
@@ -1058,29 +1146,40 @@ export const Analytics: React.FC = () => {
 
                 {/* Attendance Insights */}
                 <Card>
-                  <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
+                  <h3
+                    data-record="true"
+                    className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
+                  >
                     <Activity className="h-5 w-5" />
                     Attendance & Performance Correlation
                   </h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="rounded-lg bg-green-50 p-4">
-                      <p className="text-xs font-bold text-green-700 uppercase">
+                      <p data-record="true" className="text-xs font-bold text-green-700 uppercase">
                         Perfect Attendance
                       </p>
                       <p className="mt-2 text-2xl font-black text-green-900">
                         {attendanceInsights.perfectAttendance}
                       </p>
-                      <p className="mt-1 text-xs text-green-600">students</p>
+                      <p data-record="true" className="mt-1 text-xs text-green-600">
+                        students
+                      </p>
                     </div>
                     <div className="rounded-lg bg-red-50 p-4">
-                      <p className="text-xs font-bold text-red-700 uppercase">Poor Attendance</p>
+                      <p data-record="true" className="text-xs font-bold text-red-700 uppercase">
+                        Poor Attendance
+                      </p>
                       <p className="mt-2 text-2xl font-black text-red-900">
                         {attendanceInsights.poorAttendance}
                       </p>
-                      <p className="mt-1 text-xs text-red-600">students &lt;70%</p>
+                      <p data-record="true" className="mt-1 text-xs text-red-600">
+                        students &lt;70%
+                      </p>
                     </div>
                     <div className="rounded-lg bg-blue-50 p-4">
-                      <p className="text-xs font-bold text-blue-700 uppercase">Correlation</p>
+                      <p data-record="true" className="text-xs font-bold text-blue-700 uppercase">
+                        Correlation
+                      </p>
                       <p className="mt-2 text-2xl font-black text-blue-900">
                         {attendanceInsights.correlationWithPerformance === "positive"
                           ? "Positive ↑"
@@ -1088,7 +1187,9 @@ export const Analytics: React.FC = () => {
                             ? "Negative ↓"
                             : "Neutral →"}
                       </p>
-                      <p className="mt-1 text-xs text-blue-600">with performance</p>
+                      <p data-record="true" className="mt-1 text-xs text-blue-600">
+                        with performance
+                      </p>
                     </div>
                   </div>
                   {attendanceInsights.correlationWithPerformance === "positive" && (
@@ -1103,7 +1204,10 @@ export const Analytics: React.FC = () => {
 
                 {/* Key Recommendations */}
                 <div className="rounded-xl border border-blue-200 bg-linear-to-br from-blue-50 to-purple-50 p-6 shadow-sm">
-                  <h3 className="text-main mb-4 flex items-center gap-2 text-lg font-bold">
+                  <h3
+                    data-record="true"
+                    className="text-main mb-4 flex items-center gap-2 text-lg font-bold"
+                  >
                     <Brain className="h-6 w-6 text-blue-600" />
                     AI-Powered Recommendations
                   </h3>

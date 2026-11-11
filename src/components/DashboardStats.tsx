@@ -58,10 +58,10 @@ export function DashboardStats({ students, settings }: Props) {
             <AlertTriangle className="h-5 w-5 text-red-600" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-1 text-sm font-bold text-red-900">
+            <h3 className="mb-1 text-sm font-bold text-red-900" data-record="true">
               Class Over Capacity ({stats.total} / {stats.classSize})
             </h3>
-            <p className="text-xs leading-relaxed text-red-700">
+            <p className="text-xs leading-relaxed text-red-700" data-record="true">
               You have {stats.total - stats.classSize} more student
               {stats.total - stats.classSize > 1 ? "s" : ""} than your set class size. Consider
               updating the class size in Settings or reviewing your enrollment.
@@ -156,7 +156,9 @@ function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange"
       className={`animate-fade-in flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
     >
       <div className="flex-1">
-        <p className="text-muted text-xs font-bold tracking-wide uppercase">{label}</p>
+        <p className="text-muted text-xs font-bold tracking-wide uppercase" data-record="true">
+          {label}
+        </p>
         <div className="mt-1.5 flex items-center gap-2">
           <h3 className="text-main text-2xl font-black">{value}</h3>
           {alert && (

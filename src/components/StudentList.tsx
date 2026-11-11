@@ -85,9 +85,17 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
     <div className="relative rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* HEADER */}
       <div className="bg-background flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <h2 className="text-lg font-bold text-gray-800">Student Records</h2>
+        <h2 className="text-lg font-bold text-gray-800" data-record="true">
+          Student Records
+        </h2>
 
-        <Button onClick={handleOpenModal} variant="primary" size="md" aria-label="Add new student">
+        <Button
+          onClick={handleOpenModal}
+          variant="primary"
+          size="md"
+          aria-label="Add new student"
+          data-record="true"
+        >
           <UserPlus className="h-4 w-4" /> Add Student
         </Button>
       </div>
@@ -104,18 +112,34 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
         <table className="w-full min-w-176 text-left text-sm">
           <thead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold text-gray-600 uppercase shadow-sm">
             <tr>
-              <th className="px-4 py-3 sm:px-6 sm:py-4">Name</th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4">Class</th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4">Subjects</th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4">Avg. Score</th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4">Position</th>
-              <th className="px-4 py-3 text-right sm:px-6 sm:py-4">Actions</th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+                Name
+              </th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+                Class
+              </th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+                Subjects
+              </th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+                Avg. Score
+              </th>
+              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+                Position
+              </th>
+              <th className="px-4 py-3 text-right sm:px-6 sm:py-4" data-record="true">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {students.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-gray-400 sm:px-6">
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-gray-400 sm:px-6"
+                  data-record="true"
+                >
                   No students found. Click "Add Student" to start.
                 </td>
               </tr>
@@ -236,7 +260,9 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800">Add New Student</h3>
+              <h3 className="text-lg font-bold text-gray-800" data-record="true">
+                Add New Student
+              </h3>
               <button onClick={() => setIsAddOpen(false)}>
                 <X className="text-muted h-5 w-5" />
               </button>
@@ -256,7 +282,10 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
 
               {/* Gender Selection */}
               <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                <label
+                  className="text-muted mb-1 block text-xs font-bold uppercase"
+                  data-record="true"
+                >
                   Gender *
                 </label>
                 <div className="flex gap-3">
@@ -268,6 +297,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                         ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
                         : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
                     }`}
+                    data-record="true"
                   >
                     👦 Male
                   </button>
@@ -279,6 +309,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                         ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
                         : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
                     }`}
+                    data-record="true"
                   >
                     👧 Female
                   </button>
@@ -287,16 +318,21 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
 
               {/* Class Dropdown */}
               <div>
-                <label className="text-muted mb-1 block text-xs font-bold uppercase">Class</label>
+                <label
+                  className="text-muted mb-1 block text-xs font-bold uppercase"
+                  data-record="true"
+                >
+                  Class
+                </label>
                 <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
                   {settings.className}
                 </p>
-                <p className="mt-1 text-[10px] text-gray-400">
+                <p className="mt-1 text-[10px] text-gray-400" data-record="true">
                   Based on School Level: {settings.level}
                 </p>
               </div>
 
-              <Button type="submit" variant="primary" size="md" fullWidth>
+              <Button type="submit" variant="primary" size="md" fullWidth data-record="true">
                 Save Student
               </Button>
             </form>

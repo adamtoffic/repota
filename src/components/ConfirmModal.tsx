@@ -70,7 +70,9 @@ export function ConfirmModal({
             />
           </div>
           <div>
-            <h3 className="text-main text-lg leading-tight font-bold">{title}</h3>
+            <h3 className="text-main text-lg leading-tight font-bold" data-record="true">
+              {title}
+            </h3>
             <p className="text-muted mt-1 text-sm leading-relaxed">{message}</p>
           </div>
         </div>
@@ -81,6 +83,7 @@ export function ConfirmModal({
             ref={cancelButtonRef}
             onClick={handleCancel}
             className="hover:bg-background rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors"
+            data-record="true"
           >
             {cancelText}
           </button>
@@ -91,6 +94,7 @@ export function ConfirmModal({
             }}
             variant={isDangerous ? "danger" : "primary"}
             size="md"
+            data-record="true"
           >
             {confirmText}
           </Button>
