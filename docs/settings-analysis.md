@@ -124,12 +124,9 @@ preserving these invariants is **INFERRED** to change behavior.
 returns for the complete JSON snapshot (`src/pages/Settings.tsx:104-112`). A second effect opens
 the modal after one second when the mismatch remains (`src/pages/Settings.tsx:126-140`).
 
-**Confirmed.** “No, Keep Old Name” calls `onClose`, which sets `showClassUpdateModal(false)`;
-`ConfirmModal`’s cancel button calls `onClose` and does not change `formData`
-(`src/pages/Settings.tsx:1290-1300`; `src/components/ConfirmModal.tsx:62-69`). The class mismatch
-therefore remains, and the effect can reopen the modal after its one-second delay
-(`src/pages/Settings.tsx:126-140`). The modal’s Escape path has the same close-only behavior
-(`src/components/ConfirmModal.tsx:30-39`).
+**Confirmed.** Cancellation restores `lastSavedSettings.className` and closes the modal.
+The cancellation flow does not reopen it (`src/pages/Settings.tsx:194-197`,
+`src/components/ConfirmModal.tsx:26-39`).
 
 **Confirmed.** The user can get out by choosing “Yes, Update Everyone” (which saves and updates
 students) or by Reset, which restores `lastSavedSettings` (`src/pages/Settings.tsx:1299-1308`,
@@ -171,13 +168,9 @@ only once; there is no effect resynchronizing them when provider settings later 
 
 Other settings changes while mounted include provider `restoreDefaults` (`src/context/SchoolContext.tsx:72-101`), which is called by the factory reset flow before reload (`src/pages/Settings.tsx:1310-1323`), and `DataBackup.executeImport`, which writes IndexedDB directly and reloads (`src/components/DataBackup.tsx:204-236`). A parent/provider caller can also call `setSettings`; the only source call sites found are Settings and provider initialization (`src/pages/Settings.tsx:124`, `299`; `src/context/SchoolContext.tsx:100`, `131`). A same-tab external mutation without reload is **UNVERIFIED**.
 
-**Cold start:** `SchoolProvider` initially exposes hard-coded default settings and empty students,
-then asynchronously loads IndexedDB (`src/context/SchoolContext.tsx:30-60`, `104-134`). The router
-is mounted inside that provider and Settings is lazy-loaded (`src/App.tsx:76-78`;
-`src/router.tsx:8-10`, `35-38`). There is no `isDataLoaded` value in the context interface or a
-loading gate around routes (`src/context/SchoolContextDefinition.ts:1-24`). Therefore a
-deep-linked Settings page can mount while the provider still has defaults. The exact race
-observable to a user is **INFERRED**, but the absence of a gate is confirmed.
+**Cold start:** The `/settings` route is wrapped by `DataGate`, which renders `PageLoader` until
+`isDataLoaded` is true. Settings is not mounted while the provider is loading persisted data
+(`src/router.tsx:35-38`; `src/components/DataGate.tsx:11-40`).
 
 ### e) Fee names and consumers
 

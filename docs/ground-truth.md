@@ -3,7 +3,7 @@
 ## Key findings
 
 - Print itself does not call the lock setter; a print-related `visibilitychange` lock is only an inferred cause.
-- App reads auto-lock from `"app-data"` while provider writes `"ges_v1_settings"`.
+- App reads auto-lock from provider settings, which SchoolContext writes under `"ges_v1_settings"`.
 - DataGate covers Dashboard, Settings, Print, and Analytics and includes backup recovery on load error.
 - Dashboard pending logic treats zero scores as incomplete, including class score zero in MOCK mode.
 - `"New Student"` is persisted if its modal is closed without saving.
@@ -29,7 +29,7 @@
 | LockScreen mount | After 500 ms it enables/focuses PIN input and checks biometric enrollment; on non-iOS it automatically attempts biometric unlock. | CONFIRMED — [LockScreen.tsx](../src/components/LockScreen.tsx:27-45); [LockScreen.tsx](../src/components/LockScreen.tsx:67-78) |
 | Re-trigger after unlock | A successful biometric/PIN attempt calls `onUnlock` after 400 ms. App then unmounts LockScreen because `isLocked` becomes false; a later lock remounts it and repeats the mount attempt. | CONFIRMED — [LockScreen.tsx](../src/components/LockScreen.tsx:40-44); [App.tsx](../src/App.tsx:57-63) |
 | App remount during print/navigation | The router changes route content, but App remains the owner of `isLocked`; no code explicitly remounts App for `/print` or `window.print()`. | CONFIRMED — [App.tsx](../src/App.tsx:1-111); [router.tsx](../src/router.tsx:1-75) |
-| Browser events | `window.print()` can cause browser print lifecycle events, but the repository does not register `afterprint`; exact desktop Chrome/iOS PWA event behavior is UNVERIFIED from repository code. | UNVERIFIED — no `afterprint` handler found |
+| Browser events | `window.print()` can cause browser print lifecycle events, and App clears print suppression on `afterprint`; exact desktop Chrome/iOS PWA event behavior remains UNVERIFIED. | CONFIRMED/UNVERIFIED — [App.tsx](../src/App.tsx:41-91) |
 
 **Best-evidence loop explanation:** The repository directly proves that printing itself does not call `setIsLocked`; the only in-repo lock trigger during print is `visibilitychange` if printing makes the document hidden. It is INFERRED that a platform print/PWA transition may emit a hidden visibility state, causing the immediate lock; this needs device/browser reproduction. After unlock, the same visibility transition or another idle event can lock again, producing the reported loop.  
 
@@ -39,17 +39,17 @@
 
 | Question | Finding | Evidence |
 |---|---|---|
-| App read key/backend | App calls `loadFromStorage("app-data")`, which uses the IndexedDB storage layer; it expects an object containing `settings`. | CONFIRMED — [App.tsx](../src/App.tsx:21-29); [idbStorage.ts](../src/utils/idbStorage.ts:1-120) |
-| Provider write key/backend | Provider writes settings to `IDB_KEYS.SETTINGS`; the resolved key is `"schoolSettings"` in IndexedDB, with localStorage fallback under the same resolved key. | CONFIRMED — [idbStorage.ts](../src/utils/idbStorage.ts:6-15); [SchoolContext.tsx](../src/context/SchoolContext.tsx:191-199) |
-| Match | They do not match: App reads `"app-data"` while provider writes `"schoolSettings"`. | CONFIRMED — [App.tsx](../src/App.tsx:22); [idbStorage.ts](../src/utils/idbStorage.ts:8-9) |
+| App read key/backend | App reads `settings.autoLockTimeout` from the settings returned by `useSchoolData()`. | CONFIRMED — [App.tsx](../src/App.tsx:21-24); [SchoolContext.tsx](../src/context/SchoolContext.tsx:784-810) |
+| Provider write key/backend | SchoolContext persists settings through `saveToStorage(IDB_KEYS.SETTINGS, ...)`. | CONFIRMED — [SchoolContext.tsx](../src/context/SchoolContext.tsx:153-157); [idbStorage.ts](../src/utils/idbStorage.ts:6-22) |
+| Match | App reads the provider settings written by SchoolContext; it does not call `loadFromStorage("app-data")`. | CONFIRMED — [App.tsx](../src/App.tsx:21-24); [SchoolContext.tsx](../src/context/SchoolContext.tsx:153-157) |
 | Missing default | `idleTimeout` starts at 5 minutes and remains there when the App read has no usable `autoLockTimeout`. | CONFIRMED — [App.tsx](../src/App.tsx:20-28) |
 | Effect dependencies | The settings-read effect has `[]`; the idle timer receives `idleTimeout`, but the effect that loads it does not rerun after settings changes. | CONFIRMED — [App.tsx](../src/App.tsx:21-29); [useIdleTimer.ts](../src/hooks/useIdleTimer.ts:12-55) |
 | Change without reload | A Settings edit cannot update App’s timeout through this code path without a reload; it may never update even after reload because the keys differ. | CONFIRMED — [App.tsx](../src/App.tsx:21-29); [Settings.tsx](../src/pages/Settings.tsx:1222-1229) |
 
 ## 9. `nextTermStarts` and `academicYear`
 
-| Field | Consumers |
-|---|---|
+| Field | Consumers | Evidence |
+|---|---|---|
 | `academicYear` | Settings input; ReportTemplate; ReportHeader; Classic, Minimal, Modern, and Original templates. | CONFIRMED — [Settings.tsx](../src/pages/Settings.tsx:663-668); [ReportTemplate.tsx](../src/components/ReportTemplate.tsx:120); [ReportHeader.tsx](../src/components/reports/ReportHeader.tsx:60); template matches in `src/templates/` |
 | `nextTermStarts` | Settings input; ReportTemplate; StudentInfo; Classic, Minimal, Modern, and Original templates. Empty values are rendered as `TBA` in ReportTemplate/StudentInfo and hidden date text in templates using a conditional. | CONFIRMED — [Settings.tsx](../src/pages/Settings.tsx:653-657); [ReportTemplate.tsx](../src/components/ReportTemplate.tsx:209-219); [StudentInfo.tsx](../src/components/reports/StudentInfo.tsx:69-79); [ClassicTemplate.tsx](../src/templates/ClassicTemplate.tsx:347-351) |
 
@@ -57,7 +57,7 @@ No additional destructuring, alias, bracket access, Dashboard, Analytics, export
 
 ## 1. Student creation and analytics events
 
-| Path | Creation details | `silent` / event |
+| Path | Creation details | `silent` / event | Evidence |
 |---|---|---|
 | Dashboard empty-state Add | Creates `Date.now().toString()` ID, name `"New Student"`, default Male, class from settings, no subjects; calls `addStudent(newStudent)` then opens ScoreEntryModal. | `silent` omitted (`false`), but `addStudent` suppresses `Added_Student` when name is `"New Student"`. CONFIRMED — [Dashboard.tsx](../src/pages/Dashboard.tsx:83-99); [SchoolContext.tsx](../src/context/SchoolContext.tsx:238-247) |
 | StudentList add | Creates UUID student ID and UUID subject IDs from settings/default-level subjects; name is typed input. | `silent` omitted; `Added_Student` fires for any non-`"New Student"` name. CONFIRMED — [StudentList.tsx](../src/components/StudentList.tsx:44-78); [SchoolContext.tsx](../src/context/SchoolContext.tsx:240-245) |
@@ -71,8 +71,8 @@ Every `posthog.capture` in `src`: `Added_Student` for non-silent, non-placeholde
 
 ## 2. Definitions of incomplete
 
-| Surface | Predicate |
-|---|---|
+| Surface | Predicate | Evidence |
+|---|---|---|
 | Dashboard filter and DashboardStats pending | `subjects.length === 0` OR any subject has `classScore === 0` OR `examScore === 0`. Failing is the inverse of pending plus `averageScore < 50`. | CONFIRMED — [Dashboard.tsx](../src/pages/Dashboard.tsx:63-70); [DashboardStats.tsx](../src/components/DashboardStats.tsx:16-31) |
 | `deletePendingStudents` | Keeps only students with at least one subject and at least one subject where class or exam score is `> 0`; removes all others. | CONFIRMED — [SchoolContext.tsx](../src/context/SchoolContext.tsx:266-281) |
 | ValidationWarnings no-score | No subject has class or exam score `> 0`. | CONFIRMED — [ValidationWarnings.tsx](../src/components/ValidationWarnings.tsx:9-19) |
@@ -87,8 +87,8 @@ MOCK handling is not consistent: the pending predicates still treat a zero class
 
 ## 3. What reports print
 
-| Template | Empty-field behavior found in code |
-|---|---|
+| Template | Empty-field behavior found in code | Evidence |
+|---|---|---|
 | ReportTemplate | Photo is hidden if absent; attendance uses `-`; next term uses `TBA`; conduct and interest have defaults; generated headmaster remark always has text; signatures/names are conditional. | CONFIRMED — [ReportTemplate.tsx](../src/components/ReportTemplate.tsx:149-219); [ReportTemplate.tsx](../src/components/ReportTemplate.tsx:439-506) |
 | ClassicTemplate | Photo has an alternate empty branch; conduct defaults to `Satisfactory`; headmaster remark defaults to `Keep it up.`; fees/signatures/next-term blocks are conditional. | CONFIRMED — [ClassicTemplate.tsx](../src/templates/ClassicTemplate.tsx:90-122); [ClassicTemplate.tsx](../src/templates/ClassicTemplate.tsx:261-368) |
 | MinimalTemplate | Attendance/teacher details and fee/signature blocks use fallbacks or conditional blocks; next term is conditional on a value. | CONFIRMED — [MinimalTemplate.tsx](../src/templates/MinimalTemplate.tsx:227-313) |
@@ -117,8 +117,8 @@ One-time settings/student-derived local state that can become stale after hydrat
 
 ## 5. Backup under failure
 
-| Operation | Current behavior |
-|---|---|
+| Operation | Current behavior | Evidence |
+|---|---|---|
 | Export loader | Uses `loadFromStorageResult` for students and settings. Any `error`, or provider `loadError`, aborts before file creation and `recordBackup`; empty students require explicit `window.confirm`. | CONFIRMED — [DataBackup.tsx](../src/components/DataBackup.tsx:73-91) |
 | Null/empty reads | `empty` becomes `[]`/`{}`; empty student export is confirmation-gated. | CONFIRMED — [DataBackup.tsx](../src/components/DataBackup.tsx:82-86) |
 | Import validation | Plain and decrypted imports both call `validateBackup` before confirmation or writes. | CONFIRMED — [DataBackup.tsx](../src/components/DataBackup.tsx:171-184); [DataBackup.tsx](../src/components/DataBackup.tsx:208-225) |
@@ -130,8 +130,8 @@ One-time settings/student-derived local state that can become stale after hydrat
 
 ## 12. Data model as implemented
 
-| Type | Fields |
-|---|---|
+| Type | Fields | Evidence |
+|---|---|---|
 | `ClassScoreComponent` | Required `id`, `name`, `score`, `maxScore`; optional `category`. |
 | `SavedSubject` | Required `id`, `name`, `classScore`, `examScore`; optional `classScoreComponents`. |
 | `StudentRecord` | Required `id`, `name`, `className`, `gender`, `subjects`; optional DOB, attendance, remarks, promotion status, and `pictureUrl`. |
@@ -230,9 +230,9 @@ No manifest shortcut entries or explicit unknown-route/catch-all route were foun
 
 ## 10. PostHog configuration
 
-`posthog.init` uses `capture_pageview: true`, `autocapture: true`, `persistence: "localStorage"`, `person_profiles: "identified_only"`, and the configured API host/key. No session-recording option or input/text masking option is configured in this call. CONFIRMED — [main.tsx](../src/main.tsx:7-14)
+`posthog.init` uses `capture_pageview: true`, `autocapture: true`, `mask_all_text: true`, `mask_all_element_attributes: true`, and a `session_recording` block that masks inputs/text and blocks images. CONFIRMED — [main.tsx](../src/main.tsx:7-25)
 
-The comments contradict the values: `capture_pageview: true` says manual events will be relied on, and `autocapture: true` says autocapture is disabled. Because autocapture is enabled and no masking options are supplied here, DOM text/input data could be captured according to PostHog runtime behavior; whether specific student names/scores appear in replays is UNVERIFIED from repository code. CONFIRMED/UNVERIFIED — [main.tsx](../src/main.tsx:10-13)
+The configured masking and session-recording options contradict the old audit claim that they are absent. Repository code still cannot establish whether specific student names or scores appear in replays. CONFIRMED/UNVERIFIED — [main.tsx](../src/main.tsx:10-25)
 
 ## 11. Repo conventions
 
@@ -248,7 +248,7 @@ Required package scripts before a commit are `npm run lint`, `npx tsc -b`, and `
 - The earlier assumption that `nextTermStarts` and `academicYear` have no report consumers is wrong; all four templates and shared report components consume them. CONFIRMED — [ClassicTemplate.tsx](../src/templates/ClassicTemplate.tsx:75-75); [ModernTemplate.tsx](../src/templates/ModernTemplate.tsx:77-77); [ReportHeader.tsx](../src/components/reports/ReportHeader.tsx:60-62)
 - The App auto-lock read key does not match the provider settings key. CONFIRMED — [App.tsx](../src/App.tsx:22); [idbStorage.ts](../src/utils/idbStorage.ts:8-9)
 - DataGate now provides backup recovery while load-error is displayed, rather than leaving Settings as the only recovery route. CONFIRMED — [DataGate.tsx](../src/components/DataGate.tsx:23-37)
-- PostHog comments claim pageview/autocapture are disabled/manual, but both relevant values are enabled. CONFIRMED — [main.tsx](../src/main.tsx:10-12)
+- PostHog enables pageview/autocapture and configures text, attribute, input, and session-recording masking. CONFIRMED — [main.tsx](../src/main.tsx:10-25)
 
 ## Open questions
 

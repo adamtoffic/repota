@@ -183,7 +183,7 @@ The security model is layered and intentionally local:
 
 - PIN and recovery code protect app access at browser/device level (`src/utils/pinSecurity.ts:18-139`, `src/App.tsx:17-86`).
 - Biometric WebAuthn provides an alternate unlock mechanism when the platform authenticator is available (`src/utils/biometricAuth.ts:13-231`).
-- AES-256-GCM export encryption protects data when it is moved outside the browser or shared as a file (`src/utils/fileEncryption.ts:24-149`, `src/components/DataBackup.tsx:58-90`).
+- AES-256-GCM protects data only in password-encrypted backups; plain JSON exports are not encrypted (`src/utils/fileEncryption.ts:24-149`, `src/components/DataBackup.tsx:58-90`).
 
 These are separate layers: PIN/biometric controls app access; file encryption protects exported/imported copies; neither layer makes the browser storage itself encrypted by default.
 
