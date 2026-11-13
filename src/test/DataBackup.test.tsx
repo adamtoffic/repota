@@ -12,6 +12,7 @@ import {
 const storage = vi.hoisted(() => ({
   loadFromStorageResult: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
 }));
 const recordBackup = vi.hoisted(() => vi.fn());
 
@@ -19,6 +20,8 @@ vi.mock("../utils/idbStorage", () => ({
   IDB_KEYS: { STUDENTS: "students", SETTINGS: "settings" },
   loadFromStorageResult: storage.loadFromStorageResult,
   saveToStorage: storage.saveToStorage,
+  saveEntriesToStorage: storage.saveEntriesToStorage,
+  deleteFromStorage: vi.fn(),
 }));
 vi.mock("../utils/dataProtection", () => ({ recordBackup }));
 vi.mock("../hooks/useToast", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
@@ -68,6 +71,7 @@ describe("DataBackup", () => {
   beforeEach(() => {
     storage.loadFromStorageResult.mockReset();
     storage.saveToStorage.mockReset();
+    storage.saveEntriesToStorage.mockReset();
     recordBackup.mockReset();
     contextValue.suspendPersistence = vi.fn();
     contextValue.resumePersistence = vi.fn();
@@ -148,6 +152,36 @@ describe("DataBackup", () => {
     expect(save).toHaveBeenNthCalledWith(4, "settings", previous.settings);
   });
 
+  it("uses saveBatch for atomic import when provided", async () => {
+    const incoming = createBackupPayload(students, settings);
+    const load = vi.fn()
+      .mockResolvedValueOnce({ status: "found", value: [] })
+      .mockResolvedValueOnce({ status: "found", value: {} });
+    const save = vi.fn();
+    const saveBatch = vi.fn().mockResolvedValue(true);
+
+    await importBackupAtomically(incoming, load, save, false, vi.fn(), saveBatch);
+    expect(saveBatch).toHaveBeenCalledWith([
+      { key: "students", value: incoming.students },
+      { key: "settings", value: expect.objectContaining(incoming.settings) },
+    ]);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("throws when saveBatch fails during atomic import", async () => {
+    const incoming = createBackupPayload(students, settings);
+    const load = vi.fn()
+      .mockResolvedValueOnce({ status: "found", value: [] })
+      .mockResolvedValueOnce({ status: "found", value: {} });
+    const save = vi.fn();
+    const saveBatch = vi.fn().mockResolvedValue(false);
+
+    await expect(
+      importBackupAtomically(incoming, load, save, false, vi.fn(), saveBatch),
+    ).rejects.toThrow("Import failed; nothing was changed.");
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it("does not reject duplicate student ids", () => {
     expect(() =>
       validateBackup(
@@ -217,6 +251,7 @@ describe("DataBackup", () => {
       .mockResolvedValueOnce({ status: "found", value: students })
       .mockResolvedValueOnce({ status: "found", value: settings });
     storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
     const reload = vi.spyOn(window.location, "reload").mockImplementation(() => undefined);
     const view = render(
       <SchoolContext.Provider value={contextValue}>
@@ -229,17 +264,81 @@ describe("DataBackup", () => {
     await vi.waitFor(() => expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible());
     fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
 
-    await vi.waitFor(() => expect(storage.saveToStorage).toHaveBeenCalledWith("students", students));
-    expect(storage.saveToStorage).toHaveBeenCalledWith(
-      "settings",
-      expect.objectContaining(settings),
+    await vi.waitFor(() =>
+      expect(storage.saveEntriesToStorage).toHaveBeenCalledWith([
+        { key: "students", value: students },
+        { key: "settings", value: expect.objectContaining(settings) },
+      ]),
     );
     expect(contextValue.suspendPersistence).toHaveBeenCalled();
     expect(contextValue.suspendPersistence.mock.invocationCallOrder[0]).toBeLessThan(
-      storage.saveToStorage.mock.invocationCallOrder[0],
+      storage.saveEntriesToStorage.mock.invocationCallOrder[0],
     );
     expect(await screen.findByText("Backup loaded. Reloading...")).toBeVisible();
     await vi.waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 2000 });
     reload.mockRestore();
+  });
+
+  it("accepts unusual component categories with a warning", () => {
+    const payload = createBackupPayload(
+      [
+        {
+          ...students[0],
+          subjects: [
+            {
+              id: "subject-1",
+              name: "Math",
+              classScore: 20,
+              examScore: 50,
+              classScoreComponents: [
+                {
+                  id: "comp-1",
+                  name: "Midterm Quiz",
+                  score: 20,
+                  maxScore: 30,
+                  category: "UNUSUAL_CATEGORY",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      settings,
+    );
+
+    const validated = validateBackup(payload);
+    expect(validated.students[0].subjects[0].classScoreComponents?.[0].category).toBe(
+      "UNUSUAL_CATEGORY",
+    );
+    expect(validated.warningCount).toBeGreaterThan(0);
+  });
+
+  it("rejects non-numeric score in classScoreComponents", () => {
+    const payload = createBackupPayload(
+      [
+        {
+          ...students[0],
+          subjects: [
+            {
+              id: "subject-1",
+              name: "Math",
+              classScore: 20,
+              examScore: 50,
+              classScoreComponents: [
+                {
+                  id: "comp-1",
+                  name: "Quiz",
+                  score: "twenty" as unknown as number,
+                  maxScore: 30,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      settings,
+    );
+
+    expect(() => validateBackup(payload)).toThrow(/invalid/i);
   });
 });

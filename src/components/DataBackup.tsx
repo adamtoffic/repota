@@ -15,6 +15,8 @@ import { recordBackup } from "../utils/dataProtection";
 import {
   loadFromStorageResult,
   saveToStorage,
+  deleteFromStorage,
+  saveEntriesToStorage,
   IDB_KEYS,
 } from "../utils/idbStorage";
 import { encryptBackupFile, decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
@@ -23,6 +25,7 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import {
   createBackupPayload,
   importBackupAtomically,
+  IncompleteRollbackError,
   validateBackup,
 } from "../utils/backupValidation";
 
@@ -34,7 +37,7 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
-  const { loadError, students, suspendPersistence, resumePersistence } = useSchoolData();
+  const { loadError, students, suspendPersistence, resumePersistence, isStorageReady } = useSchoolData();
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
@@ -267,11 +270,24 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
         throw new Error("No file to import");
       }
 
+      if (isStorageReady === false) {
+        throw new Error("Storage is still initializing. Try the recovery again shortly.");
+      }
+
       suspendPersistence();
       try {
-        await importBackupAtomically(backup, loadFromStorageResult, saveToStorage, recoveryOnly);
+        await importBackupAtomically(
+          backup,
+          loadFromStorageResult,
+          saveToStorage,
+          recoveryOnly,
+          deleteFromStorage,
+          saveEntriesToStorage,
+        );
       } catch (error) {
-        resumePersistence();
+        if (!(error instanceof IncompleteRollbackError)) {
+          resumePersistence();
+        }
         throw error;
       }
 

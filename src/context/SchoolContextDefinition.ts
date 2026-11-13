@@ -23,6 +23,7 @@ export interface SchoolContextType {
   restoreDefaults: () => void;
   autoGenerateRemarks: (onProgress?: (current: number, total: number) => void) => void;
   isDataLoaded: boolean;
+  isStorageReady: boolean;
   loadStatus: LoadStatus;
   loadError: boolean;
   retryLoad: () => void;

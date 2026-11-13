@@ -108,6 +108,45 @@ export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> 
   }
 };
 
+/**
+ * Save multiple entries atomically in a single readwrite transaction
+ */
+export const saveEntriesToStorage = async (
+  entries: Array<{ key: string; value: unknown }>,
+): Promise<boolean> => {
+  try {
+    if (isIndexedDBAvailable && !db) {
+      await initStorage();
+    }
+    if (isIndexedDBAvailable && db) {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      for (const entry of entries) {
+        await tx.store.put(entry.value, entry.key);
+      }
+      await tx.done;
+    } else {
+      for (const entry of entries) {
+        const jsonString = JSON.stringify(entry.value);
+        localStorage.setItem(entry.key, jsonString);
+      }
+    }
+    return true;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+        console.error("Storage quota exceeded");
+        alert(
+          "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
+        );
+        return false;
+      }
+    }
+
+    console.error("Storage save entries error:", error);
+    return false;
+  }
+};
+
 export type StorageLoadResult<T> =
   | { status: "found"; value: T }
   | { status: "empty" }

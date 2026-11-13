@@ -9,6 +9,13 @@ const compatibleSubjectSchema = z.object({
   name: z.string().min(1, "Subject name required"),
   classScore: z.number(),
   examScore: z.number(),
+  classScoreComponents: z.array(z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    score: z.number(),
+    maxScore: z.number(),
+    category: z.string().optional(),
+  }).passthrough()).optional(),
 }).passthrough();
 
 const compatibleStudentSchema = z.object({
@@ -116,6 +123,13 @@ export type ValidatedBackup = {
   warningCount: number;
 };
 
+export class IncompleteRollbackError extends Error {
+  constructor() {
+    super("Import failed and restoring the previous data was incomplete. Do not close the app; restore from backup.");
+    this.name = "IncompleteRollbackError";
+  }
+}
+
 export function validateBackup(data: unknown) {
   if (!data || typeof data !== "object") {
     throw new Error("Backup must be a JSON object.");
@@ -155,6 +169,8 @@ export async function importBackupAtomically(
   load: <T>(key: string) => Promise<StorageLoadResult<T>>,
   save: <T>(key: string, value: T) => Promise<boolean>,
   allowUnreadableCurrent = false,
+  remove: (key: string) => Promise<boolean> = async () => false,
+  saveBatch?: (entries: Array<{ key: string; value: unknown }>) => Promise<boolean>,
 ) {
   const validated = validateBackup(backup);
   const previousStudents = await load<unknown[]>(IDB_KEYS.STUDENTS);
@@ -165,22 +181,32 @@ export async function importBackupAtomically(
   ) {
     throw new Error("Current data could not be read; nothing was changed.");
   }
+  if (saveBatch) {
+    const saved = await saveBatch([
+      { key: IDB_KEYS.STUDENTS, value: validated.students },
+      { key: IDB_KEYS.SETTINGS, value: validated.settings },
+    ]);
+    if (saved) return;
+    throw new Error("Import failed; nothing was changed.");
+  }
   if (!(await save(IDB_KEYS.STUDENTS, validated.students))) {
     throw new Error("Students could not be saved; nothing was changed.");
   }
   if (await save(IDB_KEYS.SETTINGS, validated.settings)) return;
 
-  const restoredStudents = await save(
-    IDB_KEYS.STUDENTS,
-    previousStudents.status === "found" ? previousStudents.value : [],
-  );
-  const restoredSettings = await save(
-    IDB_KEYS.SETTINGS,
-    previousSettings.status === "found" ? previousSettings.value : {},
-  );
-  throw new Error(
-    restoredStudents && restoredSettings
-      ? "Import failed; nothing was changed."
-      : "Import failed and restoring the previous data also failed. Do not close the app; restore from backup.",
-  );
+  if (previousStudents.status === "error" || previousSettings.status === "error") {
+    throw new IncompleteRollbackError();
+  }
+  const restoredStudents =
+    previousStudents.status === "found"
+      ? await save(IDB_KEYS.STUDENTS, previousStudents.value)
+      : await remove(IDB_KEYS.STUDENTS);
+  const restoredSettings =
+    previousSettings.status === "found"
+      ? await save(IDB_KEYS.SETTINGS, previousSettings.value)
+      : await remove(IDB_KEYS.SETTINGS);
+  if (restoredStudents && restoredSettings) {
+    throw new Error("Import failed; nothing was changed.");
+  }
+  throw new IncompleteRollbackError();
 }
