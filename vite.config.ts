@@ -48,7 +48,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /^\/assets\//],
         runtimeCaching: [
           // Cache JS/CSS files with NetworkFirst strategy
           {
@@ -60,6 +60,21 @@ export default defineConfig({
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
+              cacheableResponse: {
+                statuses: [200],
+              },
+              plugins: [
+                {
+                  cacheWillUpdate: async ({ response }: { response?: Response | null }) => {
+                    if (!response) return null;
+                    const contentType = response.headers.get("content-type") || "";
+                    if (contentType.includes("text/html")) {
+                      return null;
+                    }
+                    return response;
+                  },
+                },
+              ],
             },
           },
           // Cache images with CacheFirst strategy
