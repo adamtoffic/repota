@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx), typing into the **Class Name** field triggers a confirmation modal (`ConfirmModal`: *"Update Class Name Everywhere?"*) after merely 1,000ms of typing inactivity. For slow typers, teachers thinking between keystrokes, or anyone backspacing an old name, the modal prematurely steals focus, collapses virtual keyboards on mobile, and prompts to rename all existing student records to a half-typed string (e.g., `"B"` or `"Bas"`).
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx), typing into the **Class Name** field triggers a confirmation modal (`ConfirmModal`: *"Update Class Name Everywhere?"*) after merely 1,000ms of typing inactivity. For slow typers, teachers thinking between keystrokes, or anyone backspacing an old name, the modal prematurely steals focus, collapses virtual keyboards on mobile, and prompts to rename all existing student records to a half-typed string (e.g., `"B"` or `"Bas"`).
 
 Switching the trigger from a keystroke timer to an `onBlur` event on the input field is the correct architectural direction. However, doing so requires addressing **four specific cascading interactions** in `Settings.tsx`:
 1. **School Level switching (`applyLevelChange`)** updates `className` programmatically without focusing or blurring the input, which would leave the form permanently stuck in a dirty state unless handled explicitly.
@@ -18,7 +18,7 @@ This report details the root cause, audits all four cascading risks, and provide
 
 ### The Problematic Code
 
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L146-L164):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L117):
 
 ```tsx
 useEffect(() => {
@@ -65,7 +65,7 @@ useEffect(() => {
 Before changing this behavior, we must understand how `Settings.tsx` coordinates with auto-save, IndexedDB, and student records:
 
 ### A. The 500ms Auto-Save Hold
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L119-L144), `debouncedFormData` triggers auto-save every 500ms for all normal fields. However, lines 123–136 explicitly **suppress** saving `className` when students exist:
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L120-L145), `debouncedFormData` triggers auto-save every 500ms for all normal fields. However, lines 123–136 explicitly **suppress** saving `className` when students exist:
 
 ```tsx
 const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
@@ -88,9 +88,9 @@ When there are zero students, `classNameChanged && students.length > 0` is `fals
 
 ### C. Relationship Between `settings.className` and `student.className`
 Across the app:
-- [`src/components/StudentList.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/components/StudentList.tsx): New students default to `settings.className || "Class"`.
-- Report cards ([`ReportTemplate.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/components/ReportTemplate.tsx), [`ClassicTemplate.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/templates/ClassicTemplate.tsx), [`OriginalTemplate.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/templates/OriginalTemplate.tsx)): Display `{settings.className || student.className}`.
-- [`src/context/SchoolContext.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/context/SchoolContext.tsx#L317-L319): `updateClassNameForAll(newClassName)` maps over all students to update their individual records.
+- [`src/components/StudentList.tsx`](../../src/components/StudentList.tsx): New students default to `settings.className || "Class"`.
+- Report cards ([`ReportTemplate.tsx`](../../src/components/ReportTemplate.tsx), [`ClassicTemplate.tsx`](../../src/templates/ClassicTemplate.tsx), [`OriginalTemplate.tsx`](../../src/templates/OriginalTemplate.tsx)): Display `{settings.className || student.className}`.
+- [`src/context/SchoolContext.tsx`](../../src/context/SchoolContext.tsx#L317-L319): `updateClassNameForAll(newClassName)` maps over all students to update their individual records.
 
 ### D. School Level Switching (`applyLevelChange`) Programmatic Update
 When a user switches school levels (e.g., clicking **JHS** → **Yes, Change Level**), `applyLevelChange` programmatically sets `formData.className = defaultClass` (e.g., `"Basic 7 (JHS 1)"`).
@@ -121,7 +121,7 @@ If a user edits the Class Name input and immediately clicks the header **Reset**
 
 ## 3. Recommended Solution & Complete Code Implementation
 
-### Exact Changes in [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx):
+### Exact Changes in [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx):
 
 #### 1. Delete the 1,000ms Keystroke Timer Effect
 Remove lines 146–164 completely:
@@ -149,7 +149,7 @@ useEffect(() => {
 ```
 
 #### 2. Update `applyLevelChange` for Programmatic Level Switching
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L202-L217):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L218-L241):
 ```tsx
 const applyLevelChange = (newLevel: SchoolLevel) => {
   const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
@@ -181,6 +181,7 @@ const applyLevelChange = (newLevel: SchoolLevel) => {
 Add this handler in `SettingsContent`:
 ```tsx
 const handleClassNameBlur = () => {
+  if (suppressClassBlurRef.current) return;
   const trimmed = (formData.className ?? "").trim();
   const oldName = (lastSavedSettings.className ?? "").trim();
 
@@ -212,7 +213,7 @@ const handleClassNameBlur = () => {
 ```
 
 #### 4. Harden `finalizeSave` to Trim and Sync `lastAutoSaveRef`
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L325-L333):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L350-L364):
 ```tsx
 const finalizeSave = (shouldUpdateStudents = false) => {
   const trimmed = (formData.className ?? "").trim();
@@ -232,7 +233,7 @@ const finalizeSave = (shouldUpdateStudents = false) => {
 ```
 
 #### 5. Update Class Name `<Input>` with `onBlur` and `onKeyDown`
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L616-L625):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L652-L665):
 ```tsx
 <Input
   type="text"
@@ -252,11 +253,17 @@ In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/s
 ```
 
 #### 6. Prevent Blur Race on Header Reset Button
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L352-L359):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L384-L396):
 ```tsx
 <button
-  onClick={() => setShowResetModal(true)}
-  onMouseDown={(e) => e.preventDefault()}
+  onClick={() => {
+    suppressClassBlurRef.current = true;
+    setShowResetModal(true);
+  }}
+  onMouseDown={(e) => {
+    e.preventDefault();
+    suppressClassBlurRef.current = true;
+  }}
   className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
   title="Discard unsaved changes"
 >
@@ -266,7 +273,7 @@ In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/s
 ```
 
 #### 7. Clean Confirmation Modal Handler
-In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/src/pages/Settings.tsx#L1346-L1358):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L1394-L1403):
 ```tsx
 <ConfirmModal
   isOpen={showClassUpdateModal}
@@ -274,7 +281,7 @@ In [`src/pages/Settings.tsx`](file:///c:/Users/Flash/Documents/Projects/repota/s
   message={`You changed the class to "${(formData.className ?? "").trim()}". Do you want to update this for all ${students.length} existing students?`}
   confirmText="Yes, Update Everyone"
   cancelText="No, Keep Old Name"
-  onClose={handleKeepOldClassName}
+  onClose={() => setShowClassUpdateModal(false)}
   onCancel={handleKeepOldClassName}
   onConfirm={() => finalizeSave(true)}
 />

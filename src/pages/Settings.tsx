@@ -69,6 +69,7 @@ function SettingsContent() {
   const [formData, setFormData] = useState<SchoolSettings>(settings);
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
   const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
+  const suppressClassBlurRef = useRef(false);
 
   // Form States
   const [newSubject, setNewSubject] = useState("");
@@ -119,15 +120,17 @@ function SettingsContent() {
   useEffect(() => {
     const debouncedString = JSON.stringify(debouncedFormData);
     if (debouncedString === lastAutoSaveRef.current) return;
-
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
-    if (classNameChanged && students.length > 0) {
+    const isClassNameEmpty = !(debouncedFormData.className ?? "").trim();
+    if ((classNameChanged && students.length > 0) || isClassNameEmpty) {
       const savedFormData = {
         ...debouncedFormData,
         className: lastSavedSettings.className,
       };
+      const savedString = JSON.stringify(savedFormData);
+      if (savedString === lastAutoSaveRef.current) return;
       setSettings(savedFormData);
-      lastAutoSaveRef.current = JSON.stringify(savedFormData);
+      lastAutoSaveRef.current = savedString;
 
       requestAnimationFrame(() => {
         setLastSavedSettings(savedFormData);
@@ -144,12 +147,17 @@ function SettingsContent() {
   }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
 
   const handleClassNameBlur = () => {
+    if (suppressClassBlurRef.current) return;
     const trimmed = (formData.className ?? "").trim();
     const oldName = (lastSavedSettings.className ?? "").trim();
 
     // 1. If empty, revert to old name and warn
     if (!trimmed) {
       setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
+      lastAutoSaveRef.current = JSON.stringify({
+        ...formData,
+        className: lastSavedSettings.className,
+      });
       showToast("Class name cannot be empty", "error");
       return;
     }
@@ -359,6 +367,7 @@ function SettingsContent() {
 
   const handleReset = () => {
     setFormData(lastSavedSettings);
+    suppressClassBlurRef.current = false;
     setShowResetModal(false);
     showToast("Changes discarded", "info");
   };
@@ -375,8 +384,14 @@ function SettingsContent() {
                   <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
                 </div>
                 <button
-                  onClick={() => setShowResetModal(true)}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    suppressClassBlurRef.current = true;
+                    setShowResetModal(true);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    suppressClassBlurRef.current = true;
+                  }}
                   className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
                   title="Discard unsaved changes"
                 >
@@ -1382,7 +1397,7 @@ function SettingsContent() {
         message={`You changed the class to "${(formData.className ?? "").trim()}". Do you want to update this for all ${students.length} existing students?`}
         confirmText="Yes, Update Everyone"
         cancelText="No, Keep Old Name"
-        onClose={handleKeepOldClassName}
+        onClose={() => setShowClassUpdateModal(false)}
         onCancel={handleKeepOldClassName}
         onConfirm={() => finalizeSave(true)}
       />
@@ -1441,7 +1456,10 @@ function SettingsContent() {
         message="This will reset all fields to their last saved state. Any unsaved changes will be lost."
         confirmText="Yes, Discard Changes"
         isDangerous={true}
-        onClose={() => setShowResetModal(false)}
+        onClose={() => {
+          suppressClassBlurRef.current = false;
+          setShowResetModal(false);
+        }}
         onConfirm={handleReset}
       />
 
