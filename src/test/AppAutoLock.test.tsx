@@ -6,7 +6,7 @@ const state = vi.hoisted(() => ({
   context: {
     settings: { autoLockTimeout: 12 },
   } as Partial<SchoolContextType>,
-  idleOptions: [] as Array<{ timeout: number }>,
+  idleOptions: [] as Array<{ timeout: number; onIdle?: () => void; enabled?: boolean }>,
   pinConfigured: false,
 }));
 
@@ -19,7 +19,7 @@ vi.mock("../hooks/useSchoolData", () => ({
 }));
 
 vi.mock("../hooks/useIdleTimer", () => ({
-  useIdleTimer: (options: { timeout: number }) => {
+  useIdleTimer: (options: { timeout: number; onIdle?: () => void; enabled?: boolean }) => {
     state.idleOptions.push(options);
   },
 }));
@@ -160,5 +160,37 @@ describe("App auto-lock timeout", () => {
     });
 
     expect(screen.getByText("Locked")).toBeInTheDocument();
+  });
+
+  it("starts the hidden grace period again when afterprint fires while hidden", async () => {
+    const { PRINT_STARTED_EVENT } = await import("../utils/printHandler");
+    render(<App />);
+    state.pinConfigured = true;
+
+    act(() => {
+      window.dispatchEvent(new Event(PRINT_STARTED_EVENT));
+      Object.defineProperty(document, "hidden", { configurable: true, value: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      vi.advanceTimersByTime(10_000);
+      window.dispatchEvent(new Event("afterprint"));
+      vi.advanceTimersByTime(HIDDEN_LOCK_GRACE_MS);
+      Object.defineProperty(document, "hidden", { configurable: true, value: false });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(screen.getByText("Locked")).toBeInTheDocument();
+  });
+
+  it("does not lock on idle while print is in progress", async () => {
+    const { PRINT_STARTED_EVENT } = await import("../utils/printHandler");
+    render(<App />);
+    state.pinConfigured = true;
+
+    act(() => {
+      window.dispatchEvent(new Event(PRINT_STARTED_EVENT));
+      state.idleOptions.at(-1)?.onIdle?.();
+    });
+
+    expect(screen.queryByText("Locked")).not.toBeInTheDocument();
   });
 });

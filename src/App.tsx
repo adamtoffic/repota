@@ -25,10 +25,11 @@ function AppContent() {
   const hiddenAtRef = useRef<number | null>(null);
   const printInProgressRef = useRef(false);
   const printTimeoutRef = useRef<number | null>(null);
+  const [isPrintSuppressed, setIsPrintSuppressed] = useState(false);
 
   // Auto-lock after idle time
   const handleIdle = useCallback(() => {
-    if (isPinConfigured() && !isLocked) {
+    if (isPinConfigured() && !isLocked && !printInProgressRef.current) {
       setIsLocked(true);
     }
   }, [isLocked]);
@@ -36,13 +37,17 @@ function AppContent() {
   useIdleTimer({
     timeout: idleTimeout,
     onIdle: handleIdle,
-    enabled: isPinConfigured() && !isLocked,
+    enabled: isPinConfigured() && !isLocked && !isPrintSuppressed,
   });
 
   // Lock app when it becomes hidden (user switches tabs/apps)
   useEffect(() => {
     const clearPrintState = () => {
       printInProgressRef.current = false;
+      setIsPrintSuppressed(false);
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now();
+      }
       if (printTimeoutRef.current !== null) {
         window.clearTimeout(printTimeoutRef.current);
         printTimeoutRef.current = null;
@@ -51,6 +56,7 @@ function AppContent() {
 
     const markPrintInProgress = () => {
       printInProgressRef.current = true;
+      setIsPrintSuppressed(true);
       if (printTimeoutRef.current !== null) {
         window.clearTimeout(printTimeoutRef.current);
       }
