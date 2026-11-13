@@ -37,7 +37,7 @@ export const compatibleStudentSchema = z.object({
   headmasterRemark: z.string().optional(),
 }).passthrough();
 
-const structuralSettingsSchema = z.object({
+export const structuralSettingsSchema = z.object({
   schoolName: z.string(),
   className: z.string().optional(),
   schoolMotto: z.string().optional(),
@@ -110,7 +110,7 @@ function structuralError(
   return new Error(`${prefix}: ${result.error.issues[0]?.message}`);
 }
 
-function mergeSettings(settings: Record<string, unknown>) {
+export function mergeSettings(settings: Record<string, unknown>) {
   const merged = { ...getDefaultSettings(), ...settings };
   const result = structuralSettingsSchema.safeParse(merged);
   if (!result.success) throw structuralError(result, "Settings are invalid");

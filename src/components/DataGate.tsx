@@ -9,11 +9,21 @@ interface DataGateProps {
 }
 
 export function DataGate({ children }: DataGateProps) {
-  const { isDataLoaded, loadError, isRollbackIncomplete, retryLoad, startFresh } = useSchoolData();
+  const {
+    isDataLoaded,
+    loadError,
+    isRollbackIncomplete,
+    retryLoad,
+    startFresh,
+    activeRecoveryAction,
+    setActiveRecoveryAction,
+  } = useSchoolData();
 
   if (!isDataLoaded) {
     return <PageLoader />;
   }
+
+  const isRecoveryBusy = Boolean(activeRecoveryAction);
 
   if (loadError || isRollbackIncomplete) {
     return (
@@ -22,15 +32,20 @@ export function DataGate({ children }: DataGateProps) {
           Changes will not be saved while storage is unavailable. Try again, or restore a backup
           from Settings &gt; Backup.
           <div className="mt-3 flex gap-2">
-            <Button onClick={retryLoad} size="sm">
+            <Button onClick={retryLoad} disabled={isRecoveryBusy} size="sm">
               Try again
             </Button>
-            <Button onClick={startFresh} size="sm" variant="secondary">
+            <Button onClick={startFresh} disabled={isRecoveryBusy} size="sm" variant="secondary">
               Start fresh
             </Button>
           </div>
           <div className="mt-4">
-            <DataBackup recoveryOnly />
+            <DataBackup
+              recoveryOnly
+              disabled={isRecoveryBusy}
+              activeRecoveryAction={activeRecoveryAction}
+              onRecoveryActionChange={setActiveRecoveryAction}
+            />
           </div>
         </Alert>
       </div>

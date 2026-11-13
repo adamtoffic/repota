@@ -28,12 +28,21 @@ import {
   IncompleteRollbackError,
   validateBackup,
 } from "../utils/backupValidation";
+import type { RecoveryAction } from "../context/SchoolContextDefinition";
 
-interface DataBackupProps {
+export interface DataBackupProps {
   recoveryOnly?: boolean;
+  disabled?: boolean;
+  activeRecoveryAction?: RecoveryAction;
+  onRecoveryActionChange?: (action: RecoveryAction) => void;
 }
 
-export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
+export function DataBackup({
+  recoveryOnly = false,
+  disabled = false,
+  activeRecoveryAction: activeRecoveryActionProp,
+  onRecoveryActionChange,
+}: DataBackupProps) {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
@@ -46,7 +55,13 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
     markIncompleteRollback,
     clearIncompleteRollback,
     isRollbackIncomplete,
+    activeRecoveryAction: contextRecoveryAction,
+    setActiveRecoveryAction: contextSetRecoveryAction,
   } = useSchoolData();
+
+  const currentRecoveryAction = activeRecoveryActionProp ?? contextRecoveryAction ?? null;
+  const setRecoveryAction = onRecoveryActionChange ?? contextSetRecoveryAction;
+  const isRecoveryBusy = Boolean(currentRecoveryAction) || disabled;
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
   const isImportingRef = useRef(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -179,6 +194,10 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (typeof setRecoveryAction === "function") {
+      setRecoveryAction("import");
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -203,6 +222,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
         });
         setShowImportModal(true);
       } catch {
+        if (typeof setRecoveryAction === "function") {
+          setRecoveryAction(null);
+        }
         setStatus("error");
         showToast("Invalid file. Please select a valid Repota file.", "error");
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -249,6 +271,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
         showToast("File decrypted successfully! 🔓", "success");
       } catch (error) {
         console.error("Decryption error:", error);
+        if (typeof setRecoveryAction === "function") {
+          setRecoveryAction(null);
+        }
         showToast(
           error instanceof Error ? error.message : "Incorrect password. Please try again.",
           "error",
@@ -265,6 +290,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
     if (isImportingRef.current) return;
     isImportingRef.current = true;
     setIsImporting(true);
+    if (typeof setRecoveryAction === "function") {
+      setRecoveryAction("import");
+    }
 
     try {
       let backup;
@@ -335,6 +363,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
     } catch (error) {
       isImportingRef.current = false;
       setIsImporting(false);
+      if (typeof setRecoveryAction === "function") {
+        setRecoveryAction(null);
+      }
       showToast(error instanceof Error ? error.message : "Failed to import file. Please try again.", "error");
       console.error(error);
     } finally {
@@ -430,21 +461,32 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         {!recoveryOnly && <button
           onClick={initiateExport}
-          disabled={loadError || isRollbackIncomplete || isImporting}
+          disabled={loadError || isRollbackIncomplete || isImporting || isRecoveryBusy}
           className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50"
         >
           {usePassword ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
           {usePassword ? "Save Encrypted File" : "Save Class File"}
         </button>}
 
-        <label className={`bg-background flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors ${isImporting ? "pointer-events-none opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95"}`}>
+        <label
+          className={`bg-background flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors ${
+            isImporting || isRecoveryBusy
+              ? "pointer-events-none opacity-50 cursor-not-allowed"
+              : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95"
+          }`}
+          onClick={(e) => {
+            if (isImporting || isRecoveryBusy) {
+              e.preventDefault();
+            }
+          }}
+        >
           <Upload className="h-4 w-4" />
           Load Class File
           <input
             ref={fileInputRef}
             type="file"
             accept=".json,.repota"
-            disabled={isImporting}
+            disabled={isImporting || isRecoveryBusy}
             onChange={handleFileSelect}
             className="hidden"
           />
@@ -479,6 +521,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
             setShowImportModal(false);
             setDecryptedBackupData(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
+            if (typeof setRecoveryAction === "function") {
+              setRecoveryAction(null);
+            }
           }
         }}
         onConfirm={executeImport}
@@ -631,6 +676,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
                   setShowImportPasswordModal(false);
                   setImportPassword("");
                   if (fileInputRef.current) fileInputRef.current.value = "";
+                  if (typeof setRecoveryAction === "function") {
+                    setRecoveryAction(null);
+                  }
                 }}
                 className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
               >

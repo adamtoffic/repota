@@ -39,8 +39,8 @@ This report summarizes the code review findings and safety hardening applied on 
   * [`src/test/AppAutoLock.test.tsx`](../../src/test/AppAutoLock.test.tsx)
 * **Bugs & Risks Eliminated**:
   * **Idle Lock During Print**: Guarded `handleIdle` with `!printInProgressRef.current` in `App.tsx` so that idle timeouts cannot trigger screen lock while a native print dialog is active.
-  * **Print State Suppression**: Integrated `isPrintSuppressed` with `useIdleTimer`, listening to `PRINT_STARTED_EVENT`, `beforeprint`, and `afterprint`, with safety timeout cleanup.
-  * **Visibility & Grace Period Coverage**: Added comprehensive test coverage verifying that idle events during active printing do not lock the screen and that afterprint page-hide transitions observe `HIDDEN_LOCK_GRACE_MS`.
+  * **Print State Suppression**: Integrated `isPrintSuppressed` with `useIdleTimer`, listening to `PRINT_STARTED_EVENT` and `beforeprint`; suppression clears when `PRINT_LOCK_SUPPRESSION_MS` (2 minutes) expires rather than on `afterprint`, noting the remaining risk during the 2-minute window.
+  * **Visibility & Grace Period Coverage**: Added comprehensive test coverage verifying that idle events during active printing do not lock the screen and that return page-hide transitions observe `HIDDEN_LOCK_GRACE_MS`.
 
 ### 4. Test & Dependency Hygiene
 * **Files Changed**:

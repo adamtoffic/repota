@@ -21,7 +21,8 @@ import {
   detectDataLoss,
 } from "../utils/dataProtection";
 import { z } from "zod";
-import { compatibleStudentSchema } from "../utils/backupValidation";
+import { compatibleStudentSchema, mergeSettings } from "../utils/backupValidation";
+import type { RecoveryAction } from "./SchoolContextDefinition";
 // IndexedDB storage
 import {
   initStorage,
@@ -65,6 +66,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const [isPersistenceSuspended, setIsPersistenceSuspended] = useState(initialRollbackIncomplete);
   const [isRollbackIncomplete, setIsRollbackIncomplete] = useState(initialRollbackIncomplete);
   const storageReadyRef = useRef(false);
+  const migrationPromiseRef = useRef<Promise<unknown> | null>(null);
+  const [activeRecoveryAction, setActiveRecoveryAction] = useState<RecoveryAction>(null);
   const [resumeGeneration, setResumeGeneration] = useState(0);
 
   const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
@@ -106,7 +109,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         setIsStorageReady(true);
 
         // 2. Migrate from localStorage if needed
-        const migration = await migrateFromLocalStorage();
+        const migrationPromise = migrateFromLocalStorage();
+        migrationPromiseRef.current = migrationPromise;
+        migrationPromise.finally(() => {
+          if (migrationPromiseRef.current === migrationPromise) {
+            migrationPromiseRef.current = null;
+          }
+        });
+        const migration = await migrationPromise;
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (getStorageType() === "indexeddb" && !migration.success) {
           setLoadStatus({ students: "error", settings: "error" });
@@ -146,7 +156,22 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         const settingsResult = await loadFromStorageResult<SchoolSettings>(IDB_KEYS.SETTINGS);
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (settingsResult.status === "found") {
-          setSettings(settingsResult.value);
+          if (
+            settingsResult.value &&
+            typeof settingsResult.value === "object" &&
+            !Array.isArray(settingsResult.value)
+          ) {
+            try {
+              const validated = mergeSettings(settingsResult.value as unknown as Record<string, unknown>);
+              setSettings(validated as unknown as SchoolSettings);
+            } catch (err) {
+              console.error("Corrupted settings in storage:", err);
+              settingsLoadStatus = "error";
+            }
+          } else {
+            console.error("Corrupted settings in storage (not an object):", settingsResult.value);
+            settingsLoadStatus = "error";
+          }
         } else if (settingsResult.status === "empty") {
           setSettings(DEFAULT_FACTORY_SETTINGS);
         } else {
@@ -186,6 +211,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         window.clearTimeout(timeoutId);
         if (loadAttemptRef.current === attempt && !timedOut) {
           setIsDataLoaded(true);
+          setActiveRecoveryAction(null);
         }
       }
     };
@@ -219,6 +245,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   }, [debouncedSettings, hasLoadError, isDataLoaded, loadStatus.settings, resumeGeneration, settings]);
 
   const retryLoad = () => {
+    setActiveRecoveryAction("retry");
     setIsDataLoaded(false);
     setIsStorageReady(false);
     storageReadyRef.current = false;
@@ -231,33 +258,39 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       showToast("Storage is not ready. Try again after recovery finishes.", "error");
       return;
     }
-    const defaultSettings = DEFAULT_FACTORY_SETTINGS;
-    persistenceSuspendedRef.current = true;
-    setIsPersistenceSuspended(true);
-    setStudents([]);
-    setSettings(defaultSettings);
-    const [studentsSaved, settingsSaved] = await Promise.all([
-      saveToStorage(IDB_KEYS.STUDENTS, []),
-      saveToStorage(IDB_KEYS.SETTINGS, defaultSettings),
-    ]);
-    if (!studentsSaved || !settingsSaved) {
-      markIncompleteRollback();
-      showToast("Could not save fresh data. Recovery remains active.", "error");
-      return;
-    }
+    setActiveRecoveryAction("fresh");
     try {
-      localStorage.removeItem("repota_incomplete_rollback");
-    } catch {
-      // ignore
+      await migrationPromiseRef.current?.catch(() => {});
+      const defaultSettings = DEFAULT_FACTORY_SETTINGS;
+      persistenceSuspendedRef.current = true;
+      setIsPersistenceSuspended(true);
+      setStudents([]);
+      setSettings(defaultSettings);
+      const [studentsSaved, settingsSaved] = await Promise.all([
+        saveToStorage(IDB_KEYS.STUDENTS, []),
+        saveToStorage(IDB_KEYS.SETTINGS, defaultSettings),
+      ]);
+      if (!studentsSaved || !settingsSaved) {
+        markIncompleteRollback();
+        showToast("Could not save fresh data. Recovery remains active.", "error");
+        return;
+      }
+      try {
+        localStorage.removeItem("repota_incomplete_rollback");
+      } catch {
+        // ignore
+      }
+      setLoadStatus({ students: "ok", settings: "ok" });
+      setIsDataLoaded(true);
+      setShowFreshConfirm(false);
+      suspendedUntilHydratedRef.current = false;
+      persistenceSuspendedRef.current = false;
+      setIsPersistenceSuspended(false);
+      setIsRollbackIncomplete(false);
+      setResumeGeneration((current) => current + 1);
+    } finally {
+      setActiveRecoveryAction(null);
     }
-    setLoadStatus({ students: "ok", settings: "ok" });
-    setIsDataLoaded(true);
-    setShowFreshConfirm(false);
-    suspendedUntilHydratedRef.current = false;
-    persistenceSuspendedRef.current = false;
-    setIsPersistenceSuspended(false);
-    setIsRollbackIncomplete(false);
-    setResumeGeneration((current) => current + 1);
   };
   const suspendPersistence = () => {
     persistenceSuspendedRef.current = true;
@@ -915,7 +948,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         loadStatus,
         loadError: hasLoadError,
         retryLoad,
-        startFresh: () => setShowFreshConfirm(true),
+        startFresh: () => {
+          setActiveRecoveryAction("fresh");
+          setShowFreshConfirm(true);
+        },
         suspendPersistence,
         resumePersistence,
         isPersistenceSuspended,
@@ -924,6 +960,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         clearIncompleteRollback,
         isSaving,
         lastSaved,
+        activeRecoveryAction,
+        setActiveRecoveryAction,
       }}
     >
       {children}
@@ -935,7 +973,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         cancelText="Cancel"
         isDangerous
         onConfirm={startFresh}
-        onClose={() => setShowFreshConfirm(false)}
+        onClose={() => {
+          setShowFreshConfirm(false);
+          setActiveRecoveryAction(null);
+        }}
       />
     </SchoolContext.Provider>
   );

@@ -55,12 +55,15 @@ const suspendPersistenceMock = vi.fn();
 const resumePersistenceMock = vi.fn();
 const clearIncompleteRollbackMock = vi.fn();
 const markIncompleteRollbackMock = vi.fn();
+const setActiveRecoveryActionMock = vi.fn();
 
 const contextValue = {
   isDataLoaded: true,
   loadError: false,
   isRollbackIncomplete: false,
   isPersistenceSuspended: false,
+  activeRecoveryAction: null,
+  setActiveRecoveryAction: setActiveRecoveryActionMock,
   students,
   suspendPersistence: suspendPersistenceMock,
   resumePersistence: resumePersistenceMock,

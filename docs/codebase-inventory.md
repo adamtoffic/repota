@@ -239,9 +239,9 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 - Failed saves logged but don't block UI
 
 ### **Data Loss Detection: Backup Heartbeat**
-[src/utils/idbStorage.ts](../src/utils/idbStorage.ts) (lines 235–250):
+[src/utils/dataProtection.ts](../src/utils/dataProtection.ts) and [src/utils/idbStorage.ts](../src/utils/idbStorage.ts):
 - **createBackupHeartbeat()**: Stores timestamp of each successful save
-- **detectDataLoss()**: Compares stored heartbeat with current time
+- **detectDataLoss()**: Checks for missing student or settings keys while the backup marker exists (in [src/utils/dataProtection.ts](../src/utils/dataProtection.ts))
 - **Alert logic**: If heartbeat exists but student data is empty, warns user that Android cleaner app may have wiped storage
 - Helps teacher recover from accidental data deletion
 
@@ -254,7 +254,7 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 Handled in [DataBackup.tsx](../src/components/DataBackup.tsx), [fileEncryption.ts](../src/utils/fileEncryption.ts), and [backupValidation.ts](../src/utils/backupValidation.ts):
 - Export: Writes students and settings as JSON and encrypts with **AES-256-GCM** + PBKDF2 only when a password is set (plain JSON export when unencrypted)
 - Import: Decrypts encrypted files before schema validation and replaces current students on the device rather than merging them
-- Format: `.json` (plain or encrypted backup)
+- Format: plain .json backups and password-encrypted .repota files
 
 ---
 

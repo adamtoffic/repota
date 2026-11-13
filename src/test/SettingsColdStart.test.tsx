@@ -646,4 +646,89 @@ describe("Settings cold start", () => {
     expect(hasLoadErrorMessage()).toBe(true);
     pending.resolve({ status: "found", value: seededSettings });
   });
+
+  it("marks settings as error and retains recovery gate when stored settings are corrupted", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "found", value: seededStudents })
+      .mockResolvedValueOnce({ status: "found", value: "not-an-object" as unknown as SchoolSettings });
+
+    renderSettings();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(hasLoadErrorMessage()).toBe(true);
+  });
+
+  it("awaits in-flight migration before startFresh saves fresh data", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    const migrationDeferred = deferred<{ success: boolean }>();
+    storage.migrateFromLocalStorage.mockReturnValue(migrationDeferred.promise);
+
+    function TestConsumer() {
+      const { startFresh } = useSchoolData();
+      return (
+        <button type="button" onClick={startFresh}>
+          Trigger Start Fresh
+        </button>
+      );
+    }
+
+    render(
+      <SchoolProvider>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger Start Fresh" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh", exact: true }));
+
+    expect(storage.saveToStorage).not.toHaveBeenCalled();
+
+    await act(async () => {
+      migrationDeferred.resolve({ success: false });
+      await vi.advanceTimersByTimeAsync(100);
+    });
+
+    expect(storage.saveToStorage).toHaveBeenCalledWith("ges_v1_settings", expect.any(Object));
+  });
+
+  it("disables Try again, Start fresh, and Load Class File while a recovery action is active", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "error" })
+      .mockResolvedValueOnce({ status: "error" });
+
+    renderSettings();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const tryAgainBtn = screen.getByRole("button", { name: "Try again" });
+    const startFreshBtn = screen.getByRole("button", { name: "Start fresh" });
+    const loadFileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    expect(tryAgainBtn).not.toBeDisabled();
+    expect(startFreshBtn).not.toBeDisabled();
+    expect(loadFileInput).not.toBeDisabled();
+
+    fireEvent.click(startFreshBtn);
+
+    expect(tryAgainBtn).toBeDisabled();
+    expect(startFreshBtn).toBeDisabled();
+    expect(loadFileInput).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(tryAgainBtn).not.toBeDisabled();
+    expect(startFreshBtn).not.toBeDisabled();
+    expect(loadFileInput).not.toBeDisabled();
+  });
 });

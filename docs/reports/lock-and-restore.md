@@ -14,9 +14,9 @@ Validation:
 
 ## Goal 2: lock suppression during transient hiding and print
 
-The visibility handler now records when the document becomes hidden and only locks a PIN-protected app when it returns after at least 30 seconds. Print starts are signaled immediately before `window.print()` from Print Preview and the shared print helper. App suppresses visibility locking until `afterprint` or a named two-minute timeout.
+The visibility handler now records when the document becomes hidden and only locks a PIN-protected app when it returns after at least 30 seconds. Print starts are signaled immediately before `window.print()` from Print Preview and the shared print helper. App suppresses visibility locking until the named two-minute timeout (`PRINT_LOCK_SUPPRESSION_MS`) expires, with no `afterprint` handler (noting the remaining window risk).
 
-Tests use fake timers and mocked visibility for the under-30-second grace period, the 30-second lock, active print suppression, timeout expiry, and `afterprint` clearing.
+Tests use fake timers and mocked visibility for the under-30-second grace period, the 30-second lock, active print suppression, and timeout expiry.
 
 Manual verification:
 
@@ -37,7 +37,7 @@ Tests cover UI-shaped unusual values (`Ɔ`, `ɛ`, `2025-2026`, `Basic Science 2`
 
 - Saved auto-lock settings now drive App immediately, with a five-minute fallback.
 - Visibility locking has a 30-second return grace period.
-- Print suppresses visibility locking until `afterprint` or two minutes.
+- Print suppresses visibility locking until the two-minute timeout expires rather than on afterprint.
 - Backup restore separates structural rejection from unusual-content warnings.
 - Older backups merge missing settings over shared defaults.
 - All 15 test files and 198 tests pass; lint and TypeScript build pass.
