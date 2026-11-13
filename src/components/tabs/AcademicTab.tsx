@@ -147,8 +147,8 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-blue-600" />
             <div>
-              <p className="text-sm font-semibold text-blue-900" data-record="true">
-                Missing {missingSubjects.length} subject{missingSubjects.length > 1 ? "s" : ""}
+              <p className="text-sm font-semibold text-blue-900">
+                <span data-record="true">Missing</span> {missingSubjects.length} <span data-record="true">subject</span>{missingSubjects.length > 1 ? "s" : ""}
               </p>
             </div>
           </div>

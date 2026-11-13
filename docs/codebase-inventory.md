@@ -12,17 +12,17 @@ Repota is a Ghana-focused, offline-first Progressive Web App (PWA) for generatin
 | Directory | Responsibility | Key Files |
 |-----------|-----------------|-----------|
 | **src/pages** | Top-level route pages (Dashboard, Settings, Analytics, PrintPreview) | [Dashboard.tsx](../src/pages/Dashboard.tsx), [Settings.tsx](../src/pages/Settings.tsx), [Analytics.tsx](../src/pages/Analytics.tsx) |
-| **src/components** | Feature-specific and reusable UI components organized by domain (modals, forms, student management, score entry) | [ScoreEntryModal.tsx](../src/components/ScoreEntryModal.tsx), [StudentList.tsx](../src/components/StudentList.tsx), [ClassForm.tsx](../src/components/ClassForm.tsx) |
-| **src/components/ui** | Low-level, reusable design system components (Button, Input, Modal, Dropdown, etc.) | [Button.tsx](../src/components/ui/Button.tsx), [Input.tsx](../src/components/ui/Input.tsx), [Modal.tsx](../src/components/ui/Modal.tsx) |
+| **src/components** | Feature-specific and reusable UI components organized by domain (modals, forms, student management, score entry) | [ScoreEntryModal.tsx](../src/components/ScoreEntryModal.tsx), [StudentList.tsx](../src/components/StudentList.tsx), [DataBackup.tsx](../src/components/DataBackup.tsx) |
+| **src/components/ui** | Low-level, reusable design system components (Button, Input, Modal, Select, etc.) | [Button.tsx](../src/components/ui/Button.tsx), [Input.tsx](../src/components/ui/Input.tsx), [Modal.tsx](../src/components/ui/Modal.tsx) |
 | **src/context** | React Context providers for application state (SchoolContext manages all school/student data and persistence) | [SchoolContext.tsx](../src/context/SchoolContext.tsx) |
 | **src/utils** | Core utility functions: storage (IndexedDB/localStorage), grade calculation, analytics, security (PIN, biometric, encryption), remark generation | [idbStorage.ts](../src/utils/idbStorage.ts), [gradeCalculator.ts](../src/utils/gradeCalculator.ts), [pinSecurity.ts](../src/utils/pinSecurity.ts), [analyticsCalculator.ts](../src/utils/analyticsCalculator.ts) |
-| **src/hooks** | Custom React hooks for form handling, state management, and side effects | [useForm.ts](../src/hooks/useForm.ts), [useIndexedDB.ts](../src/hooks/useIndexedDB.ts) |
+| **src/hooks** | Custom React hooks for form handling, state management, and side effects | [useSchoolData.ts](../src/hooks/useSchoolData.ts), [useDebounce.ts](../src/hooks/useDebounce.ts) |
 | **src/schemas** | Zod validation schemas for data integrity (StudentRecord, SchoolSettings, import/export validation) | [studentSchema.ts](../src/schemas/studentSchema.ts), [settingsSchema.ts](../src/schemas/settingsSchema.ts) |
 | **src/types** | TypeScript type definitions and interfaces (core data contracts) | [index.ts](../src/types/index.ts) |
 | **src/api** | API layer with local/backend mode toggle (currently local-only); future Supabase integration scaffold | [config.ts](../src/api/config.ts), [studentApi.ts](../src/api/studentApi.ts) |
 | **src/constants** | Application-wide constants (grade scales, school levels, assessment types, remark banks) | [gradeConstants.ts](../src/constants/gradeConstants.ts), [schoolLevels.ts](../src/constants/schoolLevels.ts) |
-| **src/templates** | Report card and document templates (PDF generation, printing) | [ReportCardTemplate.tsx](../src/templates/ReportCardTemplate.tsx) |
-| **src/charts** | Recharts-based visualization components (ScatterPlot, BarChart, LineChart for analytics) | [ScatterPlot.tsx](../src/charts/ScatterPlot.tsx), [PerformanceChart.tsx](../src/charts/PerformanceChart.tsx) |
+| **src/templates** | Report card and document templates (PDF generation, printing) | [OriginalTemplate.tsx](../src/templates/OriginalTemplate.tsx) |
+| **src/components/charts** | Recharts-based visualization components (BarChart, LineChart, PieChart for analytics) | [BarChart.tsx](../src/components/charts/BarChart.tsx), [LineChart.tsx](../src/components/charts/LineChart.tsx) |
 | **src/analytics** | Analytics processing and aggregation (gender analysis, top performers, score distributions) | [analyticsCalculator.ts](../src/utils/analyticsCalculator.ts) |
 | **docs** | Documentation and project notes | (to be created/updated) |
 
@@ -36,72 +36,74 @@ Handles the core workflow of viewing, adding, editing, and managing student reco
 - [**Dashboard.tsx**](../src/pages/Dashboard.tsx): Main landing page with searchable student list, score entry, filter by class/gender, bulk actions
 - [**StudentList.tsx**](../src/components/StudentList.tsx): Virtualized scrolling list of students with edit/delete actions; handles large student counts efficiently
 - [**ScoreEntryModal.tsx**](../src/components/ScoreEntryModal.tsx): Modal for entering subject scores per student; calculates grade in real-time based on level-specific rules
-- [**StudentForm.tsx**](../src/components/StudentForm.tsx): Form to add/edit student details (name, ID, gender, image)
-- [**ClassForm.tsx**](../src/components/ClassForm.tsx): Form to create/edit class (level, arm, teacher, students)
+- [**DashboardToolbar.tsx**](../src/components/DashboardToolbar.tsx): Search, filter, sorting, and action toolbar for student dashboard
+- [**BulkImportModal.tsx**](../src/components/BulkImportModal.tsx): Bulk import students and scores from CSV or Excel files
 - [**ImageUploader.tsx**](../src/components/ImageUploader.tsx): Compresses and uploads student photos; stores as base64
 
 ### **Report Cards & Printing**
 Generates printable report card documents and manages printing workflows.
 
 - [**PrintPreview.tsx**](../src/pages/PrintPreview.tsx): Full-page report card preview with iOS-friendly print styles; lazy-loads components
-- [**ReportCardTemplate.tsx**](../src/templates/ReportCardTemplate.tsx): Renders GES-compliant report card layout with student info, scores, grades, teacher remarks, headmaster remarks
-- [**BatchPrintModal.tsx**](../src/components/BatchPrintModal.tsx): Print multiple report cards with pagination
-- [**Tabs** (various): Tab-based UI for navigating report sections (Scores, Remarks, Headmaster Comments, etc.)
+- [**LazyReportCard.tsx**](../src/components/LazyReportCard.tsx): Lazy-loaded report card container for individual student printing
+- [**ReportTemplate.tsx**](../src/components/ReportTemplate.tsx): Report template router rendering chosen style
+- [**OriginalTemplate.tsx**](../src/templates/OriginalTemplate.tsx): GES-compliant official report card template
+- [**ClassicTemplate.tsx**](../src/templates/ClassicTemplate.tsx): Classic formal report card layout
+- [**ModernTemplate.tsx**](../src/templates/ModernTemplate.tsx): Clean modern multi-column report card
+- [**MinimalTemplate.tsx**](../src/templates/MinimalTemplate.tsx): Streamlined ink-efficient report card
 
 ### **Settings & Configuration**
 School settings, user preferences, security, and app configuration.
 
-- [**Settings.tsx**](../src/pages/Settings.tsx): Main settings page with tabs for school info, user account, backup/restore, security
-- [**SchoolInfoForm.tsx**](../src/components/SchoolInfoForm.tsx): Edit school name, address, motto, headmaster name, etc.
-- [**UserSecurityForm.tsx**](../src/components/UserSecurityForm.tsx): PIN setup/change, recovery codes, security questions, biometric auth toggle
-- [**BackupRestorePanel.tsx**](../src/components/BackupRestorePanel.tsx): Export encrypted backup file, import from file, delete all data
-- [**ComponentLibraryEditor.tsx**](../src/components/ComponentLibraryEditor.tsx): Configure custom assessment breakdown (CAT, GROUP, PROJECT, HOMEWORK weights/scales)
+- [**Settings.tsx**](../src/pages/Settings.tsx): Main settings page with sections for school info, academic structure, grading, security, and data management
+- [**DataBackup.tsx**](../src/components/DataBackup.tsx): Export encrypted/plain backup files, atomic backup import, and recovery tools
+- [**StorageMonitor.tsx**](../src/components/StorageMonitor.tsx): Storage quota monitoring and IndexedDB health check
+- [**SchoolSettingsForm.tsx**](../src/components/SchoolSettingsForm.tsx): Configuration form for school identity and grading scales
 
 ### **Analytics & Data Visualization**
 Charts, statistics, and performance analysis tools.
 
 - [**Analytics.tsx**](../src/pages/Analytics.tsx): Dashboard showing gender distribution, top performers, score averages, trend charts
 - [**DashboardStats.tsx**](../src/components/DashboardStats.tsx): Summary statistics cards (class size, average score, highest/lowest grades)
-- [**ScatterPlot.tsx**](../src/charts/ScatterPlot.tsx): Recharts scatter plot of students by gender vs. performance
-- [**PerformanceChart.tsx**](../src/charts/PerformanceChart.tsx): Line/area chart showing score distribution across class
-- [**GenderDistributionChart.tsx**](../src/charts/GenderDistributionChart.tsx): Pie chart of male/female student counts
+- [**BarChart.tsx**](../src/components/charts/BarChart.tsx): Recharts bar chart component for subject averages and score bins
+- [**LineChart.tsx**](../src/components/charts/LineChart.tsx): Line chart component for performance trends
+- [**PieChart.tsx**](../src/components/charts/PieChart.tsx): Pie chart for gender and grade distributions
+- [**ComposedChart.tsx**](../src/components/charts/ComposedChart.tsx): Mixed chart for multi-metric comparison
+- [**RadarChart.tsx**](../src/components/charts/RadarChart.tsx): Spider/radar chart for subject competency breakdown
 
 ### **Security & Access Control**
 PIN locks, biometric authentication, session management, and data encryption.
 
-- [**PINLock.tsx**](../src/components/PINLock.tsx): PIN entry screen shown on app load; prevents unauthorized access
-- [**BiometricAuth.tsx**](../src/components/BiometricAuth.tsx): WebAuthn biometric prompt (Face ID, Touch ID, Windows Hello, fingerprint)
-- [**RecoveryCodeModal.tsx**](../src/components/RecoveryCodeModal.tsx): Display/copy recovery codes if PIN is lost
-- [**SecurityQuestionsModal.tsx**](../src/components/SecurityQuestionsModal.tsx): Set and verify security questions for PIN recovery
+- [**LockScreen.tsx**](../src/components/LockScreen.tsx): PIN entry screen shown on app load or after idle timeout
+- [**PinSetup.tsx**](../src/components/PinSetup.tsx): Modal for setting up or updating app access PIN
+- [**PinRecovery.tsx**](../src/components/PinRecovery.tsx): Security question verification and recovery flow for lost PINs
 
 ### **UI & Design System**
 Low-level, reusable components that compose higher-level features.
 
-- [**Button.tsx**](../src/ui/Button.tsx): Styled button with variants (primary, secondary, danger, loading states)
-- [**Input.tsx**](../src/ui/Input.tsx): Text input with validation, error messages, labels
-- [**Dialog.tsx**](../src/ui/Dialog.tsx): Modal dialog wrapper with backdrop
-- [**Dropdown.tsx**](../src/ui/Dropdown.tsx): Accessible dropdown select
-- [**Loading.tsx**](../src/ui/Loading.tsx): Spinner/skeleton loading states
-- [**ErrorBoundary.tsx**](../src/ui/ErrorBoundary.tsx): React error boundary for graceful failure handling
-- [**Alert.tsx**](../src/ui/Alert.tsx): Dismissible alert/toast notifications
-- [**Card.tsx**](../src/ui/Card.tsx): Styled card container for content grouping
+- [**Button.tsx**](../src/components/ui/Button.tsx): Styled button with variants (primary, secondary, danger, loading states)
+- [**Input.tsx**](../src/components/ui/Input.tsx): Text input with validation, error messages, labels
+- [**Modal.tsx**](../src/components/ui/Modal.tsx): Accessible modal dialog with backdrop and animations
+- [**Select.tsx**](../src/components/ui/Select.tsx): Dropdown select input
+- [**LoadingSpinner.tsx**](../src/components/ui/LoadingSpinner.tsx): Spinner/skeleton loading states
+- [**ErrorBoundary.tsx**](../src/components/ErrorBoundary.tsx): React error boundary for graceful failure handling
+- [**Alert.tsx**](../src/components/ui/Alert.tsx): Dismissible alert/toast notifications
+- [**Card.tsx**](../src/components/ui/Card.tsx): Styled card container for content grouping
 
 ### **PWA & Platform Features**
 App installation, offline detection, service worker integration, update notifications.
 
-- [**PWAPrompt.tsx**](../src/components/PWAPrompt.tsx): "Install App" button/modal (shows on iOS, Android, and desktop browsers)
-- [**OfflineIndicator.tsx**](../src/components/OfflineIndicator.tsx): Displays offline status and syncs queue
-- [**UpdateNotification.tsx**](../src/components/UpdateNotification.tsx): Prompts user to refresh when app updates are available
+- [**PwaInstallPrompt.tsx**](../src/components/PwaInstallPrompt.tsx): "Install App" prompt for PWA installation
+- [**OfflineDetector.tsx**](../src/components/OfflineDetector.tsx): Displays offline status banner when disconnected
+- [**PwaUpdatePrompt.tsx**](../src/components/PwaUpdatePrompt.tsx): Prompts user to refresh when app updates are available
 
 ### **Forms & Modals**
 Reusable form components and modal dialogs for data entry workflows.
 
-- [**RemarkModal.tsx**](../src/components/RemarkModal.tsx): Edit teacher remarks with auto-generation suggestions
-- [**HeadmasterRemarkModal.tsx**](../src/components/HeadmasterRemarkModal.tsx): Edit headmaster comment with suggestions
-- [**FilterPanel.tsx**](../src/components/FilterPanel.tsx): Advanced search/filter for students (by class, gender, score range)
-- [**ImportDataModal.tsx**](../src/components/ImportDataModal.tsx): Import student data from Excel or encrypted backup file
-
----
+- [**ConfirmModal.tsx**](../src/components/ConfirmModal.tsx): Generic confirmation modal with action buttons
+- [**BulkImportModal.tsx**](../src/components/BulkImportModal.tsx): Modal dialog for batch data importing
+- [**ScoreEntryModal.tsx**](../src/components/ScoreEntryModal.tsx): Modal for entering and validating student marks
+- [**ProgressModal.tsx**](../src/components/ProgressModal.tsx): Progress dialog for lengthy operations
+- [**AboutModal.tsx**](../src/components/AboutModal.tsx): Information about Repota app version and developer info
 
 ## 3. Data Models / Types / Schemas
 
@@ -124,18 +126,37 @@ Defined in [src/types/index.ts](../src/types/index.ts):
 - updatedAt: string (ISO timestamp)
 ```
 
-#### **SchoolSettings** (lines 83–110)
+#### **SchoolSettings** (lines 58–101)
 ```
-- id: string
 - schoolName: string
-- location: string (town/district)
-- motto: string
-- headmasterName: string
-- schoolLevel: "KG" | "PRIMARY" | "JHS" | "SHS"
-- subjects: string[] (list of taught subjects)
-- schoolYearStart: string (ISO date)
-- schoolYearEnd: string (ISO date)
-- componentLibrary: AssessmentComponent[] (custom CAT/GROUP/PROJECT/HOMEWORK weights)
+- className?: string
+- schoolMotto?: string
+- phoneNumber?: string
+- address?: string
+- email?: string
+- logoUrl?: string
+- academicYear: string
+- term: AcademicPeriod ("1" | "2" | "3" | "Semester 1" | "Semester 2")
+- level: SchoolLevel ("KG" | "PRIMARY" | "JHS" | "SHS")
+- schoolType: "STANDARD" | "ISLAMIC" | "PRIVATE"
+- nextTermStarts?: string
+- headTeacherName?: string
+- classTeacherName?: string
+- totalAttendanceDays?: number
+- classScoreMax: number
+- examScoreMax: number
+- classSize?: number
+- headTeacherSignature?: string
+- teacherSignature?: string
+- defaultSubjects: string[]
+- componentLibrary?: ClassScoreComponentConfig[]
+- subjectComponentMap?: Record<string, ClassScoreComponentConfig[]>
+- schoolGift?: number
+- canteenFees?: number
+- firstAidFees?: number
+- templateId?: string
+- examType?: ExamType ("TERMLY" | "MOCK")
+- autoLockTimeout?: number
 ```
 
 #### **ProcessedStudent** (lines 113–125)
@@ -230,10 +251,10 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 - **Offline-first design**: App works 100% offline; no internet required
 
 ### **Export/Import**
-[src/utils/fileExport.ts](../src/utils/fileExport.ts) (if exists):
-- Export: Encrypts entire app state with **AES-256-GCM** using password-derived key (PBKDF2)
-- Import: Decrypts file and validates schema before merging into IndexedDB
-- Format: `.repota` (encrypted JSON binary)
+Handled in [DataBackup.tsx](../src/components/DataBackup.tsx), [fileEncryption.ts](../src/utils/fileEncryption.ts), and [backupValidation.ts](../src/utils/backupValidation.ts):
+- Export: Writes students and settings as JSON and encrypts with **AES-256-GCM** + PBKDF2 only when a password is set (plain JSON export when unencrypted)
+- Import: Decrypts encrypted files before schema validation and replaces current students on the device rather than merging them
+- Format: `.json` (plain or encrypted backup)
 
 ---
 

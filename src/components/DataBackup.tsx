@@ -37,7 +37,15 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
-  const { loadError, students, suspendPersistence, resumePersistence, isStorageReady } = useSchoolData();
+  const {
+    loadError,
+    students,
+    suspendPersistence,
+    resumePersistence,
+    isStorageReady,
+    markIncompleteRollback,
+    isRollbackIncomplete,
+  } = useSchoolData();
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
@@ -285,7 +293,9 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
           saveEntriesToStorage,
         );
       } catch (error) {
-        if (!(error instanceof IncompleteRollbackError)) {
+        if (error instanceof IncompleteRollbackError) {
+          markIncompleteRollback();
+        } else {
           resumePersistence();
         }
         throw error;
@@ -319,6 +329,29 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
             >
               Reload now
             </button>
+          </div>
+        </div>
+      )}
+      {isRollbackIncomplete && (
+        <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div className="flex-1">
+              <h3 className="font-bold text-red-900">Incomplete Restore / Storage Inconsistency</h3>
+              <p className="mt-1 text-sm text-red-700">
+                A previous backup import encountered a storage error and could not be fully rolled back.
+                Persistence has been suspended to prevent data corruption. Please choose a valid backup file below to restore or reload the page.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                >
+                  Reload Page
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

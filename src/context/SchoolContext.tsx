@@ -34,6 +34,13 @@ const LOAD_TIMEOUT_MS = 10_000;
 type LoadKeyStatus = "ok" | "error";
 type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
 
+const DEFAULT_FACTORY_SETTINGS: SchoolSettings = {
+  ...DEFAULT_SETTINGS,
+  examType: "TERMLY",
+  componentLibrary: [],
+  subjectComponentMap: {},
+};
+
 export function SchoolProvider({ children }: { children: ReactNode }) {
   // State with empty initialization (will load from IndexedDB)
   const [students, setStudents] = useState<StudentRecord[]>([]);
@@ -45,6 +52,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const loadAttemptRef = useRef(0);
   const persistenceSuspendedRef = useRef(false);
   const suspendedUntilHydratedRef = useRef(false);
+  const [isPersistenceSuspended, setIsPersistenceSuspended] = useState(false);
+  const [isRollbackIncomplete, setIsRollbackIncomplete] = useState(false);
   const storageReadyRef = useRef(false);
   const [resumeGeneration, setResumeGeneration] = useState(0);
 
@@ -62,14 +71,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   // Track if we're in the debounce period (data changed but not yet saved)
   const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
   const restoreDefaults = () => {
-    const defaultSettings: SchoolSettings = {
-      ...DEFAULT_SETTINGS,
-      examType: "TERMLY",
-      componentLibrary: [],
-      subjectComponentMap: {},
-    };
-
-    setSettings(defaultSettings);
+    setSettings(DEFAULT_FACTORY_SETTINGS);
     showToast("Settings restored to factory defaults.", "success");
   };
 
@@ -110,6 +112,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (studentsResult.status === "found") {
           setStudents(studentsResult.value);
+        } else if (studentsResult.status === "empty") {
+          setStudents([]);
         }
 
         // 4. Load settings
@@ -117,6 +121,8 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (settingsResult.status === "found") {
           setSettings(settingsResult.value);
+        } else if (settingsResult.status === "empty") {
+          setSettings(DEFAULT_FACTORY_SETTINGS);
         }
         const studentsOk = studentsResult.status !== "error";
         const settingsOk = settingsResult.status !== "error";
@@ -127,9 +133,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           settings: settingsResult.status === "error" ? "error" : "ok",
         });
 
-        if (hasNoErrors && suspendedUntilHydratedRef.current) {
+        if (hasNoErrors) {
           suspendedUntilHydratedRef.current = false;
           persistenceSuspendedRef.current = false;
+          setIsPersistenceSuspended(false);
+          setIsRollbackIncomplete(false);
           setResumeGeneration((current) => current + 1);
         }
       } catch (error) {
@@ -189,13 +197,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       showToast("Storage is not ready. Try again after recovery finishes.", "error");
       return;
     }
-    const defaultSettings: SchoolSettings = {
-      ...DEFAULT_SETTINGS,
-      examType: "TERMLY",
-      componentLibrary: [],
-      subjectComponentMap: {},
-    };
+    const defaultSettings = DEFAULT_FACTORY_SETTINGS;
     persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
     setStudents([]);
     setSettings(defaultSettings);
     const [studentsSaved, settingsSaved] = await Promise.all([
@@ -204,6 +208,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     ]);
     if (!studentsSaved || !settingsSaved) {
       suspendedUntilHydratedRef.current = true;
+      persistenceSuspendedRef.current = true;
+      setIsPersistenceSuspended(true);
+      setIsRollbackIncomplete(true);
       showToast("Could not save fresh data. Recovery remains active.", "error");
       return;
     }
@@ -212,15 +219,25 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     setShowFreshConfirm(false);
     suspendedUntilHydratedRef.current = false;
     persistenceSuspendedRef.current = false;
+    setIsPersistenceSuspended(false);
+    setIsRollbackIncomplete(false);
     setResumeGeneration((current) => current + 1);
   };
   const suspendPersistence = () => {
     persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
   };
   const resumePersistence = () => {
     if (suspendedUntilHydratedRef.current) return;
     persistenceSuspendedRef.current = false;
+    setIsPersistenceSuspended(false);
     setResumeGeneration((current) => current + 1);
+  };
+  const markIncompleteRollback = () => {
+    suspendedUntilHydratedRef.current = true;
+    persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
+    setIsRollbackIncomplete(true);
   };
 
   // Request persistent storage on mount (Android protection)
@@ -851,6 +868,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         startFresh: () => setShowFreshConfirm(true),
         suspendPersistence,
         resumePersistence,
+        isPersistenceSuspended,
+        isRollbackIncomplete,
+        markIncompleteRollback,
         isSaving,
         lastSaved,
       }}

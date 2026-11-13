@@ -119,13 +119,13 @@ preserving these invariants is **INFERRED** to change behavior.
 
 ### a) Class-name gate and Cancel
 
-**Confirmed.** When students exist and the debounced class name differs, the autosave effect
-returns for the complete JSON snapshot (`src/pages/Settings.tsx:104-112`). A second effect opens
-the modal after one second when the mismatch remains (`src/pages/Settings.tsx:126-140`).
+**Confirmed.** When students exist and the debounced class name differs or is empty, the autosave
+effect preserves `lastSavedSettings.className` to avoid overwriting valid baselines. Instead of a
+timer-based effect, class name confirmation is triggered via `handleClassNameBlur` on input blur
+(and programmatically inside `applyLevelChange` when changing school levels with existing students).
 
 **Confirmed.** Cancellation restores `lastSavedSettings.className` and closes the modal.
-The cancellation flow does not reopen it (`src/pages/Settings.tsx:194-197`,
-`src/components/ConfirmModal.tsx:26-39`).
+The cancellation flow does not reopen it (`src/pages/Settings.tsx`, `src/components/ConfirmModal.tsx`).
 
 **Confirmed.** The user can get out by choosing “Yes, Update Everyone” (which saves and updates
 students) or by Reset, which restores `lastSavedSettings` (`src/pages/Settings.tsx:1299-1308`,
@@ -189,13 +189,9 @@ stored in React state (`src/pages/Settings.tsx:1119-1267`). Both utilities read 
 synchronously (`src/utils/pinSecurity.ts:45-48`; biometric equivalent is in
 `src/utils/biometricAuth.ts`).
 
-`autoLockTimeout` is draft state in Settings and is persisted through the normal settings path
-(`src/pages/Settings.tsx:1120-1135`). `App` independently reads the `"app-data"` storage record
-once on mount and sets the idle timer in milliseconds (`src/App.tsx:22-27`). The provider writes
-the settings record under `IDB_KEYS.SETTINGS` after its own debounce (`src/context/SchoolContext.tsx:150-156`);
-the exact string value of `IDB_KEYS.SETTINGS` is **UNVERIFIED** from the inspected excerpt. A
-changed timer therefore takes effect on the next App mount/reload, not immediately in the
-already-mounted App; **INFERRED** from the one-run effect dependency list (`src/App.tsx:22-28`).
+`autoLockTimeout` is draft state in Settings and is persisted through the normal settings path.
+`App` reads `settings.autoLockTimeout` reactively from `useSchoolData()` and updates `useIdleTimer`
+reactively without requiring an app reload.
 
 ### g) Reachability of Reset
 
@@ -358,7 +354,7 @@ Run after every migration step:
    removes biometric enrollment state.
 9. Enable/disable biometric when available; verify the synchronous status display after each
    action.
-10. Change auto-lock timeout; reload the app and verify the new idle period is used.
+10. Change auto-lock timeout; verify that the new idle period takes effect reactively without requiring an app reload.
 11. Export an unencrypted backup, export an encrypted backup, import each, cancel once, confirm
     replacement once, and verify reload/persistence.
 12. Run factory reset, confirm the warning, verify defaults and preserved student-data promise.
@@ -386,8 +382,6 @@ Run after every migration step:
    renders while IndexedDB loading is in progress.
 3. **Medium likelihood × high impact:** level, subject, task-map, and exam-type changes becoming
    non-atomic across routes (`src/pages/Settings.tsx:174-190`, `638-949`).
-4. **Medium likelihood × high impact:** security state becoming stale or auto-lock changes
-   appearing saved but taking effect only after reload (`src/App.tsx:22-27`;
-   `src/pages/Settings.tsx:1033-1135`).
+4. **Medium likelihood × high impact:** security state becoming stale across routes (mitigated for auto-lock by App reactively subscribing to `settings.autoLockTimeout` via `useSchoolData()`).
 5. **Medium likelihood × medium impact:** service-worker/PWA cache skew leaving returning users
    on an older route shell after a split (`vite.config.ts:43-78`).

@@ -22,9 +22,9 @@ export function FormLabel({
 
   return (
     <label
+      data-record="true"
       className={`${baseClass} ${variantClass} ${className}`}
       {...props}
-      data-record="true"
     >
       {children}
       {required && <span className="ml-1 text-red-500">*</span>}

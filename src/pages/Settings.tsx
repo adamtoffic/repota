@@ -16,6 +16,7 @@ import {
   Key,
   Fingerprint,
   LayoutTemplate,
+  AlertTriangle,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useDebounce } from "../hooks/useDebounce";
@@ -63,11 +64,13 @@ function SettingsContent() {
     restoreDefaults,
     isSaving,
     lastSaved,
+    isPersistenceSuspended,
   } = useSchoolData();
   const { showToast } = useToast();
 
   const formGenerationRef = useRef(0);
   const immediateSaveGenRef = useRef(0);
+  const baselineSeqRef = useRef(0);
   const [formPayload, setFormPayload] = useState<{ data: SchoolSettings; generation: number }>({
     data: settings,
     generation: 0,
@@ -149,8 +152,11 @@ function SettingsContent() {
       setSettings(savedFormData);
       lastAutoSaveRef.current = savedString;
 
+      const seq = ++baselineSeqRef.current;
       requestAnimationFrame(() => {
-        setLastSavedSettings(savedFormData);
+        if (baselineSeqRef.current === seq) {
+          setLastSavedSettings(savedFormData);
+        }
       });
       return;
     }
@@ -158,8 +164,11 @@ function SettingsContent() {
     setSettings(debouncedFormData);
     lastAutoSaveRef.current = debouncedString;
 
+    const seq = ++baselineSeqRef.current;
     requestAnimationFrame(() => {
-      setLastSavedSettings(debouncedFormData);
+      if (baselineSeqRef.current === seq) {
+        setLastSavedSettings(debouncedFormData);
+      }
     });
   }, [debouncedFormData, debouncedPayload.generation, lastSavedSettings.className, students.length, setSettings]);
 
@@ -364,6 +373,7 @@ function SettingsContent() {
     setFormData(updated);
     immediateSaveGenRef.current = formGenerationRef.current;
     setSettings(updated);
+    ++baselineSeqRef.current;
     setLastSavedSettings(updated);
     lastAutoSaveRef.current = JSON.stringify(updated);
 
@@ -393,6 +403,7 @@ function SettingsContent() {
                   <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
                 </div>
                 <button
+                  disabled={isPersistenceSuspended}
                   onClick={() => {
                     suppressClassBlurRef.current = true;
                     setShowResetModal(true);
@@ -401,7 +412,7 @@ function SettingsContent() {
                     e.preventDefault();
                     suppressClassBlurRef.current = true;
                   }}
-                  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
+                  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 disabled:pointer-events-none disabled:opacity-50 sm:flex"
                   title="Discard unsaved changes"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -421,6 +432,20 @@ function SettingsContent() {
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+        {isPersistenceSuspended && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div className="flex-1">
+              <p className="font-semibold text-red-900">
+                Persistence is suspended due to an incomplete recovery or storage error.
+              </p>
+              <p className="mt-1 text-xs text-red-700">
+                Settings modifications are disabled to protect data integrity. Please restore a valid backup below or reload the page.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Auto-Save Info */}
         <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
@@ -432,7 +457,8 @@ function SettingsContent() {
           </div>
         </div>
 
-        {/* CARD 1: IDENTITY */}
+        <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
+          {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
             <div className="rounded-lg bg-blue-100 p-2.5">
@@ -1369,6 +1395,7 @@ function SettingsContent() {
             )}
           </div>
         </div>
+        </fieldset>
 
         {/* STORAGE MONITORING */}
         <StorageMonitor />
@@ -1392,6 +1419,7 @@ function SettingsContent() {
             onClick={() => setShowFactoryResetModal(true)}
             variant="danger"
             size="sm"
+            disabled={isPersistenceSuspended}
             className="w-full sm:w-auto"
           >
             Restore Factory Defaults

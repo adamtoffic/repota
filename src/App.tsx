@@ -83,12 +83,10 @@ function AppContent() {
 
     window.addEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
     window.addEventListener("beforeprint", markPrintInProgress);
-    window.addEventListener("afterprint", clearPrintState);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
       window.removeEventListener("beforeprint", markPrintInProgress);
-      window.removeEventListener("afterprint", clearPrintState);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (printTimeoutRef.current !== null) {
         window.clearTimeout(printTimeoutRef.current);

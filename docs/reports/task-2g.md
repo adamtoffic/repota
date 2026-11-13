@@ -32,13 +32,13 @@ The validator accepts omitted optional settings fields, and `examType` is defaul
 | Student has a missing or empty ID | `Student at index N is invalid: Invalid student ID` |
 | Subject has a missing or empty ID | `Student at index N is invalid: Invalid subject ID` |
 
-Other schema-invalid legacy values are also rejected with `Settings are invalid: <first zod issue message>` or `Student at index N is invalid: <first zod issue message>`. Examples include an unsupported `gender`, invalid school level/type/term, invalid academic-year format, or an invalid `examType`. The validator removes only an empty legacy `logoUrl` before parsing ([backupValidation.ts](../../src/utils/backupValidation.ts:27)).
+Other schema-invalid legacy values are also rejected with `Settings are invalid: <first zod issue message>` or `Student at index N is invalid: <first zod issue message>`. Examples include an unsupported `gender`, invalid school level/type/term, or an invalid `examType` (note that a hyphenated academic year like 2025-2026 is accepted by `validateBackup` with a warning incrementing `warningCount` rather than rejected). The validator removes only an empty legacy `logoUrl` before parsing ([backupValidation.ts](../../src/utils/backupValidation.ts#L27)).
 
-`recordBackup()` is called after the common file-generation path ([DataBackup.tsx](../../src/components/DataBackup.tsx:106), [DataBackup.tsx](../../src/components/DataBackup.tsx:130)). Encrypted exports pass through that same path, so encrypted exports also call `recordBackup`, but only after encryption and file creation succeed.
+`recordBackup()` is called after the common file-generation path ([DataBackup.tsx](../../src/components/DataBackup.tsx#L106), [DataBackup.tsx](../../src/components/DataBackup.tsx#L130)). Encrypted exports pass through that same path, so encrypted exports also call `recordBackup`, but only after encryption and file creation succeed.
 
 ## Duplicate student IDs
 
-Duplicate IDs are accepted: validation checks each student’s shape and that its ID is non-empty, but does not check uniqueness ([backupValidation.ts](../../src/utils/backupValidation.ts:17)). The app can store and import such a list, but ID-based editing, lookup, or rendering behavior is potentially ambiguous; this task did not add rejection or deduplication.
+Duplicate IDs are accepted: validation checks each student’s shape and that its ID is non-empty, but does not check uniqueness ([backupValidation.ts](../../src/utils/backupValidation.ts#L17)). The app can store and import such a list, but ID-based editing, lookup, or rendering behavior is potentially ambiguous; this task did not add rejection or deduplication.
 
 ## Why the blocking overlay is needed
 

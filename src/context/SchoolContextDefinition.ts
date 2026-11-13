@@ -30,6 +30,9 @@ export interface SchoolContextType {
   startFresh: () => void;
   suspendPersistence: () => void;
   resumePersistence: () => void;
+  isPersistenceSuspended: boolean;
+  isRollbackIncomplete: boolean;
+  markIncompleteRollback: () => void;
   isSaving: boolean;
   lastSaved?: Date;
 }

@@ -127,10 +127,32 @@ export const saveEntriesToStorage = async (
     }
     if (isIndexedDBAvailable && db) {
       const tx = db.transaction(STORE_NAME, "readwrite");
-      for (const entry of entries) {
-        await tx.store.put(entry.value, entry.key);
+      try {
+        for (const entry of entries) {
+          await tx.store.put(entry.value, entry.key);
+        }
+        await tx.done;
+        return true;
+      } catch (error) {
+        try {
+          tx.abort();
+        } catch {
+          // ignore if already aborted
+        }
+        await tx.done.catch(() => {});
+        if (
+          error instanceof Error &&
+          (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED")
+        ) {
+          console.error("Storage quota exceeded");
+          alert(
+            "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
+          );
+        } else {
+          console.error("Storage batch write error:", error);
+        }
+        return false;
       }
-      await tx.done;
     } else {
       const snapshots: Array<{ key: string; value: string | null }> = entries.map((e) => ({
         key: e.key,

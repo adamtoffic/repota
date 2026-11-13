@@ -144,7 +144,7 @@ describe("App auto-lock timeout", () => {
     expect(screen.getByText("Locked")).toBeInTheDocument();
   });
 
-  it("clears print suppression when afterprint fires", async () => {
+  it("does not clear print suppression when early afterprint fires", async () => {
     const { PRINT_STARTED_EVENT } = await import("../utils/printHandler");
     render(<App />);
     state.pinConfigured = true;
@@ -159,10 +159,10 @@ describe("App auto-lock timeout", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
 
-    expect(screen.getByText("Locked")).toBeInTheDocument();
+    expect(screen.queryByText("Locked")).not.toBeInTheDocument();
   });
 
-  it("starts the hidden grace period again when afterprint fires while hidden", async () => {
+  it("keeps print suppression active until timeout even if afterprint fires while hidden", async () => {
     const { PRINT_STARTED_EVENT } = await import("../utils/printHandler");
     render(<App />);
     state.pinConfigured = true;
@@ -178,7 +178,7 @@ describe("App auto-lock timeout", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
 
-    expect(screen.getByText("Locked")).toBeInTheDocument();
+    expect(screen.queryByText("Locked")).not.toBeInTheDocument();
   });
 
   it("does not lock on idle while print is in progress", async () => {
