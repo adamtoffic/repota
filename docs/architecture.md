@@ -152,7 +152,7 @@ The PIN security module is `src/utils/pinSecurity.ts:1-220`.
 - `verifyPin()` and `verifyRecoveryCode()` compare a newly entered value against the stored hash (`src/utils/pinSecurity.ts:58-100`).
 - `disablePinLock()` removes the PIN hashes and also disables biometric authentication (`src/utils/pinSecurity.ts:128-139`).
 
-The app-level lock screen is enforced in `src/App.tsx:17-54`: the app checks `isPinConfigured()`, starts an idle timer from the stored settings, and locks on idle or when the document becomes hidden. The lock screen and recovery modal are presented in `src/App.tsx:64-86`.
+The app-level lock screen is enforced in `src/App.tsx:17-54`: the app checks `isPinConfigured()`, starts an idle timer from the stored settings, records when the document becomes hidden, and locks when it becomes visible again only if the hidden interval was at least `HIDDEN_LOCK_GRACE_MS` (30 seconds) and no print is in progress. The lock screen and recovery modal are presented in `src/App.tsx:64-86`.
 
 ### 5.2 Device biometric: WebAuthn
 

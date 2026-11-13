@@ -188,18 +188,18 @@ Calculated view of StudentRecord with aggregated statistics:
 - **Lines 1–30**: School name, location, motto, headmaster name validation
 - **Lines 32–70**: Subject list validation
 - **Lines 72–90**: School year date range validation
-- **Lines 92–138**: AssessmentComponent library validation (weights, minimum thresholds for each component)
+- **Lines 120–126**: Assessment component library and subject-component map validation
 - **Lines 140–151**: Mock exam refine rule (% increase to apply when converting mock exam scores to subject grades)
 
 ### **Storage Schema (IndexedDB)**
 
 [src/utils/idbStorage.ts](../src/utils/idbStorage.ts) defines the `repota-storage` database with one `app-data` object store. It contains the `ges_v1_students` and `ges_v1_settings` keys.
 
-#### **AssessmentComponent Type** (lines 18–25 of settingsSchema.ts)
+#### **ClassScoreComponentConfig Schema** ([src/schemas/settingsSchema.ts](../src/schemas/settingsSchema.ts))
 ```
-- name: "CAT" | "GROUP" | "PROJECT" | "HOMEWORK"
-- weight: number (0–1, must sum to 1.0 across all components)
-- threshold: number (minimum score needed in this component to pass overall)
+- name: string (1–100 characters)
+- maxScore: number (1–100)
+- category?: "CAT" | "GROUP" | "PROJECT" | "HOMEWORK"
 ```
 
 ---

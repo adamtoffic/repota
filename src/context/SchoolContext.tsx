@@ -101,19 +101,18 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       try {
         // 1. Initialize IndexedDB
         await initStorage();
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        storageReadyRef.current = true;
+        setIsStorageReady(true);
 
         // 2. Migrate from localStorage if needed
         const migration = await migrateFromLocalStorage();
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (getStorageType() === "indexeddb" && !migration.success) {
-          storageReadyRef.current = false;
-          setIsStorageReady(false);
           setLoadStatus({ students: "error", settings: "error" });
           setIsDataLoaded(true);
           return;
         }
-        storageReadyRef.current = true;
-        setIsStorageReady(true);
         if (
           migration.success &&
           migration.studentsCount !== undefined &&
@@ -289,9 +288,6 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     }
     setIsRollbackIncomplete(false);
     suspendedUntilHydratedRef.current = false;
-    persistenceSuspendedRef.current = false;
-    setIsPersistenceSuspended(false);
-    setResumeGeneration((current) => current + 1);
   };
 
   // Request persistent storage on mount (Android protection)
