@@ -143,25 +143,35 @@ function SettingsContent() {
     });
   }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
 
-  useEffect(() => {
-    const classNameChanged = formData.className !== lastSavedSettings.className;
-    if (
-      classNameChanged &&
-      (formData.className ?? "").trim() &&
-      students.length > 0 &&
-      !showClassUpdateModal
-    ) {
-      const timer = setTimeout(() => {
-        if (
-          (formData.className ?? "").trim() &&
-          formData.className !== lastSavedSettings.className
-        ) {
-          setShowClassUpdateModal(true);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
+  const handleClassNameBlur = () => {
+    const trimmed = (formData.className ?? "").trim();
+    const oldName = (lastSavedSettings.className ?? "").trim();
+
+    // 1. If empty, revert to old name and warn
+    if (!trimmed) {
+      setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
+      showToast("Class name cannot be empty", "error");
+      return;
     }
-  }, [formData.className, lastSavedSettings.className, students.length, showClassUpdateModal]);
+
+    // 2. Normalize trimmed string in form state
+    if (trimmed !== formData.className) {
+      setFormData((prev) => ({ ...prev, className: trimmed }));
+    }
+
+    // 3. If no actual change from saved state, do nothing
+    if (trimmed === oldName) return;
+
+    // 4. If students exist, prompt confirmation; otherwise save immediately
+    if (students.length > 0) {
+      setShowClassUpdateModal(true);
+    } else {
+      const updated = { ...formData, className: trimmed };
+      setSettings(updated);
+      setLastSavedSettings(updated);
+      lastAutoSaveRef.current = JSON.stringify(updated);
+    }
+  };
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
@@ -213,6 +223,15 @@ function SettingsContent() {
     posthog.capture("School_Level_Changed", { new_level: newLevel });
     setShowLevelChangeModal(false);
     setPendingLevel(null);
+
+    // If students exist and class name changed, prompt to update all students
+    if (
+      students.length > 0 &&
+      defaultClass.trim() &&
+      defaultClass.trim() !== (lastSavedSettings.className ?? "").trim()
+    ) {
+      setShowClassUpdateModal(true);
+    }
   };
 
   const addSubject = () => {
@@ -323,10 +342,16 @@ function SettingsContent() {
   };
 
   const finalizeSave = (shouldUpdateStudents = false) => {
-    setSettings(formData);
-    setLastSavedSettings(formData);
+    const trimmed = (formData.className ?? "").trim();
+    const updated = { ...formData, className: trimmed };
+
+    setFormData(updated);
+    setSettings(updated);
+    setLastSavedSettings(updated);
+    lastAutoSaveRef.current = JSON.stringify(updated);
+
     if (shouldUpdateStudents) {
-      updateClassNameForAll(formData.className || "");
+      updateClassNameForAll(trimmed);
       showToast(`Updated class name for ${students.length} students`, "success");
     }
     setShowClassUpdateModal(false);
@@ -351,6 +376,7 @@ function SettingsContent() {
                 </div>
                 <button
                   onClick={() => setShowResetModal(true)}
+                  onMouseDown={(e) => e.preventDefault()}
                   className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
                   title="Discard unsaved changes"
                 >
@@ -618,6 +644,13 @@ function SettingsContent() {
                     required
                     value={formData.className || ""}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+                    onBlur={handleClassNameBlur}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
                     className="pl-9 font-bold"
                     placeholder="e.g. Basic 4"
                   />
@@ -1346,15 +1379,12 @@ function SettingsContent() {
       <ConfirmModal
         isOpen={showClassUpdateModal}
         title="Update Class Name Everywhere?"
-        message={`You changed the class to "${formData.className}". Do you want to update this for all ${students.length} existing students?`}
+        message={`You changed the class to "${(formData.className ?? "").trim()}". Do you want to update this for all ${students.length} existing students?`}
         confirmText="Yes, Update Everyone"
         cancelText="No, Keep Old Name"
-        onClose={() => setShowClassUpdateModal(false)}
+        onClose={handleKeepOldClassName}
         onCancel={handleKeepOldClassName}
-        onConfirm={() => {
-          setShowClassUpdateModal(false);
-          finalizeSave(true);
-        }}
+        onConfirm={() => finalizeSave(true)}
       />
 
       <ConfirmModal
