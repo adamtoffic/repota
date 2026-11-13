@@ -44,6 +44,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const loadAttemptRef = useRef(0);
   const persistenceSuspendedRef = useRef(false);
+  const suspendedUntilHydratedRef = useRef(false);
   const storageReadyRef = useRef(false);
   const [resumeGeneration, setResumeGeneration] = useState(0);
 
@@ -91,6 +92,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
         // 2. Migrate from localStorage if needed
         const migration = await migrateFromLocalStorage();
+        if (loadAttemptRef.current !== attempt || timedOut) return;
         storageReadyRef.current = true;
         setIsStorageReady(true);
         if (
@@ -116,10 +118,20 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         if (settingsResult.status === "found") {
           setSettings(settingsResult.value);
         }
+        const studentsOk = studentsResult.status !== "error";
+        const settingsOk = settingsResult.status !== "error";
+        const hasNoErrors = studentsOk && settingsOk;
+
         setLoadStatus({
           students: studentsResult.status === "error" ? "error" : "ok",
           settings: settingsResult.status === "error" ? "error" : "ok",
         });
+
+        if (hasNoErrors && suspendedUntilHydratedRef.current) {
+          suspendedUntilHydratedRef.current = false;
+          persistenceSuspendedRef.current = false;
+          setResumeGeneration((current) => current + 1);
+        }
       } catch (error) {
         console.error("Failed to load school data:", error);
         if (loadAttemptRef.current === attempt && !timedOut) {
@@ -191,12 +203,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       saveToStorage(IDB_KEYS.SETTINGS, defaultSettings),
     ]);
     if (!studentsSaved || !settingsSaved) {
+      suspendedUntilHydratedRef.current = true;
       showToast("Could not save fresh data. Recovery remains active.", "error");
       return;
     }
     setLoadStatus({ students: "ok", settings: "ok" });
     setIsDataLoaded(true);
     setShowFreshConfirm(false);
+    suspendedUntilHydratedRef.current = false;
     persistenceSuspendedRef.current = false;
     setResumeGeneration((current) => current + 1);
   };
@@ -204,6 +218,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     persistenceSuspendedRef.current = true;
   };
   const resumePersistence = () => {
+    if (suspendedUntilHydratedRef.current) return;
     persistenceSuspendedRef.current = false;
     setResumeGeneration((current) => current + 1);
   };

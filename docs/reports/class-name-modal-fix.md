@@ -200,14 +200,9 @@ const handleClassNameBlur = () => {
   // 3. If no actual change from saved state, do nothing
   if (trimmed === oldName) return;
 
-  // 4. If students exist, prompt confirmation; otherwise save immediately
+  // 4. If students exist, prompt confirmation; otherwise let 500ms auto-save persist
   if (students.length > 0) {
     setShowClassUpdateModal(true);
-  } else {
-    const updated = { ...formData, className: trimmed };
-    setSettings(updated);
-    setLastSavedSettings(updated);
-    lastAutoSaveRef.current = JSON.stringify(updated);
   }
 };
 ```

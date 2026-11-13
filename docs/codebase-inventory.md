@@ -13,9 +13,9 @@ Repota is a Ghana-focused, offline-first Progressive Web App (PWA) for generatin
 |-----------|-----------------|-----------|
 | **src/pages** | Top-level route pages (Dashboard, Settings, Analytics, PrintPreview) | [Dashboard.tsx](../src/pages/Dashboard.tsx), [Settings.tsx](../src/pages/Settings.tsx), [Analytics.tsx](../src/pages/Analytics.tsx) |
 | **src/components** | Feature-specific and reusable UI components organized by domain (modals, forms, student management, score entry) | [ScoreEntryModal.tsx](../src/components/ScoreEntryModal.tsx), [StudentList.tsx](../src/components/StudentList.tsx), [ClassForm.tsx](../src/components/ClassForm.tsx) |
-| **src/ui** | Low-level, reusable design system components (Button, Input, Dialog, Dropdown, etc.) | [Button.tsx](../src/ui/Button.tsx), [Input.tsx](../src/ui/Input.tsx), [Dialog.tsx](../src/ui/Dialog.tsx) |
+| **src/components/ui** | Low-level, reusable design system components (Button, Input, Modal, Dropdown, etc.) | [Button.tsx](../src/components/ui/Button.tsx), [Input.tsx](../src/components/ui/Input.tsx), [Modal.tsx](../src/components/ui/Modal.tsx) |
 | **src/context** | React Context providers for application state (SchoolContext manages all school/student data and persistence) | [SchoolContext.tsx](../src/context/SchoolContext.tsx) |
-| **src/utils** | Core utility functions: storage (IndexedDB/localStorage), grade calculation, analytics, security (PIN, biometric, encryption), remark generation | [idbStorage.ts](../src/utils/idbStorage.ts), [gradeCalculator.ts](../src/utils/gradeCalculator.ts), [pinSecurity.ts](../src/utils/pinSecurity.ts) |
+| **src/utils** | Core utility functions: storage (IndexedDB/localStorage), grade calculation, analytics, security (PIN, biometric, encryption), remark generation | [idbStorage.ts](../src/utils/idbStorage.ts), [gradeCalculator.ts](../src/utils/gradeCalculator.ts), [pinSecurity.ts](../src/utils/pinSecurity.ts), [analyticsCalculator.ts](../src/utils/analyticsCalculator.ts) |
 | **src/hooks** | Custom React hooks for form handling, state management, and side effects | [useForm.ts](../src/hooks/useForm.ts), [useIndexedDB.ts](../src/hooks/useIndexedDB.ts) |
 | **src/schemas** | Zod validation schemas for data integrity (StudentRecord, SchoolSettings, import/export validation) | [studentSchema.ts](../src/schemas/studentSchema.ts), [settingsSchema.ts](../src/schemas/settingsSchema.ts) |
 | **src/types** | TypeScript type definitions and interfaces (core data contracts) | [index.ts](../src/types/index.ts) |
@@ -23,7 +23,7 @@ Repota is a Ghana-focused, offline-first Progressive Web App (PWA) for generatin
 | **src/constants** | Application-wide constants (grade scales, school levels, assessment types, remark banks) | [gradeConstants.ts](../src/constants/gradeConstants.ts), [schoolLevels.ts](../src/constants/schoolLevels.ts) |
 | **src/templates** | Report card and document templates (PDF generation, printing) | [ReportCardTemplate.tsx](../src/templates/ReportCardTemplate.tsx) |
 | **src/charts** | Recharts-based visualization components (ScatterPlot, BarChart, LineChart for analytics) | [ScatterPlot.tsx](../src/charts/ScatterPlot.tsx), [PerformanceChart.tsx](../src/charts/PerformanceChart.tsx) |
-| **src/analytics** | Analytics processing and aggregation (gender analysis, top performers, score distributions) | [analyticsCalculator.ts](../src/analytics/analyticsCalculator.ts) |
+| **src/analytics** | Analytics processing and aggregation (gender analysis, top performers, score distributions) | [analyticsCalculator.ts](../src/utils/analyticsCalculator.ts) |
 | **docs** | Documentation and project notes | (to be created/updated) |
 
 ---
@@ -112,7 +112,7 @@ Defined in [src/types/index.ts](../src/types/index.ts):
 ```
 - id: string (UUID)
 - name: string
-- gender: "M" | "F"
+- gender: "Male" | "Female"
 - dateOfBirth: string (ISO date)
 - registrationNumber: string (student ID)
 - pictureUrl?: string (optional URL)
@@ -197,7 +197,7 @@ Calculated view of StudentRecord with aggregated statistics:
 [src/utils/idbStorage.ts](../src/utils/idbStorage.ts) (lines 78–130):
 - **Capacity**: 5–10 MB per origin (browser-dependent)
 - **Used when**: IndexedDB unavailable (e.g., Safari Private Mode, browser restrictions)
-- **Format**: JSON stringified object stored under key "repota_data"
+- **Format**: JSON-stringified values stored under caller-supplied keys (`ges_v1_students`, `ges_v1_settings`)
 - **Graceful degradation**: App detects IndexedDB failure and automatically switches to localStorage
 
 ### Backup heartbeat
@@ -296,7 +296,7 @@ grep -r "TODO\|FIXME\|HACK\|XXX\|DEPRECATED" src/ --include="*.ts" --include="*.
 - **Recommendation**: Document performance characteristics and tested max class size
 
 #### **Analytics Calculation - Gender Assumption**
-- **File**: [src/analytics/analyticsCalculator.ts](../src/analytics/analyticsCalculator.ts)
+- **File**: [src/utils/analyticsCalculator.ts](../src/utils/analyticsCalculator.ts)
 - **Issue**: Gender analysis only supports "M" | "F" binary; no support for non-binary or third gender
 - **Current behavior**: Non-standard gender values would be silently filtered out or cause calculation errors
 - **Recommendation**: Either enforce strict gender validation in schema or expand to support more options
@@ -333,7 +333,7 @@ All major files have been cited with absolute filesystem paths:
 - **Validation**: [studentSchema.ts](../src/schemas/studentSchema.ts), [settingsSchema.ts](../src/schemas/settingsSchema.ts)
 - **Grade calculation**: [gradeCalculator.ts](../src/utils/gradeCalculator.ts)
 - **Security**: [pinSecurity.ts](../src/utils/pinSecurity.ts)
-- **Analytics**: [analyticsCalculator.ts](../src/analytics/analyticsCalculator.ts)
+- **Analytics**: [analyticsCalculator.ts](../src/utils/analyticsCalculator.ts)
 - **Remarks**: [remarkGenerator.ts](../src/utils/remarkGenerator.ts)
 - **UI Pages**: [Dashboard.tsx](../src/pages/Dashboard.tsx), [Settings.tsx](../src/pages/Settings.tsx), [Analytics.tsx](../src/pages/Analytics.tsx), [PrintPreview.tsx](../src/pages/PrintPreview.tsx)
 

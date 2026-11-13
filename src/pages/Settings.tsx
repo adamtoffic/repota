@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import posthog from "posthog-js";
 import {
@@ -66,7 +66,22 @@ function SettingsContent() {
   } = useSchoolData();
   const { showToast } = useToast();
 
-  const [formData, setFormData] = useState<SchoolSettings>(settings);
+  const formGenerationRef = useRef(0);
+  const immediateSaveGenRef = useRef(0);
+  const [formPayload, setFormPayload] = useState<{ data: SchoolSettings; generation: number }>({
+    data: settings,
+    generation: 0,
+  });
+  const formData = formPayload.data;
+  const setFormData = useCallback((action: React.SetStateAction<SchoolSettings>) => {
+    formGenerationRef.current += 1;
+    const nextGen = formGenerationRef.current;
+    setFormPayload((prev) => {
+      const nextData = typeof action === "function" ? action(prev.data) : action;
+      return { data: nextData, generation: nextGen };
+    });
+  }, []);
+
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
   const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
   const suppressClassBlurRef = useRef(false);
@@ -94,7 +109,8 @@ function SettingsContent() {
   const [showDisablePinModal, setShowDisablePinModal] = useState(false);
 
   // Debounce form data for auto-save (500ms)
-  const debouncedFormData = useDebounce(formData, 500);
+  const debouncedPayload = useDebounce(formPayload, 500);
+  const debouncedFormData = debouncedPayload.data;
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -118,6 +134,7 @@ function SettingsContent() {
   const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
 
   useEffect(() => {
+    if (debouncedPayload.generation < immediateSaveGenRef.current) return;
     const debouncedString = JSON.stringify(debouncedFormData);
     if (debouncedString === lastAutoSaveRef.current) return;
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
@@ -144,7 +161,7 @@ function SettingsContent() {
     requestAnimationFrame(() => {
       setLastSavedSettings(debouncedFormData);
     });
-  }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
+  }, [debouncedFormData, debouncedPayload.generation, lastSavedSettings.className, students.length, setSettings]);
 
   const handleClassNameBlur = () => {
     if (suppressClassBlurRef.current) return;
@@ -154,10 +171,6 @@ function SettingsContent() {
     // 1. If empty, revert to old name and warn
     if (!trimmed) {
       setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
-      lastAutoSaveRef.current = JSON.stringify({
-        ...formData,
-        className: lastSavedSettings.className,
-      });
       showToast("Class name cannot be empty", "error");
       return;
     }
@@ -170,14 +183,9 @@ function SettingsContent() {
     // 3. If no actual change from saved state, do nothing
     if (trimmed === oldName) return;
 
-    // 4. If students exist, prompt confirmation; otherwise save immediately
+    // 4. If students exist, prompt confirmation; otherwise let 500ms auto-save persist
     if (students.length > 0) {
       setShowClassUpdateModal(true);
-    } else {
-      const updated = { ...formData, className: trimmed };
-      setSettings(updated);
-      setLastSavedSettings(updated);
-      lastAutoSaveRef.current = JSON.stringify(updated);
     }
   };
 
@@ -354,6 +362,7 @@ function SettingsContent() {
     const updated = { ...formData, className: trimmed };
 
     setFormData(updated);
+    immediateSaveGenRef.current = formGenerationRef.current;
     setSettings(updated);
     setLastSavedSettings(updated);
     lastAutoSaveRef.current = JSON.stringify(updated);

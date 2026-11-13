@@ -48,8 +48,8 @@ similar labels are **INFERRED** from the field label and downstream use.
 | `className` | per class / per academic year | Dashboard, analytics, backup names, bulk import and reports consume it (`src/pages/Dashboard.tsx:89`, `223`; `src/pages/Analytics.tsx:214`, `277`; `src/components/DataBackup.tsx:84-89`; `src/components/BulkImportModal.tsx:51`; `src/pages/PrintPreview.tsx:127`). It also copies to every student when explicitly confirmed (`src/context/SchoolContext.tsx:300-302`). |
 | `classSize` | per class | Dashboard statistics use it (`src/components/DashboardStats.tsx:13`, `50`). |
 | `totalAttendanceDays` | per term | analytics, remark generation, and reports consume it (`src/pages/Analytics.tsx:814`; `src/context/SchoolContext.tsx:716-725`; `src/utils/analyticsCalculator.ts:464-473`). |
-| `nextTermStarts` | per term | A consumer outside Settings is **UNVERIFIED**; it is part of the schema/type and edited at `src/pages/Settings.tsx:574-579`. |
-| `academicYear` | per year | Report/template consumers are not found by exact field grep; direct downstream use is **UNVERIFIED**. |
+| `nextTermStarts` | per term | Consumed by Settings input, ReportTemplate, StudentInfo, and Classic, Minimal, Modern, and Original templates (`src/components/ReportTemplate.tsx`, `src/components/reports/StudentInfo.tsx`, `src/templates/*`). |
+| `academicYear` | per year | Consumed by Settings input, ReportTemplate, ReportHeader, and Classic, Minimal, Modern, and Original templates (`src/components/ReportTemplate.tsx`, `src/components/reports/ReportHeader.tsx`, `src/templates/*`). |
 | `term` | per term | remark generation and report templates use it (`src/context/SchoolContext.tsx:706-711`; `src/templates/OriginalTemplate.tsx:11`). |
 | `examType` | per term / exam cycle | Every report template and `ReportTemplate` switch mock rendering (`src/templates/OriginalTemplate.tsx:9`; `src/components/ReportTemplate.tsx:24`); schema validation applies mock rules (`src/schemas/settingsSchema.ts:135-151`). |
 | `classScoreMax`, `examScoreMax` | per exam setup | grade calculation uses the maxima (`src/utils/gradeCalculator.ts`); Settings keeps them complementary when editing weights and forces `0/100` for mock (`src/pages/Settings.tsx:668-767`). Exact line for the calculator’s maxima is **UNVERIFIED** because the symbol occurs through helper calls rather than a concise field access. |
@@ -61,9 +61,8 @@ similar labels are **INFERRED** from the field label and downstream use.
 | `autoLockTimeout` | rarely / when security policy changes | `App` reads it once from IndexedDB and converts minutes to milliseconds (`src/App.tsx:22-27`); the settings select writes it into `formData` (`src/pages/Settings.tsx:1120-1135`). |
 
 `SchoolSettings` also declares the optional fields above in one persisted object
-(`src/types/index.ts:48-100`). No source consumer was found for `nextTermStarts`, `academicYear`,
-or a direct `componentLibrary` runtime lookup outside Settings; those absences are **UNVERIFIED**
-rather than proof that no dynamically accessed consumer exists.
+(`src/types/index.ts:48-100`). Both `nextTermStarts` and `academicYear` are confirmed
+as active template and report card consumers.
 
 ## 3. Save-flow trace
 
@@ -287,9 +286,9 @@ highest-risk atomic groups: class/term setup and assessment. These tradeoffs are
 Recommendation: **(a), implemented first as (c)**—extract the existing state/effects into a shared
 settings layout/hook without changing setter semantics. Keep the class-name gate around the
 whole snapshot, keep Reset whole-object, and do not make route components independently save.
-The provider currently has no load-ready value in its public context (`src/context/SchoolContextDefinition.ts:5-24`);
-adding one may be necessary for a safe cold-start design, but doing so is a behavior change that
-needs separate verification.
+The provider exposes `isDataLoaded` in its public context (`src/context/SchoolContextDefinition.ts:25`),
+and routes are protected by `DataGate` (`src/components/DataGate.tsx`) so settings routes do not
+mount before persisted data is ready.
 
 ## 10. Migration plan
 
@@ -382,9 +381,9 @@ Run after every migration step:
 1. **High likelihood × high impact:** losing or partially saving the shared draft when routes
    unmount, especially during the class-name gate and debounce windows
    (`src/pages/Settings.tsx:104-120`).
-2. **Medium likelihood × high impact:** cold-start deep links rendering defaults before IndexedDB
-   settings arrive because there is no route loading gate (`src/context/SchoolContext.tsx:104-134`;
-   `src/context/SchoolContextDefinition.ts:5-24`).
+2. **Mitigated by DataGate:** cold-start deep links are gated by `DataGate` and `isDataLoaded`
+   (`src/components/DataGate.tsx:11-40`; `src/context/SchoolContext.tsx:75-135`), preventing default
+   renders while IndexedDB loading is in progress.
 3. **Medium likelihood × high impact:** level, subject, task-map, and exam-type changes becoming
    non-atomic across routes (`src/pages/Settings.tsx:174-190`, `638-949`).
 4. **Medium likelihood × high impact:** security state becoming stale or auto-lock changes

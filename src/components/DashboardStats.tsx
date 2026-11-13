@@ -58,13 +58,15 @@ export function DashboardStats({ students, settings }: Props) {
             <AlertTriangle className="h-5 w-5 text-red-600" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-1 text-sm font-bold text-red-900" data-record="true">
-              Class Over Capacity ({stats.total} / {stats.classSize})
+            <h3 className="mb-1 text-sm font-bold text-red-900">
+              <span data-record="true">Class Over Capacity</span> ({stats.total} / {stats.classSize})
             </h3>
-            <p className="text-xs leading-relaxed text-red-700" data-record="true">
+            <p className="text-xs leading-relaxed text-red-700">
               You have {stats.total - stats.classSize} more student
-              {stats.total - stats.classSize > 1 ? "s" : ""} than your set class size. Consider
-              updating the class size in Settings or reviewing your enrollment.
+              {stats.total - stats.classSize > 1 ? "s" : ""}{" "}
+              <span data-record="true">
+                than your set class size. Consider updating the class size in Settings or reviewing your enrollment.
+              </span>
             </p>
           </div>
         </div>

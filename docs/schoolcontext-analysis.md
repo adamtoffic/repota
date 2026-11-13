@@ -22,24 +22,24 @@ Line counts are inclusive and include comments/blank lines in each range.
 
 | Finding | Evidence | Impact |
 |---|---|---|
-| Default settings have a shared constant plus a factory-reset extension | [`defaultSettings.ts`](../src/constants/defaultSettings.ts:4) defines `DEFAULT_SETTINGS`; [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:60) spreads it and adds `examType`, `componentLibrary`, and `subjectComponentMap` for reset. | This is intentional variation, but future default fields must be checked in both the base default and reset result. |
-| `startFresh` calls `restoreDefaults` and separately clears students/status | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:165) | This is a coordinated flow, not a duplicate implementation. Moving either half independently could break the load-error recovery contract. |
-| Student score clearing is duplicated for all students and one student | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:252), [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:273) | A shared pure `clearSubjectScores` helper could reduce duplication, but it is not required for extraction. |
-| Component settings are traversed in both mismatch detection and synchronization | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:323), [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:371) | The operations have different outputs and should not be merged without tests for missing, outdated, and removed components. |
-| The demo generator and remark generator both update all students in one batch | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:482), [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:714) | Both rely on one state replacement and debounce persistence; splitting them must preserve atomic user-visible updates. |
+| Default settings have a shared constant plus a factory-reset extension | [`defaultSettings.ts`](../src/constants/defaultSettings.ts#L4) defines `DEFAULT_SETTINGS`; [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L60) spreads it and adds `examType`, `componentLibrary`, and `subjectComponentMap` for reset. | This is intentional variation, but future default fields must be checked in both the base default and reset result. |
+| `startFresh` calls `restoreDefaults` and separately clears students/status | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L165) | This is a coordinated flow, not a duplicate implementation. Moving either half independently could break the load-error recovery contract. |
+| Student score clearing is duplicated for all students and one student | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L252), [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L273) | A shared pure `clearSubjectScores` helper could reduce duplication, but it is not required for extraction. |
+| Component settings are traversed in both mismatch detection and synchronization | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L323), [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L371) | The operations have different outputs and should not be merged without tests for missing, outdated, and removed components. |
+| The demo generator and remark generator both update all students in one batch | [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L482), [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L714) | Both rely on one state replacement and debounce persistence; splitting them must preserve atomic user-visible updates. |
 
 ## Extraction assessment and existing test coverage
 
 | Area | Safe extraction shape | Tests that exercise it | Main risk |
 |---|---|---|---|
-| Defaults and selectors | Pure constants/selectors | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:1), [`AppAutoLock.test.tsx`](../src/test/AppAutoLock.test.tsx:1) | Defaults can accidentally diverge from reset behavior. |
-| Student actions | `useStudentActions` hook receiving state/setters and side-effect services | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:117), [`DataBackup.test.tsx`](../src/test/DataBackup.test.tsx:1), [`StudentCRUD.test.tsx`](../src/test/StudentCRUD.test.tsx:1) | Toast text, silent flags, undo behavior, and PostHog event conditions. |
-| Component sync | Pure comparison/sync functions plus a thin stateful hook | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:1), [`SettingsIntegration.test.tsx`](../src/test/SettingsIntegration.test.tsx:1) | Score conversion, generated component IDs, and settings-dependent max scores. |
-| Demo generation | Pure `createDemoStudents(settings, random, uuid)` plus action wrapper | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:1) | Random ranges, component assignments, and `Loaded_Demo_Data` analytics. |
-| Remarks | Pure batch generator plus stateful progress/toast wrapper | No dedicated remarks test was found; [`SchoolContext.tsx`](../src/context/SchoolContext.tsx:774) captures the event. | Remark uniqueness, attendance fallback, and progress callback timing. |
-| Derived processing | Pure selector/hook | [`gradeCalculator.test.ts`](../src/test/gradeCalculator.test.ts:1) | Position assignment order and settings level dependency. |
-| Load/hydration | Dedicated hook only after characterization tests | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:200), [`DataBackup.test.tsx`](../src/test/DataBackup.test.tsx:1) | Highest risk: cold start, timeout, late promise resolution, migration, and default-write prevention. |
-| Persistence | Dedicated persistence hook only after characterization tests | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:200), [`DataBackup.test.tsx`](../src/test/DataBackup.test.tsx:200) | Highest risk: debounces, per-key error gates, heartbeat, and import suspension. |
+| Defaults and selectors | Pure constants/selectors | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L1), [`AppAutoLock.test.tsx`](../src/test/AppAutoLock.test.tsx#L1) | Defaults can accidentally diverge from reset behavior. |
+| Student actions | `useStudentActions` hook receiving state/setters and side-effect services | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L117), [`DataBackup.test.tsx`](../src/test/DataBackup.test.tsx#L1), [`StudentCRUD.test.tsx`](../src/test/StudentCRUD.test.tsx#L1) | Toast text, silent flags, undo behavior, and PostHog event conditions. |
+| Component sync | Pure comparison/sync functions plus a thin stateful hook | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L1), [`SettingsIntegration.test.tsx`](../src/test/SettingsIntegration.test.tsx#L1) | Score conversion, generated component IDs, and settings-dependent max scores. |
+| Demo generation | Pure `createDemoStudents(settings, random, uuid)` plus action wrapper | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L1) | Random ranges, component assignments, and `Loaded_Demo_Data` analytics. |
+| Remarks | Pure batch generator plus stateful progress/toast wrapper | No dedicated remarks test was found; [`SchoolContext.tsx`](../src/context/SchoolContext.tsx#L774) captures the event. | Remark uniqueness, attendance fallback, and progress callback timing. |
+| Derived processing | Pure selector/hook | [`gradeCalculator.test.ts`](../src/test/gradeCalculator.test.ts#L1) | Position assignment order and settings level dependency. |
+| Load/hydration | Dedicated hook only after characterization tests | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L200), [`DataBackup.test.tsx`](../src/test/DataBackup.test.tsx#L1) | Highest risk: cold start, timeout, late promise resolution, migration, and default-write prevention. |
+| Persistence | Dedicated persistence hook only after characterization tests | [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L200), [`DataBackup.test.tsx`](../src/test/DataBackup.test.tsx#L200) | Highest risk: debounces, per-key error gates, heartbeat, and import suspension. |
 
 ## Required extraction order
 
@@ -56,26 +56,26 @@ The load/hydration and persistence sections **must not be touched without the Se
 
 ## Context member consumers
 
-The public members are declared in [`SchoolContextDefinition.ts`](../src/context/SchoolContextDefinition.ts:7). Consumers below use `useSchoolData` unless noted.
+The public members are declared in [`SchoolContextDefinition.ts`](../src/context/SchoolContextDefinition.ts#L7). Consumers below use `useSchoolData` unless noted.
 
 | Context member(s) | Consumers |
 |---|---|
-| `students`, `settings` | [`Dashboard.tsx`](../src/pages/Dashboard.tsx:26), [`Settings.tsx`](../src/pages/Settings.tsx:58), [`PrintPreview.tsx`](../src/pages/PrintPreview.tsx:12), [`Analytics.tsx`](../src/pages/Analytics.tsx:67), [`StudentList.tsx`](../src/components/StudentList.tsx:26), [`DetailsTab.tsx`](../src/components/tabs/DetailsTab.tsx:19), [`AcademicTab.tsx`](../src/components/tabs/AcademicTab.tsx:21), [`BulkImportModal.tsx`](../src/components/BulkImportModal.tsx:17), [`StorageMonitor.tsx`](../src/components/StorageMonitor.tsx:12), [`DataBackup.tsx`](../src/components/DataBackup.tsx:37), [`App.tsx`](../src/App.tsx:23) |
-| `setSettings`, `updateClassNameForAll`, `restoreDefaults`, `isSaving`, `lastSaved` | [`Settings.tsx`](../src/pages/Settings.tsx:58) |
-| Student CRUD/actions: `addStudent`, `deleteStudent`, `updateStudent`, `loadDemoData`, `deletePendingStudents`, `autoGenerateRemarks`, `clearAllScores` | [`Dashboard.tsx`](../src/pages/Dashboard.tsx:26) |
-| `clearStudentScores`, `detectComponentMismatches`, `syncSubjectComponentsFromSettings` | [`AcademicTab.tsx`](../src/components/tabs/AcademicTab.tsx:21) |
-| `removeAllStudentPhotos` | [`StorageMonitor.tsx`](../src/components/StorageMonitor.tsx:12) |
-| `addStudent`, `settings` | [`BulkImportModal.tsx`](../src/components/BulkImportModal.tsx:17); the import passes `silent=true` at [`BulkImportModal.tsx`](../src/components/BulkImportModal.tsx:56) |
-| `loadError`, `suspendPersistence`, `resumePersistence` | [`DataBackup.tsx`](../src/components/DataBackup.tsx:37) |
-| `isDataLoaded`, `loadError`, `retryLoad`, `startFresh` | [`DataGate.tsx`](../src/components/DataGate.tsx:12) |
-| `settings` | [`App.tsx`](../src/App.tsx:23), [`StudentList.tsx`](../src/components/StudentList.tsx:26), [`DetailsTab.tsx`](../src/components/tabs/DetailsTab.tsx:19), [`AcademicTab.tsx`](../src/components/tabs/AcademicTab.tsx:21) |
-| `isSaving`, `lastSaved` | Provider values are consumed by [`Dashboard.tsx`](../src/pages/Dashboard.tsx:334) and [`Settings.tsx`](../src/pages/Settings.tsx:1406), which pass them to [`AutoSaveIndicator.tsx`](../src/components/AutoSaveIndicator.tsx:10). |
+| `students`, `settings` | [`Dashboard.tsx`](../src/pages/Dashboard.tsx#L26), [`Settings.tsx`](../src/pages/Settings.tsx#L58), [`PrintPreview.tsx`](../src/pages/PrintPreview.tsx#L12), [`Analytics.tsx`](../src/pages/Analytics.tsx#L67), [`StudentList.tsx`](../src/components/StudentList.tsx#L26), [`DetailsTab.tsx`](../src/components/tabs/DetailsTab.tsx#L19), [`AcademicTab.tsx`](../src/components/tabs/AcademicTab.tsx#L21), [`BulkImportModal.tsx`](../src/components/BulkImportModal.tsx#L17), [`StorageMonitor.tsx`](../src/components/StorageMonitor.tsx#L12), [`DataBackup.tsx`](../src/components/DataBackup.tsx#L37), [`App.tsx`](../src/App.tsx#L23) |
+| `setSettings`, `updateClassNameForAll`, `restoreDefaults`, `isSaving`, `lastSaved` | [`Settings.tsx`](../src/pages/Settings.tsx#L58) |
+| Student CRUD/actions: `addStudent`, `deleteStudent`, `updateStudent`, `loadDemoData`, `deletePendingStudents`, `autoGenerateRemarks`, `clearAllScores` | [`Dashboard.tsx`](../src/pages/Dashboard.tsx#L26) |
+| `clearStudentScores`, `detectComponentMismatches`, `syncSubjectComponentsFromSettings` | [`AcademicTab.tsx`](../src/components/tabs/AcademicTab.tsx#L21) |
+| `removeAllStudentPhotos` | [`StorageMonitor.tsx`](../src/components/StorageMonitor.tsx#L12) |
+| `addStudent`, `settings` | [`BulkImportModal.tsx`](../src/components/BulkImportModal.tsx#L17); the import passes `silent=true` at [`BulkImportModal.tsx`](../src/components/BulkImportModal.tsx#L56) |
+| `loadError`, `suspendPersistence`, `resumePersistence` | [`DataBackup.tsx`](../src/components/DataBackup.tsx#L37) |
+| `isDataLoaded`, `loadError`, `retryLoad`, `startFresh` | [`DataGate.tsx`](../src/components/DataGate.tsx#L12) |
+| `settings` | [`App.tsx`](../src/App.tsx#L23), [`StudentList.tsx`](../src/components/StudentList.tsx#L26), [`DetailsTab.tsx`](../src/components/tabs/DetailsTab.tsx#L19), [`AcademicTab.tsx`](../src/components/tabs/AcademicTab.tsx#L21) |
+| `isSaving`, `lastSaved` | Provider values are consumed by [`Dashboard.tsx`](../src/pages/Dashboard.tsx#L334) and [`Settings.tsx`](../src/pages/Settings.tsx#L1406), which pass them to [`AutoSaveIndicator.tsx`](../src/components/AutoSaveIndicator.tsx#L10). |
 | `loadStatus` | No non-provider runtime consumer was found; it is exposed in the context type and value but only the provider uses it to gate persistence. |
-| `restoreDefaults` | Settings invokes it from the factory-reset flow at [`Settings.tsx`](../src/pages/Settings.tsx:1368). |
+| `restoreDefaults` | Settings invokes it from the factory-reset flow at [`Settings.tsx`](../src/pages/Settings.tsx#L1368). |
 | `checkDuplicateName` | No runtime consumer was found outside the provider; it is exposed but not currently called by a page/component. |
-| `updateClassNameForAll` | Settings invokes it after the class-name confirmation at [`Settings.tsx`](../src/pages/Settings.tsx:329). |
-| `autoGenerateRemarks` | Dashboard invokes it from the toolbar flow at [`Dashboard.tsx`](../src/pages/Dashboard.tsx:203). |
-| Context provider itself | [`App.tsx`](../src/App.tsx:154) wraps the application; tests mount it directly in [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx:41). |
+| `updateClassNameForAll` | Settings invokes it after the class-name confirmation at [`Settings.tsx`](../src/pages/Settings.tsx#L329). |
+| `autoGenerateRemarks` | Dashboard invokes it from the toolbar flow at [`Dashboard.tsx`](../src/pages/Dashboard.tsx#L203). |
+| Context provider itself | [`App.tsx`](../src/App.tsx#L154) wraps the application; tests mount it directly in [`SettingsColdStart.test.tsx`](../src/test/SettingsColdStart.test.tsx#L41). |
 
 ## Constraints for future work
 

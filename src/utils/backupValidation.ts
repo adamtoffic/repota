@@ -182,10 +182,15 @@ export async function importBackupAtomically(
     throw new Error("Current data could not be read; nothing was changed.");
   }
   if (saveBatch) {
-    const saved = await saveBatch([
-      { key: IDB_KEYS.STUDENTS, value: validated.students },
-      { key: IDB_KEYS.SETTINGS, value: validated.settings },
-    ]);
+    let saved = false;
+    try {
+      saved = await saveBatch([
+        { key: IDB_KEYS.STUDENTS, value: validated.students },
+        { key: IDB_KEYS.SETTINGS, value: validated.settings },
+      ]);
+    } catch {
+      throw new IncompleteRollbackError();
+    }
     if (saved) return;
     throw new Error("Import failed; nothing was changed.");
   }

@@ -108,6 +108,13 @@ export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> 
   }
 };
 
+export class StorageBatchRollbackError extends Error {
+  constructor(message = "Storage batch write failed and rollback was incomplete.") {
+    super(message);
+    this.name = "StorageBatchRollbackError";
+  }
+}
+
 /**
  * Save multiple entries atomically in a single readwrite transaction
  */
@@ -125,13 +132,40 @@ export const saveEntriesToStorage = async (
       }
       await tx.done;
     } else {
-      for (const entry of entries) {
-        const jsonString = JSON.stringify(entry.value);
-        localStorage.setItem(entry.key, jsonString);
+      const snapshots: Array<{ key: string; value: string | null }> = entries.map((e) => ({
+        key: e.key,
+        value: localStorage.getItem(e.key),
+      }));
+
+      try {
+        for (const entry of entries) {
+          const jsonString = JSON.stringify(entry.value);
+          localStorage.setItem(entry.key, jsonString);
+        }
+      } catch (writeError) {
+        let rollbackFailed = false;
+        for (const snapshot of snapshots) {
+          try {
+            if (snapshot.value !== null) {
+              localStorage.setItem(snapshot.key, snapshot.value);
+            } else {
+              localStorage.removeItem(snapshot.key);
+            }
+          } catch {
+            rollbackFailed = true;
+          }
+        }
+        if (rollbackFailed) {
+          throw new StorageBatchRollbackError();
+        }
+        throw writeError;
       }
     }
     return true;
   } catch (error: unknown) {
+    if (error instanceof StorageBatchRollbackError) {
+      throw error;
+    }
     if (error instanceof Error) {
       if (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED") {
         console.error("Storage quota exceeded");
@@ -164,9 +198,11 @@ export const loadFromStorageResult = async <T>(key: string): Promise<StorageLoad
     } else {
       // localStorage fallback
       const jsonString = localStorage.getItem(key);
-      return jsonString
-        ? { status: "found", value: JSON.parse(jsonString) as T }
-        : { status: "empty" };
+      if (jsonString === null) {
+        return { status: "empty" };
+      }
+      const parsed = JSON.parse(jsonString);
+      return parsed == null ? { status: "empty" } : { status: "found", value: parsed as T };
     }
   } catch (error) {
     console.error("Storage load error:", error);

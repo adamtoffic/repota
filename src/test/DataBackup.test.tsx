@@ -51,12 +51,15 @@ const students = [
   },
 ];
 
+const suspendPersistenceMock = vi.fn();
+const resumePersistenceMock = vi.fn();
+
 const contextValue = {
   isDataLoaded: true,
   loadError: false,
   students,
-  suspendPersistence: vi.fn(),
-  resumePersistence: vi.fn(),
+  suspendPersistence: suspendPersistenceMock,
+  resumePersistence: resumePersistenceMock,
 } as unknown as SchoolContextType;
 
 function renderBackup() {
@@ -73,8 +76,8 @@ describe("DataBackup", () => {
     storage.saveToStorage.mockReset();
     storage.saveEntriesToStorage.mockReset();
     recordBackup.mockReset();
-    contextValue.suspendPersistence = vi.fn();
-    contextValue.resumePersistence = vi.fn();
+    suspendPersistenceMock.mockReset();
+    resumePersistenceMock.mockReset();
     contextValue.loadError = false;
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
@@ -270,8 +273,8 @@ describe("DataBackup", () => {
         { key: "settings", value: expect.objectContaining(settings) },
       ]),
     );
-    expect(contextValue.suspendPersistence).toHaveBeenCalled();
-    expect(contextValue.suspendPersistence.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(suspendPersistenceMock).toHaveBeenCalled();
+    expect(suspendPersistenceMock.mock.invocationCallOrder[0]).toBeLessThan(
       storage.saveEntriesToStorage.mock.invocationCallOrder[0],
     );
     expect(await screen.findByText("Backup loaded. Reloading...")).toBeVisible();
