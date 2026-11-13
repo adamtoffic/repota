@@ -9,13 +9,13 @@ interface DataGateProps {
 }
 
 export function DataGate({ children }: DataGateProps) {
-  const { isDataLoaded, loadError, retryLoad, startFresh } = useSchoolData();
+  const { isDataLoaded, loadError, isRollbackIncomplete, retryLoad, startFresh } = useSchoolData();
 
   if (!isDataLoaded) {
     return <PageLoader />;
   }
 
-  if (loadError) {
+  if (loadError || isRollbackIncomplete) {
     return (
       <div className="p-6">
         <Alert variant="error" title="Saved data could not be loaded">

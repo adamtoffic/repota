@@ -20,6 +20,8 @@ import {
   requestPersistentStorage,
   detectDataLoss,
 } from "../utils/dataProtection";
+import { z } from "zod";
+import { compatibleStudentSchema } from "../utils/backupValidation";
 // IndexedDB storage
 import {
   initStorage,
@@ -27,6 +29,7 @@ import {
   saveToStorage,
   IDB_KEYS,
   migrateFromLocalStorage,
+  getStorageType,
 } from "../utils/idbStorage";
 import { ConfirmModal } from "../components/ConfirmModal";
 
@@ -50,10 +53,17 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const [showFreshConfirm, setShowFreshConfirm] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const loadAttemptRef = useRef(0);
-  const persistenceSuspendedRef = useRef(false);
-  const suspendedUntilHydratedRef = useRef(false);
-  const [isPersistenceSuspended, setIsPersistenceSuspended] = useState(false);
-  const [isRollbackIncomplete, setIsRollbackIncomplete] = useState(false);
+  const initialRollbackIncomplete = (() => {
+    try {
+      return localStorage.getItem("repota_incomplete_rollback") === "true";
+    } catch {
+      return false;
+    }
+  })();
+  const persistenceSuspendedRef = useRef(initialRollbackIncomplete);
+  const suspendedUntilHydratedRef = useRef(initialRollbackIncomplete);
+  const [isPersistenceSuspended, setIsPersistenceSuspended] = useState(initialRollbackIncomplete);
+  const [isRollbackIncomplete, setIsRollbackIncomplete] = useState(initialRollbackIncomplete);
   const storageReadyRef = useRef(false);
   const [resumeGeneration, setResumeGeneration] = useState(0);
 
@@ -95,6 +105,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         // 2. Migrate from localStorage if needed
         const migration = await migrateFromLocalStorage();
         if (loadAttemptRef.current !== attempt || timedOut) return;
+        if (getStorageType() === "indexeddb" && !migration.success) {
+          storageReadyRef.current = false;
+          setIsStorageReady(false);
+          setLoadStatus({ students: "error", settings: "error" });
+          setIsDataLoaded(true);
+          return;
+        }
         storageReadyRef.current = true;
         setIsStorageReady(true);
         if (
@@ -108,37 +125,55 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         }
 
         // 3. Load students
+        let studentsLoadStatus: LoadKeyStatus = "ok";
         const studentsResult = await loadFromStorageResult<StudentRecord[]>(IDB_KEYS.STUDENTS);
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (studentsResult.status === "found") {
-          setStudents(studentsResult.value);
+          const parsed = z.array(compatibleStudentSchema).safeParse(studentsResult.value);
+          if (parsed.success) {
+            setStudents(parsed.data as StudentRecord[]);
+          } else {
+            console.error("Corrupted student records in storage:", parsed.error);
+            studentsLoadStatus = "error";
+          }
         } else if (studentsResult.status === "empty") {
           setStudents([]);
+        } else {
+          studentsLoadStatus = "error";
         }
 
         // 4. Load settings
+        let settingsLoadStatus: LoadKeyStatus = "ok";
         const settingsResult = await loadFromStorageResult<SchoolSettings>(IDB_KEYS.SETTINGS);
         if (loadAttemptRef.current !== attempt || timedOut) return;
         if (settingsResult.status === "found") {
           setSettings(settingsResult.value);
         } else if (settingsResult.status === "empty") {
           setSettings(DEFAULT_FACTORY_SETTINGS);
+        } else {
+          settingsLoadStatus = "error";
         }
-        const studentsOk = studentsResult.status !== "error";
-        const settingsOk = settingsResult.status !== "error";
-        const hasNoErrors = studentsOk && settingsOk;
+        const hasNoErrors = studentsLoadStatus === "ok" && settingsLoadStatus === "ok";
 
         setLoadStatus({
-          students: studentsResult.status === "error" ? "error" : "ok",
-          settings: settingsResult.status === "error" ? "error" : "ok",
+          students: studentsLoadStatus,
+          settings: settingsLoadStatus,
         });
 
         if (hasNoErrors) {
-          suspendedUntilHydratedRef.current = false;
-          persistenceSuspendedRef.current = false;
-          setIsPersistenceSuspended(false);
-          setIsRollbackIncomplete(false);
-          setResumeGeneration((current) => current + 1);
+          const hasIncompleteRollback = (() => {
+            try {
+              return localStorage.getItem("repota_incomplete_rollback") === "true";
+            } catch {
+              return false;
+            }
+          })();
+          if (!hasIncompleteRollback) {
+            suspendedUntilHydratedRef.current = false;
+            persistenceSuspendedRef.current = false;
+            setIsPersistenceSuspended(false);
+            setResumeGeneration((current) => current + 1);
+          }
         }
       } catch (error) {
         console.error("Failed to load school data:", error);
@@ -207,12 +242,14 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       saveToStorage(IDB_KEYS.SETTINGS, defaultSettings),
     ]);
     if (!studentsSaved || !settingsSaved) {
-      suspendedUntilHydratedRef.current = true;
-      persistenceSuspendedRef.current = true;
-      setIsPersistenceSuspended(true);
-      setIsRollbackIncomplete(true);
+      markIncompleteRollback();
       showToast("Could not save fresh data. Recovery remains active.", "error");
       return;
+    }
+    try {
+      localStorage.removeItem("repota_incomplete_rollback");
+    } catch {
+      // ignore
     }
     setLoadStatus({ students: "ok", settings: "ok" });
     setIsDataLoaded(true);
@@ -234,10 +271,27 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     setResumeGeneration((current) => current + 1);
   };
   const markIncompleteRollback = () => {
+    try {
+      localStorage.setItem("repota_incomplete_rollback", "true");
+    } catch {
+      // ignore
+    }
     suspendedUntilHydratedRef.current = true;
     persistenceSuspendedRef.current = true;
     setIsPersistenceSuspended(true);
     setIsRollbackIncomplete(true);
+  };
+  const clearIncompleteRollback = () => {
+    try {
+      localStorage.removeItem("repota_incomplete_rollback");
+    } catch {
+      // ignore
+    }
+    setIsRollbackIncomplete(false);
+    suspendedUntilHydratedRef.current = false;
+    persistenceSuspendedRef.current = false;
+    setIsPersistenceSuspended(false);
+    setResumeGeneration((current) => current + 1);
   };
 
   // Request persistent storage on mount (Android protection)
@@ -871,6 +925,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         isPersistenceSuspended,
         isRollbackIncomplete,
         markIncompleteRollback,
+        clearIncompleteRollback,
         isSaving,
         lastSaved,
       }}

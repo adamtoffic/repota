@@ -53,13 +53,19 @@ const students = [
 
 const suspendPersistenceMock = vi.fn();
 const resumePersistenceMock = vi.fn();
+const clearIncompleteRollbackMock = vi.fn();
+const markIncompleteRollbackMock = vi.fn();
 
 const contextValue = {
   isDataLoaded: true,
   loadError: false,
+  isRollbackIncomplete: false,
+  isPersistenceSuspended: false,
   students,
   suspendPersistence: suspendPersistenceMock,
   resumePersistence: resumePersistenceMock,
+  clearIncompleteRollback: clearIncompleteRollbackMock,
+  markIncompleteRollback: markIncompleteRollbackMock,
 } as unknown as SchoolContextType;
 
 function renderBackup() {

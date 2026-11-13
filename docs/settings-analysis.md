@@ -58,7 +58,7 @@ similar labels are **INFERRED** from the field label and downstream use.
 | `subjectComponentMap` | per class / assessment setup | manual student synchronization and demo-data creation consume it (`src/context/SchoolContext.tsx:301-420`, `461-500`); Settings edits it (`src/pages/Settings.tsx:274-293`, `994-1073`). |
 | `templateId` | per report design, rarely | print preview chooses the template and records it in analytics (`src/pages/PrintPreview.tsx:73-82`); registry definitions are in `src/templates/registry.ts`. |
 | `headTeacherName`, `classTeacherName`, `headTeacherSignature`, `teacherSignature` | one-time setup / per staff change | report templates print both names and signatures (`src/templates/OriginalTemplate.tsx:439-466`; analogous fields in all templates). |
-| `autoLockTimeout` | rarely / when security policy changes | `App` reads it once from IndexedDB and converts minutes to milliseconds (`src/App.tsx:22-27`); the settings select writes it into `formData` (`src/pages/Settings.tsx:1120-1135`). |
+| `autoLockTimeout` | rarely / when security policy changes | `App` subscribes to provider settings via `useSchoolData()` and reactively updates the idle timer without requiring a reload; the settings select writes it into `formData` (`src/pages/Settings.tsx`). |
 
 `SchoolSettings` also declares the optional fields above in one persisted object
 (`src/types/index.ts:48-100`). Both `nextTermStarts` and `academicYear` are confirmed
@@ -74,9 +74,10 @@ as active template and report card consumers.
 3. `useDebounce(formData, 500)` delays the draft snapshot (`src/pages/Settings.tsx:101`).
 4. The autosave effect stringifies the debounced whole object. If its JSON equals
    `lastAutoSaveRef`, it returns (`src/pages/Settings.tsx:104-107`).
-5. If the class name differs from `lastSavedSettings.className` while students exist, it
-   returns before calling `setSettings` (`src/pages/Settings.tsx:108-112`). This skips the
-   entire snapshot, not merely `className`.
+5. When students exist and `className !== lastSavedSettings.className` (or `className` is empty),
+   the debounced snapshot is saved through `setSettings` with `className: lastSavedSettings.className`
+   while its other fields save normally; the unconfirmed class name change is held for explicit blur
+   or level-switch confirmation.
 6. Otherwise it calls the context setter, updates the ref, and schedules
    `lastSavedSettings` on the next animation frame (`src/pages/Settings.tsx:114-120`).
 7. `SchoolContext` separately debounces provider `settings` by 500ms (`src/context/SchoolContext.tsx:65-71`).
@@ -314,8 +315,9 @@ event is a recommendation, not current behavior.
   `src/pages/Dashboard.tsx:121-130`).
 - Settings initialize from provider settings and save through the existing two-stage debounce
   into `IDB_KEYS.SETTINGS` (`src/pages/Settings.tsx:65-120`; `src/context/SchoolContext.tsx:150-156`).
-- The class-name gate blocks the complete snapshot until the user chooses update or Reset
-  (`src/pages/Settings.tsx:108-112`, `1290-1308`).
+- When students exist and `className !== lastSavedSettings.className`, the debounced snapshot
+  is saved through `setSettings` with `className: lastSavedSettings.className` while other fields
+  save normally, holding class name changes until confirmed or reset.
 - Level changes load the same default subjects/class and emit the same PostHog event
   (`src/pages/Settings.tsx:174-190`).
 - Mock mode sets `0/100`, hides weight controls, and retains current assignment-card behavior

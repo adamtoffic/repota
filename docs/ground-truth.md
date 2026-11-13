@@ -29,11 +29,11 @@
 | LockScreen mount | After 500 ms it enables/focuses PIN input and checks biometric enrollment; on non-iOS it automatically attempts biometric unlock. | CONFIRMED — [LockScreen.tsx](../src/components/LockScreen.tsx#L27-L45); [LockScreen.tsx](../src/components/LockScreen.tsx#L67-L78) |
 | Re-trigger after unlock | A successful biometric/PIN attempt calls `onUnlock` after 400 ms. App then unmounts LockScreen because `isLocked` becomes false; a later lock remounts it and repeats the mount attempt. | CONFIRMED — [LockScreen.tsx](../src/components/LockScreen.tsx#L40-L44); [App.tsx](../src/App.tsx#L57-L63) |
 | App remount during print/navigation | The router changes route content, but App remains the owner of `isLocked`; no code explicitly remounts App for `/print` or `window.print()`. | CONFIRMED — [App.tsx](../src/App.tsx#L1-L111); [router.tsx](../src/router.tsx#L1-L75) |
-| Browser events | `window.print()` can cause browser print lifecycle events, and App clears print suppression on `afterprint`; exact desktop Chrome/iOS PWA event behavior remains UNVERIFIED. | CONFIRMED/UNVERIFIED — [App.tsx](../src/App.tsx#L41-L91) |
+| Browser events | `window.print()` dispatches `beforeprint` and `PRINT_STARTED_EVENT`; App sets print suppression which clears only after `PRINT_LOCK_SUPPRESSION_MS` (with no `afterprint` listener). | CONFIRMED — [App.tsx](../src/App.tsx#L44-L96); [printHandler.ts](../src/utils/printHandler.ts#L6-L37) |
 
 **Best-evidence loop explanation:** The repository directly proves that printing itself does not call `setIsLocked`; the only in-repo lock trigger during print is `visibilitychange` if printing makes the document hidden. It is INFERRED that a platform print/PWA transition may emit a hidden visibility state, causing the immediate lock; this needs device/browser reproduction. After unlock, the same visibility transition or another idle event can lock again, producing the reported loop.  
 
-**Minimal fix proposal:** Ignore transient visibility changes while a print operation is active, using a short-lived print-in-progress ref/flag cleared after print returns (or `afterprint` where supported), and avoid treating the print dialog/PWA transition as an app switch. Risk: a real backgrounding event during printing could be temporarily exempted from locking; device-specific validation is required. PROPOSAL, not implemented.
+**Current implementation:** `beforeprint` or `PRINT_STARTED_EVENT` sets `printInProgressRef`, blocking idle and visibility locks in `App.tsx`. Print suppression clears only when the `PRINT_LOCK_SUPPRESSION_MS` timer fires, with no `afterprint` handler. Note the remaining risk that an app switch during the 2-minute suppression window is not immediately locked; device validation is retained. CONFIRMED — [App.tsx](../src/App.tsx#L44-L96).
 
 ## 8. Auto-lock timeout
 
@@ -113,7 +113,7 @@ All four routes are wrapped by DataGate. The error screen offers Try again, Star
 
 The provider initializes default settings and empty students before asynchronous loading, but persistence effects return while `isDataLoaded` is false and also guard failed keys. CONFIRMED — [SchoolContext.tsx](../src/context/SchoolContext.tsx#L40-L43); [SchoolContext.tsx](../src/context/SchoolContext.tsx#L180-L199)
 
-One-time settings/student-derived local state that can become stale after hydration/import/restore: App reads auto-lock from storage only once; Settings draft refs/state initialize from provider settings once; DetailsTab initializes its form from the selected student once per keyed student; SubjectRow initializes component visibility from `hasComponents`; `useDebounce` initializes from its first value; LazyReportCard initializes visibility from print mode. CONFIRMED — [App.tsx](../src/App.tsx#L21-L29); [Settings.tsx](../src/pages/Settings.tsx#L110-L119); [DetailsTab.tsx](../src/components/tabs/DetailsTab.tsx#L20-L35); [SubjectRow.tsx](../src/components/SubjectRow.tsx#L32-L38); [useDebounce.ts](../src/hooks/useDebounce.ts#L1-L18); [LazyReportCard.tsx](../src/components/LazyReportCard.tsx#L19-L20)
+One-time settings/student-derived local state that can become stale after hydration/import/restore: App reactively reads settings.autoLockTimeout from useSchoolData() and updates useIdleTimer without becoming stale; Settings draft refs/state initialize from provider settings once; DetailsTab initializes its form from the selected student once per keyed student; SubjectRow initializes component visibility from `hasComponents`; `useDebounce` initializes from its first value; LazyReportCard initializes visibility from print mode. CONFIRMED — [App.tsx](../src/App.tsx#L23-L41); [Settings.tsx](../src/pages/Settings.tsx#L110-L119); [DetailsTab.tsx](../src/components/tabs/DetailsTab.tsx#L20-L35); [SubjectRow.tsx](../src/components/SubjectRow.tsx#L32-L38); [useDebounce.ts](../src/hooks/useDebounce.ts#L1-L18); [LazyReportCard.tsx](../src/components/LazyReportCard.tsx#L19-L20)
 
 ## 5. Backup under failure
 
@@ -165,13 +165,13 @@ Viewport meta is supplied by the Vite HTML entry (not inspected in `src`); safe-
 
 ## 15. PWA update and offline behavior
 
-VitePWA is configured with `registerType: "autoUpdate"` and automatic registration. Workbox precaches HTML/JS/CSS/assets under 3 MB, uses `/index.html` navigation fallback, `NetworkFirst` for JS/CSS runtime assets, and `CacheFirst` for images/CDN assets. The generated service worker calls `skipWaiting`, `clientsClaim`, and `cleanupOutdatedCaches`. CONFIRMED — [vite.config.ts](../vite.config.ts#L21-L77); [dev-dist/sw.js](../dev-dist/sw.js#L70-L110)
+VitePWA is configured with `registerType: "autoUpdate"` and automatic registration. Workbox precaches HTML/JS/CSS/assets under 3 MB, uses `/index.html` navigation fallback, `NetworkFirst` for JS/CSS runtime assets, and `CacheFirst` for images/CDN assets. The generated service worker calls `skipWaiting`, `clientsClaim`, and `cleanupOutdatedCaches`. CONFIRMED — [vite.config.ts](../vite.config.ts#L21-L77)
 
 `PwaUpdatePrompt` exposes an Update Now button that calls `updateServiceWorker(true)` and dismisses the prompt; Later only clears the prompt. Whether activation reloads every open tab is controlled by the Workbox/runtime implementation and is not verified by repository code. CONFIRMED/UNVERIFIED — [PwaUpdatePrompt.tsx](../src/components/PwaUpdatePrompt.tsx#L26-L42)
 
 An in-progress edit can be lost or interrupted when an update activates: provider saves are debounced at 500 ms, Settings has its own delayed draft autosave, and no update handler snapshots/flushes those edits. This is INFERRED from the debounce paths; exact browser activation timing is UNVERIFIED. CONFIRMED/INFERRED — [useDebounce.ts](../src/hooks/useDebounce.ts#L1-L18); [SchoolContext.tsx](../src/context/SchoolContext.tsx#L180-L199)
 
-`dev-dist` contains generated service-worker artifacts and is ignored by ESLint; its Git tracking status was not changed during this audit. CONFIRMED/UNVERIFIED — [eslint.config.js](../eslint.config.js#L1-L9); [dev-dist/sw.js](../dev-dist/sw.js#L1-L3)
+Service-worker build configuration is defined in [vite.config.ts](../vite.config.ts#L21-L77) and dev artifacts are ignored by ESLint in [eslint.config.js](../eslint.config.js#L1-L9). CONFIRMED — [vite.config.ts](../vite.config.ts#L21-L77); [eslint.config.js](../eslint.config.js#L1-L9)
 
 ## 16. Storage and quota
 

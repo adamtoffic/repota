@@ -248,24 +248,38 @@ In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L652-L665):
 ```
 
 #### 6. Prevent Blur Race on Header Reset Button
-In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L384-L396):
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L405-L425):
 ```tsx
 <button
+  disabled={isPersistenceSuspended}
   onClick={() => {
     suppressClassBlurRef.current = true;
+    resetModalOpenRef.current = true;
     setShowResetModal(true);
   }}
   onMouseDown={(e) => {
     e.preventDefault();
     suppressClassBlurRef.current = true;
+    const handleRelease = () => {
+      window.removeEventListener("pointerup", handleRelease);
+      window.removeEventListener("mouseup", handleRelease);
+      setTimeout(() => {
+        if (!resetModalOpenRef.current) {
+          suppressClassBlurRef.current = false;
+        }
+      }, 0);
+    };
+    window.addEventListener("pointerup", handleRelease, { once: true });
+    window.addEventListener("mouseup", handleRelease, { once: true });
   }}
-  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
+  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 disabled:pointer-events-none disabled:opacity-50 sm:flex"
   title="Discard unsaved changes"
 >
   <RotateCcw className="h-4 w-4" />
   <span>Reset</span>
 </button>
 ```
+If the pointer is released outside the Reset button without triggering `onClick`, the one-time `pointerup` / `mouseup` listener clears `suppressClassBlurRef.current = false` on the next tick (unless `onClick` opened the Reset modal, in which case modal confirm/close clears it).
 
 #### 7. Clean Confirmation Modal Handler
 In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L1394-L1403):

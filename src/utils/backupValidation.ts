@@ -18,7 +18,7 @@ const compatibleSubjectSchema = z.object({
   }).passthrough()).optional(),
 }).passthrough();
 
-const compatibleStudentSchema = z.object({
+export const compatibleStudentSchema = z.object({
   id: z.string().min(1, "Invalid student ID"),
   name: z.string().min(1, "Student name required"),
   className: z.string().min(1, "Class name required"),
@@ -197,19 +197,35 @@ export async function importBackupAtomically(
   if (!(await save(IDB_KEYS.STUDENTS, validated.students))) {
     throw new Error("Students could not be saved; nothing was changed.");
   }
-  if (await save(IDB_KEYS.SETTINGS, validated.settings)) return;
+  let settingsSaved = false;
+  try {
+    settingsSaved = await save(IDB_KEYS.SETTINGS, validated.settings);
+  } catch {
+    settingsSaved = false;
+  }
+  if (settingsSaved) return;
 
   if (previousStudents.status === "error" || previousSettings.status === "error") {
     throw new IncompleteRollbackError();
   }
-  const restoredStudents =
-    previousStudents.status === "found"
-      ? await save(IDB_KEYS.STUDENTS, previousStudents.value)
-      : await remove(IDB_KEYS.STUDENTS);
-  const restoredSettings =
-    previousSettings.status === "found"
-      ? await save(IDB_KEYS.SETTINGS, previousSettings.value)
-      : await remove(IDB_KEYS.SETTINGS);
+  let restoredStudents = false;
+  try {
+    restoredStudents =
+      previousStudents.status === "found"
+        ? await save(IDB_KEYS.STUDENTS, previousStudents.value)
+        : await remove(IDB_KEYS.STUDENTS);
+  } catch {
+    restoredStudents = false;
+  }
+  let restoredSettings = false;
+  try {
+    restoredSettings =
+      previousSettings.status === "found"
+        ? await save(IDB_KEYS.SETTINGS, previousSettings.value)
+        : await remove(IDB_KEYS.SETTINGS);
+  } catch {
+    restoredSettings = false;
+  }
   if (restoredStudents && restoredSettings) {
     throw new Error("Import failed; nothing was changed.");
   }

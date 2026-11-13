@@ -110,20 +110,20 @@ Reusable form components and modal dialogs for data entry workflows.
 ### **Core TypeScript Interfaces** 
 Defined in [src/types/index.ts](../src/types/index.ts):
 
-#### **StudentRecord** (lines 42–80)
+#### **StudentRecord** (lines 42–56)
 ```
-- id: string (UUID)
+- id: string
 - name: string
-- gender: "Male" | "Female"
-- dateOfBirth: string (ISO date)
-- registrationNumber: string (student ID)
-- pictureUrl?: string (optional URL)
 - className: string
+- dateOfBirth?: string
+- gender: "Male" | "Female"
+- attendancePresent?: number
+- teacherRemark?: string
+- conduct?: string
+- interest?: string
+- pictureUrl?: string
+- promotionStatus?: string
 - subjects: SavedSubject[]
-- teacherRemark: string (overall teacher comment)
-- headmasterRemark: string (headmaster comment)
-- createdAt: string (ISO timestamp)
-- updatedAt: string (ISO timestamp)
 ```
 
 #### **SchoolSettings** (lines 58–101)

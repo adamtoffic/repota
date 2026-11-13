@@ -44,9 +44,12 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
     resumePersistence,
     isStorageReady,
     markIncompleteRollback,
+    clearIncompleteRollback,
     isRollbackIncomplete,
   } = useSchoolData();
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
+  const isImportingRef = useRef(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -89,7 +92,7 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
 
   const handleExport = async () => {
     try {
-      if (loadError) {
+      if (loadError || isRollbackIncomplete) {
         throw new Error("Data could not be read. Please use Try again before exporting.");
       }
       const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
@@ -259,6 +262,10 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
 
   // 4. IMPORT EXECUTION
   const executeImport = async () => {
+    if (isImportingRef.current) return;
+    isImportingRef.current = true;
+    setIsImporting(true);
+
     try {
       let backup;
 
@@ -294,13 +301,30 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
         );
       } catch (error) {
         if (error instanceof IncompleteRollbackError) {
-          markIncompleteRollback();
+          if (typeof markIncompleteRollback === "function") {
+            markIncompleteRollback();
+          } else {
+            try {
+              localStorage.setItem("repota_incomplete_rollback", "true");
+            } catch {
+              // ignore
+            }
+          }
         } else {
           resumePersistence();
         }
         throw error;
       }
 
+      if (typeof clearIncompleteRollback === "function") {
+        clearIncompleteRollback();
+      } else {
+        try {
+          localStorage.removeItem("repota_incomplete_rollback");
+        } catch {
+          // ignore
+        }
+      }
       setStatus("success");
       showToast("Class data loaded successfully!", "success");
 
@@ -309,6 +333,8 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
       setShowReloadOverlay(true);
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
+      isImportingRef.current = false;
+      setIsImporting(false);
       showToast(error instanceof Error ? error.message : "Failed to import file. Please try again.", "error");
       console.error(error);
     } finally {
@@ -340,17 +366,8 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
               <h3 className="font-bold text-red-900">Incomplete Restore / Storage Inconsistency</h3>
               <p className="mt-1 text-sm text-red-700">
                 A previous backup import encountered a storage error and could not be fully rolled back.
-                Persistence has been suspended to prevent data corruption. Please choose a valid backup file below to restore or reload the page.
+                Persistence has been suspended to prevent data corruption. Please choose a valid backup file below to restore.
               </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
-                >
-                  Reload Page
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -413,19 +430,21 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         {!recoveryOnly && <button
           onClick={initiateExport}
-          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95"
+          disabled={loadError || isRollbackIncomplete || isImporting}
+          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50"
         >
           {usePassword ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
           {usePassword ? "Save Encrypted File" : "Save Class File"}
         </button>}
 
-        <label className="bg-background flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95">
+        <label className={`bg-background flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors ${isImporting ? "pointer-events-none opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95"}`}>
           <Upload className="h-4 w-4" />
           Load Class File
           <input
             ref={fileInputRef}
             type="file"
             accept=".json,.repota"
+            disabled={isImporting}
             onChange={handleFileSelect}
             className="hidden"
           />
@@ -452,13 +471,15 @@ export function DataBackup({ recoveryOnly = false }: DataBackupProps) {
         isOpen={showImportModal}
         title="Load New Class Data?"
         message={`You are about to load "${importStats.school}" (${importStats.count} students). This will replace ${importStats.currentCount} current students on this device.${importStats.warningCount > 0 ? ` ${importStats.warningCount} values look unusual and will be imported as-is.` : ""}`}
-        confirmText="Yes, Load File"
+        confirmText={isImporting ? "Loading..." : "Yes, Load File"}
         cancelText="Cancel"
         isDangerous={true}
         onClose={() => {
-          setShowImportModal(false);
-          setDecryptedBackupData(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
+          if (!isImporting) {
+            setShowImportModal(false);
+            setDecryptedBackupData(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }
         }}
         onConfirm={executeImport}
       />

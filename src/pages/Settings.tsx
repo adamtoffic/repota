@@ -88,6 +88,7 @@ function SettingsContent() {
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
   const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
   const suppressClassBlurRef = useRef(false);
+  const resetModalOpenRef = useRef(false);
 
   // Form States
   const [newSubject, setNewSubject] = useState("");
@@ -387,6 +388,7 @@ function SettingsContent() {
   const handleReset = () => {
     setFormData(lastSavedSettings);
     suppressClassBlurRef.current = false;
+    resetModalOpenRef.current = false;
     setShowResetModal(false);
     showToast("Changes discarded", "info");
   };
@@ -406,11 +408,23 @@ function SettingsContent() {
                   disabled={isPersistenceSuspended}
                   onClick={() => {
                     suppressClassBlurRef.current = true;
+                    resetModalOpenRef.current = true;
                     setShowResetModal(true);
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     suppressClassBlurRef.current = true;
+                    const handleRelease = () => {
+                      window.removeEventListener("pointerup", handleRelease);
+                      window.removeEventListener("mouseup", handleRelease);
+                      setTimeout(() => {
+                        if (!resetModalOpenRef.current) {
+                          suppressClassBlurRef.current = false;
+                        }
+                      }, 0);
+                    };
+                    window.addEventListener("pointerup", handleRelease, { once: true });
+                    window.addEventListener("mouseup", handleRelease, { once: true });
                   }}
                   className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 disabled:pointer-events-none disabled:opacity-50 sm:flex"
                   title="Discard unsaved changes"
@@ -1495,6 +1509,7 @@ function SettingsContent() {
         isDangerous={true}
         onClose={() => {
           suppressClassBlurRef.current = false;
+          resetModalOpenRef.current = false;
           setShowResetModal(false);
         }}
         onConfirm={handleReset}
