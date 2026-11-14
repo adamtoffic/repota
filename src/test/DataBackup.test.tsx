@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SchoolContextType } from "../context/SchoolContextDefinition";
 import { SchoolContext } from "../context/SchoolContextDefinition";
 import { DataBackup } from "../components/DataBackup";
 import { DataGate } from "../components/DataGate";
 import {
+  IncompleteRollbackError,
   createBackupPayload,
   importBackupAtomically,
   validateBackup,
@@ -577,6 +578,13 @@ describe("DataBackup", () => {
     fireEvent.change(pwdInput, { target: { value: "secret" } });
     fireEvent.click(screen.getByRole("button", { name: "Unlock File" }));
 
+    await vi.waitFor(() =>
+      expect(decryptBackupFile).toHaveBeenCalledWith(
+        { encrypted: true, hint: "hint" },
+        "secret",
+      ),
+    );
+
     // Cancel while decryptBackupFile is still pending
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
@@ -584,9 +592,10 @@ describe("DataBackup", () => {
     showToast.mockClear();
 
     // Resolve stale decryption after cancellation
-    resolveDecrypt(encryptedPayload);
-    await Promise.resolve();
-    await Promise.resolve();
+    await act(async () => {
+      resolveDecrypt(encryptedPayload);
+      await pendingDecrypt;
+    });
 
     expect(screen.queryByRole("button", { name: "Yes, Load File" })).not.toBeInTheDocument();
     expect(showToast).not.toHaveBeenCalledWith("File decrypted successfully! 🔓", "success");
@@ -640,5 +649,32 @@ describe("DataBackup", () => {
       localStorage.removeItem("repota_incomplete_rollback");
       reload.mockRestore();
     }
+  });
+
+  it("preserves underlying error cause across StorageBatchRollbackError and IncompleteRollbackError", async () => {
+    const { StorageBatchRollbackError } = await vi.importActual<
+      typeof import("../utils/idbStorage")
+    >("../utils/idbStorage");
+    const writeError = new Error("Quota write failure");
+    const batchRollbackError = new StorageBatchRollbackError(undefined, { cause: writeError });
+    expect(batchRollbackError.cause).toBe(writeError);
+
+    const incoming = createBackupPayload(students, settings);
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({ status: "found", value: [] })
+      .mockResolvedValueOnce({ status: "found", value: {} });
+    const saveBatch = vi.fn().mockRejectedValueOnce(batchRollbackError);
+
+    let thrown: unknown;
+    try {
+      await importBackupAtomically(incoming, load, vi.fn(), false, vi.fn(), saveBatch);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(IncompleteRollbackError);
+    expect((thrown as IncompleteRollbackError).cause).toBe(batchRollbackError);
+    expect(((thrown as IncompleteRollbackError).cause as Error).cause).toBe(writeError);
   });
 });

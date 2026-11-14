@@ -63,11 +63,16 @@ describe("App auto-lock timeout", () => {
     expect(state.idleOptions.at(-1)?.timeout).toBe(12 * 60 * 1000);
   });
 
-  it("uses five minutes when the setting is missing", () => {
+  it("uses five minutes when the setting is missing or out of the supported 1-30 range", () => {
     state.context = { settings: {} };
-    render(<App />);
-
+    const view = render(<App />);
     expect(state.idleOptions.at(-1)?.timeout).toBe(5 * 60 * 1000);
+
+    for (const invalidTimeout of [0, -5, 31, 120, Number.NaN]) {
+      state.context = { settings: { autoLockTimeout: invalidTimeout } };
+      view.rerender(<App />);
+      expect(state.idleOptions.at(-1)?.timeout).toBe(5 * 60 * 1000);
+    }
   });
 
   it("applies a changed setting without remounting App", () => {

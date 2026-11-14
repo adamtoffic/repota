@@ -1116,4 +1116,67 @@ describe("Settings cold start", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
     expect(screen.getByDisplayValue("Autosaved Motto")).toBeInTheDocument();
   });
+
+  it("does not leave school-context-debounce marked pending when restoreDefaults is a no-op", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "empty" })
+      .mockResolvedValueOnce({ status: "empty" });
+
+    function RestoreDefaultsConsumer() {
+      const { restoreDefaults, setSettings } = useSchoolData();
+      return (
+        <div>
+          <button type="button" onClick={restoreDefaults}>
+            Restore Defaults Now
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettings((prev) => ({ ...prev, schoolName: "Changed School" }))}
+          >
+            Modify School Name
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <SchoolProvider>
+        <RestoreDefaultsConsumer />
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      for (let i = 0; i < 6; i++) {
+        await Promise.resolve();
+      }
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+
+    expect(hasUnsavedChanges()).toBe(false);
+
+    // Calling restoreDefaults when already at factory defaults must not mark unsaved changes
+    fireEvent.click(screen.getByRole("button", { name: "Restore Defaults Now" }));
+    expect(hasUnsavedChanges()).toBe(false);
+
+    // Modifying settings marks unsaved changes, and calling restoreDefaults back to factory clears it after debounce
+    fireEvent.click(screen.getByRole("button", { name: "Modify School Name" }));
+    expect(hasUnsavedChanges()).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(hasUnsavedChanges()).toBe(false);
+
+    // Restoring back to factory defaults when settings differ marks pending and clears after debounce + write
+    fireEvent.click(screen.getByRole("button", { name: "Restore Defaults Now" }));
+    expect(hasUnsavedChanges()).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(hasUnsavedChanges()).toBe(false);
+  });
 });

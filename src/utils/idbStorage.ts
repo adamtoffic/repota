@@ -109,8 +109,11 @@ export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> 
 };
 
 export class StorageBatchRollbackError extends Error {
-  constructor(message = "Storage batch write failed and rollback was incomplete.") {
-    super(message);
+  constructor(
+    message = "Storage batch write failed and rollback was incomplete.",
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
     this.name = "StorageBatchRollbackError";
   }
 }
@@ -178,7 +181,7 @@ export const saveEntriesToStorage = async (
           }
         }
         if (rollbackFailed) {
-          throw new StorageBatchRollbackError();
+          throw new StorageBatchRollbackError(undefined, { cause: writeError });
         }
         throw writeError;
       }

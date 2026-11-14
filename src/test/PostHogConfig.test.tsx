@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const posthog = vi.hoisted(() => ({ init: vi.fn() }));
+
+vi.mock("posthog-js", () => ({ default: posthog }));
+vi.mock("../App.tsx", () => ({ default: () => null }));
 
 describe("PostHog configuration", () => {
   it("marks primitive labels and supports opting out", async () => {
@@ -26,8 +31,13 @@ describe("PostHog configuration", () => {
   });
 
   it("marks static labels in Dashboard and Analytics components with data-record='true' while keeping sensitive data unflagged", async () => {
-    const maskTextFn = (text: string, element: Element | null) =>
-      element?.closest('[data-record="true"]') ? text : "*".repeat(text.length);
+    posthog.init.mockClear();
+    await import("../main");
+    expect(posthog.init).toHaveBeenCalledOnce();
+    const maskTextFn = posthog.init.mock.calls[0][1].session_recording.maskTextFn as (
+      text: string,
+      element: Element | null,
+    ) => string;
 
     const { render } = await import("@testing-library/react");
     const { DashboardStats } = await import("../components/DashboardStats");
@@ -35,6 +45,15 @@ describe("PostHog configuration", () => {
     const { ChartCard } = await import("../components/analytics/ChartCard");
     const { InsightCard } = await import("../components/analytics/InsightCard");
     const { Users, TrendingUp } = await import("lucide-react");
+
+    // Verify nested child elements inside a data-record="true" ancestor remain unmasked
+    const { container: nestedContainer } = render(
+      <div data-record="true">
+        <span className="nested-static-label">Nested static label</span>
+      </div>,
+    );
+    const nestedStaticEl = nestedContainer.querySelector(".nested-static-label");
+    expect(maskTextFn("Nested static label", nestedStaticEl)).toBe("Nested static label");
 
     // 1. DashboardStats test
     const mockStudent = {

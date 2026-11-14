@@ -105,6 +105,11 @@ export function SchoolProvider({
   }, [isLocked]);
 
   const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
+  const settingsRef = useRef<SchoolSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const { showToast } = useToast();
 
@@ -117,8 +122,10 @@ export function SchoolProvider({
 
   // Track if we're in the debounce period (data changed but not yet saved)
   const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
+  const isSavingRef = useRef(false);
 
   useEffect(() => {
+    isSavingRef.current = isSaving;
     setUnsavedChanges("school-context-debounce", isSaving);
   }, [isSaving]);
 
@@ -132,8 +139,16 @@ export function SchoolProvider({
 
   const handleSetSettings: React.Dispatch<React.SetStateAction<SchoolSettings>> = useCallback(
     (value) => {
+      const prev = settingsRef.current;
+      const next = typeof value === "function" ? value(prev) : value;
+      if (Object.is(next, prev) || JSON.stringify(next) === JSON.stringify(prev)) {
+        setUnsavedChanges("school-context-debounce", isSavingRef.current);
+        return;
+      }
+      settingsRef.current = next;
+      isSavingRef.current = true;
       setUnsavedChanges("school-context-debounce", true);
-      setSettings(value);
+      setSettings(next);
     },
     [],
   );

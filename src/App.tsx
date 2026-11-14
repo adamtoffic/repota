@@ -29,7 +29,15 @@ function AppContent({
   const [showRecovery, setShowRecovery] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { settings } = useSchoolData();
-  const idleTimeout = (settings.autoLockTimeout ?? 5) * 60 * 1000;
+  const rawTimeout = settings.autoLockTimeout;
+  const timeoutMinutes =
+    typeof rawTimeout === "number" &&
+    Number.isFinite(rawTimeout) &&
+    rawTimeout >= 1 &&
+    rawTimeout <= 30
+      ? rawTimeout
+      : 5;
+  const idleTimeout = timeoutMinutes * 60 * 1000;
   const hiddenAtRef = useRef<number | null>(null);
   const printInProgressRef = useRef(false);
   const printTimeoutRef = useRef<number | null>(null);

@@ -124,8 +124,11 @@ export type ValidatedBackup = {
 };
 
 export class IncompleteRollbackError extends Error {
-  constructor() {
-    super("Import failed and restoring the previous data was incomplete. Do not close the app; restore from backup.");
+  constructor(options?: ErrorOptions) {
+    super(
+      "Import failed and restoring the previous data was incomplete. Do not close the app; restore from backup.",
+      options,
+    );
     this.name = "IncompleteRollbackError";
   }
 }
@@ -188,8 +191,8 @@ export async function importBackupAtomically(
         { key: IDB_KEYS.STUDENTS, value: validated.students },
         { key: IDB_KEYS.SETTINGS, value: validated.settings },
       ]);
-    } catch {
-      throw new IncompleteRollbackError();
+    } catch (error) {
+      throw new IncompleteRollbackError({ cause: error });
     }
     if (saved) return;
     throw new Error("Import failed; nothing was changed.");
