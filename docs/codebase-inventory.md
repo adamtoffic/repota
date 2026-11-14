@@ -232,7 +232,7 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 [src/utils/idbStorage.ts](../src/utils/idbStorage.ts) (lines 176–233):
 - On first app load, checks if old data exists in localStorage
 - If found and IndexedDB available, **migrates** all data from localStorage to IndexedDB
-- Deletes legacy localStorage data after successful migration
+- Copies legacy localStorage records into IndexedDB while retaining the original localStorage data
 - Fallback: if IndexedDB unavailable, keeps using localStorage
 
 ### **Auto-Save & Debouncing**
