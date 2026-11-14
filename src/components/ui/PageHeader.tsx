@@ -15,13 +15,15 @@ export function PageHeader({ schoolName, actions, variant = "solid" }: PageHeade
   const safeAreaBg = variant === "transparent" ? "bg-white/95" : "bg-white";
 
   return (
-    <nav className={`sticky top-0 z-30 border-b border-gray-200 shadow-sm ${bgClass}`}>
+    <nav
+      className={`sticky top-0 z-30 border-b border-gray-200 shadow-sm ${bgClass} ${!actions ? "md:hidden" : ""}`}
+    >
       {/* Safe area spacer for notch/dynamic island */}
       <div className={`safe-top ${safeAreaBg}`} />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 justify-between">
-          {/* LEFT SIDE: Brand Identity */}
-          <div className="flex items-center gap-3 overflow-hidden">
+        <div className="flex h-16 items-center justify-between md:justify-end">
+          {/* LEFT SIDE: Brand Identity (mobile only — desktop sidebar shows brand lockup) */}
+          <div className="flex items-center gap-3 overflow-hidden md:hidden">
             {/* Repota Logo */}
             <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-sm">
               <img src="/logo.svg" alt="Repota" className="h-full w-full p-1" />

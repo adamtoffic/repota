@@ -25,13 +25,13 @@ export function SettingsSubPageLayout({ title, subtitle, children }: SettingsSub
 }
 
 function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPageLayoutProps) {
-  const { committedSchoolName, isSaving, lastSaved } = useSettingsForm();
+  const { committedSchoolName, hasUnsavedChanges, isSaving, lastSaved } = useSettingsForm();
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
       <PageHeader
         schoolName={committedSchoolName}
-        actions={<SettingsHeaderActions backTo="/settings" backLabel="Settings" />}
+        actions={hasUnsavedChanges ? <SettingsHeaderActions showBack={false} /> : undefined}
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">

@@ -264,14 +264,6 @@ export const Analytics: React.FC = () => {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
-          <button
-            onClick={() => navigate({ to: "/" })}
-            className="text-muted hover:text-main mb-3 flex items-center gap-2 text-sm font-medium transition-colors sm:mb-4"
-            data-record="true"
-          >
-            <ArrowLeft size={18} />
-            Back to Dashboard
-          </button>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1

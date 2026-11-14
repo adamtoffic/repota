@@ -412,14 +412,14 @@ export function Dashboard() {
               "We're so glad you're here! Repota helps you create beautiful GES report cards in minutes. Everything works offline - no internet needed once loaded. Let's show you around!",
           },
           {
-            title: "Step 1: Configure Your School ⚙️",
+            title: "Step 1: Configure Your School & SBA ⚙️",
             description:
-              "Before adding students, click the 'Settings' button (⚙️) at the top to set up your school details. Enter your school name, academic year, term, class name, and choose your subjects. This only takes a minute and everything will be ready!",
+              "Before adding students, use the Settings tab in the navigation bar to set up your school details, academic year, term, class name, and subjects — and use the SBA tab to configure Continuous Assessment tasks.",
           },
           {
             title: "Step 2: Add Your Students 👨‍🎓",
             description:
-              "Now click the 'Add Student' button to start building your class list. Type their names one by one, or use 'Bulk Import' if you have a list ready. You can also try 'Load Demo Data' to see how everything works first.",
+              "Now click 'Add Student' to start building your class list. Type their names one by one, or use 'Bulk Import' if you have a list ready. You can also try 'Load Demo Data' to see how everything works first.",
           },
           {
             title: "Step 3: Enter Scores & Watch the Magic ✨",
@@ -429,12 +429,12 @@ export function Dashboard() {
           {
             title: "Step 4: View Class Analytics 📊",
             description:
-              "Click the 'Analytics' button to see beautiful charts and insights about your class performance. See top performers, subject averages, pass rates, and trends - all updated in real-time as you enter scores.",
+              "Tap the Analytics tab in the navigation bar to see beautiful charts and insights about your class performance. See top performers, subject averages, pass rates, and trends — all updated in real-time as you enter scores.",
           },
           {
             title: "Step 5: Print Report Cards 🖨️",
             description:
-              "When you're done, click 'Print Reports' to generate professional GES-compliant report cards for all students at once. You can print them directly or save as PDF. Each report looks perfect and ready to hand out!",
+              "When you're done, tap 'Print' in the top bar or sidebar to generate professional GES-compliant report cards for all students at once. You can print them directly or save as PDF. Each report looks perfect and ready to hand out!",
           },
           {
             title: "Your Work is Safe! 💚",

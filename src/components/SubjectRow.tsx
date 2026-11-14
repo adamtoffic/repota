@@ -1,5 +1,6 @@
 // src/components/SubjectRow.tsx - MOBILE OPTIMIZED WITH AUTO-CONVERSION
 import { useState, useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import { Trash2, Check, ChevronDown, ChevronUp } from "lucide-react";
 import type { SavedSubject, SchoolLevel, ClassScoreComponentConfig } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
@@ -421,20 +422,25 @@ export function SubjectRow({
             </div>
           )}
 
-          {/* Info: Components are managed in Settings */}
+          {/* Info: Components are managed in the SBA tab */}
           {hasComponents && (
             <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
               <p className="text-xs text-blue-700">
-                ℹ️ <strong>Components managed in Settings.</strong> Go to Settings → Subject
-                Components to add or remove.
+                ℹ️ <strong>Components are configured in the SBA tab.</strong>{" "}
+                <Link to="/sba" className="font-bold underline hover:text-blue-900">
+                  Open SBA Setup →
+                </Link>
               </p>
             </div>
           )}
 
           {/* Empty State when no components */}
           {!hasComponents && (
-            <div className="mt-3 rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
-              No components configured. Add components for this subject in Settings.
+            <div className="mt-3 rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-600">
+              No components configured for this subject yet.{" "}
+              <Link to="/sba" className="font-bold underline hover:text-purple-900">
+                Configure in SBA Setup →
+              </Link>
             </div>
           )}
         </div>

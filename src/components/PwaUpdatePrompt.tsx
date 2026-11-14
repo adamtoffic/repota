@@ -35,7 +35,7 @@ export function PwaUpdatePrompt() {
   if (!needRefresh) return null;
 
   return (
-    <div className="animate-in slide-in-from-bottom fixed right-4 bottom-4 left-4 z-50 duration-300 sm:left-auto sm:w-96">
+    <div className="animate-in slide-in-from-bottom fixed right-4 bottom-20 left-4 z-50 duration-300 sm:left-auto sm:w-96 md:bottom-4 print:hidden">
       <div className="rounded-lg border border-green-200 bg-white p-4 shadow-lg dark:border-green-800 dark:bg-gray-900">
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
