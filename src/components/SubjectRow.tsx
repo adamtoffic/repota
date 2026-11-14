@@ -230,8 +230,8 @@ export function SubjectRow({
             {/* Class Score Input — hidden in mock exam mode */}
             {!isMockExam && (
               <div className="col-span-2 sm:w-20">
-                <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
-                  Class
+                <label className="mb-1 block text-center text-[10px] font-bold text-gray-500 uppercase">
+                  Class (/{maxClassScore})
                 </label>
                 <div className="relative">
                   <input
@@ -278,8 +278,8 @@ export function SubjectRow({
 
             {/* Exam Score Input */}
             <div className="col-span-2 sm:w-20">
-              <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase sm:hidden">
-                {isMockExam ? "Score" : "Exam"}
+              <label className="mb-1 block text-center text-[10px] font-bold text-gray-500 uppercase">
+                {isMockExam ? "Score (/100)" : "Exam (/100)"}
               </label>
               <div className="relative">
                 <input

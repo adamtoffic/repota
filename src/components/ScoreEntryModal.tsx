@@ -76,15 +76,17 @@ export function ScoreEntryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-0 backdrop-blur-sm sm:p-4"
+      role="dialog"
+      aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-xl"
+        className="flex h-dvh max-h-dvh w-full max-w-4xl flex-col bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER WITH NAVIGATION */}
-        <div className="bg-background flex items-center justify-between rounded-t-xl border-b border-gray-100 p-4 sm:p-6">
+        <div className="bg-background flex items-center justify-between border-b border-gray-100 p-4 sm:rounded-t-xl sm:p-6">
           {/* Left: Previous Button */}
           {hasNavigation && (
             <button
@@ -165,10 +167,11 @@ export function ScoreEntryModal({
             )}
             <button
               onClick={onClose}
+              aria-label="Close modal"
               className="rounded-full p-2 transition-colors hover:bg-gray-200"
               title="Close (Esc)"
             >
-              <X className="tw-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>

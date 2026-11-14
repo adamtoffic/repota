@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Save, RefreshCw, Wand2 } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../../types";
 import { useSchoolData } from "../../hooks/useSchoolData";
@@ -12,7 +12,7 @@ import { Input } from "../ui";
 
 interface Props {
   student: ProcessedStudent;
-  onUpdate: (updatedRecord: StudentRecord) => void;
+  onUpdate: (updatedRecord: StudentRecord, silent?: boolean) => void;
 }
 
 export function DetailsTab({ student, onUpdate }: Props) {
@@ -33,52 +33,64 @@ export function DetailsTab({ student, onUpdate }: Props) {
     pictureUrl: student.pictureUrl || "",
   });
 
-  const handleSave = () => {
-    const updatedRecord: StudentRecord = {
-      ...student,
-      // Preserve subjects array (don't map/clone unnecessarily unless changing)
-      subjects: student.subjects,
-      name: formData.name,
-      className: formData.className,
-      dateOfBirth: formData.dateOfBirth,
-      gender: formData.gender as "Male" | "Female",
-      attendancePresent: formData.attendancePresent,
-      conduct: formData.conduct,
-      interest: formData.interest,
-      teacherRemark: formData.teacherRemark,
-      promotionStatus: formData.promotionStatus,
-      pictureUrl: formData.pictureUrl,
-    };
+  const buildRecord = (data: typeof formData): StudentRecord => ({
+    ...student,
+    subjects: student.subjects,
+    name: data.name,
+    className: data.className,
+    dateOfBirth: data.dateOfBirth,
+    gender: data.gender as "Male" | "Female",
+    attendancePresent: data.attendancePresent,
+    conduct: data.conduct,
+    interest: data.interest,
+    teacherRemark: data.teacherRemark,
+    promotionStatus: data.promotionStatus,
+    pictureUrl: data.pictureUrl,
+  });
 
-    onUpdate(updatedRecord);
+  const latestRef = useRef({ formData, hasUnsavedChanges, buildRecord, onUpdate });
+  useEffect(() => {
+    latestRef.current = { formData, hasUnsavedChanges, buildRecord, onUpdate };
+  });
+
+  useEffect(() => {
+    return () => {
+      const current = latestRef.current;
+      if (current.hasUnsavedChanges) {
+        current.onUpdate(current.buildRecord(current.formData), true);
+      }
+    };
+  }, []);
+
+  const persistRecord = (nextData: typeof formData, silent: boolean) => {
+    onUpdate(buildRecord(nextData), silent);
     setHasUnsavedChanges(false);
   };
 
+  const handleSave = () => {
+    persistRecord(formData, false);
+  };
+
   const handleFormChange = (updates: Partial<typeof formData>) => {
-    setFormData({ ...formData, ...updates });
+    setFormData((prev) => ({ ...prev, ...updates }));
     setHasUnsavedChanges(true);
+  };
+
+  const handleImmediateSave = (updates: Partial<typeof formData>) => {
+    const nextData = { ...formData, ...updates };
+    setFormData(nextData);
+    persistRecord(nextData, true);
+  };
+
+  const handleBlurSave = () => {
+    if (hasUnsavedChanges) {
+      persistRecord(formData, true);
+    }
   };
 
   // Auto-save gender changes immediately
   const handleGenderChange = (gender: "Male" | "Female") => {
-    const updatedRecord: StudentRecord = {
-      ...student,
-      subjects: student.subjects,
-      name: formData.name,
-      className: formData.className,
-      dateOfBirth: formData.dateOfBirth,
-      gender: gender,
-      attendancePresent: formData.attendancePresent,
-      conduct: formData.conduct,
-      interest: formData.interest,
-      teacherRemark: formData.teacherRemark,
-      promotionStatus: formData.promotionStatus,
-      pictureUrl: formData.pictureUrl,
-    };
-
-    setFormData({ ...formData, gender });
-    onUpdate(updatedRecord);
-    // Don't mark as unsaved since we auto-saved
+    handleImmediateSave({ gender });
   };
 
   return (
@@ -92,7 +104,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <ImageUploader
                 label="Student Photo"
                 value={formData.pictureUrl}
-                onChange={(val) => handleFormChange({ pictureUrl: val || "" })}
+                onChange={(val) => handleImmediateSave({ pictureUrl: val || "" })}
                 maxHeight="h-32 sm:h-40"
               />
             </div>
@@ -105,6 +117,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               type="text"
               value={formData.name}
               onChange={(e) => handleFormChange({ name: e.target.value })}
+              onBlur={handleBlurSave}
               className="text-main font-bold"
               placeholder="e.g. Kwame Mensah"
             />
@@ -114,7 +127,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 label="Date of Birth"
                 type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => handleFormChange({ dateOfBirth: e.target.value })}
+                onChange={(e) => handleImmediateSave({ dateOfBirth: e.target.value })}
               />
 
               <div>
@@ -180,6 +193,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 onChange={(e) =>
                   handleFormChange({ attendancePresent: Number(e.target.value) || 0 })
                 }
+                onBlur={handleBlurSave}
                 className="pr-16 font-mono font-bold sm:pr-16"
                 placeholder="0"
               />
@@ -194,7 +208,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
             </label>
             <select
               value={formData.promotionStatus}
-              onChange={(e) => handleFormChange({ promotionStatus: e.target.value })}
+              onChange={(e) => handleImmediateSave({ promotionStatus: e.target.value })}
               className="w-full rounded-lg border border-gray-300 bg-white p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
             >
               <option value="">-- Select Status --</option>
@@ -223,7 +237,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 <span>Conduct / Character</span>
                 <button
                   type="button"
-                  onClick={() => handleFormChange({ conduct: getRandomConductTrait() })}
+                  onClick={() => handleImmediateSave({ conduct: getRandomConductTrait() })}
                   className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
                 >
                   <RefreshCw className="h-3 w-3" /> Shuffle
@@ -234,6 +248,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
             placeholder="e.g. Respectful and neat"
             value={formData.conduct}
             onChange={(e) => handleFormChange({ conduct: e.target.value })}
+            onBlur={handleBlurSave}
           />
 
           {/* INTEREST */}
@@ -243,7 +258,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 <span>Interest / Talent</span>
                 <button
                   type="button"
-                  onClick={() => handleFormChange({ interest: getRandomInterest() })}
+                  onClick={() => handleImmediateSave({ interest: getRandomInterest() })}
                   className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
                 >
                   <RefreshCw className="h-3 w-3" /> Shuffle
@@ -254,6 +269,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
             placeholder="e.g. Football"
             value={formData.interest}
             onChange={(e) => handleFormChange({ interest: e.target.value })}
+            onBlur={handleBlurSave}
           />
 
           {/* TEACHER REMARK */}
@@ -263,7 +279,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <button
                 type="button"
                 onClick={() =>
-                  handleFormChange({
+                  handleImmediateSave({
                     teacherRemark: generateTeacherRemark(
                       student,
                       formData.attendancePresent,
@@ -282,6 +298,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               placeholder="Write a custom remark..."
               value={formData.teacherRemark}
               onChange={(e) => handleFormChange({ teacherRemark: e.target.value })}
+              onBlur={handleBlurSave}
               className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             />
           </div>
