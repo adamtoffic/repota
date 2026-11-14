@@ -296,6 +296,9 @@ In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L1394-L1403):
 />
 ```
 
+> [!NOTE]
+> `ConfirmModal` invokes `onClose` upon both confirmation and cancellation. Therefore, `onClose` must strictly close the modal (`setShowClassUpdateModal(false)`) and must NOT call `handleKeepOldClassName`, which would otherwise revert confirmed saves. Reversion to the previous class name is handled exclusively by `onCancel`.
+
 ---
 
 ## 4. Verification & Testing Checklist

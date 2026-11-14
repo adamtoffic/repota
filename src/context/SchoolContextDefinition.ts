@@ -39,6 +39,7 @@ export interface SchoolContextType {
   lastSaved?: Date;
   activeRecoveryAction?: RecoveryAction;
   setActiveRecoveryAction?: (action: RecoveryAction) => void;
+  waitForMigration?: () => Promise<void>;
 }
 
 export const SchoolContext = createContext<SchoolContextType | undefined>(undefined);

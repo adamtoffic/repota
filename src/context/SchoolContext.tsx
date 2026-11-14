@@ -96,6 +96,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     const timeoutId = window.setTimeout(() => {
       if (loadAttemptRef.current !== attempt) return;
       timedOut = true;
+      setActiveRecoveryAction(null);
       setLoadStatus({ students: "error", settings: "error" });
       setIsDataLoaded(true);
     }, LOAD_TIMEOUT_MS);
@@ -321,6 +322,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     }
     setIsRollbackIncomplete(false);
     suspendedUntilHydratedRef.current = false;
+  };
+  const waitForMigration = async (): Promise<void> => {
+    await migrationPromiseRef.current?.catch(() => {});
   };
 
   // Request persistent storage on mount (Android protection)
@@ -962,6 +966,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         lastSaved,
         activeRecoveryAction,
         setActiveRecoveryAction,
+        waitForMigration,
       }}
     >
       {children}
@@ -973,9 +978,11 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         cancelText="Cancel"
         isDangerous
         onConfirm={startFresh}
+        onCancel={() => {
+          setActiveRecoveryAction(null);
+        }}
         onClose={() => {
           setShowFreshConfirm(false);
-          setActiveRecoveryAction(null);
         }}
       />
     </SchoolContext.Provider>

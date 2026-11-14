@@ -57,6 +57,7 @@ export function DataBackup({
     isRollbackIncomplete,
     activeRecoveryAction: contextRecoveryAction,
     setActiveRecoveryAction: contextSetRecoveryAction,
+    waitForMigration,
   } = useSchoolData();
 
   const currentRecoveryAction = activeRecoveryActionProp ?? contextRecoveryAction ?? null;
@@ -199,6 +200,16 @@ export function DataBackup({
     }
 
     const reader = new FileReader();
+    const handleReaderError = () => {
+      if (typeof setRecoveryAction === "function") {
+        setRecoveryAction(null);
+      }
+      setStatus("error");
+      showToast("Failed to read the selected file. Please try again.", "error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.onerror = handleReaderError;
+    reader.onabort = handleReaderError;
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
@@ -243,6 +254,15 @@ export function DataBackup({
     setIsDecrypting(true);
 
     const reader = new FileReader();
+    const handleDecryptReaderError = () => {
+      if (typeof setRecoveryAction === "function") {
+        setRecoveryAction(null);
+      }
+      setIsDecrypting(false);
+      showToast("Failed to read the selected file. Please try again.", "error");
+    };
+    reader.onerror = handleDecryptReaderError;
+    reader.onabort = handleDecryptReaderError;
     reader.onload = async (e) => {
       try {
         const content = e.target?.result as string;
@@ -315,6 +335,10 @@ export function DataBackup({
 
       if (isStorageReady === false) {
         throw new Error("Storage is still initializing. Try the recovery again shortly.");
+      }
+
+      if (typeof waitForMigration === "function") {
+        await waitForMigration();
       }
 
       suspendPersistence();
@@ -517,7 +541,7 @@ export function DataBackup({
         cancelText="Cancel"
         isDangerous={true}
         onClose={() => {
-          if (!isImporting) {
+          if (!isImportingRef.current) {
             setShowImportModal(false);
             setDecryptedBackupData(null);
             if (fileInputRef.current) fileInputRef.current.value = "";

@@ -173,13 +173,13 @@ Calculated view of StudentRecord with aggregated statistics:
 - **KG**: "GOLD" | "SILVER" | "BRONZE" (3 tiers)
 - **PRIMARY**: "1" | "2" | "3" | "4" | "5" (5-point scale)
 - **JHS**: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" (9-point scale)
-- **SHS**: "A1" | "A2" | "B1" | "B2" | "B3" | "C4" | "C5" | "C6" | "D7" | "D8" | "E8" | "F9" (A1–F9, 12-point WASSCE scale)
+- **SHS**: "A1" | "B2" | "B3" | "C4" | "C5" | "C6" | "D7" | "E8" | "F9" (A1–F9, 9-point WASSCE scale)
 
 ### **Validation Schemas (Zod)**
 
 #### **studentSchema.ts** ([src/schemas/studentSchema.ts](../src/schemas/studentSchema.ts))
 - **Lines 35–43**: Name validation (required, min 2 chars, no special chars except hyphens/apostrophes)
-- **Lines 45–55**: Gender validation ("M" or "F")
+- **Lines 45–60**: Gender validation ("Male" or "Female")
 - **Lines 57–80**: Score data validation (CA: 0–40, Exam: 0–60 for JHS/SHS; or 0–50 for KG/PRIMARY; auto-calculates total as 0–100)
 - **Lines 82–115**: Full StudentRecord schema with score aggregation
 - **studentDataSchema**: Batch import/export validation schema for multiple students

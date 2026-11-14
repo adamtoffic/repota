@@ -15,6 +15,7 @@ const storage = vi.hoisted(() => ({
   saveEntriesToStorage: vi.fn(),
 }));
 const recordBackup = vi.hoisted(() => vi.fn());
+const showToast = vi.hoisted(() => vi.fn());
 
 vi.mock("../utils/idbStorage", () => ({
   IDB_KEYS: { STUDENTS: "students", SETTINGS: "settings" },
@@ -24,7 +25,7 @@ vi.mock("../utils/idbStorage", () => ({
   deleteFromStorage: vi.fn(),
 }));
 vi.mock("../utils/dataProtection", () => ({ recordBackup }));
-vi.mock("../hooks/useToast", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+vi.mock("../hooks/useToast", () => ({ useToast: () => ({ showToast }) }));
 vi.mock("../utils/fileEncryption", () => ({
   encryptBackupFile: vi.fn(),
   decryptBackupFile: vi.fn(),
@@ -56,6 +57,7 @@ const resumePersistenceMock = vi.fn();
 const clearIncompleteRollbackMock = vi.fn();
 const markIncompleteRollbackMock = vi.fn();
 const setActiveRecoveryActionMock = vi.fn();
+const waitForMigrationMock = vi.fn().mockResolvedValue(undefined);
 
 const contextValue = {
   isDataLoaded: true,
@@ -69,6 +71,7 @@ const contextValue = {
   resumePersistence: resumePersistenceMock,
   clearIncompleteRollback: clearIncompleteRollbackMock,
   markIncompleteRollback: markIncompleteRollbackMock,
+  waitForMigration: waitForMigrationMock,
 } as unknown as SchoolContextType;
 
 function renderBackup() {
@@ -87,6 +90,9 @@ describe("DataBackup", () => {
     recordBackup.mockReset();
     suspendPersistenceMock.mockReset();
     resumePersistenceMock.mockReset();
+    waitForMigrationMock.mockClear();
+    showToast.mockClear();
+    setActiveRecoveryActionMock.mockClear();
     contextValue.loadError = false;
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
@@ -282,13 +288,56 @@ describe("DataBackup", () => {
         { key: "settings", value: expect.objectContaining(settings) },
       ]),
     );
+    expect(waitForMigrationMock).toHaveBeenCalled();
     expect(suspendPersistenceMock).toHaveBeenCalled();
+    expect(waitForMigrationMock.mock.invocationCallOrder[0]).toBeLessThan(
+      suspendPersistenceMock.mock.invocationCallOrder[0],
+    );
     expect(suspendPersistenceMock.mock.invocationCallOrder[0]).toBeLessThan(
       storage.saveEntriesToStorage.mock.invocationCallOrder[0],
     );
     expect(await screen.findByText("Backup loaded. Reloading...")).toBeVisible();
     await vi.waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 2000 });
     reload.mockRestore();
+  });
+
+  it("resets recovery action and shows error toast when FileReader encounters an error or aborts", async () => {
+    const originalFileReader = window.FileReader;
+    class MockErrorFileReader {
+      onerror: ((e: unknown) => void) | null = null;
+      onabort: ((e: unknown) => void) | null = null;
+      onload: ((e: unknown) => void) | null = null;
+      readAsText() {
+        setTimeout(() => {
+          this.onerror?.(new Event("error"));
+        }, 0);
+      }
+    }
+    // @ts-expect-error Mocking FileReader
+    window.FileReader = MockErrorFileReader;
+
+    try {
+      const view = render(
+        <SchoolContext.Provider value={contextValue}>
+          <DataBackup recoveryOnly />
+        </SchoolContext.Provider>,
+      );
+
+      const file = new File(["dummy"], "backup.json", { type: "application/json" });
+      fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+        target: { files: [file] },
+      });
+
+      await vi.waitFor(() => {
+        expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
+        expect(showToast).toHaveBeenCalledWith(
+          "Failed to read the selected file. Please try again.",
+          "error",
+        );
+      });
+    } finally {
+      window.FileReader = originalFileReader;
+    }
   });
 
   it("accepts unusual component categories with a warning", () => {

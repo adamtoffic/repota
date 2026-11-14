@@ -3,23 +3,9 @@ import { createRoot } from "react-dom/client";
 import posthog from "posthog-js";
 import "./index.css";
 import App from "./App.tsx";
+import { setupVitePreloadErrorHandler } from "./utils/preloadErrorHandler";
 
 // Auto-reload once on Vite dynamic import chunk/preload failures
-export function setupVitePreloadErrorHandler() {
-  const handler = () => {
-    try {
-      if (sessionStorage.getItem("repota_chunk_reload") !== "true") {
-        sessionStorage.setItem("repota_chunk_reload", "true");
-        window.location.reload();
-      }
-    } catch {
-      window.location.reload();
-    }
-  };
-  window.addEventListener("vite:preloadError", handler);
-  return () => window.removeEventListener("vite:preloadError", handler);
-}
-
 setupVitePreloadErrorHandler();
 
 posthog.init(import.meta.env.VITE_POSTHOG_KEY, {

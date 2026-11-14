@@ -6,8 +6,9 @@ import { AlertTriangle, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
+import { CHUNK_RELOAD_KEY } from "./utils/preloadErrorHandler";
 
-export const CHUNK_RELOAD_KEY = "repota_chunk_reload";
+export { CHUNK_RELOAD_KEY };
 
 export function isChunkLoadError(error: unknown): boolean {
   if (!error) return false;
@@ -39,21 +40,23 @@ export function lazyWithRetry<T extends ComponentType<any>>(
       return module;
     } catch (error) {
       const isChunk = isChunkLoadError(error);
-      let alreadyReloaded = false;
-      try {
-        alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "true";
-      } catch {
-        // ignore storage access errors
-      }
-
-      if (isChunk && !alreadyReloaded) {
+      if (isChunk) {
+        let canReload = false;
         try {
-          sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
+          const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "true";
+          if (!alreadyReloaded) {
+            sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
+            canReload = true;
+          }
         } catch {
-          // ignore storage access errors
+          // If sessionStorage throws or is blocked, do not reload to prevent infinite loops
+          canReload = false;
         }
-        window.location.reload();
-        return new Promise<{ default: T }>(() => {});
+
+        if (canReload) {
+          window.location.reload();
+          return new Promise<{ default: T }>(() => {});
+        }
       }
 
       throw error;

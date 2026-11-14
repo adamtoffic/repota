@@ -7,7 +7,7 @@ import {
   lazyWithRetry,
   RouteErrorFallback,
 } from "../router";
-import { setupVitePreloadErrorHandler } from "../main";
+import { setupVitePreloadErrorHandler } from "../utils/preloadErrorHandler";
 
 describe("Lazy Route Retry & MIME Protection", () => {
   const originalLocation = window.location;
@@ -186,6 +186,92 @@ describe("Lazy Route Retry & MIME Protection", () => {
       expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
       consoleSpy.mockRestore();
     });
+
+    it("rethrows and suppresses reload when sessionStorage throws", async () => {
+      const storageSpy = vi.spyOn(window.sessionStorage, "getItem").mockImplementation(() => {
+        throw new DOMException("Access denied", "SecurityError");
+      });
+      const chunkErr = new TypeError("Failed to fetch dynamically imported module: /assets/Chunk.js");
+      const factory = vi.fn().mockRejectedValue(chunkErr);
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      class TestErrorBoundary extends React.Component<
+        { children: React.ReactNode },
+        { error: Error | null }
+      > {
+        state = { error: null };
+        static getDerivedStateFromError(error: Error) {
+          return { error };
+        }
+        render() {
+          if (this.state.error) {
+            return <div>Boundary Caught: {(this.state.error as Error).message}</div>;
+          }
+          return this.props.children;
+        }
+      }
+
+      const LazyComp = lazyWithRetry(factory);
+
+      render(
+        <TestErrorBoundary>
+          <Suspense fallback={<div>Loading...</div>}>
+            <LazyComp />
+          </Suspense>
+        </TestErrorBoundary>,
+      );
+
+      expect(
+        await screen.findByText(/Boundary Caught: Failed to fetch dynamically imported module/),
+      ).toBeInTheDocument();
+      expect(window.location.reload).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+      storageSpy.mockRestore();
+    });
+
+    it("rethrows and suppresses reload when sessionStorage.setItem throws", async () => {
+      const storageSpy = vi.spyOn(window.sessionStorage, "setItem").mockImplementation(() => {
+        throw new DOMException("QuotaExceededError", "QuotaExceededError");
+      });
+      const chunkErr = new TypeError("Failed to fetch dynamically imported module: /assets/Chunk.js");
+      const factory = vi.fn().mockRejectedValue(chunkErr);
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      class TestErrorBoundary extends React.Component<
+        { children: React.ReactNode },
+        { error: Error | null }
+      > {
+        state = { error: null };
+        static getDerivedStateFromError(error: Error) {
+          return { error };
+        }
+        render() {
+          if (this.state.error) {
+            return <div>Boundary Caught: {(this.state.error as Error).message}</div>;
+          }
+          return this.props.children;
+        }
+      }
+
+      const LazyComp = lazyWithRetry(factory);
+
+      render(
+        <TestErrorBoundary>
+          <Suspense fallback={<div>Loading...</div>}>
+            <LazyComp />
+          </Suspense>
+        </TestErrorBoundary>,
+      );
+
+      expect(
+        await screen.findByText(/Boundary Caught: Failed to fetch dynamically imported module/),
+      ).toBeInTheDocument();
+      expect(window.location.reload).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+      storageSpy.mockRestore();
+    });
   });
 
   describe("RouteErrorFallback", () => {
@@ -236,6 +322,17 @@ describe("Lazy Route Retry & MIME Protection", () => {
       window.dispatchEvent(new CustomEvent("vite:preloadError"));
 
       expect(window.location.reload).not.toHaveBeenCalled();
+    });
+
+    it("suppresses reload when sessionStorage throws during vite:preloadError", () => {
+      const storageSpy = vi.spyOn(window.sessionStorage, "getItem").mockImplementation(() => {
+        throw new DOMException("Access denied", "SecurityError");
+      });
+
+      window.dispatchEvent(new CustomEvent("vite:preloadError"));
+
+      expect(window.location.reload).not.toHaveBeenCalled();
+      storageSpy.mockRestore();
     });
   });
 });
