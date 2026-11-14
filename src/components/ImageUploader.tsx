@@ -59,8 +59,17 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
       <span className="text-muted text-xs font-bold uppercase">{label}</span>
 
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Upload ${label}`}
         onClick={() => inputRef.current?.click()}
-        className={`w-full ${maxHeight} group bg-background relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-blue-400`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        className={`w-full ${maxHeight} group bg-background relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none`}
       >
         {value ? (
           // ✅ SHOW IMAGE

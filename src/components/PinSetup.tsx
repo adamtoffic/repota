@@ -157,7 +157,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         className="bg-opacity-95 fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{
-          background: "linear-gradient(to bottom right, #3b82f6, #9333ea)",
+          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         }}
       >
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
@@ -216,7 +216,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{
-          background: "linear-gradient(to bottom right, #3b82f6, #9333ea)",
+          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         }}
       >
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
@@ -291,7 +291,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{
-          background: "linear-gradient(to bottom right, #3b82f6, #9333ea)",
+          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         }}
       >
         <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
@@ -363,7 +363,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{
-          background: "linear-gradient(to bottom right, #3b82f6, #9333ea)",
+          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         }}
       >
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
@@ -429,7 +429,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{
-          background: "linear-gradient(to bottom right, #3b82f6, #9333ea)",
+          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         }}
       >
         <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
@@ -538,7 +538,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{
-          background: "linear-gradient(to bottom right, #3b82f6, #9333ea)",
+          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         }}
       >
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">

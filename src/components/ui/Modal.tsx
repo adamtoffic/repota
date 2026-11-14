@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 export interface ModalProps {
@@ -15,6 +16,19 @@ export const Modal = ({
   className = "",
   closeOnBackdrop = true,
 }: ModalProps) => {
+  useEffect(() => {
+    if (!isOpen || !closeOnBackdrop) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, closeOnBackdrop, onClose]);
+
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -30,6 +44,8 @@ export const Modal = ({
       style={{ position: "fixed" }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         className={`my-auto w-full max-w-md flex-shrink-0 rounded-lg bg-white shadow-xl ${className}`}
       >
         {children}
