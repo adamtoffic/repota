@@ -17,6 +17,7 @@ import {
   Brain,
   Download,
   FileText,
+  Filter,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
@@ -75,6 +76,13 @@ export const Analytics: React.FC = () => {
   const [activeView, setActiveView] = useState<
     "overview" | "subjects" | "demographics" | "insights"
   >("overview");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const hasActiveFilters =
+    filters.gender !== "All" ||
+    filters.performanceLevel !== "All" ||
+    filters.subjectFilter !== "All" ||
+    Boolean(filters.scoreRange && (filters.scoreRange.min > 0 || filters.scoreRange.max < 100));
 
   // Filter students based on selected filters
   const filteredStudents = useMemo(() => {
@@ -302,38 +310,55 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
 
-        {/* View Toggle */}
-        <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-1 sm:mb-6">
-          {[
-            { id: "overview", label: "Overview", icon: BarChart3 },
-            { id: "subjects", label: "Subjects", icon: BookOpen },
-            { id: "demographics", label: "Demographics", icon: Users },
-            { id: "insights", label: "AI Insights", icon: Brain },
-          ].map((view) => {
-            const Icon = view.icon;
-            return (
-              <button
-                key={view.id}
-                data-record="true"
-                onClick={() =>
-                  setActiveView(view.id as "overview" | "subjects" | "demographics" | "insights")
-                }
-                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${
-                  activeView === view.id
-                    ? "bg-primary text-white shadow-md"
-                    : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {view.label}
-              </button>
-            );
-          })}
+        {/* View Toggle & Mobile Filter Button */}
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+            {[
+              { id: "overview", label: "Overview", icon: BarChart3 },
+              { id: "subjects", label: "Subjects", icon: BookOpen },
+              { id: "demographics", label: "Demographics", icon: Users },
+              { id: "insights", label: "AI Insights", icon: Brain },
+            ].map((view) => {
+              const Icon = view.icon;
+              return (
+                <button
+                  key={view.id}
+                  data-record="true"
+                  onClick={() =>
+                    setActiveView(view.id as "overview" | "subjects" | "demographics" | "insights")
+                  }
+                  className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${
+                    activeView === view.id
+                      ? "bg-primary text-white shadow-md"
+                      : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {view.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            aria-expanded={showMobileFilters}
+            className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all active:scale-95 lg:hidden ${
+              showMobileFilters || hasActiveFilters
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+            data-record="true"
+          >
+            <Filter className="h-4 w-4" />
+            <span>{showMobileFilters ? "Hide Filters" : "Filters"}</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-4">
           {/* Filters Sidebar */}
-          <div className="order-2 lg:order-1 lg:col-span-1">
+          <div className={`${showMobileFilters ? "block" : "hidden"} lg:col-span-1 lg:block`}>
             <FilterPanel
               filters={filters}
               onFilterChange={setFilters}
@@ -342,7 +367,7 @@ export const Analytics: React.FC = () => {
           </div>
 
           {/* Main Content */}
-          <div className="order-1 space-y-4 sm:space-y-6 lg:order-2 lg:col-span-3">
+          <div className="space-y-4 sm:space-y-6 lg:col-span-3">
             {/* Overview Tab */}
             {activeView === "overview" && (
               <Suspense
@@ -1010,13 +1035,23 @@ export const Analytics: React.FC = () => {
                 {/* At-Risk Students - Priority Alert */}
                 {atRiskStudents.length > 0 && (
                   <Card>
-                    <h3
-                      data-record="true"
-                      className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
-                    >
-                      <AlertTriangle className="h-5 w-5 text-red-600" />
-                      Students Requiring Immediate Attention
-                    </h3>
+                    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <h3
+                        data-record="true"
+                        className="text-main flex items-center gap-2 text-base font-bold sm:text-lg"
+                      >
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                        Students Requiring Immediate Attention
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => navigate({ to: "/" })}
+                        className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100"
+                        data-record="true"
+                      >
+                        Review Students on Dashboard
+                      </button>
+                    </div>
                     <p data-record="true" className="text-muted mb-4 text-sm">
                       Students identified based on low performance, poor attendance, or multiple
                       failed subjects. Prioritized by risk level.

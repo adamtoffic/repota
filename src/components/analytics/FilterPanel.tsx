@@ -145,13 +145,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 type="number"
                 min="0"
                 max="100"
-                value={filters.scoreRange?.min || 0}
+                value={filters.scoreRange?.min ?? 0}
                 onChange={(e) =>
                   onFilterChange({
                     ...filters,
                     scoreRange: {
                       min: Number(e.target.value),
-                      max: filters.scoreRange?.max || 100,
+                      max: filters.scoreRange?.max ?? 100,
                     },
                   })
                 }
@@ -163,12 +163,12 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 type="number"
                 min="0"
                 max="100"
-                value={filters.scoreRange?.max || 100}
+                value={filters.scoreRange?.max ?? 100}
                 onChange={(e) =>
                   onFilterChange({
                     ...filters,
                     scoreRange: {
-                      min: filters.scoreRange?.min || 0,
+                      min: filters.scoreRange?.min ?? 0,
                       max: Number(e.target.value),
                     },
                   })
@@ -178,8 +178,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               />
             </div>
             <p className="text-xs text-gray-500">
-              Filter students by average score ({filters.scoreRange?.min || 0}% -{" "}
-              {filters.scoreRange?.max || 100}%)
+              Filter students by average score ({filters.scoreRange?.min ?? 0}% -{" "}
+              {filters.scoreRange?.max ?? 100}%)
             </p>
           </div>
         </div>
@@ -193,8 +193,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   filters.gender !== "All" && "Gender",
                   filters.performanceLevel !== "All" && "Performance",
                   filters.subjectFilter !== "All" && "Subject",
-                  (filters.scoreRange?.min || 0) > 0 ||
-                    ((filters.scoreRange?.max || 100) < 100 && "Score Range"),
+                  (((filters.scoreRange?.min ?? 0) > 0 ||
+                    (filters.scoreRange?.max ?? 100) < 100) &&
+                    "Score Range"),
                 ].filter(Boolean).length
               }{" "}
               active filter(s)
