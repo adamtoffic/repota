@@ -103,6 +103,23 @@ function SbaPageContent() {
 
         <SettingsStatusBanners />
 
+        {hasMismatches && formData.examType !== "MOCK" && students.length > 0 && (
+          <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-bold" data-record="true">
+                  Student SBA tasks are out of sync
+                </p>
+                <p className="mt-0.5 text-xs text-amber-800" data-record="true">
+                  Click "Sync Tasks to Students" above so existing student score sheets match your
+                  updated subject task configuration.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {formData.examType === "MOCK" && (
           <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">

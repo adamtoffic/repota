@@ -370,6 +370,30 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     });
   };
 
+  const assignAllComponentsToAllSubjects = () => {
+    const library = formData.componentLibrary || [];
+    const subjects = formData.defaultSubjects || [];
+    if (library.length === 0 || subjects.length === 0) return;
+
+    setFormData((prev) => {
+      const nextLibrary = prev.componentLibrary || [];
+      const nextSubjects = prev.defaultSubjects || [];
+      const nextMap: Record<string, ClassScoreComponentConfig[]> = {
+        ...(prev.subjectComponentMap || {}),
+      };
+
+      for (const subject of nextSubjects) {
+        nextMap[subject] = nextLibrary.map((comp) => ({ ...comp }));
+      }
+
+      return {
+        ...prev,
+        subjectComponentMap: nextMap,
+      };
+    });
+    showToast(`Assigned ${library.length} tasks to all ${subjects.length} subjects!`, "success");
+  };
+
   const finalizeSave = (shouldUpdateStudents = false) => {
     const trimmed = (formData.className ?? "").trim();
     const updated = { ...formData, className: trimmed };
@@ -468,6 +492,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         confirmDeleteComponent,
         addComponentToSubject,
         removeComponentFromSubject,
+        assignAllComponentsToAllSubjects,
         handleClassNameBlur,
         handleKeepOldClassName,
         finalizeSave,

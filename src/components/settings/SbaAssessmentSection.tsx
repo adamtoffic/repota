@@ -18,6 +18,7 @@ export function SbaAssessmentSection() {
     removeComponent,
     addComponentToSubject,
     removeComponentFromSubject,
+    assignAllComponentsToAllSubjects,
   } = useSettingsForm();
 
   const showSbaSetup = formData.examType !== "MOCK";
@@ -234,14 +235,25 @@ export function SbaAssessmentSection() {
       {/* CARD 5: SUBJECT COMPONENT ASSIGNMENT - SBA RENAMED */}
       {showSubjectAssignment && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4">
-            <h2
-              className="text-base font-bold tracking-wide text-gray-800 uppercase"
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2
+                className="text-base font-bold tracking-wide text-gray-800 uppercase"
+                data-record="true"
+              >
+                Subject Assessment Config
+              </h2>
+              <p className="text-muted text-xs">Assign specific SBA tasks to each subject.</p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={assignAllComponentsToAllSubjects}
               data-record="true"
             >
-              Subject Assessment Config
-            </h2>
-            <p className="text-muted text-xs">Assign specific SBA tasks to each subject.</p>
+              Assign All Tasks to All Subjects
+            </Button>
           </div>
 
           <div className="space-y-4">

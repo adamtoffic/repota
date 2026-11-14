@@ -202,7 +202,10 @@ describe("Settings sub-routes shared state and invariants", () => {
 
     // Let initial settle finish
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     const classNameInput = screen.getByDisplayValue("JHS 2");
@@ -223,7 +226,10 @@ describe("Settings sub-routes shared state and invariants", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yes, Update Everyone" }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     const savedSettings = storage.saveToStorage.mock.calls
@@ -244,7 +250,10 @@ describe("Settings sub-routes shared state and invariants", () => {
     await flushHydrationAndImports();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
     });
 
     fireEvent.change(screen.getByDisplayValue("Learn and Lead"), {
@@ -301,5 +310,35 @@ describe("Settings sub-routes shared state and invariants", () => {
     expect(screen.getByRole("button", { name: "Restore Factory Defaults" })).toBeDisabled();
     const backupFileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(backupFileInput).not.toBeDisabled();
+  });
+
+  it("assigns all SBA component library tasks to every default subject in one click", async () => {
+    renderSubRouteApp("/sba");
+    await flushHydrationAndImports();
+
+    expect(screen.getByText("No tasks assigned")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Assign All Tasks to All Subjects" }));
+
+    expect(screen.queryByText("No tasks assigned")).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    const savedSettings = storage.saveToStorage.mock.calls
+      .filter(([key]) => key === "ges_v1_settings")
+      .map(([, val]) => val as SchoolSettings)
+      .at(-1);
+
+    expect(savedSettings?.subjectComponentMap?.English).toEqual([
+      { name: "Class Test", maxScore: 20, category: "CAT" },
+    ]);
+    expect(savedSettings?.subjectComponentMap?.Mathematics).toEqual([
+      { name: "Class Test", maxScore: 20, category: "CAT" },
+    ]);
   });
 });

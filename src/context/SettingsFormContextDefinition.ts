@@ -37,6 +37,7 @@ export interface SettingsFormContextType {
   confirmDeleteComponent: () => void;
   addComponentToSubject: (subjectName: string, component: ClassScoreComponentConfig) => void;
   removeComponentFromSubject: (subjectName: string, componentName: string) => void;
+  assignAllComponentsToAllSubjects: () => void;
 
   // Class name & level handlers
   handleClassNameBlur: () => void;
