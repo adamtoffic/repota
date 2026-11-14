@@ -33,6 +33,8 @@ Imported settings are merged over the shared application defaults, so older file
 
 Tests cover UI-shaped unusual values (`Ɔ`, `ɛ`, `2025-2026`, `Basic Science 2`, and a one-character name), structural rejection before writes, default merging, round-trip export validation, duplicate IDs, and encrypted-path validation reuse.
 
+Duplicate student IDs remain accepted during backup validation to preserve compatibility with existing backups; however, deleting a student record when duplicate IDs exist removes all records sharing that ID while Undo restores only the first matching record.
+
 ## Summary for reviewer
 
 - Saved auto-lock settings now drive App immediately, with a five-minute fallback.

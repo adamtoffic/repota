@@ -37,7 +37,7 @@ Handles the core workflow of viewing, adding, editing, and managing student reco
 - [**StudentList.tsx**](../src/components/StudentList.tsx): Virtualized scrolling list of students with edit/delete actions; handles large student counts efficiently
 - [**ScoreEntryModal.tsx**](../src/components/ScoreEntryModal.tsx): Modal for entering subject scores per student; calculates grade in real-time based on level-specific rules
 - [**DashboardToolbar.tsx**](../src/components/DashboardToolbar.tsx): Search, filter, sorting, and action toolbar for student dashboard
-- [**BulkImportModal.tsx**](../src/components/BulkImportModal.tsx): Bulk import students and scores from CSV or Excel files
+- [**BulkImportModal.tsx**](../src/components/BulkImportModal.tsx): Bulk import student names pasted into a textarea (one name per line), creating student records with empty subjects
 - [**ImageUploader.tsx**](../src/components/ImageUploader.tsx): Compresses and uploads student photos; stores as base64
 
 ### **Report Cards & Printing**

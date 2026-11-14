@@ -65,14 +65,15 @@ useEffect(() => {
 Before changing this behavior, we must understand how `Settings.tsx` coordinates with auto-save, IndexedDB, and student records:
 
 ### A. The 500ms Auto-Save Hold
-In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L120-L145), `debouncedFormData` triggers auto-save every 500ms for all normal fields. However, lines 123–136 explicitly **suppress** saving `className` when students exist:
+In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L146-L180), `debouncedFormData` triggers auto-save every 500ms for all normal fields. However, lines 150–168 explicitly **suppress** saving `className` when students exist or when the class name is empty:
 
 ```tsx
 const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
-if (classNameChanged && students.length > 0) {
+const isClassNameEmpty = !(debouncedFormData.className ?? "").trim();
+if ((classNameChanged && students.length > 0) || isClassNameEmpty) {
   const savedFormData = {
     ...debouncedFormData,
-    className: lastSavedSettings.className, // Intentionally holds back new className
+    className: lastSavedSettings.className, // Intentionally holds back new or empty className
   };
   setSettings(savedFormData);
   lastAutoSaveRef.current = JSON.stringify(savedFormData);
@@ -81,10 +82,10 @@ if (classNameChanged && students.length > 0) {
 }
 ```
 
-**Why this exists**: The app intentionally prevents auto-saving intermediate class names until the user decides whether to update all existing student records. Any solution must preserve this protection: unconfirmed class names must not silently overwrite `settings.className` or `student.className`.
+**Why this exists**: The app intentionally prevents auto-saving intermediate class names until the user decides whether to update all existing student records, and blocks empty class names from overwriting `lastSavedSettings.className` so the previous baseline remains available for reversion on blur.
 
 ### B. What Happens if `students.length === 0`
-When there are zero students, `classNameChanged && students.length > 0` is `false`. Auto-save persists `className` seamlessly without any modal. This clean flow should remain untouched.
+When there are zero students and the class name is non-empty, `(classNameChanged && students.length > 0) || isClassNameEmpty` is `false`, so auto-save persists `className` seamlessly without any modal. If the input is cleared (`isClassNameEmpty`), auto-save still holds back the empty value so `lastSavedSettings.className` is preserved for reversion on blur.
 
 ### C. Relationship Between `settings.className` and `student.className`
 Across the app:
