@@ -1071,4 +1071,49 @@ describe("Settings cold start", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
     expect(screen.getByDisplayValue("Learn and Lead")).toBeInTheDocument();
   });
+
+  it("applies deferred autosave baseline on cancelled Reset and restores it on a subsequent Reset", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorage
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(seededSettings);
+
+    renderSettings();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    const mottoInput = screen.getByDisplayValue("Learn and Lead");
+    fireEvent.change(mottoInput, { target: { value: "Autosaved Motto" } });
+
+    // Fire 500ms debounce so setSettings runs and queues the baseline RAF, without flushing RAF yet
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    // Open Reset before RAF settles, then cancel it
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByText("Discard Changes?")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(50);
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByDisplayValue("Autosaved Motto")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
+
+    // Now make a transient edit and confirm Reset: must restore "Autosaved Motto"
+    fireEvent.change(screen.getByDisplayValue("Autosaved Motto"), {
+      target: { value: "Temporary Edit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
+    expect(screen.getByDisplayValue("Autosaved Motto")).toBeInTheDocument();
+  });
 });

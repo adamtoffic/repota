@@ -419,7 +419,13 @@ export function DataBackup({
         throw error;
       }
 
-      if (typeof clearIncompleteRollback === "function") {
+      if (isRollbackIncomplete && !loadError) {
+        try {
+          localStorage.removeItem("repota_incomplete_rollback");
+        } catch {
+          // ignore
+        }
+      } else if (typeof clearIncompleteRollback === "function") {
         clearIncompleteRollback();
       } else {
         try {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SchoolContextType } from "../context/SchoolContextDefinition";
 import { SchoolContext } from "../context/SchoolContextDefinition";
 import { DataBackup } from "../components/DataBackup";
+import { DataGate } from "../components/DataGate";
 import {
   createBackupPayload,
   importBackupAtomically,
@@ -589,5 +590,55 @@ describe("DataBackup", () => {
 
     expect(screen.queryByRole("button", { name: "Yes, Load File" })).not.toBeInTheDocument();
     expect(showToast).not.toHaveBeenCalledWith("File decrypted successfully! 🔓", "success");
+  });
+
+  it("keeps DataGate recovery view and reload overlay mounted after incomplete rollback import when loadError is false", async () => {
+    clearIncompleteRollbackMock.mockClear();
+    localStorage.setItem("repota_incomplete_rollback", "true");
+    const incoming = createBackupPayload(students, settings);
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "found", value: students })
+      .mockResolvedValueOnce({ status: "found", value: settings });
+    storage.saveEntriesToStorage.mockResolvedValue(true);
+    const reload = vi.spyOn(window.location, "reload").mockImplementation(() => undefined);
+
+    try {
+      const view = render(
+        <SchoolContext.Provider
+          value={{
+            ...contextValue,
+            loadError: false,
+            isRollbackIncomplete: true,
+            retryLoad: vi.fn(),
+            startFresh: vi.fn(),
+          }}
+        >
+          <DataGate>
+            <div>Main App Content</div>
+          </DataGate>
+        </SchoolContext.Provider>,
+      );
+
+      const file = new File([JSON.stringify(incoming)], "backup.json", {
+        type: "application/json",
+      });
+      fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+        target: { files: [file] },
+      });
+
+      await vi.waitFor(() =>
+        expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible(),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
+
+      expect(await screen.findByText("Backup loaded. Reloading...")).toBeVisible();
+      expect(screen.getByRole("button", { name: "Reload now" })).toBeVisible();
+      expect(screen.queryByText("Main App Content")).not.toBeInTheDocument();
+      expect(localStorage.getItem("repota_incomplete_rollback")).toBeNull();
+      expect(clearIncompleteRollbackMock).not.toHaveBeenCalled();
+    } finally {
+      localStorage.removeItem("repota_incomplete_rollback");
+      reload.mockRestore();
+    }
   });
 });
