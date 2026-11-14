@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useSchoolData } from "../../hooks/useSchoolData";
+import { PageLoader } from "../PageLoader";
 
 interface AppShellProps {
   children: ReactNode;
@@ -136,7 +137,9 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Main Content Viewport */}
-      <div className="flex min-h-screen flex-col pb-20 md:pb-0 md:pl-64">{children}</div>
+      <div className="flex min-h-screen flex-col pb-20 md:pb-0 md:pl-64 print:pb-0 print:pl-0">
+        <Suspense fallback={<PageLoader />}>{children}</Suspense>
+      </div>
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
