@@ -205,6 +205,6 @@ The following are not explicitly stated as intentions in comments; they are infe
 
 ## 7. Architectural summary
 
-The application is best characterized as a local-first PWA for teacher data management and report generation. The authoritative state lives in the browser, is persisted mainly in IndexedDB, and is transformed into report-ready data using school-level grade rules and component-based class-score weighting. Report generation is local and print-driven, while portability is handled by CSV export and encrypted backup files. App access is protected locally with PINs and optional WebAuthn biometric unlock, and exported data is separately encrypted at the file layer with AES-256-GCM.
+The application is best characterized as a local-first PWA for teacher data management and report generation. The authoritative state lives in the browser, is persisted mainly in IndexedDB, and is transformed into report-ready data using school-level grade rules and component-based class-score weighting. Report generation is local and print-driven, while portability is handled by CSV export, plain JSON backups, and password-encrypted backup files. App access is protected locally with PINs and optional WebAuthn biometric unlock, and password-encrypted backups are separately encrypted at the file layer with AES-256-GCM (plain JSON backups and CSV exports are not encrypted).
 
 This is a browser-centric architecture with explicit offline operation and a deliberately local trust boundary, rather than a traditional client-server application.

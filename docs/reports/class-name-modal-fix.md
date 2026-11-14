@@ -298,7 +298,7 @@ In [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx#L1394-L1403):
 ```
 
 > [!NOTE]
-> `ConfirmModal` invokes `onClose` upon both confirmation and cancellation. Therefore, `onClose` must strictly close the modal (`setShowClassUpdateModal(false)`) and must NOT call `handleKeepOldClassName`, which would otherwise revert confirmed saves. Reversion to the previous class name is handled exclusively by `onCancel`.
+> In [`src/components/ConfirmModal.tsx`](../../src/components/ConfirmModal.tsx#L30-L59), the Cancel button, `Escape` key (`handleEscape`), and backdrop click (`Modal onClose={handleCancel}`) all route through `handleCancel`, which invokes `onCancel?.()` (`handleKeepOldClassName`) before `onClose()`. Because the Confirm button also invokes `onClose()` after `onConfirm()`, `onClose` must strictly close the modal (`setShowClassUpdateModal(false)`) so confirmed saves are not reverted, while `onCancel` restores the previous class name on Cancel, `Escape`, and backdrop dismissal.
 
 ---
 

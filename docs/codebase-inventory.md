@@ -251,7 +251,7 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 ### **No Backend Sync**
 - **Current state**: All data stored locally; no backend integration
 - **Future capability**: [src/api/config.ts](../src/api/config.ts) has `API_CONFIG.MODE` toggle for switching to Supabase, but not currently enabled
-- **Offline-first design**: App works 100% offline; no internet required
+- **Offline-first design**: Once the user first loads or installs the app while online so its assets are cached, the app works offline without an internet connection
 
 ### **Export/Import**
 Handled in [DataBackup.tsx](../src/components/DataBackup.tsx), [fileEncryption.ts](../src/utils/fileEncryption.ts), and [backupValidation.ts](../src/utils/backupValidation.ts):
