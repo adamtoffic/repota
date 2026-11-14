@@ -1,5 +1,6 @@
 import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSettingsForm } from "../hooks/useSettingsForm";
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { ScrollButton } from "../components/ScrollButton";
 import { PageHeader } from "../components/ui/PageHeader";
 import { SettingsStatusBanners } from "../components/settings/SettingsStatusBanners";
@@ -19,7 +20,7 @@ export function Settings() {
 }
 
 function SettingsContent() {
-  const { formData, committedSchoolName } = useSettingsForm();
+  const { formData, committedSchoolName, isSaving, lastSaved } = useSettingsForm();
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
@@ -36,6 +37,8 @@ function SettingsContent() {
 
       {((formData.defaultSubjects?.length ?? 0) >= 8 ||
         (formData.componentLibrary?.length ?? 0) >= 3) && <ScrollButton />}
+
+      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
     </div>
   );
 }

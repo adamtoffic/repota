@@ -1,11 +1,19 @@
 /* eslint-disable react-refresh/only-export-components */
 // src/router.tsx
 import { lazy, Suspense, type ComponentType } from "react";
-import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+  createRouter,
+  createRoute,
+  createRootRoute,
+  Outlet,
+  type RouterHistory,
+} from "@tanstack/react-router";
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
+import { SettingsFormProvider } from "./context/SettingsFormContext";
+import { AppShell } from "./components/navigation/AppShell";
 import {
   CHUNK_RELOAD_KEY,
   hasUnsavedChanges,
@@ -106,13 +114,18 @@ export function RouteErrorFallback({ error }: { error?: unknown }) {
 }
 
 // Code-split heavy pages with auto-reload retry on chunk failures
-const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const SbaPage = lazyWithRetry(() => import("./pages/SbaPage"));
+const SettingsHub = lazyWithRetry(() => import("./pages/settings/SettingsHub"));
+const SettingsSchoolPage = lazyWithRetry(() => import("./pages/settings/SettingsSchoolPage"));
+const SettingsAcademicPage = lazyWithRetry(() => import("./pages/settings/SettingsAcademicPage"));
+const SettingsTemplatesPage = lazyWithRetry(() => import("./pages/settings/SettingsTemplatesPage"));
+const SettingsSecurityPage = lazyWithRetry(() => import("./pages/settings/SettingsSecurityPage"));
 const PrintPreview = lazyWithRetry(() =>
   import("./pages/PrintPreview").then((module) => ({ default: module.PrintPreview })),
 );
 const Analytics = lazyWithRetry(() => import("./pages/Analytics"));
 
-// 2. Define the Root Layout (The Shell)
+// 2. Define the Root Layout
 const rootRoute = createRootRoute({
   component: () => (
     <>
@@ -124,25 +137,68 @@ const rootRoute = createRootRoute({
   ),
 });
 
-// 3. Define the Routes
-const indexRoute = createRoute({
+// 3. Navigation Shell Layout Route (Excluded on /print and DataGate error/recovery screens)
+const shellRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/",
+  id: "shell",
   component: () => (
     <DataGate>
-      <Dashboard />
+      <SettingsFormProvider>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      </SettingsFormProvider>
     </DataGate>
   ),
 });
 
+// 4. Define the Routes
+const indexRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/",
+  component: Dashboard,
+});
+
+const sbaRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/sba",
+  component: SbaPage,
+});
+
+const analyticsRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/analytics",
+  component: Analytics,
+});
+
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => shellRoute,
   path: "/settings",
-  component: () => (
-    <DataGate>
-      <Settings />
-    </DataGate>
-  ),
+  component: SettingsHub,
+});
+
+const settingsSchoolRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/settings/school",
+  component: SettingsSchoolPage,
+});
+
+const settingsAcademicRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/settings/academic",
+  component: SettingsAcademicPage,
+});
+
+const settingsTemplatesRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/settings/templates",
+  component: SettingsTemplatesPage,
+});
+
+const settingsSecurityRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/settings/security",
+  component: SettingsSecurityPage,
 });
 
 const printRoute = createRoute({
@@ -161,26 +217,33 @@ const printRoute = createRoute({
   },
 });
 
-const analyticsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/analytics",
-  component: () => (
-    <DataGate>
-      <Analytics />
-    </DataGate>
-  ),
-});
+// 5. Build the Tree
+export const routeTree = rootRoute.addChildren([
+  shellRoute.addChildren([
+    indexRoute,
+    sbaRoute,
+    analyticsRoute,
+    settingsRoute,
+    settingsSchoolRoute,
+    settingsAcademicRoute,
+    settingsTemplatesRoute,
+    settingsSecurityRoute,
+  ]),
+  printRoute,
+]);
 
-// 4. Build the Tree
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, printRoute, analyticsRoute]);
+// 6. Create the Router
+export function createAppRouter(history?: RouterHistory) {
+  return createRouter({
+    routeTree,
+    history,
+    defaultErrorComponent: RouteErrorFallback,
+  });
+}
 
-// 5. Create the Router
-export const router = createRouter({
-  routeTree,
-  defaultErrorComponent: RouteErrorFallback,
-});
+export const router = createAppRouter();
 
-// 6. Register types
+// 7. Register types
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;

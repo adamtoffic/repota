@@ -5,7 +5,6 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
-import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { PinSetup } from "../components/PinSetup";
 import { PinRecovery } from "../components/PinRecovery";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
@@ -548,8 +547,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
           showToast("PIN lock has been disabled", "success");
         }}
       />
-
-      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
       <ConfirmModal
         isOpen={showResetModal}

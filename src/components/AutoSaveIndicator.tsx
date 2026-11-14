@@ -55,7 +55,7 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
   if (!isSaving && !lastSaved && !error) return null;
 
   return (
-    <div className="animate-fade-in fixed bottom-6 left-6 z-30">
+    <div className="animate-fade-in fixed bottom-20 left-4 z-30 md:bottom-6 md:left-72 print:hidden">
       <div
         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium shadow-lg ${
           error
