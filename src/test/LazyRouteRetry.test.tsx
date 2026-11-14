@@ -6,6 +6,7 @@ import {
   isChunkLoadError,
   lazyWithRetry,
   RouteErrorFallback,
+  setUnsavedChanges,
 } from "../router";
 import { setupVitePreloadErrorHandler } from "../utils/preloadErrorHandler";
 
@@ -14,6 +15,7 @@ describe("Lazy Route Retry & MIME Protection", () => {
 
   beforeEach(() => {
     sessionStorage.clear();
+    setUnsavedChanges(false);
     // Mock window.location.reload
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -53,9 +55,15 @@ describe("Lazy Route Retry & MIME Protection", () => {
       expect(isChunkLoadError(chunkErr)).toBe(true);
     });
 
-    it("identifies CSS chunk errors", () => {
-      const cssErr = new Error("loading css chunk 5 failed");
+    it("identifies WebKit module-script fetch failure", () => {
+      const err = new TypeError("Importing a module script failed.");
+      expect(isChunkLoadError(err)).toBe(true);
+    });
+
+    it("identifies CSS chunk and Vite CSS preload errors", () => {
+      const cssErr = new Error("Unable to preload CSS for /assets/Settings-ABC12345.css");
       expect(isChunkLoadError(cssErr)).toBe(true);
+      expect(isChunkLoadError(new Error("loading css chunk 5 failed"))).toBe(true);
     });
 
     it("returns false for regular application or network errors", () => {
@@ -272,6 +280,47 @@ describe("Lazy Route Retry & MIME Protection", () => {
       consoleSpy.mockRestore();
       storageSpy.mockRestore();
     });
+
+    it("suppresses reload and renders error boundary when unsaved changes exist", async () => {
+      setUnsavedChanges("school-context-debounce", true);
+      const chunkErr = new TypeError("Failed to fetch dynamically imported module: /assets/Chunk.js");
+      const factory = vi.fn().mockRejectedValue(chunkErr);
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      class TestErrorBoundary extends React.Component<
+        { children: React.ReactNode },
+        { error: Error | null }
+      > {
+        state = { error: null };
+        static getDerivedStateFromError(error: Error) {
+          return { error };
+        }
+        render() {
+          if (this.state.error) {
+            return <div>Boundary Caught: {(this.state.error as Error).message}</div>;
+          }
+          return this.props.children;
+        }
+      }
+
+      const LazyComp = lazyWithRetry(factory);
+
+      render(
+        <TestErrorBoundary>
+          <Suspense fallback={<div>Loading...</div>}>
+            <LazyComp />
+          </Suspense>
+        </TestErrorBoundary>,
+      );
+
+      expect(
+        await screen.findByText(/Boundary Caught: Failed to fetch dynamically imported module/),
+      ).toBeInTheDocument();
+      expect(window.location.reload).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
+      consoleSpy.mockRestore();
+    });
   });
 
   describe("RouteErrorFallback", () => {
@@ -317,14 +366,36 @@ describe("Lazy Route Retry & MIME Protection", () => {
       expect(window.location.reload).toHaveBeenCalledTimes(1);
     });
 
-    it("reloads when vite:preloadError payload is a chunk fetch failure", () => {
-      const err = new TypeError("Failed to fetch dynamically imported module: /assets/Page.js");
+    it("reloads when vite:preloadError payload is a chunk, WebKit module, or CSS preload failure", () => {
+      const webkitErr = new TypeError("Importing a module script failed.");
+      const webkitEvent = new CustomEvent("vite:preloadError");
+      Object.assign(webkitEvent, { payload: webkitErr });
+      window.dispatchEvent(webkitEvent);
+
+      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe("true");
+      expect(window.location.reload).toHaveBeenCalledTimes(1);
+
+      sessionStorage.clear();
+      vi.mocked(window.location.reload).mockClear();
+
+      const cssErr = new Error("Unable to preload CSS for /assets/Settings-ABC12345.css");
+      const cssEvent = new CustomEvent("vite:preloadError");
+      Object.assign(cssEvent, { payload: cssErr });
+      window.dispatchEvent(cssEvent);
+
+      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe("true");
+      expect(window.location.reload).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not reload on vite:preloadError when unsaved changes exist", () => {
+      setUnsavedChanges("school-context-debounce", true);
+      const err = new Error("Unable to preload CSS for /assets/Settings-ABC12345.css");
       const event = new CustomEvent("vite:preloadError");
       Object.assign(event, { payload: err });
       window.dispatchEvent(event);
 
-      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe("true");
-      expect(window.location.reload).toHaveBeenCalledTimes(1);
+      expect(window.location.reload).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
     });
 
     it("does not reload when vite:preloadError payload is an unrelated runtime error", () => {

@@ -226,6 +226,7 @@ export function DataBackup({
         activeReaderRef.current = null;
       }
       if (isUnmountedRef.current) return;
+      setDecryptedBackupData(null);
       if (typeof setRecoveryAction === "function") {
         setRecoveryAction(null);
       }
@@ -246,6 +247,7 @@ export function DataBackup({
 
         // Check if file is encrypted
         if (isEncryptedFile(data)) {
+          setDecryptedBackupData(null);
           setEncryptionHint(data.hint || "");
           setPendingFile(file);
           setShowImportPasswordModal(true);
@@ -253,6 +255,7 @@ export function DataBackup({
         }
 
         const validated = validateBackup(data);
+        setDecryptedBackupData(validated);
         setPendingFile(file);
         setImportStats({
           count: validated.students.length,
@@ -262,6 +265,7 @@ export function DataBackup({
         });
         setShowImportModal(true);
       } catch {
+        setDecryptedBackupData(null);
         if (typeof setRecoveryAction === "function") {
           setRecoveryAction(null);
         }
@@ -419,7 +423,6 @@ export function DataBackup({
       showToast("Class data loaded successfully!", "success");
 
       // Clean up
-      setDecryptedBackupData(null);
       setShowReloadOverlay(true);
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
@@ -431,7 +434,9 @@ export function DataBackup({
       showToast(error instanceof Error ? error.message : "Failed to import file. Please try again.", "error");
       console.error(error);
     } finally {
+      setDecryptedBackupData(null);
       setShowImportModal(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -736,6 +741,7 @@ export function DataBackup({
               <button
                 onClick={() => {
                   setShowImportPasswordModal(false);
+                  setDecryptedBackupData(null);
                   setImportPassword("");
                   if (fileInputRef.current) fileInputRef.current.value = "";
                   if (typeof setRecoveryAction === "function") {

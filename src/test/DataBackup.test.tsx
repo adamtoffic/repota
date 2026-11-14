@@ -8,6 +8,7 @@ import {
   importBackupAtomically,
   validateBackup,
 } from "../utils/backupValidation";
+import { decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
 
 const storage = vi.hoisted(() => ({
   loadFromStorageResult: vi.fn(),
@@ -442,5 +443,105 @@ describe("DataBackup", () => {
     );
 
     expect(() => validateBackup(payload)).toThrow(/invalid/i);
+  });
+
+  it("replaces stale decryptedBackupData when selecting a new plain JSON file and clears on completion", async () => {
+    const encryptedPayload = createBackupPayload(students, {
+      ...settings,
+      schoolName: "Encrypted Old School",
+    });
+    const plainPayload = createBackupPayload(
+      [{ ...students[0], id: "plain-1", name: "Plain Student" }],
+      { ...settings, schoolName: "Plain New School" },
+    );
+
+    vi.mocked(isEncryptedFile)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    vi.mocked(decryptBackupFile).mockResolvedValueOnce(encryptedPayload);
+
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "found", value: students })
+      .mockResolvedValueOnce({ status: "found", value: settings });
+    storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
+    const reload = vi.spyOn(window.location, "reload").mockImplementation(() => undefined);
+
+    const view = render(
+      <SchoolContext.Provider value={contextValue}>
+        <DataBackup />
+      </SchoolContext.Provider>,
+    );
+
+    const input = view.container.querySelector('input[type="file"]')!;
+    const encryptedFile = new File(
+      [JSON.stringify({ encrypted: true, hint: "hint" })],
+      "old.repota",
+      { type: "application/json" },
+    );
+    fireEvent.change(input, { target: { files: [encryptedFile] } });
+
+    const pwdInput = await screen.findByPlaceholderText("Enter password");
+    fireEvent.change(pwdInput, { target: { value: "secret" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock File" }));
+
+    await vi.waitFor(() =>
+      expect(screen.getByText(/Encrypted Old School/i)).toBeInTheDocument(),
+    );
+
+    // Cancel encrypted confirmation, then pick a plain JSON file
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    const plainFile = new File([JSON.stringify(plainPayload)], "plain.json", {
+      type: "application/json",
+    });
+    fireEvent.change(input, { target: { files: [plainFile] } });
+
+    await vi.waitFor(() =>
+      expect(screen.getByText(/Plain New School/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
+
+    await vi.waitFor(() =>
+      expect(storage.saveEntriesToStorage).toHaveBeenCalledWith([
+        { key: "students", value: plainPayload.students },
+        { key: "settings", value: expect.objectContaining({ schoolName: "Plain New School" }) },
+      ]),
+    );
+    reload.mockRestore();
+  });
+
+  it("aborts import before suspending persistence or writing when waitForMigration rejects", async () => {
+    const incoming = createBackupPayload(students, settings);
+    waitForMigrationMock.mockRejectedValueOnce(
+      new Error("Storage migration is still in progress. Please try again shortly."),
+    );
+
+    const view = render(
+      <SchoolContext.Provider value={contextValue}>
+        <DataBackup />
+      </SchoolContext.Provider>,
+    );
+
+    const file = new File([JSON.stringify(incoming)], "backup.json", { type: "application/json" });
+    fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
+
+    await vi.waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith(
+        "Storage migration is still in progress. Please try again shortly.",
+        "error",
+      ),
+    );
+    expect(suspendPersistenceMock).not.toHaveBeenCalled();
+    expect(storage.saveEntriesToStorage).not.toHaveBeenCalled();
+    expect(storage.saveToStorage).not.toHaveBeenCalled();
+    expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
   });
 });

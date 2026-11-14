@@ -6,9 +6,14 @@ import { AlertTriangle, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
-import { CHUNK_RELOAD_KEY, isChunkLoadError } from "./utils/preloadErrorHandler";
+import {
+  CHUNK_RELOAD_KEY,
+  hasUnsavedChanges,
+  isChunkLoadError,
+  setUnsavedChanges,
+} from "./utils/preloadErrorHandler";
 
-export { CHUNK_RELOAD_KEY, isChunkLoadError };
+export { CHUNK_RELOAD_KEY, hasUnsavedChanges, isChunkLoadError, setUnsavedChanges };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends ComponentType<any>>(
@@ -26,6 +31,10 @@ export function lazyWithRetry<T extends ComponentType<any>>(
     } catch (error) {
       const isChunk = isChunkLoadError(error);
       if (isChunk) {
+        if (hasUnsavedChanges()) {
+          throw error;
+        }
+
         let canReload = false;
         try {
           const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "true";

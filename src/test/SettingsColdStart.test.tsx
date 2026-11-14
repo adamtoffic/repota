@@ -38,7 +38,7 @@ vi.mock("../utils/dataProtection", () => ({
   detectDataLoss: vi.fn(() => false),
 }));
 
-import { SchoolProvider } from "../context/SchoolContext";
+import { SchoolProvider, MIGRATION_WAIT_TIMEOUT_MS } from "../context/SchoolContext";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { DataGate } from "../components/DataGate";
 import { Dashboard } from "../pages/Dashboard";
@@ -791,5 +791,158 @@ describe("Settings cold start", () => {
     expect(tryAgainBtn).not.toBeDisabled();
     expect(startFreshBtn).not.toBeDisabled();
     expect(loadFileInput).not.toBeDisabled();
+  });
+
+  it("invalidates pending startFresh when isLocked engages before migration settles", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    const migrationDeferred = deferred<{ success: boolean }>();
+    storage.migrateFromLocalStorage.mockReturnValue(migrationDeferred.promise);
+
+    function TestConsumer() {
+      const { startFresh, activeRecoveryAction } = useSchoolData();
+      return (
+        <div>
+          <span data-testid="recovery-action">{activeRecoveryAction ?? "none"}</span>
+          <button type="button" onClick={startFresh}>
+            Trigger Start Fresh
+          </button>
+        </div>
+      );
+    }
+
+    const { rerender } = render(
+      <SchoolProvider isLocked={false}>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger Start Fresh" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh", exact: true }));
+    expect(screen.getByTestId("recovery-action")).toHaveTextContent("fresh");
+
+    // Lock before migration settles, then unlock again
+    rerender(
+      <SchoolProvider isLocked={true}>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+    expect(screen.getByTestId("recovery-action")).toHaveTextContent("none");
+
+    rerender(
+      <SchoolProvider isLocked={false}>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+
+    // Resolve migration after token invalidation: startFresh must NOT write
+    await act(async () => {
+      migrationDeferred.resolve({ success: false });
+      await vi.advanceTimersByTimeAsync(100);
+    });
+
+    expect(storage.saveToStorage).not.toHaveBeenCalled();
+  });
+
+  it("retains exclusive recovery ownership when isLocked engages after startFresh writes begin", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.migrateFromLocalStorage.mockResolvedValue({ success: false });
+    const saveDeferred = deferred<boolean>();
+    storage.saveToStorage.mockReturnValue(saveDeferred.promise);
+
+    function TestConsumer() {
+      const { startFresh, activeRecoveryAction } = useSchoolData();
+      return (
+        <div>
+          <span data-testid="recovery-action">{activeRecoveryAction ?? "none"}</span>
+          <button type="button" onClick={startFresh}>
+            Trigger Start Fresh
+          </button>
+        </div>
+      );
+    }
+
+    const { rerender } = render(
+      <SchoolProvider isLocked={false}>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger Start Fresh" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh", exact: true }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(storage.saveToStorage).toHaveBeenCalled();
+    expect(screen.getByTestId("recovery-action")).toHaveTextContent("fresh");
+
+    // Lock while saves are still in-flight: ownership must stay "fresh"
+    rerender(
+      <SchoolProvider isLocked={true}>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+    expect(screen.getByTestId("recovery-action")).toHaveTextContent("fresh");
+
+    // Once saves finish, ownership releases cleanly
+    await act(async () => {
+      saveDeferred.resolve(true);
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId("recovery-action")).toHaveTextContent("none");
+  });
+
+  it("bounds waitForMigration by MIGRATION_WAIT_TIMEOUT_MS and aborts startFresh without writes", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    const neverSettlingMigration = deferred<{ success: boolean }>();
+    storage.migrateFromLocalStorage.mockReturnValue(neverSettlingMigration.promise);
+
+    function TestConsumer() {
+      const { startFresh, waitForMigration } = useSchoolData();
+      return (
+        <div>
+          <button type="button" onClick={startFresh}>
+            Trigger Start Fresh
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              waitForMigration?.().catch(() => {});
+            }}
+          >
+            Trigger Wait
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <SchoolProvider isLocked={false}>
+        <TestConsumer />
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger Start Fresh" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh", exact: true }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MIGRATION_WAIT_TIMEOUT_MS + 50);
+    });
+
+    expect(storage.saveToStorage).not.toHaveBeenCalled();
+    neverSettlingMigration.resolve({ success: false });
   });
 });

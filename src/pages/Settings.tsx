@@ -50,6 +50,7 @@ import {
 import { Button, Alert, Badge, IconButton, Input } from "../components/ui";
 import { PageHeader } from "../components/ui/PageHeader";
 import { TEMPLATE_REGISTRY } from "../templates/registry";
+import { setUnsavedChanges } from "../utils/preloadErrorHandler";
 
 export function Settings() {
   return <SettingsContent />;
@@ -136,6 +137,11 @@ function SettingsContent() {
   }, []);
 
   const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
+
+  useEffect(() => {
+    setUnsavedChanges("settings-draft", hasUnsavedChanges);
+    return () => setUnsavedChanges("settings-draft", false);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     if (debouncedPayload.generation < immediateSaveGenRef.current) return;
