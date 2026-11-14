@@ -1,0 +1,253 @@
+import { AlertCircle, BookOpen, Plus, Users, X } from "lucide-react";
+import type { AcademicPeriod, ExamType, SchoolLevel } from "../../types";
+import { IconButton, Input } from "../ui";
+import { useSettingsForm } from "../../hooks/useSettingsForm";
+
+export function AcademicSessionSection() {
+  const {
+    formData,
+    setFormData,
+    isPersistenceSuspended,
+    handleLevelChange,
+    handleClassNameBlur,
+    newSubject,
+    setNewSubject,
+    addSubject,
+    removeSubject,
+  } = useSettingsForm();
+
+  return (
+    <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
+      {/* CARD 2: ACADEMIC SESSION */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="rounded-lg bg-orange-100 p-2.5">
+            <BookOpen className="h-5 w-5 text-orange-600" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-800" data-record="true">
+            Academic Session
+          </h2>
+        </div>
+
+        <div className="grid gap-6">
+          {/* LEVEL SELECTOR */}
+          <div>
+            <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+              School Level
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(["KG", "PRIMARY", "JHS", "SHS"] as SchoolLevel[]).map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => handleLevelChange(lvl)}
+                  className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 sm:px-4 sm:py-2.5 ${
+                    formData.level === lvl
+                      ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50/50"
+                  }`}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 flex gap-2 rounded-lg bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">
+              <AlertCircle className="h-4 w-4 shrink-0 text-blue-600" />
+              <p>
+                {formData.level === "KG" &&
+                  "Kindergarten: Uses developmental grading (Gold, Silver, Bronze)."}
+                {formData.level === "PRIMARY" && "Primary: Standard descriptive grading (1-5)."}
+                {formData.level === "JHS" && "JHS: Common Core SBA + Aggregate System."}
+                {formData.level === "SHS" && "SHS: WASSCE Grading (A1 - F9)."}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+                Class Name
+              </label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  required
+                  value={formData.className || ""}
+                  onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+                  onBlur={handleClassNameBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className="pl-9 font-bold"
+                  placeholder="e.g. Basic 4"
+                />
+                <Users className="absolute top-2.5 left-3 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+            <Input
+              label="Class Size (Number on Roll)"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max="200"
+              value={formData.classSize || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, classSize: Number(e.target.value) || undefined })
+              }
+              className="font-bold"
+              placeholder="e.g. 30"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Total Attendance Days"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max="365"
+              value={formData.totalAttendanceDays || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, totalAttendanceDays: Number(e.target.value) })
+              }
+              className="font-bold"
+              placeholder="e.g. 70"
+            />
+            <Input
+              label="Next Term Begins"
+              type="date"
+              value={formData.nextTermStarts || ""}
+              onChange={(e) => setFormData({ ...formData, nextTermStarts: e.target.value })}
+              className="font-bold"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Academic Year"
+              type="text"
+              required
+              value={formData.academicYear}
+              onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
+              className="font-bold"
+              placeholder="e.g. 2025/2026"
+            />
+            <div>
+              <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+                Term / Semester
+              </label>
+              <select
+                value={formData.term}
+                onChange={(e) =>
+                  setFormData({ ...formData, term: e.target.value as AcademicPeriod })
+                }
+                className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm font-bold transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="First Term">First Term</option>
+                <option value="Second Term">Second Term</option>
+                <option value="Third Term">Third Term</option>
+              </select>
+            </div>
+          </div>
+
+          {/* EXAM TYPE SELECTOR */}
+          <div>
+            <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+              Exam Type
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["TERMLY", "MOCK"] as ExamType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    const isMock = type === "MOCK";
+                    setFormData({
+                      ...formData,
+                      examType: type,
+                      classScoreMax: isMock ? 0 : 50,
+                      examScoreMax: isMock ? 100 : 50,
+                    });
+                  }}
+                  className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
+                    (formData.examType ?? "TERMLY") === type
+                      ? type === "MOCK"
+                        ? "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200"
+                        : "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50/50"
+                  }`}
+                >
+                  {type === "TERMLY" ? "📚 Termly" : "📃 Mock Exam"}
+                </button>
+              ))}
+            </div>
+            {formData.examType === "MOCK" && (
+              <div className="mt-3 flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                <p>
+                  <strong>Mock Exam mode:</strong> Only exam scores (0–100) are recorded. Class
+                  scores and SBA components are disabled. Grades use the same system.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* CARD 4: SUBJECTS */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase" data-record="true">
+            Class Subjects (Learning Areas)
+          </h2>
+          <p className="text-muted text-xs">
+            These subjects will be added to all new students automatically.
+          </p>
+        </div>
+
+        <div className="mb-4 flex gap-2">
+          <Input
+            type="text"
+            value={newSubject}
+            onChange={(e) => setNewSubject(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSubject())}
+            className="flex-1"
+            placeholder="Type subject name..."
+          />
+          <IconButton
+            type="button"
+            onClick={addSubject}
+            variant="secondary"
+            size="md"
+            aria-label="Add subject"
+            className="rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+          >
+            <Plus className="h-5 w-5" />
+          </IconButton>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {(formData.defaultSubjects || []).map((sub, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700"
+            >
+              {sub}
+              <button
+                type="button"
+                onClick={() => removeSubject(index)}
+                className="rounded-full p-0.5 text-gray-400 hover:bg-red-100 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+    </fieldset>
+  );
+}
