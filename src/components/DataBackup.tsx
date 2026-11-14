@@ -62,13 +62,26 @@ export function DataBackup({
 
   const currentRecoveryAction = activeRecoveryActionProp ?? contextRecoveryAction ?? null;
   const setRecoveryAction = onRecoveryActionChange ?? contextSetRecoveryAction;
+  const hasForeignRecoveryOwner =
+    currentRecoveryAction !== null && currentRecoveryAction !== "import";
+  const hasForeignRecoveryOwnerRef = useRef(hasForeignRecoveryOwner);
   const isRecoveryBusy = Boolean(currentRecoveryAction) || disabled;
+
+  useEffect(() => {
+    hasForeignRecoveryOwnerRef.current = hasForeignRecoveryOwner;
+  }, [hasForeignRecoveryOwner]);
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
   const isImportingRef = useRef(false);
   const activeReaderRef = useRef<FileReader | null>(null);
   const isUnmountedRef = useRef(false);
   const decryptAttemptRef = useRef(0);
   const [isImporting, setIsImporting] = useState(false);
+
+  const releaseImportRecoveryOwnership = () => {
+    if (!hasForeignRecoveryOwner && typeof setRecoveryAction === "function") {
+      setRecoveryAction(null);
+    }
+  };
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -83,7 +96,11 @@ export function DataBackup({
         }
         activeReaderRef.current = null;
       }
-      if (!isImportingRef.current && typeof setRecoveryAction === "function") {
+      if (
+        !isImportingRef.current &&
+        !hasForeignRecoveryOwnerRef.current &&
+        typeof setRecoveryAction === "function"
+      ) {
         setRecoveryAction(null);
       }
     };
@@ -216,6 +233,11 @@ export function DataBackup({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (hasForeignRecoveryOwner) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      showToast("Another recovery action is already in progress.", "error");
+      return;
+    }
 
     ++decryptAttemptRef.current;
     if (typeof setRecoveryAction === "function") {
@@ -230,9 +252,7 @@ export function DataBackup({
       }
       if (isUnmountedRef.current) return;
       setDecryptedBackupData(null);
-      if (typeof setRecoveryAction === "function") {
-        setRecoveryAction(null);
-      }
+      releaseImportRecoveryOwnership();
       setStatus("error");
       showToast("Failed to read the selected file. Please try again.", "error");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -269,9 +289,7 @@ export function DataBackup({
         setShowImportModal(true);
       } catch {
         setDecryptedBackupData(null);
-        if (typeof setRecoveryAction === "function") {
-          setRecoveryAction(null);
-        }
+        releaseImportRecoveryOwnership();
         setStatus("error");
         showToast("Invalid file. Please select a valid Repota file.", "error");
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -297,9 +315,6 @@ export function DataBackup({
         activeReaderRef.current = null;
       }
       if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
-      if (typeof setRecoveryAction === "function") {
-        setRecoveryAction(null);
-      }
       setIsDecrypting(false);
       showToast("Failed to read the selected file. Please try again.", "error");
     };
@@ -340,9 +355,6 @@ export function DataBackup({
       } catch (error) {
         if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
         console.error("Decryption error:", error);
-        if (typeof setRecoveryAction === "function") {
-          setRecoveryAction(null);
-        }
         showToast(
           error instanceof Error ? error.message : "Incorrect password. Please try again.",
           "error",
@@ -359,6 +371,13 @@ export function DataBackup({
   // 4. IMPORT EXECUTION
   const executeImport = async () => {
     if (isImportingRef.current) return;
+    if (hasForeignRecoveryOwner) {
+      setDecryptedBackupData(null);
+      setShowImportModal(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      showToast("Another recovery action is already in progress.", "error");
+      return;
+    }
     isImportingRef.current = true;
     setIsImporting(true);
     if (typeof setRecoveryAction === "function") {
@@ -603,9 +622,7 @@ export function DataBackup({
             setShowImportModal(false);
             setDecryptedBackupData(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
-            if (typeof setRecoveryAction === "function") {
-              setRecoveryAction(null);
-            }
+            releaseImportRecoveryOwnership();
           }
         }}
         onConfirm={executeImport}
@@ -769,9 +786,7 @@ export function DataBackup({
                   setDecryptedBackupData(null);
                   setImportPassword("");
                   if (fileInputRef.current) fileInputRef.current.value = "";
-                  if (typeof setRecoveryAction === "function") {
-                    setRecoveryAction(null);
-                  }
+                  releaseImportRecoveryOwnership();
                 }}
                 className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
               >

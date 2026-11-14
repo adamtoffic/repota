@@ -96,6 +96,9 @@ describe("DataBackup", () => {
     waitForMigrationMock.mockClear();
     showToast.mockClear();
     setActiveRecoveryActionMock.mockClear();
+    vi.mocked(decryptBackupFile).mockReset();
+    vi.mocked(isEncryptedFile).mockReset();
+    vi.mocked(isEncryptedFile).mockReturnValue(false);
     contextValue.loadError = false;
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
@@ -676,5 +679,87 @@ describe("DataBackup", () => {
     expect(thrown).toBeInstanceOf(IncompleteRollbackError);
     expect((thrown as IncompleteRollbackError).cause).toBe(batchRollbackError);
     expect(((thrown as IncompleteRollbackError).cause as Error).cause).toBe(writeError);
+  });
+
+  it("keeps import recovery ownership after a wrong-password retry until the password modal is canceled", async () => {
+    vi.mocked(isEncryptedFile).mockReturnValueOnce(true);
+    vi.mocked(decryptBackupFile).mockRejectedValueOnce(new Error("Incorrect password"));
+
+    const view = render(
+      <SchoolContext.Provider value={contextValue}>
+        <DataBackup />
+      </SchoolContext.Provider>,
+    );
+
+    const input = view.container.querySelector('input[type="file"]')!;
+    const encryptedFile = new File(
+      [JSON.stringify({ encrypted: true, hint: "hint" })],
+      "protected.repota",
+      { type: "application/json" },
+    );
+    fireEvent.change(input, { target: { files: [encryptedFile] } });
+
+    expect(setActiveRecoveryActionMock).toHaveBeenCalledWith("import");
+    setActiveRecoveryActionMock.mockClear();
+
+    const pwdInput = await screen.findByPlaceholderText("Enter password");
+    fireEvent.change(pwdInput, { target: { value: "wrong-pass" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock File" }));
+
+    await vi.waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith("Incorrect password", "error"),
+    );
+
+    expect(screen.getByPlaceholderText("Enter password")).toBeVisible();
+    expect(setActiveRecoveryActionMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
+  });
+
+  it("rejects executeImport without writing storage when another recovery action owns recovery", async () => {
+    const incoming = createBackupPayload(students, settings);
+    const view = render(
+      <SchoolContext.Provider value={contextValue}>
+        <DataBackup
+          activeRecoveryAction={null}
+          onRecoveryActionChange={setActiveRecoveryActionMock}
+        />
+      </SchoolContext.Provider>,
+    );
+
+    const file = new File([JSON.stringify(incoming)], "backup.json", { type: "application/json" });
+    fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible(),
+    );
+
+    setActiveRecoveryActionMock.mockClear();
+    showToast.mockClear();
+
+    view.rerender(
+      <SchoolContext.Provider value={{ ...contextValue, activeRecoveryAction: "fresh" }}>
+        <DataBackup
+          activeRecoveryAction="fresh"
+          onRecoveryActionChange={setActiveRecoveryActionMock}
+        />
+      </SchoolContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
+
+    expect(waitForMigrationMock).not.toHaveBeenCalled();
+    expect(suspendPersistenceMock).not.toHaveBeenCalled();
+    expect(storage.saveEntriesToStorage).not.toHaveBeenCalled();
+    expect(storage.saveToStorage).not.toHaveBeenCalled();
+    expect(setActiveRecoveryActionMock).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(
+      "Another recovery action is already in progress.",
+      "error",
+    );
+    expect(screen.queryByRole("button", { name: "Yes, Load File" })).not.toBeInTheDocument();
   });
 });
