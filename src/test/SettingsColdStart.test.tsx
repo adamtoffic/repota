@@ -616,6 +616,67 @@ describe("Settings cold start", () => {
     ).toBe(true);
   });
 
+  it("dismisses fresh confirm modal and clears active recovery action when isLocked engages", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "error" })
+      .mockResolvedValueOnce({ status: "error" });
+
+    const { rerender } = render(
+      <SchoolProvider isLocked={false}>
+        <DataGate>
+          <Settings />
+        </DataGate>
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh" }));
+    expect(screen.getByText(/replaces any saved data/i)).toBeInTheDocument();
+
+    rerender(
+      <SchoolProvider isLocked={true}>
+        <DataGate>
+          <Settings />
+        </DataGate>
+      </SchoolProvider>,
+    );
+
+    expect(screen.queryByText(/replaces any saved data/i)).not.toBeInTheDocument();
+  });
+
+  it("clears activeRecoveryAction when startFresh returns early because storage is not ready", async () => {
+    storage.initStorage.mockRejectedValue(new Error("IndexedDB not ready"));
+
+    render(
+      <SchoolProvider isLocked={false}>
+        <DataGate>
+          <Settings />
+        </DataGate>
+      </SchoolProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", { name: "Start fresh" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh" }));
+    expect(screen.getByText(/replaces any saved data/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Start fresh", exact: true })[1]);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", { name: "Start fresh" })).not.toBeDisabled();
+  });
+
   it("blocks persistence when storage initialization rejects", async () => {
     storage.initStorage.mockRejectedValue(new Error("storage unavailable"));
 

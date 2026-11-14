@@ -159,14 +159,17 @@ Defined in [src/types/index.ts](../src/types/index.ts):
 - autoLockTimeout?: number
 ```
 
-#### **ProcessedStudent** (lines 113–125)
+#### **ProcessedStudent** (lines 110–120)
 Calculated view of StudentRecord with aggregated statistics:
 ```
-- ...StudentRecord (all fields)
+- ...StudentRecord (all fields except raw subjects)
+- age: number
+- subjects: ProcessedSubject[]
 - averageScore: number (mean of all subjects)
-- totalGrade: string (overall class grade)
-- percentile: number (% of class scoring below this student)
-- gradeDistribution: Map<string, number> (grade → count of subjects with that grade)
+- totalScore: number (sum of subject total scores)
+- classPosition: string (ordinal rank in class)
+- teacherRemark?: string
+- aggregate: number | null
 ```
 
 #### **Grade Type Variants by School Level** (lines 128–150)
@@ -304,11 +307,10 @@ grep -r "TODO\|FIXME\|HACK\|XXX\|DEPRECATED" src/ --include="*.ts" --include="*.
 - **Concern**: Not well-documented; if removed, iOS printing breaks
 - **Recommendation**: Add inline comment explaining iOS print quirk
 
-#### **Missing Error Handling: IndexedDB Quota Exceeded**
+#### **IndexedDB Storage Quota Handling**
 - **File**: [src/utils/idbStorage.ts](../src/utils/idbStorage.ts)
-- **Issue**: No explicit handling for `QuotaExceededError` when saving large datasets (e.g., many high-res student photos)
-- **Current fallback**: Likely reverts to localStorage (5–10 MB), but doesn't warn user
-- **Recommendation**: Add quota detection and user alert before exceeding limits
+- **Behavior**: `saveToStorage` and `saveEntriesToStorage` catch `QuotaExceededError` and `NS_ERROR_DOM_QUOTA_REACHED`, log `Storage quota exceeded`, display a user alert (`⚠️ STORAGE FULL: Cannot save more data...`), and return `false` without writing to `localStorage`.
+- **Fallback**: The `localStorage` fallback applies only when `initStorage` finds IndexedDB unavailable at startup, not on quota failures.
 
 #### **Virtual Scrolling Threshold Undocumented**
 - **File**: [src/components/StudentList.tsx](../src/components/StudentList.tsx)

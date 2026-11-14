@@ -6,24 +6,9 @@ import { AlertTriangle, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
-import { CHUNK_RELOAD_KEY } from "./utils/preloadErrorHandler";
+import { CHUNK_RELOAD_KEY, isChunkLoadError } from "./utils/preloadErrorHandler";
 
-export { CHUNK_RELOAD_KEY };
-
-export function isChunkLoadError(error: unknown): boolean {
-  if (!error) return false;
-  const msg = error instanceof Error ? error.message : String(error);
-  const name = error instanceof Error ? error.name : "";
-  return (
-    name === "ChunkLoadError" ||
-    /chunkloaderror/i.test(name) ||
-    /failed to fetch dynamically imported module/i.test(msg) ||
-    /error loading dynamically imported module/i.test(msg) ||
-    /javascript mime type/i.test(msg) ||
-    /mime type/i.test(msg) ||
-    /loading (chunk|css chunk)/i.test(msg)
-  );
-}
+export { CHUNK_RELOAD_KEY, isChunkLoadError };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends ComponentType<any>>(

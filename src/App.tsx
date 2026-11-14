@@ -16,8 +16,16 @@ import { PRINT_STARTED_EVENT } from "./utils/printHandler";
 export const HIDDEN_LOCK_GRACE_MS = 30_000;
 export const PRINT_LOCK_SUPPRESSION_MS = 2 * 60_000;
 
-function AppContent() {
-  const [isLocked, setIsLocked] = useState(() => isPinConfigured());
+function AppContent({
+  isLocked: propIsLocked,
+  setIsLocked: propSetIsLocked,
+}: {
+  isLocked?: boolean;
+  setIsLocked?: React.Dispatch<React.SetStateAction<boolean>>;
+} = {}) {
+  const [localIsLocked, setLocalIsLocked] = useState(() => isPinConfigured());
+  const isLocked = propIsLocked ?? localIsLocked;
+  const setIsLocked = propSetIsLocked ?? setLocalIsLocked;
   const [showRecovery, setShowRecovery] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { settings } = useSchoolData();
@@ -32,7 +40,7 @@ function AppContent() {
     if (isPinConfigured() && !isLocked && !printInProgressRef.current) {
       setIsLocked(true);
     }
-  }, [isLocked]);
+  }, [isLocked, setIsLocked]);
 
   useIdleTimer({
     timeout: idleTimeout,
@@ -92,7 +100,7 @@ function AppContent() {
         window.clearTimeout(printTimeoutRef.current);
       }
     };
-  }, []);
+  }, [setIsLocked]);
 
   const handleUnlock = () => {
     setIsTransitioning(true);
@@ -157,10 +165,11 @@ function AppContent() {
 }
 
 function App() {
+  const [isLocked, setIsLocked] = useState(() => isPinConfigured());
   return (
     <ErrorBoundary>
-      <SchoolProvider>
-        <AppContent />
+      <SchoolProvider isLocked={isLocked}>
+        <AppContent isLocked={isLocked} setIsLocked={setIsLocked} />
       </SchoolProvider>
     </ErrorBoundary>
   );

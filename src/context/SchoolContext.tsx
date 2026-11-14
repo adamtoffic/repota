@@ -45,7 +45,13 @@ const DEFAULT_FACTORY_SETTINGS: SchoolSettings = {
   subjectComponentMap: {},
 };
 
-export function SchoolProvider({ children }: { children: ReactNode }) {
+export function SchoolProvider({
+  children,
+  isLocked = false,
+}: {
+  children: ReactNode;
+  isLocked?: boolean;
+}) {
   // State with empty initialization (will load from IndexedDB)
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -69,6 +75,24 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const migrationPromiseRef = useRef<Promise<unknown> | null>(null);
   const [activeRecoveryAction, setActiveRecoveryAction] = useState<RecoveryAction>(null);
   const [resumeGeneration, setResumeGeneration] = useState(0);
+
+  const [prevIsLocked, setPrevIsLocked] = useState(isLocked);
+  if (isLocked !== prevIsLocked) {
+    setPrevIsLocked(isLocked);
+    if (isLocked) {
+      if (showFreshConfirm) {
+        setShowFreshConfirm(false);
+      }
+      if (activeRecoveryAction === "fresh") {
+        setActiveRecoveryAction(null);
+      }
+    }
+  }
+
+  const isLockedRef = useRef(isLocked);
+  useEffect(() => {
+    isLockedRef.current = isLocked;
+  }, [isLocked]);
 
   const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
 
@@ -255,10 +279,15 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   };
 
   const startFresh = async () => {
+    if (isLockedRef.current) {
+      return;
+    }
     if (!isStorageReady || !storageReadyRef.current) {
+      setActiveRecoveryAction(null);
       showToast("Storage is not ready. Try again after recovery finishes.", "error");
       return;
     }
+    ++loadAttemptRef.current;
     setActiveRecoveryAction("fresh");
     try {
       await migrationPromiseRef.current?.catch(() => {});
@@ -953,6 +982,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         loadError: hasLoadError,
         retryLoad,
         startFresh: () => {
+          if (isLockedRef.current) return;
           setActiveRecoveryAction("fresh");
           setShowFreshConfirm(true);
         },

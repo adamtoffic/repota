@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Download,
   Upload,
@@ -65,7 +65,27 @@ export function DataBackup({
   const isRecoveryBusy = Boolean(currentRecoveryAction) || disabled;
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
   const isImportingRef = useRef(false);
+  const activeReaderRef = useRef<FileReader | null>(null);
+  const isUnmountedRef = useRef(false);
   const [isImporting, setIsImporting] = useState(false);
+
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+      if (activeReaderRef.current) {
+        try {
+          activeReaderRef.current.abort();
+        } catch {
+          // ignore
+        }
+        activeReaderRef.current = null;
+      }
+      if (!isImportingRef.current && typeof setRecoveryAction === "function") {
+        setRecoveryAction(null);
+      }
+    };
+  }, [setRecoveryAction]);
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -200,7 +220,12 @@ export function DataBackup({
     }
 
     const reader = new FileReader();
+    activeReaderRef.current = reader;
     const handleReaderError = () => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current) return;
       if (typeof setRecoveryAction === "function") {
         setRecoveryAction(null);
       }
@@ -211,6 +236,10 @@ export function DataBackup({
     reader.onerror = handleReaderError;
     reader.onabort = handleReaderError;
     reader.onload = (e) => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current) return;
       try {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
@@ -254,7 +283,12 @@ export function DataBackup({
     setIsDecrypting(true);
 
     const reader = new FileReader();
+    activeReaderRef.current = reader;
     const handleDecryptReaderError = () => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current) return;
       if (typeof setRecoveryAction === "function") {
         setRecoveryAction(null);
       }
@@ -264,6 +298,10 @@ export function DataBackup({
     reader.onerror = handleDecryptReaderError;
     reader.onabort = handleDecryptReaderError;
     reader.onload = async (e) => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current) return;
       try {
         const content = e.target?.result as string;
         const encryptedData = JSON.parse(content);

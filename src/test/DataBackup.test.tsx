@@ -340,6 +340,47 @@ describe("DataBackup", () => {
     }
   });
 
+  it("releases pending import recovery action and aborts active reader on unmount before storage writes begin", async () => {
+    let mockAbortCalled = false;
+    const originalFileReader = window.FileReader;
+    class MockPendingFileReader {
+      onerror: ((e: unknown) => void) | null = null;
+      onabort: ((e: unknown) => void) | null = null;
+      onload: ((e: unknown) => void) | null = null;
+      readAsText() {
+        // Keep pending without resolving immediately
+      }
+      abort() {
+        mockAbortCalled = true;
+      }
+    }
+    // @ts-expect-error Mocking FileReader
+    window.FileReader = MockPendingFileReader;
+
+    try {
+      const view = render(
+        <SchoolContext.Provider value={contextValue}>
+          <DataBackup recoveryOnly />
+        </SchoolContext.Provider>,
+      );
+
+      const file = new File(["dummy"], "backup.json", { type: "application/json" });
+      fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+        target: { files: [file] },
+      });
+
+      expect(setActiveRecoveryActionMock).toHaveBeenCalledWith("import");
+      setActiveRecoveryActionMock.mockClear();
+
+      view.unmount();
+
+      expect(mockAbortCalled).toBe(true);
+      expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
+    } finally {
+      window.FileReader = originalFileReader;
+    }
+  });
+
   it("accepts unusual component categories with a warning", () => {
     const payload = createBackupPayload(
       [

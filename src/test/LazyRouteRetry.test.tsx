@@ -317,6 +317,26 @@ describe("Lazy Route Retry & MIME Protection", () => {
       expect(window.location.reload).toHaveBeenCalledTimes(1);
     });
 
+    it("reloads when vite:preloadError payload is a chunk fetch failure", () => {
+      const err = new TypeError("Failed to fetch dynamically imported module: /assets/Page.js");
+      const event = new CustomEvent("vite:preloadError");
+      Object.assign(event, { payload: err });
+      window.dispatchEvent(event);
+
+      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe("true");
+      expect(window.location.reload).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not reload when vite:preloadError payload is an unrelated runtime error", () => {
+      const err = new TypeError("Cannot read properties of undefined (reading 'init')");
+      const event = new CustomEvent("vite:preloadError");
+      Object.assign(event, { payload: err });
+      window.dispatchEvent(event);
+
+      expect(window.location.reload).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
+    });
+
     it("does not reload again if vite:preloadError fires and reload key is already set", () => {
       sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
       window.dispatchEvent(new CustomEvent("vite:preloadError"));
