@@ -1,16 +1,15 @@
 import { useState, useMemo } from "react";
 import { HelpCircle, X, Printer, Plus, UserPlus, Upload, Download, Wand2 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { AddStudentModal } from "../components/AddStudentModal";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { DashboardStats } from "../components/DashboardStats";
 import { DashboardToolbar } from "../components/DashboardToolbar";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "../components/EmptyState";
-import type { StudentRecord } from "../types";
 import { Footer } from "../components/Footer";
 import { ConfirmModal } from "../components/ConfirmModal";
-import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useDebounce } from "../hooks/useDebounce";
 import { exportToCSV } from "../utils/export";
 import { BulkImportModal } from "../components/BulkImportModal";
@@ -45,6 +44,7 @@ export function Dashboard() {
   const [confirmClearScoresModal, setConfirmClearScoresModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [remarksProgress, setRemarksProgress] = useState<{
@@ -80,20 +80,8 @@ export function Dashboard() {
 
   const editingStudent = students.find((s) => s.id === editingStudentId);
 
-  // ✅ CLEAN ADD HANDLER (No Prompts, No Checks)
-  const handleAddNew = () => {
-    const newId = Date.now().toString();
-    const newStudent: StudentRecord = {
-      id: newId,
-      name: "New Student", // Placeholder
-      gender: "Male", // Default - will be changed in modal
-      className: settings.className || "Class",
-      subjects: [], // Will be populated by Modal logic
-      attendancePresent: 0,
-    };
-
-    addStudent(newStudent); // Create it
-    setEditingStudentId(newId); // Open modal immediately for editing
+  const handleOpenAddStudent = () => {
+    setIsAddModalOpen(true);
   };
 
   const handleExportFullData = () => {
@@ -166,7 +154,7 @@ export function Dashboard() {
                         type="button"
                         onClick={() => {
                           setShowQuickActions(false);
-                          handleAddNew();
+                          handleOpenAddStudent();
                         }}
                         className="hover:bg-background flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-semibold text-gray-800"
                         data-record="true"
@@ -219,7 +207,7 @@ export function Dashboard() {
           ) : (
             <button
               type="button"
-              onClick={handleAddNew}
+              onClick={handleOpenAddStudent}
               className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
               data-record="true"
             >
@@ -261,44 +249,46 @@ export function Dashboard() {
           </div>
         )}
         {students.length === 0 ? (
-          <EmptyState onAddStudent={handleAddNew} onLoadDemo={() => setShowDemoModal(true)} />
+          <EmptyState onAddStudent={handleOpenAddStudent} onLoadDemo={() => setShowDemoModal(true)} />
         ) : (
           <>
-            <DashboardStats students={students} settings={settings} />
+            <DashboardStats
+              students={students}
+              settings={settings}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+            />
 
             {/* VALIDATION WARNINGS */}
-            <ValidationWarnings students={students} settings={settings} />
+            <ValidationWarnings
+              students={students}
+              settings={settings}
+              onReviewPending={() => setActiveFilter("PENDING")}
+            />
 
-            <div className="relative">
-              <DashboardToolbar
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                activeFilter={activeFilter}
-                onFilterChange={setActiveFilter}
-                onExport={handleExportFullData}
-                onDeletePending={() => setConfirmCleanModal(true)}
-                onImport={() => setShowImportModal(true)}
-                onAutoRemarks={handleAutoFillRemarks}
-                onClearScores={() => setConfirmClearScoresModal(true)}
-                onExportStudentList={() => {
-                  // Export simple student names list as text file
-                  const studentList = students.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
-                  const blob = new Blob([studentList], { type: "text/plain" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `${settings.className || "Class"}_Students_${new Date().toISOString().split("T")[0]}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-              />
-              {/* ✅ SPINNER: Positioned correctly in search bar area */}
-              {isSearching && (
-                <div className="absolute top-2 left-80 z-10 hidden md:block">
-                  <LoadingSpinner size={20} className="text-blue-500" />
-                </div>
-              )}
-            </div>
+            <DashboardToolbar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              isSearching={isSearching}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              onExport={handleExportFullData}
+              onDeletePending={() => setConfirmCleanModal(true)}
+              onImport={() => setShowImportModal(true)}
+              onAutoRemarks={handleAutoFillRemarks}
+              onClearScores={() => setConfirmClearScoresModal(true)}
+              onExportStudentList={() => {
+                // Export simple student names list as text file
+                const studentList = students.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
+                const blob = new Blob([studentList], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${settings.className || "Class"}_Students_${new Date().toISOString().split("T")[0]}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            />
 
             {/* ✅ LOGIC: If filtered list is empty, show "No Results", else show List */}
             {filteredStudents.length === 0 ? (
@@ -330,11 +320,22 @@ export function Dashboard() {
                 onAddStudent={addStudent}
                 onDeleteStudent={deleteStudent}
                 onEditStudent={(s) => setEditingStudentId(s.id)}
+                isAddModalOpen={isAddModalOpen}
+                onOpenAddModalChange={setIsAddModalOpen}
               />
             )}
           </>
         )}
       </main>
+
+      {(students.length === 0 || filteredStudents.length === 0) && (
+        <AddStudentModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAddStudent={addStudent}
+          settings={settings}
+        />
+      )}
 
       <Footer />
 

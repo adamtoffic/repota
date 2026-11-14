@@ -4,9 +4,14 @@ import type { StudentRecord, SchoolSettings } from "../types";
 interface ValidationWarningsProps {
   students: StudentRecord[];
   settings: SchoolSettings;
+  onReviewPending?: () => void;
 }
 
-export function ValidationWarnings({ students, settings }: ValidationWarningsProps) {
+export function ValidationWarnings({
+  students,
+  settings,
+  onReviewPending,
+}: ValidationWarningsProps) {
   // Calculate validation issues
   const studentsWithNoScores = students.filter((student) => {
     const hasAnyScore = student.subjects.some(
@@ -96,6 +101,16 @@ export function ValidationWarnings({ students, settings }: ValidationWarningsPro
                 <p className="text-muted mt-0.5 text-xs" data-record="true">
                   Please enter scores before generating report cards.
                 </p>
+              )}
+              {onReviewPending && warning.icon !== Image && (
+                <button
+                  type="button"
+                  onClick={onReviewPending}
+                  className={`mt-1.5 text-xs font-bold underline hover:opacity-80 ${textColor}`}
+                  data-record="true"
+                >
+                  Filter incomplete students →
+                </button>
               )}
             </div>
           </div>

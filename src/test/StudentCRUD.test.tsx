@@ -1,11 +1,43 @@
 // StudentCRUD.test.tsx - Student CRUD operation tests
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
+import { BulkImportModal } from "../components/BulkImportModal";
+import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
+import { ToastContext } from "../context/ToastContextDefinition";
+import type { SchoolSettings } from "../types";
+
+const mockAddStudent = vi.fn();
+const mockShowToast = vi.fn();
+
+const mockSettings = {
+  schoolName: "Test School",
+  academicYear: "2025/2026",
+  term: "First Term",
+  level: "JHS",
+  defaultSubjects: ["Mathematics", "English Language", "Integrated Science"],
+  totalAttendanceDays: 60,
+  classScoreMax: 50,
+  examScoreMax: 50,
+  classSize: 30,
+  nextTermStarts: "2026-01-12",
+  headTeacherName: "Head",
+  classTeacherName: "Teacher",
+  className: "JHS 1",
+  phoneNumber: "",
+  address: "",
+  email: "",
+  schoolMotto: "",
+  logoUrl: "",
+  headTeacherSignature: "",
+} as SchoolSettings;
 
 describe("Student CRUD Operations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   describe("Create Student Form", () => {
     it("should render student name input", () => {
       render(<Input label="Full Name" placeholder="e.g., Kwame Mensah" required />);
@@ -143,6 +175,39 @@ describe("Student CRUD Operations", () => {
 
       expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    });
+  });
+
+  describe("BulkImportModal", () => {
+    it("populates default subjects on bulk-imported students", async () => {
+      const user = userEvent.setup();
+      const schoolValue = {
+        students: [],
+        settings: mockSettings,
+        addStudent: mockAddStudent,
+      } as unknown as SchoolContextType;
+
+      render(
+        <ToastContext.Provider value={{ showToast: mockShowToast }}>
+          <SchoolContext.Provider value={schoolValue}>
+            <BulkImportModal isOpen={true} onClose={vi.fn()} />
+          </SchoolContext.Provider>
+        </ToastContext.Provider>,
+      );
+
+      await user.type(screen.getByRole("textbox"), "Kwame Mensah\nAma Serwaa");
+      await user.click(screen.getByRole("button", { name: /preview list/i }));
+      await user.click(screen.getByRole("button", { name: /import all/i }));
+
+      expect(mockAddStudent).toHaveBeenCalledTimes(2);
+      const firstStudent = mockAddStudent.mock.calls[0][0];
+      expect(firstStudent.name).toBe("Kwame Mensah");
+      expect(firstStudent.subjects.map((s: { name: string }) => s.name)).toEqual([
+        "Mathematics",
+        "English Language",
+        "Integrated Science",
+      ]);
+      expect(firstStudent.subjects[0]).toMatchObject({ classScore: 0, examScore: 0 });
     });
   });
 });

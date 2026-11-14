@@ -2,28 +2,38 @@
 import { Link } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Edit2, Trash2, Printer, UserPlus, X } from "lucide-react";
-import type { ProcessedStudent, StudentRecord, SavedSubject } from "../types";
-import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
+import { Edit2, Trash2, Printer, UserPlus } from "lucide-react";
+import type { ProcessedStudent, StudentRecord } from "../types";
+import { AddStudentModal } from "./AddStudentModal";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
-import { Button, Input } from "./ui";
+import { Button } from "./ui";
 
 interface Props {
   students: ProcessedStudent[];
   onAddStudent: (student: StudentRecord) => void;
   onDeleteStudent: (id: string) => void;
   onEditStudent: (student: ProcessedStudent) => void;
+  isAddModalOpen?: boolean;
+  onOpenAddModalChange?: (open: boolean) => void;
 }
 
-export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStudent }: Props) {
+export function StudentList({
+  students,
+  onAddStudent,
+  onDeleteStudent,
+  onEditStudent,
+  isAddModalOpen,
+  onOpenAddModalChange,
+}: Props) {
   // STATE
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newGender, setNewGender] = useState<"Male" | "Female">("Male");
+  const [internalAddOpen, setInternalAddOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const { settings } = useSchoolData();
+
+  const isAddOpen = isAddModalOpen ?? internalAddOpen;
+  const setIsAddOpen = onOpenAddModalChange ?? setInternalAddOpen;
 
   // Virtual scrolling setup
   const parentRef = useRef<HTMLDivElement>(null);
@@ -36,48 +46,8 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
     overscan: 5, // Render 5 extra rows above/below viewport for smooth scrolling
   });
 
-  // ✅ FIX: No useEffect. We set defaults when the user clicks "Open".
   const handleOpenModal = () => {
     setIsAddOpen(true);
-  };
-
-  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    // 1. DETERMINE THE SUBJECT LIST
-    // Priority 1: Use the Custom List from Settings
-    // Priority 2: Use the Hardcoded Default for the current level
-    let subjectNames = settings.defaultSubjects || [];
-
-    if (subjectNames.length === 0) {
-      subjectNames = DEFAULT_SUBJECTS[settings.level] || [];
-    }
-
-    // 2. Create the subject objects - components are added per-subject by user
-    const startingSubjects = subjectNames.map((subName) => {
-      const subject: SavedSubject = {
-        id: crypto.randomUUID(),
-        name: subName,
-        classScore: 0,
-        examScore: 0,
-        // Don't auto-add components - let user choose per subject
-      };
-
-      return subject;
-    });
-
-    // 3. Add Student
-    onAddStudent({
-      id: crypto.randomUUID(),
-      name: newName,
-      gender: newGender,
-      className: settings.className || "Class",
-      subjects: startingSubjects,
-    });
-
-    setNewName("");
-    setNewGender("Male"); // Reset to default
-    setIsAddOpen(false);
   };
 
   return (
@@ -100,10 +70,85 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
         </Button>
       </div>
 
-      {/* TABLE */}
+      {/* MOBILE CARDS */}
+      <div className="divide-y divide-gray-100 md:hidden">
+        {students.length === 0 ? (
+          <div className="px-4 py-10 text-center text-sm text-gray-400" data-record="true">
+            No students found. Click "Add Student" to start.
+          </div>
+        ) : (
+          students.map((student) => (
+            <div key={student.id} className="space-y-3 p-4">
+              <button
+                type="button"
+                onClick={() => onEditStudent(student)}
+                className="flex w-full items-start justify-between gap-3 text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-main truncate text-base font-bold">{student.name}</p>
+                  <p className="text-muted mt-0.5 text-xs">
+                    {student.className}
+                    {student.gender ? ` • ${student.gender}` : ""}
+                  </p>
+                </div>
+                {student.classPosition !== "Pending..." && (
+                  <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700">
+                    {student.classPosition}
+                  </span>
+                )}
+              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                  {student.subjects.length} Subjects
+                </span>
+                <span className="bg-background text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
+                  Avg: {student.averageScore > 0 ? `${student.averageScore}%` : "Pending"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onEditStudent(student)}
+                  className="bg-primary/10 text-primary hover:bg-primary/20 flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  <span>Edit Scores</span>
+                </button>
+
+                {student.subjects.length > 0 && (
+                  <Link
+                    to="/print"
+                    search={{ id: student.id }}
+                    aria-label={`Print report for ${student.name}`}
+                    className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100"
+                    title="Print Report"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span>Print</span>
+                  </Link>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setStudentToDelete(student.id)}
+                  aria-label={`Delete ${student.name}`}
+                  className="flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100"
+                  title="Delete Student"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* DESKTOP TABLE */}
       <div
         ref={parentRef}
-        className="w-full overflow-x-auto"
+        className="hidden w-full overflow-x-auto md:block"
         style={{
           maxHeight: "600px",
           overflow: "auto",
@@ -156,7 +201,8 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                   return (
                     <tr
                       key={student.id}
-                      className="group transition-colors hover:bg-blue-50/50"
+                      onClick={() => onEditStudent(student)}
+                      className="group cursor-pointer transition-colors hover:bg-blue-50/50"
                       data-index={virtualRow.index}
                       ref={rowVirtualizer.measureElement}
                     >
@@ -182,9 +228,13 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                         )}
                       </td>
                       <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
-                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-0 md:group-hover:opacity-100">
+                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                           <button
-                            onClick={() => onEditStudent(student)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditStudent(student);
+                            }}
                             className="rounded-lg p-2 text-blue-600 hover:bg-blue-100"
                             title="Edit Student"
                           >
@@ -195,6 +245,7 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                             <Link
                               to="/print"
                               search={{ id: student.id }}
+                              onClick={(e) => e.stopPropagation()}
                               className="rounded-lg p-2 text-purple-600 hover:bg-purple-100"
                               title="Print Report"
                             >
@@ -203,7 +254,11 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
                           )}
 
                           <button
-                            onClick={() => setStudentToDelete(student.id)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStudentToDelete(student.id);
+                            }}
                             className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
                             title="Delete Student"
                           >
@@ -249,96 +304,12 @@ export function StudentList({ students, onAddStudent, onDeleteStudent, onEditStu
         }}
       />
 
-      {/* MODAL */}
-      {isAddOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => setIsAddOpen(false)}
-        >
-          <div
-            className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800" data-record="true">
-                Add New Student
-              </h3>
-              <button onClick={() => setIsAddOpen(false)}>
-                <X className="text-muted h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              {/* Name Input */}
-              <Input
-                label="Full Name"
-                autoFocus
-                type="text"
-                required
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Kwame Mensah"
-              />
-
-              {/* Gender Selection */}
-              <div>
-                <label
-                  className="text-muted mb-1 block text-xs font-bold uppercase"
-                  data-record="true"
-                >
-                  Gender *
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setNewGender("Male")}
-                    className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
-                      newGender === "Male"
-                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
-                        : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
-                    }`}
-                    data-record="true"
-                  >
-                    👦 Male
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewGender("Female")}
-                    className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
-                      newGender === "Female"
-                        ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
-                        : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
-                    }`}
-                    data-record="true"
-                  >
-                    👧 Female
-                  </button>
-                </div>
-              </div>
-
-              {/* Class Dropdown */}
-              <div>
-                <label
-                  className="text-muted mb-1 block text-xs font-bold uppercase"
-                  data-record="true"
-                >
-                  Class
-                </label>
-                <p className="w-full rounded-lg border border-gray-300 p-2 outline-none focus:ring-2 focus:ring-blue-500">
-                  {settings.className}
-                </p>
-                <p className="mt-1 text-[10px] text-gray-400" data-record="true">
-                  Based on School Level: {settings.level}
-                </p>
-              </div>
-
-              <Button type="submit" variant="primary" size="md" fullWidth data-record="true">
-                Save Student
-              </Button>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddStudentModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onAddStudent={onAddStudent}
+        settings={settings}
+      />
     </div>
   );
 }

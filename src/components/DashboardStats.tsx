@@ -5,9 +5,11 @@ import type { ProcessedStudent, SchoolSettings } from "../types";
 interface Props {
   students: ProcessedStudent[];
   settings: SchoolSettings;
+  activeFilter?: "ALL" | "PENDING" | "FAILING";
+  onFilterChange?: (filter: "ALL" | "PENDING" | "FAILING") => void;
 }
 
-export function DashboardStats({ students, settings }: Props) {
+export function DashboardStats({ students, settings, activeFilter, onFilterChange }: Props) {
   const stats = useMemo(() => {
     const total = students.length;
     const classSize = settings.classSize || 0;
@@ -99,6 +101,12 @@ export function DashboardStats({ students, settings }: Props) {
           colorClass="bg-orange-50/50 border-orange-100"
           alert={stats.pending > 0}
           alertColor="orange"
+          isActive={activeFilter === "PENDING"}
+          onClick={
+            onFilterChange && stats.pending > 0
+              ? () => onFilterChange(activeFilter === "PENDING" ? "ALL" : "PENDING")
+              : undefined
+          }
         />
 
         {/* CARD 3: CLASS AVERAGE (Performance) */}
@@ -137,9 +145,20 @@ interface StatCardProps {
   colorClass: string;
   alert?: boolean;
   alertColor?: "orange" | "red";
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
-function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange" }: StatCardProps) {
+function StatCard({
+  label,
+  value,
+  icon,
+  colorClass,
+  alert,
+  alertColor = "orange",
+  isActive = false,
+  onClick,
+}: StatCardProps) {
   const alertColors = {
     orange: {
       ping: "bg-orange-400",
@@ -152,11 +171,8 @@ function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange"
   };
 
   const colors = alertColors[alertColor];
-
-  return (
-    <div
-      className={`animate-fade-in flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
-    >
+  const content = (
+    <>
       <div className="flex-1">
         <p className="text-muted text-xs font-bold tracking-wide uppercase" data-record="true">
           {label}
@@ -176,6 +192,29 @@ function StatCard({ label, value, icon, colorClass, alert, alertColor = "orange"
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/50">
         {icon}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={isActive}
+        className={`animate-fade-in flex w-full cursor-pointer items-center justify-between rounded-xl border p-4 text-left shadow-sm transition-all hover:ring-2 hover:ring-orange-300 active:scale-[0.99] ${
+          isActive ? "ring-2 ring-orange-500" : ""
+        } ${colorClass}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={`animate-fade-in flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
+    >
+      {content}
     </div>
   );
 }

@@ -8,6 +8,8 @@ import {
   Wand2,
   Eraser,
   FileSpreadsheet,
+  Loader2,
+  X,
 } from "lucide-react"; // ✅ Added new icons
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -16,6 +18,7 @@ import type { ReactNode } from "react";
 interface ToolbarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  isSearching?: boolean;
   activeFilter: "ALL" | "PENDING" | "FAILING";
   onFilterChange: (filter: "ALL" | "PENDING" | "FAILING") => void;
   onExport: () => void;
@@ -39,6 +42,7 @@ interface FilterButtonProps {
 export function DashboardToolbar({
   searchQuery,
   onSearchChange,
+  isSearching = false,
   activeFilter,
   onFilterChange,
   onExport,
@@ -59,11 +63,30 @@ export function DashboardToolbar({
         </div>
         <input
           type="text"
-          className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-3 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           placeholder="Search students..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
+        {isSearching ? (
+          <div
+            className="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+            aria-label="Searching"
+          >
+            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+          </div>
+        ) : (
+          searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange("")}
+              aria-label="Clear search"
+              className="text-muted hover:text-main absolute inset-y-0 right-3 flex items-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )
+        )}
       </div>
 
       {/* ROW 2: Filters (Left) & Actions (Right) */}

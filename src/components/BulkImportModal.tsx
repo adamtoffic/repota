@@ -2,7 +2,8 @@ import { useState } from "react";
 import { X, Upload, CheckCircle } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
-import type { StudentRecord } from "../types";
+import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
+import type { StudentRecord, SavedSubject } from "../types";
 import posthog from "posthog-js";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
@@ -39,6 +40,10 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   // 2. Commit to Database
   const handleImport = () => {
     let addedCount = 0;
+    const subjectNames =
+      settings.defaultSubjects && settings.defaultSubjects.length > 0
+        ? settings.defaultSubjects
+        : DEFAULT_SUBJECTS[settings.level] || [];
 
     preview.forEach((name, index) => {
       // Basic duplicate check (optional, or just allow duplicates as per our new philosophy)
@@ -49,7 +54,14 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
         name: name,
         gender: "Male", // Default - can be updated individually later
         className: settings.className || "Class",
-        subjects: [],
+        subjects: subjectNames.map(
+          (subName): SavedSubject => ({
+            id: crypto.randomUUID(),
+            name: subName,
+            classScore: 0,
+            examScore: 0,
+          }),
+        ),
         attendancePresent: 0,
       };
 
