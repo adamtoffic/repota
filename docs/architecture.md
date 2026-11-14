@@ -94,11 +94,11 @@ The end-to-end mechanism is:
 
 1. `createBackupHeartbeat()` writes `repota_backup_check` and marks `repota_had_data` as `"true"` (`src/utils/dataProtection.ts:38-48`).
 2. `SchoolProvider` calls `createBackupHeartbeat()` after each debounced save (`src/context/SchoolContext.tsx:143-145`).
-3. `detectDataLoss()` checks whether the app previously had data and whether the student/settings storage keys are now missing while the backup check exists (`src/utils/dataProtection.ts:17-31`).
-4. If the browser or a cleaner app appears to have wiped storage, `SchoolProvider` surfaces a warning toast (`src/context/SchoolContext.tsx:156-168`).
+3. `detectDataLoss()` inspects `localStorage` keys only (it does not inspect IndexedDB), checking whether `repota_had_data` is `"true"` and `repota_backup_check` exists while the `localStorage` student or settings key is missing (`src/utils/dataProtection.ts:17-31`).
+4. If those partial `localStorage` conditions match, `SchoolProvider` surfaces a warning toast (`src/context/SchoolContext.tsx:156-168`). Because a complete `localStorage` wipe also removes `repota_backup_check` and `repota_had_data`, `detectDataLoss()` returns `false` in that case and no restore prompt is shown.
 5. `requestPersistentStorage()` and `checkStoragePersistence()` ask the browser to keep storage persistent when supported (`src/utils/dataProtection.ts:68-104`).
 
-This is a browser-local data-integrity mechanism, not a server backup system. It is designed to catch local storage loss on mobile devices and prompt the user to restore from backup.
+This is a heuristic `localStorage`-only check (not a server backup system or a complete storage-wipe detector) intended to warn when `localStorage` data keys disappear while heartbeat markers remain.
 
 ## 4. Grading system: level-specific scales and component weighting
 

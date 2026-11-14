@@ -10,7 +10,7 @@ Switching the trigger from a keystroke timer to an `onBlur` event on the input f
 3. **Desktop `Enter` and mobile virtual keyboard "Done"** on a standalone `<Input>` do not blur the field by default without an `onKeyDown` handler.
 4. **Clicking the header "Reset" button** while focused inside the Class Name input fires `onBlur` before `onClick`, prompting the class update modal over the reset action unless prevented with `onMouseDown`.
 
-This report details the root cause, audits all four cascading risks, and provides the battle-tested, production-ready patch to implement before merging to `main`.
+This historical report records the root cause, audits all four cascading risks, and documents the implemented fix in [`src/pages/Settings.tsx`](../../src/pages/Settings.tsx), where class-name confirmation now runs through `handleClassNameBlur`.
 
 ---
 
