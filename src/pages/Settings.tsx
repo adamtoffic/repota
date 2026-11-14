@@ -90,6 +90,7 @@ function SettingsContent() {
   const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
   const suppressClassBlurRef = useRef(false);
   const resetModalOpenRef = useRef(false);
+  const resetBaselineRef = useRef<SchoolSettings | null>(null);
 
   // Form States
   const [newSubject, setNewSubject] = useState("");
@@ -144,6 +145,7 @@ function SettingsContent() {
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
+    if (showResetModal || resetModalOpenRef.current) return;
     if (debouncedPayload.generation < immediateSaveGenRef.current) return;
     const debouncedString = JSON.stringify(debouncedFormData);
     if (debouncedString === lastAutoSaveRef.current) return;
@@ -161,7 +163,7 @@ function SettingsContent() {
 
       const seq = ++baselineSeqRef.current;
       requestAnimationFrame(() => {
-        if (baselineSeqRef.current === seq) {
+        if (baselineSeqRef.current === seq && !resetModalOpenRef.current) {
           setLastSavedSettings(savedFormData);
         }
       });
@@ -173,11 +175,18 @@ function SettingsContent() {
 
     const seq = ++baselineSeqRef.current;
     requestAnimationFrame(() => {
-      if (baselineSeqRef.current === seq) {
+      if (baselineSeqRef.current === seq && !resetModalOpenRef.current) {
         setLastSavedSettings(debouncedFormData);
       }
     });
-  }, [debouncedFormData, debouncedPayload.generation, lastSavedSettings.className, students.length, setSettings]);
+  }, [
+    debouncedFormData,
+    debouncedPayload.generation,
+    lastSavedSettings.className,
+    showResetModal,
+    students.length,
+    setSettings,
+  ]);
 
   const handleClassNameBlur = () => {
     if (suppressClassBlurRef.current) return;
@@ -392,7 +401,14 @@ function SettingsContent() {
   };
 
   const handleReset = () => {
-    setFormData(lastSavedSettings);
+    const baseline = resetBaselineRef.current ?? lastSavedSettings;
+    setFormData(baseline);
+    immediateSaveGenRef.current = formGenerationRef.current;
+    setSettings(baseline);
+    ++baselineSeqRef.current;
+    setLastSavedSettings(baseline);
+    lastAutoSaveRef.current = JSON.stringify(baseline);
+    resetBaselineRef.current = null;
     suppressClassBlurRef.current = false;
     resetModalOpenRef.current = false;
     setShowResetModal(false);
@@ -413,6 +429,8 @@ function SettingsContent() {
                 <button
                   disabled={isPersistenceSuspended}
                   onClick={() => {
+                    resetBaselineRef.current = lastSavedSettings;
+                    ++baselineSeqRef.current;
                     suppressClassBlurRef.current = true;
                     resetModalOpenRef.current = true;
                     setShowResetModal(true);
@@ -1514,6 +1532,7 @@ function SettingsContent() {
         confirmText="Yes, Discard Changes"
         isDangerous={true}
         onClose={() => {
+          resetBaselineRef.current = null;
           suppressClassBlurRef.current = false;
           resetModalOpenRef.current = false;
           setShowResetModal(false);

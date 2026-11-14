@@ -346,6 +346,46 @@ describe("Lazy Route Retry & MIME Protection", () => {
       expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
       expect(window.location.reload).toHaveBeenCalledTimes(1);
     });
+
+    it("prompts confirmation on Reload App when unsaved changes exist and skips reload if declined", () => {
+      setUnsavedChanges("school-context-debounce", true);
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
+      const originalConfirm = window.confirm;
+      const confirmMock = vi.fn().mockReturnValue(false);
+      window.confirm = confirmMock;
+
+      try {
+        render(<RouteErrorFallback error={new Error("Chunk failed")} />);
+
+        fireEvent.click(screen.getByRole("button", { name: /reload app/i }));
+
+        expect(confirmMock).toHaveBeenCalledTimes(1);
+        expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe("true");
+        expect(window.location.reload).not.toHaveBeenCalled();
+      } finally {
+        window.confirm = originalConfirm;
+      }
+    });
+
+    it("clears marker and reloads on Reload App when unsaved changes confirmation is accepted", () => {
+      setUnsavedChanges("school-context-debounce", true);
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
+      const originalConfirm = window.confirm;
+      const confirmMock = vi.fn().mockReturnValue(true);
+      window.confirm = confirmMock;
+
+      try {
+        render(<RouteErrorFallback error={new Error("Chunk failed")} />);
+
+        fireEvent.click(screen.getByRole("button", { name: /reload app/i }));
+
+        expect(confirmMock).toHaveBeenCalledTimes(1);
+        expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
+        expect(window.location.reload).toHaveBeenCalledTimes(1);
+      } finally {
+        window.confirm = originalConfirm;
+      }
+    });
   });
 
   describe("vite:preloadError listener", () => {

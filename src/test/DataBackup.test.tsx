@@ -544,4 +544,50 @@ describe("DataBackup", () => {
     expect(storage.saveToStorage).not.toHaveBeenCalled();
     expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
   });
+
+  it("ignores stale decryption resolution when the password modal is canceled while decrypting", async () => {
+    const encryptedPayload = createBackupPayload(students, {
+      ...settings,
+      schoolName: "Delayed Decrypt School",
+    });
+    let resolveDecrypt!: (value: typeof encryptedPayload) => void;
+    const pendingDecrypt = new Promise<typeof encryptedPayload>((resolve) => {
+      resolveDecrypt = resolve;
+    });
+
+    vi.mocked(isEncryptedFile).mockReturnValueOnce(true);
+    vi.mocked(decryptBackupFile).mockReturnValueOnce(pendingDecrypt);
+
+    const view = render(
+      <SchoolContext.Provider value={contextValue}>
+        <DataBackup />
+      </SchoolContext.Provider>,
+    );
+
+    const input = view.container.querySelector('input[type="file"]')!;
+    const encryptedFile = new File(
+      [JSON.stringify({ encrypted: true, hint: "hint" })],
+      "delayed.repota",
+      { type: "application/json" },
+    );
+    fireEvent.change(input, { target: { files: [encryptedFile] } });
+
+    const pwdInput = await screen.findByPlaceholderText("Enter password");
+    fireEvent.change(pwdInput, { target: { value: "secret" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock File" }));
+
+    // Cancel while decryptBackupFile is still pending
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(setActiveRecoveryActionMock).toHaveBeenCalledWith(null);
+
+    showToast.mockClear();
+
+    // Resolve stale decryption after cancellation
+    resolveDecrypt(encryptedPayload);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(screen.queryByRole("button", { name: "Yes, Load File" })).not.toBeInTheDocument();
+    expect(showToast).not.toHaveBeenCalledWith("File decrypted successfully! 🔓", "success");
+  });
 });

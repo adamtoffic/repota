@@ -79,6 +79,8 @@ export function SchoolProvider({
   const [isFreshWriting, setIsFreshWriting] = useState(false);
   const freshOpTokenRef = useRef(0);
   const freshWritesStartedRef = useRef(false);
+  const studentsWriteSeqRef = useRef(0);
+  const settingsWriteSeqRef = useRef(0);
   const [resumeGeneration, setResumeGeneration] = useState(0);
 
   const [prevIsLocked, setPrevIsLocked] = useState(isLocked);
@@ -300,10 +302,11 @@ export function SchoolProvider({
     if (loadStatus.students === "error") return;
     if (debouncedStudents !== students) return; // Wait for the hydrated snapshot to settle
 
+    const seq = ++studentsWriteSeqRef.current;
     setUnsavedChanges("school-context-students-write", true);
     Promise.resolve(saveToStorage(IDB_KEYS.STUDENTS, debouncedStudents))
       .then((saved) => {
-        if (saved !== false) {
+        if (studentsWriteSeqRef.current === seq && saved !== false) {
           setUnsavedChanges("school-context-students-write", false);
         }
       })
@@ -318,10 +321,11 @@ export function SchoolProvider({
     if (loadStatus.settings === "error") return;
     if (debouncedSettings !== settings) return; // Wait for the hydrated snapshot to settle
 
+    const seq = ++settingsWriteSeqRef.current;
     setUnsavedChanges("school-context-settings-write", true);
     Promise.resolve(saveToStorage(IDB_KEYS.SETTINGS, debouncedSettings))
       .then((saved) => {
-        if (saved !== false) {
+        if (settingsWriteSeqRef.current === seq && saved !== false) {
           setUnsavedChanges("school-context-settings-write", false);
         }
       })

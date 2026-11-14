@@ -39,6 +39,7 @@ vi.mock("../utils/dataProtection", () => ({
 }));
 
 import { SchoolProvider, MIGRATION_WAIT_TIMEOUT_MS } from "../context/SchoolContext";
+import { hasUnsavedChanges, setUnsavedChanges } from "../utils/preloadErrorHandler";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { DataGate } from "../components/DataGate";
 import { Dashboard } from "../pages/Dashboard";
@@ -157,6 +158,7 @@ function hasLoadErrorMessage() {
 describe("Settings cold start", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    setUnsavedChanges(false);
     storage.initStorage.mockReset();
     storage.loadFromStorage.mockReset();
     storage.loadFromStorageResult.mockReset();
@@ -944,5 +946,129 @@ describe("Settings cold start", () => {
 
     expect(storage.saveToStorage).not.toHaveBeenCalled();
     neverSettlingMigration.resolve({ success: false });
+  });
+
+  it("keeps unsaved write marker set when an older write resolves true after a newer write fails", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorage
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(seededSettings);
+
+    const firstStudentSave = deferred<boolean>();
+    const secondStudentSave = deferred<boolean>();
+
+    storage.saveToStorage.mockImplementation(async (key: string, value: unknown) => {
+      if (key === "ges_v1_students" && Array.isArray(value)) {
+        if (value.length === 1) return firstStudentSave.promise;
+        if (value.length === 2) return secondStudentSave.promise;
+      }
+      return true;
+    });
+
+    function AddManyStudents() {
+      const { addStudent } = useSchoolData();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            addStudent(
+              {
+                id: `s-${Math.random()}`,
+                name: "Test Student",
+                className: "JHS 2",
+                gender: "Male",
+                subjects: [],
+              },
+              true,
+            )
+          }
+        >
+          Add Student Sequenced
+        </button>
+      );
+    }
+
+    render(
+      <SchoolProvider>
+        <AddManyStudents />
+      </SchoolProvider>,
+    );
+
+    // Wait for cold-start hydration to finish completely
+    await act(async () => {
+      for (let i = 0; i < 6; i++) {
+        await Promise.resolve();
+      }
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    // Trigger write #1 (length 1) and flush debounce
+    fireEvent.click(screen.getByRole("button", { name: "Add Student Sequenced" }));
+    await act(async () => {
+      vi.advanceTimersByTime(550);
+      await Promise.resolve();
+    });
+    expect(storage.saveToStorage).toHaveBeenCalledWith(
+      "ges_v1_students",
+      expect.arrayContaining([expect.objectContaining({ name: "Test Student" })]),
+    );
+
+    // Trigger write #2 (length 2) and flush debounce before write #1 resolves
+    fireEvent.click(screen.getByRole("button", { name: "Add Student Sequenced" }));
+    await act(async () => {
+      vi.advanceTimersByTime(550);
+      await Promise.resolve();
+    });
+    expect(
+      storage.saveToStorage.mock.calls.some(
+        ([k, v]) => k === "ges_v1_students" && Array.isArray(v) && v.length === 2,
+      ),
+    ).toBe(true);
+
+    // Newer write (#2) fails with false; older write (#1) resolves true out-of-order
+    await act(async () => {
+      secondStudentSave.resolve(false);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      firstStudentSave.resolve(true);
+      await Promise.resolve();
+    });
+
+    expect(hasUnsavedChanges()).toBe(true);
+  });
+
+  it("preserves reset baseline when Reset confirmation opens before debounced autosave settles", async () => {
+    storage.initStorage.mockResolvedValue(undefined);
+    storage.loadFromStorage
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(seededSettings);
+
+    renderSettings();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    const mottoInput = screen.getByDisplayValue("Learn and Lead");
+    fireEvent.change(mottoInput, { target: { value: "Draft Motto" } });
+    expect(mottoInput).toHaveValue("Draft Motto");
+
+    // Click Reset immediately before 500ms autosave runs
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByText("Discard Changes?")).toBeInTheDocument();
+
+    // Advance past debounce window while modal is open
+    await act(async () => {
+      vi.advanceTimersByTime(700);
+      await Promise.resolve();
+    });
+
+    // Confirm Reset: must restore original seeded baseline, not "Draft Motto"
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
+    expect(screen.getByDisplayValue("Learn and Lead")).toBeInTheDocument();
   });
 });

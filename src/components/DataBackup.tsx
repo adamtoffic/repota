@@ -67,10 +67,12 @@ export function DataBackup({
   const isImportingRef = useRef(false);
   const activeReaderRef = useRef<FileReader | null>(null);
   const isUnmountedRef = useRef(false);
+  const decryptAttemptRef = useRef(0);
   const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     isUnmountedRef.current = false;
+    ++decryptAttemptRef.current;
     return () => {
       isUnmountedRef.current = true;
       if (activeReaderRef.current) {
@@ -215,6 +217,7 @@ export function DataBackup({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    ++decryptAttemptRef.current;
     if (typeof setRecoveryAction === "function") {
       setRecoveryAction("import");
     }
@@ -284,6 +287,7 @@ export function DataBackup({
       return;
     }
 
+    const attempt = ++decryptAttemptRef.current;
     setIsDecrypting(true);
 
     const reader = new FileReader();
@@ -292,7 +296,7 @@ export function DataBackup({
       if (activeReaderRef.current === reader) {
         activeReaderRef.current = null;
       }
-      if (isUnmountedRef.current) return;
+      if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       if (typeof setRecoveryAction === "function") {
         setRecoveryAction(null);
       }
@@ -305,7 +309,7 @@ export function DataBackup({
       if (activeReaderRef.current === reader) {
         activeReaderRef.current = null;
       }
-      if (isUnmountedRef.current) return;
+      if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
         const content = e.target?.result as string;
         const encryptedData = JSON.parse(content);
@@ -315,6 +319,8 @@ export function DataBackup({
           students: unknown[];
           settings: Record<string, unknown>;
         }>(encryptedData, importPassword);
+
+        if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
 
         // Validate decrypted data
         const validated = validateBackup(decryptedBackup);
@@ -332,6 +338,7 @@ export function DataBackup({
         setImportPassword("");
         showToast("File decrypted successfully! 🔓", "success");
       } catch (error) {
+        if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
         console.error("Decryption error:", error);
         if (typeof setRecoveryAction === "function") {
           setRecoveryAction(null);
@@ -341,7 +348,9 @@ export function DataBackup({
           "error",
         );
       } finally {
-        setIsDecrypting(false);
+        if (!isUnmountedRef.current && decryptAttemptRef.current === attempt) {
+          setIsDecrypting(false);
+        }
       }
     };
     reader.readAsText(pendingFile);
@@ -740,6 +749,16 @@ export function DataBackup({
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => {
+                  ++decryptAttemptRef.current;
+                  if (activeReaderRef.current) {
+                    try {
+                      activeReaderRef.current.abort();
+                    } catch {
+                      // ignore
+                    }
+                    activeReaderRef.current = null;
+                  }
+                  setIsDecrypting(false);
                   setShowImportPasswordModal(false);
                   setDecryptedBackupData(null);
                   setImportPassword("");

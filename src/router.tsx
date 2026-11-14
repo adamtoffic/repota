@@ -60,6 +60,12 @@ export function lazyWithRetry<T extends ComponentType<any>>(
 
 export function RouteErrorFallback({ error }: { error?: unknown }) {
   const handleReload = () => {
+    if (
+      hasUnsavedChanges() &&
+      !window.confirm("You have unsaved changes that may be lost. Reload anyway?")
+    ) {
+      return;
+    }
     try {
       sessionStorage.removeItem(CHUNK_RELOAD_KEY);
     } catch {
