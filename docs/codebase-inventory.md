@@ -243,7 +243,7 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 
 ### **Data Loss Detection: Backup Heartbeat**
 [src/utils/dataProtection.ts](../src/utils/dataProtection.ts) and [src/utils/idbStorage.ts](../src/utils/idbStorage.ts):
-- **createBackupHeartbeat()**: Stores timestamp of each successful save
+- **createBackupHeartbeat()**: Records a timestamp after a save request (without awaiting or confirming a successful write)
 - **detectDataLoss()**: Checks for missing student or settings keys while the backup marker exists (in [src/utils/dataProtection.ts](../src/utils/dataProtection.ts))
 - **Alert logic**: If heartbeat exists but student data is empty, warns user that Android cleaner app may have wiped storage
 - Helps teacher recover from accidental data deletion
@@ -256,7 +256,7 @@ The backup heartbeat is stored separately by the data-protection helper; it is n
 ### **Export/Import**
 Handled in [DataBackup.tsx](../src/components/DataBackup.tsx), [fileEncryption.ts](../src/utils/fileEncryption.ts), and [backupValidation.ts](../src/utils/backupValidation.ts):
 - Export: Writes students and settings as JSON and encrypts with **AES-256-GCM** + PBKDF2 only when a password is set (plain JSON export when unencrypted)
-- Import: Decrypts encrypted files before schema validation and replaces current students on the device rather than merging them
+- Import: Decrypts encrypted files before schema validation and replaces both current students and settings on the device rather than merging them
 - Format: plain .json backups and password-encrypted .repota files
 
 ---
@@ -340,7 +340,7 @@ grep -r "TODO\|FIXME\|HACK\|XXX\|DEPRECATED" src/ --include="*.ts" --include="*.
 - 🔸 Supabase integration is scaffolded but incomplete; either finish or remove
 - 🔸 Component Library validation could use real-time UI feedback
 - 🔸 Print styles have iOS-specific hacks that should be documented
-- 🔸 IndexedDB quota exceeded error handling is missing
+- 🔸 IndexedDB quota errors alert the user and return false, with no automatic recovery or localStorage fallback when quota is exceeded
 - 🔸 Virtual scrolling threshold and performance characteristics undocumented
 - 🔸 Remark generation rotation logic lacks clarity
 - 🔸 Gender field assumes binary; consider expanding schema if non-binary support is needed

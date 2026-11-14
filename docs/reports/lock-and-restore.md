@@ -21,7 +21,7 @@ Tests use fake timers and mocked visibility for the under-30-second grace period
 Manual verification:
 
 1. Installed iPhone PWA: configure a PIN and biometric unlock, open a report, tap Print, allow the print sheet, return to the app, and verify it does not immediately show LockScreen. Background the PWA for less than 30 seconds and return; verify it remains unlocked. Background it for at least 30 seconds and return; verify it locks. Repeat after Face ID unlock and after opening a file picker.
-2. Desktop Chrome: configure a PIN, open Print Preview, click Print, cancel/close the system print dialog, and verify no immediate lock. Switch tabs for less than 30 seconds and return; verify no lock. Leave the tab hidden for at least 30 seconds and return; verify the lock screen appears.
+2. Desktop Chrome: configure a PIN, open Print Preview, click Print, cancel/close the system print dialog, and verify no immediate lock. Wait at least 2 minutes for the print lock suppression window (`PRINT_LOCK_SUPPRESSION_MS`) to expire, then switch tabs for less than 30 seconds and return; verify no lock. Leave the tab hidden for at least 30 seconds and return; verify the lock screen appears.
 
 The repository tests cannot verify native print-dialog visibility events, iOS PWA lifecycle behavior, Face ID timing, or file-picker behavior. Those require the listed devices/browsers.
 

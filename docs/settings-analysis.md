@@ -53,7 +53,7 @@ similar labels are **INFERRED** from the field label and downstream use.
 | `term` | per term | remark generation and report templates use it (`src/context/SchoolContext.tsx:706-711`; `src/templates/OriginalTemplate.tsx:11`). |
 | `examType` | per term / exam cycle | Every report template and `ReportTemplate` switch mock rendering (`src/templates/OriginalTemplate.tsx:9`; `src/components/ReportTemplate.tsx:24`); schema validation applies mock rules (`src/schemas/settingsSchema.ts:135-151`). |
 | `classScoreMax`, `examScoreMax` | per exam setup | grade calculation uses the maxima (`src/utils/gradeCalculator.ts`); Settings keeps them complementary when editing weights and forces `0/100` for mock (`src/pages/Settings.tsx:668-767`). Exact line for the calculator’s maxima is **UNVERIFIED** because the symbol occurs through helper calls rather than a concise field access. |
-| `defaultSubjects` | per class / per year | new students are created from it (`src/context/SchoolContext.tsx:533-659`); `StudentList` and validation warnings consume it (`src/components/StudentList.tsx:50-53`; `src/components/ValidationWarnings.tsx:22`); subject assignment UI and report data depend on it (`src/pages/Settings.tsx:794-949`). |
+| `defaultSubjects` | per class / per year | new students receive it in `StudentList` (`src/components/StudentList.tsx:50-67`) and demo-data generation maps it in `SchoolContext` (`src/context/SchoolContext.tsx:736-862`); score entry and validation warnings consume it (`src/components/tabs/AcademicTab.tsx:22`; `src/components/ValidationWarnings.tsx:22`); subject assignment UI and report data depend on it (`src/pages/Settings.tsx:794-949`). |
 | `componentLibrary` | per assessment setup / per year | only Settings, schema, registry helpers and the subject map workflow consume it (`src/pages/Settings.tsx:206-285`, `851-1014`; `src/schemas/settingsSchema.ts:120-126`; `src/utils/componentRegistry.ts:40-78`). A direct runtime consumer of the library outside Settings is **UNVERIFIED**. |
 | `subjectComponentMap` | per class / assessment setup | manual student synchronization and demo-data creation consume it (`src/context/SchoolContext.tsx:301-420`, `461-500`); Settings edits it (`src/pages/Settings.tsx:274-293`, `994-1073`). |
 | `templateId` | per report design, rarely | print preview chooses the template and records it in analytics (`src/pages/PrintPreview.tsx:73-82`); registry definitions are in `src/templates/registry.ts`. |
@@ -105,7 +105,7 @@ preserving these invariants is **INFERRED** to change behavior.
 | `level` -> subjects/class | `applyLevelChange` replaces `level`, `defaultSubjects`, and `className`, then emits `School_Level_Changed` (`src/pages/Settings.tsx:174-190`). | A level route must update the subjects/class draft atomically or the user can navigate away with only part of the preset applied. **INFERRED** |
 | `level` -> grade/report processing | Provider recalculates processed students from `settings.level` (`src/context/SchoolContext.tsx:685-688`), and templates branch on level (`src/templates/OriginalTemplate.tsx:8-9`). | A split must commit level before score/report routes render; otherwise stale level-dependent output is possible. **INFERRED** |
 | `className` -> students | The change is held while students exist; confirmation calls `updateClassNameForAll` (`src/pages/Settings.tsx:108-112`, `1290-1308`; `src/context/SchoolContext.tsx:300-302`). | The modal and the draft must be shared or a route transition can strand the pending name. **INFERRED** |
-| `defaultSubjects` -> new students | Provider creation paths map the current defaults into new student subjects (`src/context/SchoolContext.tsx:533-659`). | Subject edits must be persisted before leaving if the next student-entry route is expected to see them. **INFERRED** |
+| `defaultSubjects` -> new students | Student creation in `StudentList` (`src/components/StudentList.tsx:50-67`) and demo-data generation (`src/context/SchoolContext.tsx:736-862`) map the current defaults into student subjects (`addStudent` at `src/context/SchoolContext.tsx:376-385` only appends to state). | Subject edits must be persisted before leaving if the next student-entry route is expected to see them. **INFERRED** |
 | subjects -> component assignment | Assignment rows are generated from `defaultSubjects`; available tasks come from `componentLibrary`; map is keyed by subject name (`src/pages/Settings.tsx:994-1073`). | Separate subject/task routes need a shared draft or explicit commit ordering. |
 | task library -> subject assignment | Deleting a library task removes it from `componentLibrary` but does not remove matching entries from `subjectComponentMap` (`src/pages/Settings.tsx:257-274`). | A split would not fix this; it could make the stale-map window more visible. Downstream student sync reads only the map (`src/context/SchoolContext.tsx:349-420`). |
 | `subjectComponentMap` -> student records | Student component synchronization is manual and can remove/reset student component scores (`src/context/SchoolContext.tsx:349-420`). | A route must not silently invoke this action; preserve the current explicit boundary. |
@@ -243,7 +243,7 @@ repository test file inventory; complete negative proof is **UNVERIFIED**.
 | Destination | Sections / fields | Rationale |
 |---|---|---|
 | **School & staff** | identity, logo/contact, `schoolType` and fees, staff/signatures | Mostly one-time/rare changes; identity, fee visibility, and report header/signature output are coupled (`src/pages/Settings.tsx:350-493`; `src/templates/OriginalTemplate.tsx:75-97`, `439-466`). |
-| **Class & term setup** | `level`, `className`, `classSize`, `defaultSubjects`, `academicYear`, `term`, `nextTermStarts`, `totalAttendanceDays`, `examType`, score maxima | Keeps the level preset, class-name modal, subjects, and exam-weight invariants together (`src/pages/Settings.tsx:162-190`, `535-767`; `src/context/SchoolContext.tsx:533-659`). |
+| **Class & term setup** | `level`, `className`, `classSize`, `defaultSubjects`, `academicYear`, `term`, `nextTermStarts`, `totalAttendanceDays`, `examType`, score maxima | Keeps the level preset, class-name modal, subjects, and exam-weight invariants together (`src/pages/Settings.tsx:162-190`, `535-767`; `src/components/StudentList.tsx:50-67`). |
 | **Assessment** | `componentLibrary`, `subjectComponentMap`, assignment UI | These three structures form one task-to-subject workflow; provider synchronization reads the map (`src/pages/Settings.tsx:206-285`, `851-1014`; `src/context/SchoolContext.tsx:349-420`). |
 | **Reports, security & data** | `templateId`, PIN/biometric/`autoLockTimeout`, storage monitor, backup/import, factory reset | These are operational tools rather than class setup; keep security and data destructive actions visually separated within the destination (`src/pages/Settings.tsx:1015-1325`). |
 
@@ -342,9 +342,11 @@ Run after every migration step:
    confirm the name persists in the header/report.
 2. With existing students, change **School Level**; verify the confirmation, choose the level,
    verify default subjects and class preset, and confirm the `School_Level_Changed` event payload.
-3. With existing students, change **Class Name**; choose “No, Keep Old Name” and verify the
-   modal behavior; then choose Reset and confirm the old draft returns; repeat and choose “Yes,
-   Update Everyone,” then verify all students changed.
+3. With existing students, change **Class Name**; choose “No, Keep Old Name” and verify that
+   cancellation closes the modal and restores the saved class name; make another edit (or change
+   **Class Name** and use the header **Reset** action before canceling) and choose Reset to confirm
+   the saved baseline returns; repeat the **Class Name** change and choose “Yes, Update Everyone,”
+   then verify all students changed.
 4. Add and remove a subject; reload and verify new-student defaults and existing student records.
 5. Add an SBA task with max/category; assign it to a subject; remove it from the subject; delete
    the library task; verify the current behavior of any remaining map entry.
