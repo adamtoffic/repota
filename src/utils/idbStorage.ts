@@ -108,24 +108,139 @@ export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> 
   }
 };
 
+export class StorageBatchRollbackError extends Error {
+  constructor(
+    message = "Storage batch write failed and rollback was incomplete.",
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "StorageBatchRollbackError";
+  }
+}
+
+/**
+ * Save multiple entries atomically in a single readwrite transaction
+ */
+export const saveEntriesToStorage = async (
+  entries: Array<{ key: string; value: unknown }>,
+): Promise<boolean> => {
+  try {
+    if (isIndexedDBAvailable && !db) {
+      await initStorage();
+    }
+    if (isIndexedDBAvailable && db) {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      try {
+        for (const entry of entries) {
+          await tx.store.put(entry.value, entry.key);
+        }
+        await tx.done;
+        return true;
+      } catch (error) {
+        try {
+          tx.abort();
+        } catch {
+          // ignore if already aborted
+        }
+        await tx.done.catch(() => {});
+        if (
+          error instanceof Error &&
+          (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED")
+        ) {
+          console.error("Storage quota exceeded");
+          alert(
+            "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
+          );
+        } else {
+          console.error("Storage batch write error:", error);
+        }
+        return false;
+      }
+    } else {
+      const snapshots: Array<{ key: string; value: string | null }> = entries.map((e) => ({
+        key: e.key,
+        value: localStorage.getItem(e.key),
+      }));
+
+      try {
+        for (const entry of entries) {
+          const jsonString = JSON.stringify(entry.value);
+          localStorage.setItem(entry.key, jsonString);
+        }
+      } catch (writeError) {
+        let rollbackFailed = false;
+        for (const snapshot of snapshots) {
+          try {
+            if (snapshot.value !== null) {
+              localStorage.setItem(snapshot.key, snapshot.value);
+            } else {
+              localStorage.removeItem(snapshot.key);
+            }
+          } catch {
+            rollbackFailed = true;
+          }
+        }
+        if (rollbackFailed) {
+          throw new StorageBatchRollbackError(undefined, { cause: writeError });
+        }
+        throw writeError;
+      }
+    }
+    return true;
+  } catch (error: unknown) {
+    if (error instanceof StorageBatchRollbackError) {
+      throw error;
+    }
+    if (error instanceof Error) {
+      if (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+        console.error("Storage quota exceeded");
+        alert(
+          "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
+        );
+        return false;
+      }
+    }
+
+    console.error("Storage save entries error:", error);
+    return false;
+  }
+};
+
+export type StorageLoadResult<T> =
+  | { status: "found"; value: T }
+  | { status: "empty" }
+  | { status: "error" };
+
 /**
  * Load data from storage (IndexedDB or localStorage fallback)
  */
-export const loadFromStorage = async <T>(key: string): Promise<T | null> => {
+export const loadFromStorageResult = async <T>(key: string): Promise<StorageLoadResult<T>> => {
   try {
     if (isIndexedDBAvailable && db) {
       // IndexedDB
       const value = await db.get(STORE_NAME, key);
-      return (value as T) ?? null;
+      return value == null ? { status: "empty" } : { status: "found", value: value as T };
     } else {
       // localStorage fallback
       const jsonString = localStorage.getItem(key);
-      return jsonString ? (JSON.parse(jsonString) as T) : null;
+      if (jsonString === null) {
+        return { status: "empty" };
+      }
+      const parsed = JSON.parse(jsonString);
+      return parsed == null ? { status: "empty" } : { status: "found", value: parsed as T };
     }
   } catch (error) {
     console.error("Storage load error:", error);
-    return null;
+    return { status: "error" };
   }
+};
+
+/**
+ * Load data from storage, preserving the legacy null-on-error API.
+ */
+export const loadFromStorage = async <T>(key: string): Promise<T | null> => {
+  const result = await loadFromStorageResult<T>(key);
+  return result.status === "found" ? result.value : null;
 };
 
 /**

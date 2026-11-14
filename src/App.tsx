@@ -5,53 +5,110 @@ import { SchoolProvider } from "./context/SchoolContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
 import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
-import { loadFromStorage } from "./utils/idbStorage";
-import type { SchoolSettings } from "./types";
+import { useSchoolData } from "./hooks/useSchoolData";
+import { PRINT_STARTED_EVENT } from "./utils/printHandler";
 
-function App() {
-  const [isLocked, setIsLocked] = useState(() => isPinConfigured());
+export const HIDDEN_LOCK_GRACE_MS = 30_000;
+export const PRINT_LOCK_SUPPRESSION_MS = 2 * 60_000;
+
+function AppContent({
+  isLocked: propIsLocked,
+  setIsLocked: propSetIsLocked,
+}: {
+  isLocked?: boolean;
+  setIsLocked?: React.Dispatch<React.SetStateAction<boolean>>;
+} = {}) {
+  const [localIsLocked, setLocalIsLocked] = useState(() => isPinConfigured());
+  const isLocked = propIsLocked ?? localIsLocked;
+  const setIsLocked = propSetIsLocked ?? setLocalIsLocked;
   const [showRecovery, setShowRecovery] = useState(false);
-  const [idleTimeout, setIdleTimeout] = useState(5 * 60 * 1000); // Default 5 minutes
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  // Load auto-lock timeout from settings
-  useEffect(() => {
-    loadFromStorage<{ settings: SchoolSettings }>("app-data").then((data) => {
-      if (data?.settings?.autoLockTimeout) {
-        setIdleTimeout(data.settings.autoLockTimeout * 60 * 1000);
-      }
-    });
-  }, []);
+  const { settings } = useSchoolData();
+  const rawTimeout = settings.autoLockTimeout;
+  const timeoutMinutes =
+    typeof rawTimeout === "number" &&
+    Number.isFinite(rawTimeout) &&
+    rawTimeout >= 1 &&
+    rawTimeout <= 30
+      ? rawTimeout
+      : 5;
+  const idleTimeout = timeoutMinutes * 60 * 1000;
+  const hiddenAtRef = useRef<number | null>(null);
+  const printInProgressRef = useRef(false);
+  const printTimeoutRef = useRef<number | null>(null);
+  const [isPrintSuppressed, setIsPrintSuppressed] = useState(false);
 
   // Auto-lock after idle time
   const handleIdle = useCallback(() => {
-    if (isPinConfigured() && !isLocked) {
+    if (isPinConfigured() && !isLocked && !printInProgressRef.current) {
       setIsLocked(true);
     }
-  }, [isLocked]);
+  }, [isLocked, setIsLocked]);
 
   useIdleTimer({
     timeout: idleTimeout,
     onIdle: handleIdle,
-    enabled: isPinConfigured() && !isLocked,
+    enabled: isPinConfigured() && !isLocked && !isPrintSuppressed,
   });
 
   // Lock app when it becomes hidden (user switches tabs/apps)
   useEffect(() => {
+    const clearPrintState = () => {
+      printInProgressRef.current = false;
+      setIsPrintSuppressed(false);
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now();
+      }
+      if (printTimeoutRef.current !== null) {
+        window.clearTimeout(printTimeoutRef.current);
+        printTimeoutRef.current = null;
+      }
+    };
+
+    const markPrintInProgress = () => {
+      printInProgressRef.current = true;
+      setIsPrintSuppressed(true);
+      if (printTimeoutRef.current !== null) {
+        window.clearTimeout(printTimeoutRef.current);
+      }
+      printTimeoutRef.current = window.setTimeout(clearPrintState, PRINT_LOCK_SUPPRESSION_MS);
+    };
+
     const handleVisibilityChange = () => {
-      if (document.hidden && isPinConfigured()) {
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      const hiddenAt = hiddenAtRef.current;
+      hiddenAtRef.current = null;
+      if (
+        hiddenAt !== null &&
+        !printInProgressRef.current &&
+        Date.now() - hiddenAt >= HIDDEN_LOCK_GRACE_MS &&
+        isPinConfigured()
+      ) {
         setIsLocked(true);
       }
     };
 
+    window.addEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
+    window.addEventListener("beforeprint", markPrintInProgress);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+    return () => {
+      window.removeEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
+      window.removeEventListener("beforeprint", markPrintInProgress);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (printTimeoutRef.current !== null) {
+        window.clearTimeout(printTimeoutRef.current);
+      }
+    };
+  }, [setIsLocked]);
 
   const handleUnlock = () => {
     setIsTransitioning(true);
@@ -109,11 +166,19 @@ function App() {
         {/* PWA Install Prompt */}
         <PwaInstallPrompt />
 
-        {/* Wrap Router with SchoolProvider */}
-        <SchoolProvider>
-          <RouterProvider router={router} />
-        </SchoolProvider>
+        <RouterProvider router={router} />
       </div>
+    </ErrorBoundary>
+  );
+}
+
+function App() {
+  const [isLocked, setIsLocked] = useState(() => isPinConfigured());
+  return (
+    <ErrorBoundary>
+      <SchoolProvider isLocked={isLocked}>
+        <AppContent isLocked={isLocked} setIsLocked={setIsLocked} />
+      </SchoolProvider>
     </ErrorBoundary>
   );
 }

@@ -118,7 +118,10 @@ export function DetailsTab({ student, onUpdate }: Props) {
               />
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-gray-700 uppercase">
+                <label
+                  className="mb-1 block text-xs font-bold text-gray-700 uppercase"
+                  data-record="true"
+                >
                   Gender
                 </label>
                 <div className="flex gap-2">
@@ -130,6 +133,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                         ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
                         : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
                     }`}
+                    data-record="true"
                   >
                     👦 Male
                   </button>
@@ -141,6 +145,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                         ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
                         : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
                     }`}
+                    data-record="true"
                   >
                     👧 Female
                   </button>
@@ -154,12 +159,17 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
       {/* 2. ACADEMIC STATUS */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800">
+        <h3
+          className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800"
+          data-record="true"
+        >
           📚 Academic Status
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-muted mb-1 block text-xs font-bold">Days Present</label>
+            <label className="text-muted mb-1 block text-xs font-bold" data-record="true">
+              Days Present
+            </label>
             <div className="relative">
               <Input
                 type="number"
@@ -179,7 +189,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
             </div>
           </div>
           <div>
-            <label className="text-muted mb-1 block text-xs font-bold">Promotion</label>
+            <label className="text-muted mb-1 block text-xs font-bold" data-record="true">
+              Promotion
+            </label>
             <select
               value={formData.promotionStatus}
               onChange={(e) => handleFormChange({ promotionStatus: e.target.value })}
@@ -197,7 +209,10 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
       {/* 3. QUALITATIVE ASSESSMENT (Remarks) */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800">
+        <h3
+          className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800"
+          data-record="true"
+        >
           💬 Qualitative Assessment
         </h3>
         <div className="space-y-4">
@@ -287,6 +302,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
           className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 font-bold text-white shadow-md transition-all active:scale-95 ${
             hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "cursor-not-allowed bg-gray-300"
           }`}
+          data-record="true"
         >
           <Save className="h-5 w-5" />
           {hasUnsavedChanges ? "Save Student Details" : "All Changes Saved"}

@@ -3,9 +3,16 @@ import type { TextareaHTMLAttributes } from "react";
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  recordLabel?: boolean;
 }
 
-export const Textarea = ({ label, error, className = "", ...props }: TextareaProps) => {
+export const Textarea = ({
+  label,
+  error,
+  className = "",
+  recordLabel = true,
+  ...props
+}: TextareaProps) => {
   const textareaClasses = `w-full rounded-lg border px-4 py-2.5 outline-none transition-all resize-none ${
     error
       ? "border-red-500 focus:ring-2 focus:ring-red-500"
@@ -15,7 +22,10 @@ export const Textarea = ({ label, error, className = "", ...props }: TextareaPro
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label
+          className="block text-sm font-medium text-gray-700"
+          {...(recordLabel ? { "data-record": "true" } : {})}
+        >
           {label}
           {props.required && <span className="ml-1 text-red-500">*</span>}
         </label>

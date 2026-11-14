@@ -21,7 +21,11 @@ export function FormLabel({
   const variantClass = variant === "uppercase" ? "uppercase tracking-wide" : "";
 
   return (
-    <label className={`${baseClass} ${variantClass} ${className}`} {...props}>
+    <label
+      data-record="true"
+      className={`${baseClass} ${variantClass} ${className}`}
+      {...props}
+    >
       {children}
       {required && <span className="ml-1 text-red-500">*</span>}
     </label>

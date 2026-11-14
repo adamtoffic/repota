@@ -106,6 +106,7 @@ export function Dashboard() {
               <Link
                 to="/analytics"
                 className="flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 sm:px-4"
+                data-record="true"
               >
                 <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="hidden text-sm font-medium sm:inline">Analytics</span>
@@ -113,6 +114,7 @@ export function Dashboard() {
               <Link
                 to="/print"
                 className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
+                data-record="true"
               >
                 <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="hidden text-sm font-medium sm:inline">Print</span>
@@ -120,6 +122,7 @@ export function Dashboard() {
               <Link
                 to="/settings"
                 className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
+                data-record="true"
               >
                 <SettingsIcon className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="hidden text-sm font-medium sm:inline">Settings</span>
@@ -129,6 +132,7 @@ export function Dashboard() {
             <Link
               to="/settings"
               className="bg-background text-muted flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 transition-all hover:bg-gray-100 active:scale-95 sm:px-4"
+              data-record="true"
             >
               <SettingsIcon className="h-5 w-5 sm:h-4 sm:w-4" />
               <span className="hidden text-sm font-medium sm:inline">Settings</span>
@@ -146,8 +150,10 @@ export function Dashboard() {
                 <HelpCircle className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-main font-bold">Need help getting started?</h3>
-                <p className="text-muted mt-1 text-sm leading-relaxed">
+                <h3 className="text-main font-bold" data-record="true">
+                  Need help getting started?
+                </h3>
+                <p className="text-muted mt-1 text-sm leading-relaxed" data-record="true">
                   Add your first student or reach out on WhatsApp if you're stuck.
                 </p>
                 <div className="mt-3">
@@ -156,6 +162,7 @@ export function Dashboard() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-success hover:text-success/80 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:underline"
+                    data-record="true"
                   >
                     💬 Ask for help on WhatsApp →
                   </a>
@@ -239,7 +246,9 @@ export function Dashboard() {
                 <div className="bg-background mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
                   <X className="text-muted h-7 w-7" />
                 </div>
-                <h3 className="text-main text-lg font-bold">No students found</h3>
+                <h3 className="text-main text-lg font-bold" data-record="true">
+                  No students found
+                </h3>
                 <p className="text-muted mt-1 text-sm">
                   No results for "{searchQuery}" in{" "}
                   {activeFilter === "ALL" ? "all students" : activeFilter.toLowerCase()}.
@@ -250,6 +259,7 @@ export function Dashboard() {
                     setActiveFilter("ALL");
                   }}
                   className="text-primary hover:text-primary/80 mt-4 text-sm font-bold transition-colors hover:underline"
+                  data-record="true"
                 >
                   Clear Search & Filters
                 </button>

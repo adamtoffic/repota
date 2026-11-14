@@ -79,7 +79,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
       <div className="overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
-          <h3 className="text-main flex items-center gap-2 text-lg font-bold">
+          <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
             <Upload className="text-primary h-5 w-5" />
             Bulk Import Students
           </h3>
@@ -92,7 +92,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
         <div className="p-6">
           {!isPreviewing ? (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600" data-record="true">
                 Paste your class list below. One student name per line.
               </p>
               <Textarea
@@ -107,6 +107,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
                 variant="primary"
                 size="md"
                 fullWidth
+                data-record="true"
               >
                 Preview List
               </Button>
@@ -136,10 +137,17 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
                   variant="secondary"
                   size="md"
                   className="flex-1"
+                  data-record="true"
                 >
                   Back
                 </Button>
-                <Button onClick={handleImport} variant="primary" size="md" className="flex-1">
+                <Button
+                  onClick={handleImport}
+                  variant="primary"
+                  size="md"
+                  className="flex-1"
+                  data-record="true"
+                >
                   Import All
                 </Button>
               </div>

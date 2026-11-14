@@ -13,7 +13,10 @@ interface ChartCardProps {
 export const ChartCard: React.FC<ChartCardProps> = ({ title, icon: Icon, children, className }) => {
   return (
     <Card className={className}>
-      <h3 className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg">
+      <h3
+        className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
+        data-record="true"
+      >
         <Icon className="h-5 w-5" />
         {title}
       </h3>

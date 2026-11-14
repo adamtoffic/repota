@@ -37,7 +37,6 @@ export default defineConfig({
         "logo.svg",
         "apple-touch-icon.png",
         "og-image.png",
-        "developer.jpg", // Developer profile image
       ],
 
       workbox: {
@@ -49,7 +48,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /^\/assets\//],
         runtimeCaching: [
           // Cache JS/CSS files with NetworkFirst strategy
           {
@@ -61,6 +60,21 @@ export default defineConfig({
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
+              cacheableResponse: {
+                statuses: [200],
+              },
+              plugins: [
+                {
+                  cacheWillUpdate: async ({ response }: { response?: Response | null }) => {
+                    if (!response) return null;
+                    const contentType = response.headers.get("content-type") || "";
+                    if (contentType.includes("text/html")) {
+                      return null;
+                    }
+                    return response;
+                  },
+                },
+              ],
             },
           },
           // Cache images with CacheFirst strategy
@@ -164,16 +178,19 @@ export default defineConfig({
     target: "es2015",
     minify: "esbuild",
     cssMinify: true,
-    chunkSizeWarningLimit: 400, // Warn if chunks exceed 400KB
+    chunkSizeWarningLimit: 400,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React libraries
-          vendor: ["react", "react-dom"],
-          router: ["@tanstack/react-router"],
-          icons: ["lucide-react"],
-          // Don't manually chunk recharts - let lazy loading handle it
-          // recharts: ["recharts"],
+        manualChunks(id) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) {
+            return "vendor";
+          }
+          if (id.includes("node_modules/@tanstack/react-router")) {
+            return "router";
+          }
+          if (id.includes("node_modules/lucide-react")) {
+            return "icons";
+          }
         },
       },
     },

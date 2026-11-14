@@ -106,6 +106,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
             <button
               onClick={() => setShowClearScoresModal(true)}
               className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-orange-700 transition-all hover:border-orange-300 hover:bg-orange-50 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+              data-record="true"
             >
               <Eraser size={14} className="sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Clear All Scores</span>
@@ -121,7 +122,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-blue-600" />
             <div>
-              <p className="text-sm font-semibold text-blue-900">
+              <p className="text-sm font-semibold text-blue-900" data-record="true">
                 {hasMissing && hasOutdated
                   ? "Components need updating"
                   : hasMissing
@@ -133,6 +134,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
           <button
             onClick={() => syncSubjectComponentsFromSettings()}
             className="active:scale-95\ rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+            data-record="true"
           >
             Sync Now
           </button>
@@ -146,13 +148,14 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
             <AlertCircle className="h-5 w-5 text-blue-600" />
             <div>
               <p className="text-sm font-semibold text-blue-900">
-                Missing {missingSubjects.length} subject{missingSubjects.length > 1 ? "s" : ""}
+                <span data-record="true">Missing</span> {missingSubjects.length} <span data-record="true">subject</span>{missingSubjects.length > 1 ? "s" : ""}
               </p>
             </div>
           </div>
           <button
             onClick={handleAddMissing}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-95"
+            data-record="true"
           >
             Add Missing
           </button>
@@ -167,7 +170,9 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
               <AlertTriangle className="h-5 w-5 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-orange-900">Cleanup Old Subjects</p>
+              <p className="text-sm font-bold text-orange-900" data-record="true">
+                Cleanup Old Subjects
+              </p>
               <p className="text-xs text-orange-700">
                 Found <strong>{obsoleteSubjects.length}</strong> subjects that are no longer in
                 Settings.
@@ -178,6 +183,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
           <button
             onClick={triggerRemoveObsolete}
             className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 active:scale-95"
+            data-record="true"
           >
             Remove Old
           </button>

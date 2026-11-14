@@ -1,42 +1,60 @@
-# Logs
-logs
-*.log
+# Dependencies and package managers
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.pnpm-store/
 
-node_modules
-dist
-dist-ssr
+# Build and dev outputs
+dist/
+dev-dist/
+dist-ssr/
 *.local
 
-# Environment variables
+# Environment variables & secrets (never commit)
 .env
 .env.*
+.env*.local
 
-# Editor directories and files
+# IDE and Editor files
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-# IDE
 *.iml
 
-# Testing output
-coverage/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
 
+# Test coverage & reports
+coverage/
+test-results/
 
 # Caches
 .cache/
 .parcel-cache/
 .eslintcache
+.vite/
+.vitest/
 
 # TypeScript
 *.tsbuildinfo
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import posthog from "posthog-js";
 import {
@@ -16,6 +16,7 @@ import {
   Key,
   Fingerprint,
   LayoutTemplate,
+  AlertTriangle,
 } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useDebounce } from "../hooks/useDebounce";
@@ -49,8 +50,13 @@ import {
 import { Button, Alert, Badge, IconButton, Input } from "../components/ui";
 import { PageHeader } from "../components/ui/PageHeader";
 import { TEMPLATE_REGISTRY } from "../templates/registry";
+import { setUnsavedChanges } from "../utils/preloadErrorHandler";
 
 export function Settings() {
+  return <SettingsContent />;
+}
+
+function SettingsContent() {
   const {
     settings,
     setSettings,
@@ -59,12 +65,33 @@ export function Settings() {
     restoreDefaults,
     isSaving,
     lastSaved,
+    isPersistenceSuspended,
   } = useSchoolData();
   const { showToast } = useToast();
 
-  const [formData, setFormData] = useState<SchoolSettings>(settings);
+  const formGenerationRef = useRef(0);
+  const immediateSaveGenRef = useRef(0);
+  const baselineSeqRef = useRef(0);
+  const [formPayload, setFormPayload] = useState<{ data: SchoolSettings; generation: number }>({
+    data: settings,
+    generation: 0,
+  });
+  const formData = formPayload.data;
+  const setFormData = useCallback((action: React.SetStateAction<SchoolSettings>) => {
+    formGenerationRef.current += 1;
+    const nextGen = formGenerationRef.current;
+    setFormPayload((prev) => {
+      const nextData = typeof action === "function" ? action(prev.data) : action;
+      return { data: nextData, generation: nextGen };
+    });
+  }, []);
+
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
   const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
+  const suppressClassBlurRef = useRef(false);
+  const resetModalOpenRef = useRef(false);
+  const resetBaselineRef = useRef<SchoolSettings | null>(null);
+  const pendingSavedBaselineRef = useRef<SchoolSettings | null>(null);
 
   // Form States
   const [newSubject, setNewSubject] = useState("");
@@ -89,7 +116,8 @@ export function Settings() {
   const [showDisablePinModal, setShowDisablePinModal] = useState(false);
 
   // Debounce form data for auto-save (500ms)
-  const debouncedFormData = useDebounce(formData, 500);
+  const debouncedPayload = useDebounce(formPayload, 500);
+  const debouncedFormData = debouncedPayload.data;
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -113,33 +141,83 @@ export function Settings() {
   const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
 
   useEffect(() => {
+    setUnsavedChanges("settings-draft", hasUnsavedChanges);
+    return () => setUnsavedChanges("settings-draft", false);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (showResetModal || resetModalOpenRef.current) return;
+    if (debouncedPayload.generation < immediateSaveGenRef.current) return;
     const debouncedString = JSON.stringify(debouncedFormData);
     if (debouncedString === lastAutoSaveRef.current) return;
-
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
-    if (classNameChanged && students.length > 0) {
+    const isClassNameEmpty = !(debouncedFormData.className ?? "").trim();
+    if ((classNameChanged && students.length > 0) || isClassNameEmpty) {
+      const savedFormData = {
+        ...debouncedFormData,
+        className: lastSavedSettings.className,
+      };
+      const savedString = JSON.stringify(savedFormData);
+      if (savedString === lastAutoSaveRef.current) return;
+      setSettings(savedFormData);
+      lastAutoSaveRef.current = savedString;
+
+      pendingSavedBaselineRef.current = savedFormData;
+      const seq = ++baselineSeqRef.current;
+      requestAnimationFrame(() => {
+        if (baselineSeqRef.current === seq && !resetModalOpenRef.current) {
+          pendingSavedBaselineRef.current = null;
+          setLastSavedSettings(savedFormData);
+        }
+      });
       return;
     }
 
     setSettings(debouncedFormData);
     lastAutoSaveRef.current = debouncedString;
 
+    pendingSavedBaselineRef.current = debouncedFormData;
+    const seq = ++baselineSeqRef.current;
     requestAnimationFrame(() => {
-      setLastSavedSettings(debouncedFormData);
+      if (baselineSeqRef.current === seq && !resetModalOpenRef.current) {
+        pendingSavedBaselineRef.current = null;
+        setLastSavedSettings(debouncedFormData);
+      }
     });
-  }, [debouncedFormData, lastSavedSettings.className, students.length, setSettings]);
+  }, [
+    debouncedFormData,
+    debouncedPayload.generation,
+    lastSavedSettings.className,
+    showResetModal,
+    students.length,
+    setSettings,
+  ]);
 
-  useEffect(() => {
-    const classNameChanged = formData.className !== lastSavedSettings.className;
-    if (classNameChanged && students.length > 0 && !showClassUpdateModal) {
-      const timer = setTimeout(() => {
-        if (formData.className !== lastSavedSettings.className) {
-          setShowClassUpdateModal(true);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
+  const handleClassNameBlur = () => {
+    if (suppressClassBlurRef.current) return;
+    const trimmed = (formData.className ?? "").trim();
+    const oldName = (lastSavedSettings.className ?? "").trim();
+
+    // 1. If empty, revert to old name and warn
+    if (!trimmed) {
+      setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
+      showToast("Class name cannot be empty", "error");
+      return;
     }
-  }, [formData.className, lastSavedSettings.className, students.length, showClassUpdateModal]);
+
+    // 2. Normalize trimmed string in form state
+    if (trimmed !== formData.className) {
+      setFormData((prev) => ({ ...prev, className: trimmed }));
+    }
+
+    // 3. If no actual change from saved state, do nothing
+    if (trimmed === oldName) return;
+
+    // 4. If students exist, prompt confirmation; otherwise let 500ms auto-save persist
+    if (students.length > 0) {
+      setShowClassUpdateModal(true);
+    }
+  };
 
   const handleEnrollBiometric = async () => {
     setEnrollingBiometric(true);
@@ -157,6 +235,11 @@ export function Settings() {
     disableBiometric();
     showToast("Biometric authentication disabled", "info");
     checkBiometric();
+  };
+
+  const handleKeepOldClassName = () => {
+    setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
+    setShowClassUpdateModal(false);
   };
 
   const handleLevelChange = (newLevel: SchoolLevel) => {
@@ -186,6 +269,15 @@ export function Settings() {
     posthog.capture("School_Level_Changed", { new_level: newLevel });
     setShowLevelChangeModal(false);
     setPendingLevel(null);
+
+    // If students exist and class name changed, prompt to update all students
+    if (
+      students.length > 0 &&
+      defaultClass.trim() &&
+      defaultClass.trim() !== (lastSavedSettings.className ?? "").trim()
+    ) {
+      setShowClassUpdateModal(true);
+    }
   };
 
   const addSubject = () => {
@@ -296,17 +388,36 @@ export function Settings() {
   };
 
   const finalizeSave = (shouldUpdateStudents = false) => {
-    setSettings(formData);
-    setLastSavedSettings(formData);
+    const trimmed = (formData.className ?? "").trim();
+    const updated = { ...formData, className: trimmed };
+
+    setFormData(updated);
+    immediateSaveGenRef.current = formGenerationRef.current;
+    setSettings(updated);
+    ++baselineSeqRef.current;
+    pendingSavedBaselineRef.current = null;
+    setLastSavedSettings(updated);
+    lastAutoSaveRef.current = JSON.stringify(updated);
+
     if (shouldUpdateStudents) {
-      updateClassNameForAll(formData.className || "");
+      updateClassNameForAll(trimmed);
       showToast(`Updated class name for ${students.length} students`, "success");
     }
     setShowClassUpdateModal(false);
   };
 
   const handleReset = () => {
-    setFormData(lastSavedSettings);
+    const baseline = resetBaselineRef.current ?? lastSavedSettings;
+    setFormData(baseline);
+    immediateSaveGenRef.current = formGenerationRef.current;
+    setSettings(baseline);
+    ++baselineSeqRef.current;
+    pendingSavedBaselineRef.current = null;
+    setLastSavedSettings(baseline);
+    lastAutoSaveRef.current = JSON.stringify(baseline);
+    resetBaselineRef.current = null;
+    suppressClassBlurRef.current = false;
+    resetModalOpenRef.current = false;
     setShowResetModal(false);
     showToast("Changes discarded", "info");
   };
@@ -323,8 +434,30 @@ export function Settings() {
                   <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500"></span>
                 </div>
                 <button
-                  onClick={() => setShowResetModal(true)}
-                  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 sm:flex"
+                  disabled={isPersistenceSuspended}
+                  onClick={() => {
+                    resetBaselineRef.current = pendingSavedBaselineRef.current ?? lastSavedSettings;
+                    ++baselineSeqRef.current;
+                    suppressClassBlurRef.current = true;
+                    resetModalOpenRef.current = true;
+                    setShowResetModal(true);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    suppressClassBlurRef.current = true;
+                    const handleRelease = () => {
+                      window.removeEventListener("pointerup", handleRelease);
+                      window.removeEventListener("mouseup", handleRelease);
+                      setTimeout(() => {
+                        if (!resetModalOpenRef.current) {
+                          suppressClassBlurRef.current = false;
+                        }
+                      }, 0);
+                    };
+                    window.addEventListener("pointerup", handleRelease, { once: true });
+                    window.addEventListener("mouseup", handleRelease, { once: true });
+                  }}
+                  className="hidden items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition-all hover:bg-orange-100 active:scale-95 disabled:pointer-events-none disabled:opacity-50 sm:flex"
                   title="Discard unsaved changes"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -344,6 +477,20 @@ export function Settings() {
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+        {isPersistenceSuspended && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div className="flex-1">
+              <p className="font-semibold text-red-900">
+                Persistence is suspended due to an incomplete recovery or storage error.
+              </p>
+              <p className="mt-1 text-xs text-red-700">
+                Settings modifications are disabled to protect data integrity. Please restore a valid backup below or reload the page.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Auto-Save Info */}
         <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
@@ -355,13 +502,16 @@ export function Settings() {
           </div>
         </div>
 
-        {/* CARD 1: IDENTITY */}
+        <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
+          {/* CARD 1: IDENTITY */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
             <div className="rounded-lg bg-blue-100 p-2.5">
               <School className="h-5 w-5 text-blue-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">School Identity</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              School Identity
+            </h2>
           </div>
 
           <div className="grid gap-6 md:grid-cols-[140px_1fr]">
@@ -538,7 +688,9 @@ export function Settings() {
             <div className="rounded-lg bg-orange-100 p-2.5">
               <BookOpen className="h-5 w-5 text-orange-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Academic Session</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              Academic Session
+            </h2>
           </div>
 
           <div className="grid gap-6">
@@ -587,6 +739,13 @@ export function Settings() {
                     required
                     value={formData.className || ""}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+                    onBlur={handleClassNameBlur}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
                     className="pl-9 font-bold"
                     placeholder="e.g. Basic 4"
                   />
@@ -703,7 +862,10 @@ export function Settings() {
             {/* GRADING CONFIG - SBA RENAMED — hidden in mock exam mode */}
             {formData.examType !== "MOCK" && (
               <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
-                <h3 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase">
+                <h3
+                  className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase"
+                  data-record="true"
+                >
                   <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
                 </h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -758,7 +920,10 @@ export function Settings() {
               <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <Calculator className="h-4 w-4 text-purple-700" />
-                  <h3 className="text-xs font-bold tracking-wider text-purple-900 uppercase">
+                  <h3
+                    className="text-xs font-bold tracking-wider text-purple-900 uppercase"
+                    data-record="true"
+                  >
                     SBA Task Library
                   </h3>
                 </div>
@@ -904,7 +1069,9 @@ export function Settings() {
             <div className="rounded-lg bg-purple-100 p-2.5">
               <Briefcase className="h-5 w-5 text-purple-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Staff Details</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              Staff Details
+            </h2>
           </div>
 
           <div className="grid gap-8 md:grid-cols-2">
@@ -943,7 +1110,7 @@ export function Settings() {
         {/* CARD 4: SUBJECTS */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4">
-            <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+            <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase" data-record="true">
               Class Subjects (Learning Areas)
             </h2>
             <p className="text-muted text-xs">
@@ -996,7 +1163,10 @@ export function Settings() {
           (formData.componentLibrary || []).length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-4">
-                <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+                <h2
+                  className="text-base font-bold tracking-wide text-gray-800 uppercase"
+                  data-record="true"
+                >
                   Subject Assessment Config
                 </h2>
                 <p className="text-muted text-xs">Assign specific SBA tasks to each subject.</p>
@@ -1078,7 +1248,9 @@ export function Settings() {
               <LayoutTemplate className="h-5 w-5 text-indigo-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Report Card Design</h2>
+              <h2 className="text-lg font-bold text-gray-800" data-record="true">
+                Report Card Design
+              </h2>
               <p className="text-muted text-xs">
                 Choose the visual layout for your printed reports.
               </p>
@@ -1122,7 +1294,9 @@ export function Settings() {
             <div className="rounded-lg bg-green-100 p-2.5">
               <Lock className="h-5 w-5 text-green-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Security & Privacy</h2>
+            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              Security & Privacy
+            </h2>
           </div>
 
           <div className="space-y-4">
@@ -1187,7 +1361,9 @@ export function Settings() {
 
             {isPinConfigured() && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-2 font-bold text-blue-900">Auto-Lock Timer</h3>
+                <h3 className="mb-2 font-bold text-blue-900" data-record="true">
+                  Auto-Lock Timer
+                </h3>
                 <p className="mb-3 text-sm text-blue-800">
                   Automatically lock the app after a period of inactivity.
                 </p>
@@ -1264,6 +1440,7 @@ export function Settings() {
             )}
           </div>
         </div>
+        </fieldset>
 
         {/* STORAGE MONITORING */}
         <StorageMonitor />
@@ -1287,6 +1464,7 @@ export function Settings() {
             onClick={() => setShowFactoryResetModal(true)}
             variant="danger"
             size="sm"
+            disabled={isPersistenceSuspended}
             className="w-full sm:w-auto"
           >
             Restore Factory Defaults
@@ -1298,12 +1476,13 @@ export function Settings() {
       <ConfirmModal
         isOpen={showClassUpdateModal}
         title="Update Class Name Everywhere?"
-        message={`You changed the class to "${formData.className}". Do you want to update this for all ${students.length} existing students?`}
+        message={`You changed the class to "${(formData.className ?? "").trim()}". Do you want to update this for all ${students.length} existing students?`}
         confirmText="Yes, Update Everyone"
         cancelText="No, Keep Old Name"
         onClose={() => setShowClassUpdateModal(false)}
+        onCancel={handleKeepOldClassName}
         onConfirm={() => {
-          setShowClassUpdateModal(false);
+          if (isPersistenceSuspended) return;
           finalizeSave(true);
         }}
       />
@@ -1316,6 +1495,7 @@ export function Settings() {
         isDangerous={true}
         onClose={() => setShowFactoryResetModal(false)}
         onConfirm={() => {
+          if (isPersistenceSuspended) return;
           restoreDefaults();
           setShowFactoryResetModal(false);
           setTimeout(() => window.location.reload(), 1000);
@@ -1362,7 +1542,16 @@ export function Settings() {
         message="This will reset all fields to their last saved state. Any unsaved changes will be lost."
         confirmText="Yes, Discard Changes"
         isDangerous={true}
-        onClose={() => setShowResetModal(false)}
+        onClose={() => {
+          if (pendingSavedBaselineRef.current) {
+            setLastSavedSettings(pendingSavedBaselineRef.current);
+            pendingSavedBaselineRef.current = null;
+          }
+          resetBaselineRef.current = null;
+          suppressClassBlurRef.current = false;
+          resetModalOpenRef.current = false;
+          setShowResetModal(false);
+        }}
         onConfirm={handleReset}
       />
 

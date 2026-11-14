@@ -12,11 +12,11 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
         <BookOpen className="text-primary h-10 w-10" />
       </div>
 
-      <h2 className="text-main mb-2 text-2xl font-bold tracking-tight">
+      <h2 className="text-main mb-2 text-2xl font-bold tracking-tight" data-record="true">
         Welcome to your new Class Dashboard!
       </h2>
 
-      <p className="text-muted mb-8 max-w-md text-sm leading-relaxed">
+      <p className="text-muted mb-8 max-w-md text-sm leading-relaxed" data-record="true">
         You haven't added any students yet. Get started by adding your first student manually, or
         load some demo data to see how the reports look.
       </p>
@@ -26,6 +26,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
           onClick={onAddStudent}
           className="bg-primary flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold text-white shadow-md transition-colors active:opacity-80"
           aria-label="Add your first student"
+          data-record="true"
         >
           <UserPlus className="h-5 w-5" />
           Add First Student
@@ -35,6 +36,7 @@ export function EmptyState({ onAddStudent, onLoadDemo }: Props) {
           onClick={onLoadDemo}
           className="bg-background text-muted rounded-lg border-2 border-gray-200 px-6 py-3 font-bold transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 active:opacity-80"
           aria-label="Load demo student data for testing"
+          data-record="true"
         >
           Load Demo Data (Test)
         </button>

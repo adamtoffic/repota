@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 
@@ -12,6 +12,7 @@ interface Props {
   isDangerous?: boolean; // If true, button becomes RED
   onConfirm: () => void;
   onClose: () => void;
+  onCancel?: () => void; // Optional callback for cancel action
 }
 
 export function ConfirmModal({
@@ -23,8 +24,13 @@ export function ConfirmModal({
   isDangerous = false,
   onConfirm,
   onClose,
+  onCancel,
 }: Props) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const handleCancel = useCallback(() => {
+    onCancel?.();
+    onClose();
+  }, [onCancel, onClose]);
 
   // Focus cancel button when modal opens & trap Escape key
   useEffect(() => {
@@ -36,18 +42,23 @@ export function ConfirmModal({
     // Handle Escape key
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleCancel();
       }
     };
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleCancel]);
 
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-sm">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleCancel}
+      closeOnBackdrop={Boolean(onCancel)}
+      className="max-w-sm"
+    >
       <div className="animate-in zoom-in-95 scale-100 p-6 duration-200">
         {/* Header with Icon */}
         <div className="mb-4 flex items-start gap-4">
@@ -59,7 +70,9 @@ export function ConfirmModal({
             />
           </div>
           <div>
-            <h3 className="text-main text-lg leading-tight font-bold">{title}</h3>
+            <h3 className="text-main text-lg leading-tight font-bold" data-record="true">
+              {title}
+            </h3>
             <p className="text-muted mt-1 text-sm leading-relaxed">{message}</p>
           </div>
         </div>
@@ -68,8 +81,9 @@ export function ConfirmModal({
         <div className="mt-6 flex justify-end gap-3">
           <button
             ref={cancelButtonRef}
-            onClick={onClose}
+            onClick={handleCancel}
             className="hover:bg-background rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors"
+            data-record="true"
           >
             {cancelText}
           </button>
@@ -80,6 +94,7 @@ export function ConfirmModal({
             }}
             variant={isDangerous ? "danger" : "primary"}
             size="md"
+            data-record="true"
           >
             {confirmText}
           </Button>

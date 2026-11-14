@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import posthog from "posthog-js";
-import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
+import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
@@ -20,43 +20,96 @@ import {
   requestPersistentStorage,
   detectDataLoss,
 } from "../utils/dataProtection";
+import { z } from "zod";
+import { compatibleStudentSchema, mergeSettings } from "../utils/backupValidation";
+import type { RecoveryAction } from "./SchoolContextDefinition";
 // IndexedDB storage
 import {
   initStorage,
-  loadFromStorage,
+  loadFromStorageResult,
   saveToStorage,
   IDB_KEYS,
   migrateFromLocalStorage,
+  getStorageType,
 } from "../utils/idbStorage";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { setUnsavedChanges } from "../utils/preloadErrorHandler";
 
-export function SchoolProvider({ children }: { children: ReactNode }) {
+export const LOAD_TIMEOUT_MS = 10_000;
+export const MIGRATION_WAIT_TIMEOUT_MS = 10_000;
+type LoadKeyStatus = "ok" | "error";
+type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
+
+const DEFAULT_FACTORY_SETTINGS: SchoolSettings = {
+  ...DEFAULT_SETTINGS,
+  examType: "TERMLY",
+  componentLibrary: [],
+  subjectComponentMap: {},
+};
+
+export function SchoolProvider({
+  children,
+  isLocked = false,
+}: {
+  children: ReactNode;
+  isLocked?: boolean;
+}) {
   // State with empty initialization (will load from IndexedDB)
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<LoadStatus>({ students: "ok", settings: "ok" });
+  const [showFreshConfirm, setShowFreshConfirm] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const loadAttemptRef = useRef(0);
+  const initialRollbackIncomplete = (() => {
+    try {
+      return localStorage.getItem("repota_incomplete_rollback") === "true";
+    } catch {
+      return false;
+    }
+  })();
+  const persistenceSuspendedRef = useRef(initialRollbackIncomplete);
+  const suspendedUntilHydratedRef = useRef(initialRollbackIncomplete);
+  const [isPersistenceSuspended, setIsPersistenceSuspended] = useState(initialRollbackIncomplete);
+  const [isRollbackIncomplete, setIsRollbackIncomplete] = useState(initialRollbackIncomplete);
+  const storageReadyRef = useRef(false);
+  const migrationPromiseRef = useRef<Promise<unknown> | null>(null);
+  const [activeRecoveryAction, setActiveRecoveryAction] = useState<RecoveryAction>(null);
+  const [isFreshWriting, setIsFreshWriting] = useState(false);
+  const freshOpTokenRef = useRef(0);
+  const freshWritesStartedRef = useRef(false);
+  const studentsWriteSeqRef = useRef(0);
+  const settingsWriteSeqRef = useRef(0);
+  const [resumeGeneration, setResumeGeneration] = useState(0);
 
-  const [settings, setSettings] = useState<SchoolSettings>({
-    schoolName: "My School Name",
-    academicYear: "2025/2026",
-    term: "First Term",
-    level: "PRIMARY",
-    defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-    totalAttendanceDays: 70,
-    classScoreMax: 50,
-    examScoreMax: 50,
-    classSize: 30,
-    nextTermStarts: "",
-    headTeacherName: "",
-    classTeacherName: "",
-    className: "",
-    phoneNumber: "",
-    address: "",
-    email: "",
-    schoolMotto: "",
-    logoUrl: "",
-    headTeacherSignature: "",
-    teacherSignature: "",
-    schoolType: "STANDARD",
-  });
+  const [prevIsLocked, setPrevIsLocked] = useState(isLocked);
+  if (isLocked !== prevIsLocked) {
+    setPrevIsLocked(isLocked);
+    if (isLocked) {
+      if (showFreshConfirm) {
+        setShowFreshConfirm(false);
+      }
+      if (activeRecoveryAction === "fresh" && !isFreshWriting) {
+        setActiveRecoveryAction(null);
+      }
+    }
+  }
+
+  const isLockedRef = useRef(isLocked);
+  useEffect(() => {
+    isLockedRef.current = isLocked;
+    if (isLocked && !freshWritesStartedRef.current) {
+      ++freshOpTokenRef.current;
+    }
+  }, [isLocked]);
+
+  const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
+  const settingsRef = useRef<SchoolSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const { showToast } = useToast();
 
@@ -69,89 +122,364 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // Track if we're in the debounce period (data changed but not yet saved)
   const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
-  const restoreDefaults = () => {
-    const defaultSettings: SchoolSettings = {
-      schoolName: "My School Name",
-      academicYear: "2025/2026",
-      term: "First Term",
-      level: "PRIMARY",
-      defaultSubjects: DEFAULT_SUBJECTS["PRIMARY"],
-      totalAttendanceDays: 70,
-      classScoreMax: 50,
-      examScoreMax: 50,
-      classSize: 30,
-      nextTermStarts: "",
-      headTeacherName: "",
-      classTeacherName: "",
-      className: "",
-      phoneNumber: "",
-      address: "",
-      email: "",
-      schoolMotto: "",
-      logoUrl: "",
-      headTeacherSignature: "",
-      teacherSignature: "",
-      schoolType: "STANDARD",
-      examType: "TERMLY",
-      componentLibrary: [], // Clear component library
-      subjectComponentMap: {}, // Clear subject-component assignments
-    };
+  const isSavingRef = useRef(false);
 
-    setSettings(defaultSettings);
+  useEffect(() => {
+    isSavingRef.current = isSaving;
+    setUnsavedChanges("school-context-debounce", isSaving);
+  }, [isSaving]);
+
+  useEffect(() => {
+    return () => {
+      setUnsavedChanges("school-context-debounce", false);
+      setUnsavedChanges("school-context-students-write", false);
+      setUnsavedChanges("school-context-settings-write", false);
+    };
+  }, []);
+
+  const handleSetSettings: React.Dispatch<React.SetStateAction<SchoolSettings>> = useCallback(
+    (value) => {
+      const prev = settingsRef.current;
+      const next = typeof value === "function" ? value(prev) : value;
+      if (Object.is(next, prev) || JSON.stringify(next) === JSON.stringify(prev)) {
+        setUnsavedChanges("school-context-debounce", isSavingRef.current);
+        return;
+      }
+      settingsRef.current = next;
+      isSavingRef.current = true;
+      setUnsavedChanges("school-context-debounce", true);
+      setSettings(next);
+    },
+    [],
+  );
+
+  const handleSetStudents: React.Dispatch<React.SetStateAction<StudentRecord[]>> = useCallback(
+    (value) => {
+      setUnsavedChanges("school-context-debounce", true);
+      setStudents(value);
+    },
+    [],
+  );
+
+  const handleSetActiveRecoveryAction = useCallback((action: RecoveryAction) => {
+    if (freshWritesStartedRef.current && action !== "fresh") {
+      return;
+    }
+    if (action !== "fresh") {
+      ++freshOpTokenRef.current;
+    }
+    setActiveRecoveryAction(action);
+  }, []);
+
+  const restoreDefaults = () => {
+    handleSetSettings(DEFAULT_FACTORY_SETTINGS);
     showToast("Settings restored to factory defaults.", "success");
   };
 
   // ✅ INITIALIZE INDEXEDDB AND LOAD DATA
   useEffect(() => {
-    const initializeStorage = async () => {
-      // 1. Initialize IndexedDB
-      await initStorage();
-
-      // 2. Migrate from localStorage if needed
-      const migration = await migrateFromLocalStorage();
-      if (
-        migration.success &&
-        migration.studentsCount !== undefined &&
-        migration.studentsCount > 0 &&
-        !migration.error?.includes("already")
-      ) {
-        console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
-        // Only show toast on actual migration, not on every reload
-      }
-
-      // 3. Load students
-      const loadedStudents = await loadFromStorage<StudentRecord[]>(IDB_KEYS.STUDENTS);
-      if (loadedStudents && loadedStudents.length > 0) {
-        setStudents(loadedStudents);
-      }
-
-      // 4. Load settings
-      const loadedSettings = await loadFromStorage<SchoolSettings>(IDB_KEYS.SETTINGS);
-      if (loadedSettings) {
-        setSettings(loadedSettings);
-      }
-
+    storageReadyRef.current = false;
+    const attempt = ++loadAttemptRef.current;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      if (loadAttemptRef.current !== attempt) return;
+      timedOut = true;
+      setActiveRecoveryAction(null);
+      setLoadStatus({ students: "error", settings: "error" });
       setIsDataLoaded(true);
+    }, LOAD_TIMEOUT_MS);
+
+    const initializeStorage = async () => {
+      try {
+        // 1. Initialize IndexedDB
+        await initStorage();
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        storageReadyRef.current = true;
+        setIsStorageReady(true);
+
+        // 2. Migrate from localStorage if needed
+        const migrationPromise = migrateFromLocalStorage();
+        migrationPromiseRef.current = migrationPromise;
+        migrationPromise.finally(() => {
+          if (migrationPromiseRef.current === migrationPromise) {
+            migrationPromiseRef.current = null;
+          }
+        });
+        const migration = await migrationPromise;
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        if (getStorageType() === "indexeddb" && !migration.success) {
+          setLoadStatus({ students: "error", settings: "error" });
+          setIsDataLoaded(true);
+          return;
+        }
+        if (
+          migration.success &&
+          migration.studentsCount !== undefined &&
+          migration.studentsCount > 0 &&
+          !migration.error?.includes("already")
+        ) {
+          console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
+          // Only show toast on actual migration, not on every reload
+        }
+
+        // 3. Load students
+        let studentsLoadStatus: LoadKeyStatus = "ok";
+        const studentsResult = await loadFromStorageResult<StudentRecord[]>(IDB_KEYS.STUDENTS);
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        if (studentsResult.status === "found") {
+          const parsed = z.array(compatibleStudentSchema).safeParse(studentsResult.value);
+          if (parsed.success) {
+            setStudents(parsed.data as StudentRecord[]);
+          } else {
+            console.error("Corrupted student records in storage:", parsed.error);
+            studentsLoadStatus = "error";
+          }
+        } else if (studentsResult.status === "empty") {
+          setStudents([]);
+        } else {
+          studentsLoadStatus = "error";
+        }
+
+        // 4. Load settings
+        let settingsLoadStatus: LoadKeyStatus = "ok";
+        const settingsResult = await loadFromStorageResult<SchoolSettings>(IDB_KEYS.SETTINGS);
+        if (loadAttemptRef.current !== attempt || timedOut) return;
+        if (settingsResult.status === "found") {
+          if (
+            settingsResult.value &&
+            typeof settingsResult.value === "object" &&
+            !Array.isArray(settingsResult.value)
+          ) {
+            try {
+              const validated = mergeSettings(settingsResult.value as unknown as Record<string, unknown>);
+              setSettings(validated as unknown as SchoolSettings);
+            } catch (err) {
+              console.error("Corrupted settings in storage:", err);
+              settingsLoadStatus = "error";
+            }
+          } else {
+            console.error("Corrupted settings in storage (not an object):", settingsResult.value);
+            settingsLoadStatus = "error";
+          }
+        } else if (settingsResult.status === "empty") {
+          setSettings(DEFAULT_FACTORY_SETTINGS);
+        } else {
+          settingsLoadStatus = "error";
+        }
+        const hasNoErrors = studentsLoadStatus === "ok" && settingsLoadStatus === "ok";
+
+        setLoadStatus({
+          students: studentsLoadStatus,
+          settings: settingsLoadStatus,
+        });
+
+        if (hasNoErrors) {
+          const hasIncompleteRollback = (() => {
+            try {
+              return localStorage.getItem("repota_incomplete_rollback") === "true";
+            } catch {
+              return false;
+            }
+          })();
+          if (!hasIncompleteRollback) {
+            suspendedUntilHydratedRef.current = false;
+            persistenceSuspendedRef.current = false;
+            setIsPersistenceSuspended(false);
+            setResumeGeneration((current) => current + 1);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load school data:", error);
+        if (loadAttemptRef.current === attempt && !timedOut) {
+          storageReadyRef.current = false;
+          setIsStorageReady(false);
+          setLoadStatus({ students: "error", settings: "error" });
+          setIsDataLoaded(true);
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (loadAttemptRef.current === attempt && !timedOut) {
+          setIsDataLoaded(true);
+          setActiveRecoveryAction(null);
+        }
+      }
     };
 
     initializeStorage();
-  }, []); // Run once on mount
+    return () => window.clearTimeout(timeoutId);
+  }, [loadAttempt]); // Run on mount and explicit retry
+
+  const hasLoadError = loadStatus.students === "error" || loadStatus.settings === "error";
 
   useEffect(() => {
     if (!isDataLoaded) return; // Don't save until initial load complete
+    if (persistenceSuspendedRef.current) return;
+    if (loadStatus.students === "error") return;
+    if (debouncedStudents !== students) return; // Wait for the hydrated snapshot to settle
 
-    saveToStorage(IDB_KEYS.STUDENTS, debouncedStudents);
-    createBackupHeartbeat();
+    const seq = ++studentsWriteSeqRef.current;
+    setUnsavedChanges("school-context-students-write", true);
+    Promise.resolve(saveToStorage(IDB_KEYS.STUDENTS, debouncedStudents))
+      .then((saved) => {
+        if (studentsWriteSeqRef.current === seq && saved !== false) {
+          setUnsavedChanges("school-context-students-write", false);
+        }
+      })
+      .catch(() => {});
+    if (!hasLoadError) createBackupHeartbeat();
     queueMicrotask(() => setLastSaved(new Date()));
-  }, [debouncedStudents, isDataLoaded]);
+  }, [debouncedStudents, hasLoadError, isDataLoaded, loadStatus.students, resumeGeneration, students]);
 
   useEffect(() => {
     if (!isDataLoaded) return; // Don't save until initial load complete
+    if (persistenceSuspendedRef.current) return;
+    if (loadStatus.settings === "error") return;
+    if (debouncedSettings !== settings) return; // Wait for the hydrated snapshot to settle
 
-    saveToStorage(IDB_KEYS.SETTINGS, debouncedSettings);
-    createBackupHeartbeat();
+    const seq = ++settingsWriteSeqRef.current;
+    setUnsavedChanges("school-context-settings-write", true);
+    Promise.resolve(saveToStorage(IDB_KEYS.SETTINGS, debouncedSettings))
+      .then((saved) => {
+        if (settingsWriteSeqRef.current === seq && saved !== false) {
+          setUnsavedChanges("school-context-settings-write", false);
+        }
+      })
+      .catch(() => {});
+    if (!hasLoadError) createBackupHeartbeat();
     queueMicrotask(() => setLastSaved(new Date()));
-  }, [debouncedSettings, isDataLoaded]);
+  }, [debouncedSettings, hasLoadError, isDataLoaded, loadStatus.settings, resumeGeneration, settings]);
+
+  const retryLoad = () => {
+    if (freshWritesStartedRef.current) return;
+    ++freshOpTokenRef.current;
+    setActiveRecoveryAction("retry");
+    setIsDataLoaded(false);
+    setIsStorageReady(false);
+    storageReadyRef.current = false;
+    setLoadStatus({ students: "ok", settings: "ok" });
+    setLoadAttempt((current) => current + 1);
+  };
+
+  const startFresh = async () => {
+    if (isLockedRef.current || freshWritesStartedRef.current) {
+      return;
+    }
+    if (!isStorageReady || !storageReadyRef.current) {
+      ++freshOpTokenRef.current;
+      setActiveRecoveryAction(null);
+      showToast("Storage is not ready. Try again after recovery finishes.", "error");
+      return;
+    }
+    const token = ++freshOpTokenRef.current;
+    ++loadAttemptRef.current;
+    setActiveRecoveryAction("fresh");
+    let startedWrites = false;
+    try {
+      await waitForMigration();
+      if (freshOpTokenRef.current !== token || isLockedRef.current) {
+        return;
+      }
+      startedWrites = true;
+      freshWritesStartedRef.current = true;
+      setIsFreshWriting(true);
+      const defaultSettings = DEFAULT_FACTORY_SETTINGS;
+      persistenceSuspendedRef.current = true;
+      setIsPersistenceSuspended(true);
+      setStudents([]);
+      setSettings(defaultSettings);
+      const [studentsSaved, settingsSaved] = await Promise.all([
+        saveToStorage(IDB_KEYS.STUDENTS, []),
+        saveToStorage(IDB_KEYS.SETTINGS, defaultSettings),
+      ]);
+      if (!studentsSaved || !settingsSaved) {
+        markIncompleteRollback();
+        showToast("Could not save fresh data. Recovery remains active.", "error");
+        return;
+      }
+      try {
+        localStorage.removeItem("repota_incomplete_rollback");
+      } catch {
+        // ignore
+      }
+      setLoadStatus({ students: "ok", settings: "ok" });
+      setIsDataLoaded(true);
+      setShowFreshConfirm(false);
+      suspendedUntilHydratedRef.current = false;
+      persistenceSuspendedRef.current = false;
+      setIsPersistenceSuspended(false);
+      setIsRollbackIncomplete(false);
+      setResumeGeneration((current) => current + 1);
+    } catch (error) {
+      if (freshOpTokenRef.current === token) {
+        showToast(
+          error instanceof Error ? error.message : "Could not start fresh. Please try again.",
+          "error",
+        );
+      }
+    } finally {
+      if (startedWrites) {
+        freshWritesStartedRef.current = false;
+        setIsFreshWriting(false);
+      }
+      if (freshOpTokenRef.current === token || startedWrites) {
+        setActiveRecoveryAction((prev) => (prev === "fresh" ? null : prev));
+      }
+    }
+  };
+  const suspendPersistence = () => {
+    persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
+  };
+  const resumePersistence = () => {
+    if (suspendedUntilHydratedRef.current) return;
+    persistenceSuspendedRef.current = false;
+    setIsPersistenceSuspended(false);
+    setResumeGeneration((current) => current + 1);
+  };
+  const markIncompleteRollback = () => {
+    try {
+      localStorage.setItem("repota_incomplete_rollback", "true");
+    } catch {
+      // ignore
+    }
+    suspendedUntilHydratedRef.current = true;
+    persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
+    setIsRollbackIncomplete(true);
+  };
+  const clearIncompleteRollback = () => {
+    try {
+      localStorage.removeItem("repota_incomplete_rollback");
+    } catch {
+      // ignore
+    }
+    setIsRollbackIncomplete(false);
+    suspendedUntilHydratedRef.current = false;
+  };
+  const waitForMigration = async (): Promise<void> => {
+    const pending = migrationPromiseRef.current;
+    if (!pending) return;
+    let timeoutId: number | null = null;
+    try {
+      await Promise.race([
+        pending.then(
+          () => undefined,
+          () => undefined,
+        ),
+        new Promise<never>((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            reject(
+              new Error("Storage migration is still in progress. Please try again shortly."),
+            );
+          }, MIGRATION_WAIT_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    }
+  };
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {
@@ -171,7 +499,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 1. ADD
   const addStudent = (student: StudentRecord, silent = false) => {
-    setStudents((prev) => [...prev, student]);
+    handleSetStudents((prev) => [...prev, student]);
     if (!silent && student.name !== "New Student") {
       showToast(`Student "${student.name}" added successfully!`, "success");
       posthog.capture("Added_Student", {
@@ -186,12 +514,12 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     const studentToDelete = students.find((s) => s.id === id);
     if (!studentToDelete) return;
 
-    setStudents((prev) => prev.filter((s) => s.id !== id));
+    handleSetStudents((prev) => prev.filter((s) => s.id !== id));
 
     showToast("Student moved to trash.", "info", {
       label: "UNDO",
       onClick: () => {
-        setStudents((prev) => [...prev, studentToDelete]);
+        handleSetStudents((prev) => [...prev, studentToDelete]);
         showToast("Student restored.", "success");
       },
     });
@@ -211,7 +539,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     if (removedCount > 0) {
       showToast(`Cleaned up ${removedCount} incomplete records.`, "success");
       // C. Update State
-      setStudents(active);
+      handleSetStudents(active);
     } else {
       showToast("No pending students found.", "info");
     }
@@ -219,7 +547,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 4. UPDATE
   const updateStudent = (updatedStudent: StudentRecord, silent = false) => {
-    setStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+    handleSetStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
     if (!silent) {
       showToast(`Changes saved successfully!`, "success");
     }
@@ -227,7 +555,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 4B. CLEAR ALL SCORES (keeps students, zeros their scores)
   const clearAllScores = () => {
-    setStudents((prev) =>
+    handleSetStudents((prev) =>
       prev.map((student) => ({
         ...student,
         subjects: student.subjects.map((sub) => ({
@@ -248,7 +576,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 4C. CLEAR SINGLE STUDENT SCORES
   const clearStudentScores = (id: string) => {
-    setStudents((prev) =>
+    handleSetStudents((prev) =>
       prev.map((student) =>
         student.id === id
           ? {
@@ -273,7 +601,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   // 4D. REMOVE ALL STUDENT PHOTOS (Storage cleanup helper)
   const removeAllStudentPhotos = () => {
     let removedCount = 0;
-    setStudents((prev) =>
+    handleSetStudents((prev) =>
       prev.map((student) => {
         if (student.pictureUrl) {
           removedCount++;
@@ -292,7 +620,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   // 5. MASS UPDATE
   const updateClassNameForAll = (newClassName: string) => {
-    setStudents((prev) => prev.map((s) => ({ ...s, className: newClassName })));
+    handleSetStudents((prev) => prev.map((s) => ({ ...s, className: newClassName })));
   };
 
   // 5B. DETECT COMPONENT MISMATCHES
@@ -355,7 +683,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
     let syncedCount = 0;
 
-    setStudents((prev) =>
+    handleSetStudents((prev) =>
       prev.map((student) => {
         let studentModified = false;
 
@@ -668,7 +996,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     ];
 
     if (demoStudents.length > 0) {
-      setStudents((prev) => [...prev, ...demoStudents]);
+      handleSetStudents((prev) => [...prev, ...demoStudents]);
       showToast(`${demoStudents.length} demo students loaded!`, "success");
       posthog.capture("Loaded_Demo_Data", {
         school_level: settings.level || "unknown",
@@ -746,7 +1074,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     });
 
     // C. Save everyone at once
-    setStudents(updatedStudents);
+    handleSetStudents(updatedStudents);
     showToast("Remarks auto-generated and distributed uniquely!", "success");
     posthog.capture("Auto_Remarks_Generated", {
       students_count: students.length,
@@ -758,7 +1086,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       value={{
         students: processedStudents,
         settings,
-        setSettings,
+        setSettings: handleSetSettings,
         addStudent,
         deleteStudent,
         deletePendingStudents,
@@ -773,11 +1101,48 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         checkDuplicateName,
         restoreDefaults,
         autoGenerateRemarks,
+        isDataLoaded,
+        isStorageReady,
+        loadStatus,
+        loadError: hasLoadError,
+        retryLoad,
+        startFresh: () => {
+          if (isLockedRef.current || freshWritesStartedRef.current) return;
+          setActiveRecoveryAction("fresh");
+          setShowFreshConfirm(true);
+        },
+        suspendPersistence,
+        resumePersistence,
+        isPersistenceSuspended,
+        isRollbackIncomplete,
+        markIncompleteRollback,
+        clearIncompleteRollback,
         isSaving,
         lastSaved,
+        activeRecoveryAction,
+        setActiveRecoveryAction: handleSetActiveRecoveryAction,
+        waitForMigration,
       }}
     >
       {children}
+      <ConfirmModal
+        isOpen={showFreshConfirm}
+        title="Start fresh?"
+        message="This replaces any saved data on this device. Restore a backup first if you need it."
+        confirmText="Start fresh"
+        cancelText="Cancel"
+        isDangerous
+        onConfirm={startFresh}
+        onCancel={() => {
+          if (!freshWritesStartedRef.current) {
+            ++freshOpTokenRef.current;
+            setActiveRecoveryAction(null);
+          }
+        }}
+        onClose={() => {
+          setShowFreshConfirm(false);
+        }}
+      />
     </SchoolContext.Provider>
   );
 }

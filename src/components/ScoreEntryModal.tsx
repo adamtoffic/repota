@@ -92,6 +92,7 @@ export function ScoreEntryModal({
               disabled={!hasPrevious}
               className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
               title="Previous student (Cmd/Ctrl + ←)"
+              data-record="true"
             >
               <ChevronLeft size={16} />
               <span className="hidden sm:inline">Prev</span>
@@ -156,6 +157,7 @@ export function ScoreEntryModal({
                 disabled={!hasNext}
                 className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
                 title="Next student (Cmd/Ctrl + →)"
+                data-record="true"
               >
                 <span className="hidden sm:inline">Next</span>
                 <ChevronRight size={16} />
@@ -180,6 +182,7 @@ export function ScoreEntryModal({
                 ? "border-blue-600 text-blue-600"
                 : "text-muted border-transparent hover:text-gray-700"
             }`}
+            data-record="true"
           >
             <BookOpen className="h-4 w-4" /> Academic Scores
           </button>
@@ -190,6 +193,7 @@ export function ScoreEntryModal({
                 ? "border-blue-600 text-blue-600"
                 : "text-muted border-transparent hover:text-gray-700"
             }`}
+            data-record="true"
           >
             <User className="h-4 w-4" /> Student Details
           </button>

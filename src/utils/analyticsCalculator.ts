@@ -570,7 +570,7 @@ export function calculatePerformanceByAge(
     const age = new Date().getFullYear() - new Date(student.dateOfBirth!).getFullYear();
     const processed = processStudent(student, settings.level);
 
-    let ageRange = "";
+    let ageRange: string;
     if (age <= 5) ageRange = "≤ 5 years";
     else if (age <= 8) ageRange = "6-8 years";
     else if (age <= 11) ageRange = "9-11 years";

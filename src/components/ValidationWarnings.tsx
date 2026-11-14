@@ -89,9 +89,11 @@ export function ValidationWarnings({ students, settings }: ValidationWarningsPro
           >
             <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconColor}`} />
             <div className="flex-1">
-              <p className={`text-sm font-bold ${textColor}`}>⚠️ {warning.message}</p>
+              <p className={`text-sm font-bold ${textColor}`}>
+                ⚠️ {warning.message}
+              </p>
               {warning.severity === "high" && (
-                <p className="text-muted mt-0.5 text-xs">
+                <p className="text-muted mt-0.5 text-xs" data-record="true">
                   Please enter scores before generating report cards.
                 </p>
               )}

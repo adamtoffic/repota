@@ -94,6 +94,7 @@ export function DashboardToolbar({
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="hover:bg-background flex h-9 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm active:scale-95 sm:text-sm"
+            data-record="true"
           >
             Actions <MoreVertical size={14} />
           </button>
@@ -109,6 +110,7 @@ export function DashboardToolbar({
                     setShowMenu(false);
                   }}
                   className="flex w-full items-center gap-2 bg-purple-50 px-4 py-3 text-sm font-bold text-purple-700 hover:bg-purple-100"
+                  data-record="true"
                 >
                   <Wand2 size={16} className="text-purple-600" /> Auto-Fill Remarks
                 </button>
@@ -122,6 +124,7 @@ export function DashboardToolbar({
                     setShowMenu(false);
                   }}
                   className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                  data-record="true"
                 >
                   <Upload size={16} className="text-green-600" /> Import Names
                 </button>
@@ -131,6 +134,7 @@ export function DashboardToolbar({
                     setShowMenu(false);
                   }}
                   className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                  data-record="true"
                 >
                   <Download size={16} className="text-blue-600" /> Export Full Data
                 </button>
@@ -140,6 +144,7 @@ export function DashboardToolbar({
                     setShowMenu(false);
                   }}
                   className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                  data-record="true"
                 >
                   <FileSpreadsheet size={16} className="text-indigo-600" /> Export Student List
                 </button>
@@ -153,6 +158,7 @@ export function DashboardToolbar({
                     setShowMenu(false);
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50"
+                  data-record="true"
                 >
                   <Eraser size={16} /> Clear All Scores
                 </button>
@@ -162,6 +168,7 @@ export function DashboardToolbar({
                     setShowMenu(false);
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+                  data-record="true"
                 >
                   <Trash2 size={16} /> Clean Empty Rows
                 </button>
@@ -191,6 +198,7 @@ function FilterButton({
           ? `${activeColor} text-white shadow-md`
           : `border border-gray-200 bg-white text-gray-600 ${hoverColor}`
       }`}
+      data-record="true"
     >
       {icon} {label}
     </button>

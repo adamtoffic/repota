@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Download,
   Upload,
@@ -12,18 +12,108 @@ import {
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "./ConfirmModal";
 import { recordBackup } from "../utils/dataProtection";
-import { loadFromStorage, saveToStorage, IDB_KEYS } from "../utils/idbStorage";
+import {
+  loadFromStorageResult,
+  saveToStorage,
+  deleteFromStorage,
+  saveEntriesToStorage,
+  IDB_KEYS,
+} from "../utils/idbStorage";
 import { encryptBackupFile, decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
 import { Input } from "./ui";
+import { useSchoolData } from "../hooks/useSchoolData";
+import {
+  createBackupPayload,
+  importBackupAtomically,
+  IncompleteRollbackError,
+  validateBackup,
+} from "../utils/backupValidation";
+import type { RecoveryAction } from "../context/SchoolContextDefinition";
 
-export function DataBackup() {
+export interface DataBackupProps {
+  recoveryOnly?: boolean;
+  disabled?: boolean;
+  activeRecoveryAction?: RecoveryAction;
+  onRecoveryActionChange?: (action: RecoveryAction) => void;
+}
+
+export function DataBackup({
+  recoveryOnly = false,
+  disabled = false,
+  activeRecoveryAction: activeRecoveryActionProp,
+  onRecoveryActionChange,
+}: DataBackupProps) {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
+  const {
+    loadError,
+    students,
+    suspendPersistence,
+    resumePersistence,
+    isStorageReady,
+    markIncompleteRollback,
+    clearIncompleteRollback,
+    isRollbackIncomplete,
+    activeRecoveryAction: contextRecoveryAction,
+    setActiveRecoveryAction: contextSetRecoveryAction,
+    waitForMigration,
+  } = useSchoolData();
+
+  const currentRecoveryAction = activeRecoveryActionProp ?? contextRecoveryAction ?? null;
+  const setRecoveryAction = onRecoveryActionChange ?? contextSetRecoveryAction;
+  const hasForeignRecoveryOwner =
+    currentRecoveryAction !== null && currentRecoveryAction !== "import";
+  const hasForeignRecoveryOwnerRef = useRef(hasForeignRecoveryOwner);
+  const isRecoveryBusy = Boolean(currentRecoveryAction) || disabled;
+
+  useEffect(() => {
+    hasForeignRecoveryOwnerRef.current = hasForeignRecoveryOwner;
+  }, [hasForeignRecoveryOwner]);
+  const [showReloadOverlay, setShowReloadOverlay] = useState(false);
+  const isImportingRef = useRef(false);
+  const activeReaderRef = useRef<FileReader | null>(null);
+  const isUnmountedRef = useRef(false);
+  const decryptAttemptRef = useRef(0);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const releaseImportRecoveryOwnership = () => {
+    if (!hasForeignRecoveryOwner && typeof setRecoveryAction === "function") {
+      setRecoveryAction(null);
+    }
+  };
+
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    ++decryptAttemptRef.current;
+    return () => {
+      isUnmountedRef.current = true;
+      if (activeReaderRef.current) {
+        try {
+          activeReaderRef.current.abort();
+        } catch {
+          // ignore
+        }
+        activeReaderRef.current = null;
+      }
+      if (
+        !isImportingRef.current &&
+        !hasForeignRecoveryOwnerRef.current &&
+        typeof setRecoveryAction === "function"
+      ) {
+        setRecoveryAction(null);
+      }
+    };
+  }, [setRecoveryAction]);
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [importStats, setImportStats] = useState({ count: 0, school: "" });
+  const [importStats, setImportStats] = useState({
+    count: 0,
+    school: "",
+    currentCount: 0,
+    warningCount: 0,
+  });
   const [decryptedBackupData, setDecryptedBackupData] = useState<{
     students: unknown[];
     settings: Record<string, unknown>;
@@ -57,18 +147,21 @@ export function DataBackup() {
 
   const handleExport = async () => {
     try {
-      const students = await loadFromStorage(IDB_KEYS.STUDENTS);
-      const settings = await loadFromStorage(IDB_KEYS.SETTINGS);
+      if (loadError || isRollbackIncomplete) {
+        throw new Error("Data could not be read. Please use Try again before exporting.");
+      }
+      const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
+      const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);
+      if (studentsResult.status === "error" || settingsResult.status === "error") {
+        throw new Error("Data could not be read. Please use Try again before exporting.");
+      }
+      const parsedStudents = studentsResult.status === "found" ? studentsResult.value : [];
+      const parsedSettings = settingsResult.status === "found" ? settingsResult.value : {};
+      if (parsedStudents.length === 0 && !window.confirm("No students found. This backup will contain no students.")) {
+        return;
+      }
 
-      const parsedSettings = (settings || {}) as Record<string, unknown>;
-      const parsedStudents = students || [];
-
-      const backup = {
-        version: "1.0",
-        exportDate: new Date().toISOString(),
-        students: parsedStudents,
-        settings: parsedSettings,
-      };
+      const backup = createBackupPayload(parsedStudents, parsedSettings);
 
       let finalData: unknown = backup;
       let fileExtension = "json";
@@ -128,9 +221,11 @@ export function DataBackup() {
       setTimeout(() => setStatus("idle"), 5000);
     } catch (error) {
       setStatus("error");
-      setMessage("Failed to save file.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Export failed. Please try again.";
+      setMessage(errorMessage);
       console.error(error);
-      showToast("Export failed. Please try again.", "error");
+      showToast(errorMessage, "error");
     }
   };
 
@@ -138,32 +233,63 @@ export function DataBackup() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (hasForeignRecoveryOwner) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      showToast("Another recovery action is already in progress.", "error");
+      return;
+    }
+
+    ++decryptAttemptRef.current;
+    if (typeof setRecoveryAction === "function") {
+      setRecoveryAction("import");
+    }
 
     const reader = new FileReader();
+    activeReaderRef.current = reader;
+    const handleReaderError = () => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current) return;
+      setDecryptedBackupData(null);
+      releaseImportRecoveryOwnership();
+      setStatus("error");
+      showToast("Failed to read the selected file. Please try again.", "error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.onerror = handleReaderError;
+    reader.onabort = handleReaderError;
     reader.onload = (e) => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current) return;
       try {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
 
         // Check if file is encrypted
         if (isEncryptedFile(data)) {
+          setDecryptedBackupData(null);
           setEncryptionHint(data.hint || "");
           setPendingFile(file);
           setShowImportPasswordModal(true);
           return;
         }
 
-        // Plain JSON file
-        if (!data.students || !data.settings) {
-          throw new Error("Invalid file format");
-        }
+        const validated = validateBackup(data);
+        setDecryptedBackupData(validated);
         setPendingFile(file);
         setImportStats({
-          count: data.students.length,
-          school: (data.settings.schoolName as string) || "Unknown School",
+          count: validated.students.length,
+          school: (validated.settings.schoolName as string) || "Unknown School",
+          currentCount: students.length,
+          warningCount: validated.warningCount,
         });
         setShowImportModal(true);
       } catch {
+        setDecryptedBackupData(null);
+        releaseImportRecoveryOwnership();
         setStatus("error");
         showToast("Invalid file. Please select a valid Repota file.", "error");
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -179,10 +305,26 @@ export function DataBackup() {
       return;
     }
 
+    const attempt = ++decryptAttemptRef.current;
     setIsDecrypting(true);
 
     const reader = new FileReader();
+    activeReaderRef.current = reader;
+    const handleDecryptReaderError = () => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
+      setIsDecrypting(false);
+      showToast("Failed to read the selected file. Please try again.", "error");
+    };
+    reader.onerror = handleDecryptReaderError;
+    reader.onabort = handleDecryptReaderError;
     reader.onload = async (e) => {
+      if (activeReaderRef.current === reader) {
+        activeReaderRef.current = null;
+      }
+      if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
         const content = e.target?.result as string;
         const encryptedData = JSON.parse(content);
@@ -193,29 +335,34 @@ export function DataBackup() {
           settings: Record<string, unknown>;
         }>(encryptedData, importPassword);
 
+        if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
+
         // Validate decrypted data
-        if (!decryptedBackup.students || !decryptedBackup.settings) {
-          throw new Error("Invalid backup data");
-        }
+        const validated = validateBackup(decryptedBackup);
 
         // Show confirmation modal with decrypted stats
         setImportStats({
-          count: decryptedBackup.students.length,
-          school: (decryptedBackup.settings.schoolName as string) || "Unknown School",
+          count: validated.students.length,
+          school: (validated.settings.schoolName as string) || "Unknown School",
+          currentCount: students.length,
+          warningCount: validated.warningCount,
         });
-        setDecryptedBackupData(decryptedBackup); // Store decrypted data
+        setDecryptedBackupData(validated); // Store validated data
         setShowImportPasswordModal(false);
         setShowImportModal(true);
         setImportPassword("");
         showToast("File decrypted successfully! 🔓", "success");
       } catch (error) {
+        if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
         console.error("Decryption error:", error);
         showToast(
           error instanceof Error ? error.message : "Incorrect password. Please try again.",
           "error",
         );
       } finally {
-        setIsDecrypting(false);
+        if (!isUnmountedRef.current && decryptAttemptRef.current === attempt) {
+          setIsDecrypting(false);
+        }
       }
     };
     reader.readAsText(pendingFile);
@@ -223,6 +370,20 @@ export function DataBackup() {
 
   // 4. IMPORT EXECUTION
   const executeImport = async () => {
+    if (isImportingRef.current) return;
+    if (hasForeignRecoveryOwner) {
+      setDecryptedBackupData(null);
+      setShowImportModal(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      showToast("Another recovery action is already in progress.", "error");
+      return;
+    }
+    isImportingRef.current = true;
+    setIsImporting(true);
+    if (typeof setRecoveryAction === "function") {
+      setRecoveryAction("import");
+    }
+
     try {
       let backup;
 
@@ -242,25 +403,107 @@ export function DataBackup() {
         throw new Error("No file to import");
       }
 
-      await saveToStorage(IDB_KEYS.STUDENTS, backup.students);
-      await saveToStorage(IDB_KEYS.SETTINGS, backup.settings);
+      if (isStorageReady === false) {
+        throw new Error("Storage is still initializing. Try the recovery again shortly.");
+      }
 
+      if (typeof waitForMigration === "function") {
+        await waitForMigration();
+      }
+
+      suspendPersistence();
+      try {
+        await importBackupAtomically(
+          backup,
+          loadFromStorageResult,
+          saveToStorage,
+          recoveryOnly,
+          deleteFromStorage,
+          saveEntriesToStorage,
+        );
+      } catch (error) {
+        if (error instanceof IncompleteRollbackError) {
+          if (typeof markIncompleteRollback === "function") {
+            markIncompleteRollback();
+          } else {
+            try {
+              localStorage.setItem("repota_incomplete_rollback", "true");
+            } catch {
+              // ignore
+            }
+          }
+        } else {
+          resumePersistence();
+        }
+        throw error;
+      }
+
+      if (isRollbackIncomplete && !loadError) {
+        try {
+          localStorage.removeItem("repota_incomplete_rollback");
+        } catch {
+          // ignore
+        }
+      } else if (typeof clearIncompleteRollback === "function") {
+        clearIncompleteRollback();
+      } else {
+        try {
+          localStorage.removeItem("repota_incomplete_rollback");
+        } catch {
+          // ignore
+        }
+      }
       setStatus("success");
       showToast("Class data loaded successfully!", "success");
 
       // Clean up
-      setDecryptedBackupData(null);
+      setShowReloadOverlay(true);
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      showToast("Failed to import file. Please try again.", "error");
+      isImportingRef.current = false;
+      setIsImporting(false);
+      if (typeof setRecoveryAction === "function") {
+        setRecoveryAction(null);
+      }
+      showToast(error instanceof Error ? error.message : "Failed to import file. Please try again.", "error");
       console.error(error);
     } finally {
+      setDecryptedBackupData(null);
       setShowImportModal(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      {showReloadOverlay && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6">
+          <div className="rounded-xl bg-white p-6 text-center shadow-2xl">
+            <h2 className="text-lg font-bold text-gray-900">Backup loaded. Reloading...</h2>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white"
+            >
+              Reload now
+            </button>
+          </div>
+        </div>
+      )}
+      {isRollbackIncomplete && (
+        <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <div className="flex-1">
+              <h3 className="font-bold text-red-900">Incomplete Restore / Storage Inconsistency</h3>
+              <p className="mt-1 text-sm text-red-700">
+                A previous backup import encountered a storage error and could not be fully rolled back.
+                Persistence has been suspended to prevent data corruption. Please choose a valid backup file below to restore.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mb-4 flex items-center gap-2">
         <div className="rounded-lg bg-blue-50 p-2">
           <Share2 className="h-5 w-5 text-blue-600" />
@@ -270,11 +513,11 @@ export function DataBackup() {
         </h2>
       </div>
 
-      <p className="mb-6 text-sm leading-relaxed text-gray-600">
+      {!recoveryOnly && <p className="mb-6 text-sm leading-relaxed text-gray-600">
         Need to switch from your phone to a laptop? Or send this class to another teacher?
         <br />
         Save this file and send it via <strong>WhatsApp (Document)</strong> or Bluetooth.
-      </p>
+      </p>}
 
       {/* Status Message */}
       {status !== "idle" && (
@@ -292,7 +535,7 @@ export function DataBackup() {
         </div>
       )}
 
-      {/* Password Protection Toggle */}
+      {!recoveryOnly && (
       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <label className="flex cursor-pointer items-start gap-3">
           <input
@@ -313,24 +556,38 @@ export function DataBackup() {
           </div>
         </label>
       </div>
+      )}
 
       {/* Action Buttons */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <button
+        {!recoveryOnly && <button
           onClick={initiateExport}
-          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95"
+          disabled={loadError || isRollbackIncomplete || isImporting || isRecoveryBusy}
+          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50"
         >
           {usePassword ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
           {usePassword ? "Save Encrypted File" : "Save Class File"}
-        </button>
+        </button>}
 
-        <label className="bg-background flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95">
+        <label
+          className={`bg-background flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors ${
+            isImporting || isRecoveryBusy
+              ? "pointer-events-none opacity-50 cursor-not-allowed"
+              : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95"
+          }`}
+          onClick={(e) => {
+            if (isImporting || isRecoveryBusy) {
+              e.preventDefault();
+            }
+          }}
+        >
           <Upload className="h-4 w-4" />
           Load Class File
           <input
             ref={fileInputRef}
             type="file"
             accept=".json,.repota"
+            disabled={isImporting || isRecoveryBusy}
             onChange={handleFileSelect}
             className="hidden"
           />
@@ -356,14 +613,17 @@ export function DataBackup() {
       <ConfirmModal
         isOpen={showImportModal}
         title="Load New Class Data?"
-        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will REPLACE the current data on this device.`}
-        confirmText="Yes, Load File"
+        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will replace ${importStats.currentCount} current students on this device.${importStats.warningCount > 0 ? ` ${importStats.warningCount} values look unusual and will be imported as-is.` : ""}`}
+        confirmText={isImporting ? "Loading..." : "Yes, Load File"}
         cancelText="Cancel"
         isDangerous={true}
         onClose={() => {
-          setShowImportModal(false);
-          setDecryptedBackupData(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
+          if (!isImportingRef.current) {
+            setShowImportModal(false);
+            setDecryptedBackupData(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            releaseImportRecoveryOwnership();
+          }
         }}
         onConfirm={executeImport}
       />
@@ -512,9 +772,21 @@ export function DataBackup() {
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => {
+                  ++decryptAttemptRef.current;
+                  if (activeReaderRef.current) {
+                    try {
+                      activeReaderRef.current.abort();
+                    } catch {
+                      // ignore
+                    }
+                    activeReaderRef.current = null;
+                  }
+                  setIsDecrypting(false);
                   setShowImportPasswordModal(false);
+                  setDecryptedBackupData(null);
                   setImportPassword("");
                   if (fileInputRef.current) fileInputRef.current.value = "";
+                  releaseImportRecoveryOwnership();
                 }}
                 className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
               >

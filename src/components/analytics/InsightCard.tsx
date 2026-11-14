@@ -50,7 +50,10 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
   return (
     <div className={`rounded-xl border ${styles.border} ${styles.bg} p-4 shadow-sm sm:p-6`}>
-      <h4 className={`mb-3 flex items-center gap-2 text-sm font-bold ${styles.titleColor}`}>
+      <h4
+        className={`mb-3 flex items-center gap-2 text-sm font-bold ${styles.titleColor}`}
+        data-record="true"
+      >
         <Icon className="h-4 w-4" />
         {title}
       </h4>
@@ -62,7 +65,11 @@ export const InsightCard: React.FC<InsightCardProps> = ({
                 <span className={`font-bold ${styles.valueColor}`}>{item.value}</span>
               </div>
             ))
-          : emptyMessage && <p className={`text-xs ${styles.itemColor}`}>{emptyMessage}</p>}
+          : emptyMessage && (
+              <p className={`text-xs ${styles.itemColor}`} data-record="true">
+                {emptyMessage}
+              </p>
+            )}
       </div>
     </div>
   );
