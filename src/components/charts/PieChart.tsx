@@ -53,6 +53,7 @@ export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend
             innerRadius={size / 5}
             paddingAngle={2}
             dataKey="value"
+            isAnimationActive={false}
           >
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />

@@ -121,7 +121,7 @@ export const BarChart: React.FC<BarChartProps> = ({
               ? { position: "top", fill: "#374151", fontSize: 12, fontWeight: "bold" }
               : false
           }
-          animationDuration={800}
+          isAnimationActive={false}
         >
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={gradient ? `url(#gradient-${index})` : entry.fill} />

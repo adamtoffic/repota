@@ -86,7 +86,7 @@ export const ComposedChart: React.FC<ComposedChartProps> = ({
             name={bar.name}
             radius={[8, 8, 0, 0]}
             maxBarSize={40}
-            animationDuration={800}
+            isAnimationActive={false}
           />
         ))}
 
@@ -100,7 +100,7 @@ export const ComposedChart: React.FC<ComposedChartProps> = ({
             name={line.name}
             dot={{ fill: line.color, r: 4 }}
             activeDot={{ r: 6 }}
-            animationDuration={800}
+            isAnimationActive={false}
           />
         ))}
       </RechartsComposedChart>

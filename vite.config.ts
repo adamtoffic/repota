@@ -44,8 +44,6 @@ export default defineConfig({
         clientsClaim: true,
         // Precache essential files for offline functionality
         globPatterns: ["**/*.{html,js,css,ico,png,svg,woff,woff2}"],
-        // Don't precache large analytics chunks
-        globIgnores: ["**/recharts-*.js", "**/CategoricalChart-*.js"],
         // Maximum cache size
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support
@@ -189,6 +187,9 @@ export default defineConfig({
           }
           if (id.includes("node_modules/@tanstack/react-router")) {
             return "router";
+          }
+          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
+            return "recharts";
           }
           if (id.includes("node_modules/lucide-react")) {
             return "icons";

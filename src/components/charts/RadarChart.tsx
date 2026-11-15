@@ -73,7 +73,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
           fill={color}
           fillOpacity={0.5}
           strokeWidth={2}
-          animationDuration={800}
+          isAnimationActive={false}
           dot={{ fill: color, r: 4 }}
         />
         <Tooltip content={<RadarChartTooltip color={color} />} />
