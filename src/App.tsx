@@ -10,7 +10,7 @@ import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
 import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
-import { useSchoolData } from "./hooks/useSchoolData";
+import { useSchoolSettings } from "./hooks/useSchoolData";
 import { PRINT_STARTED_EVENT } from "./utils/printHandler";
 import { STORAGE_QUOTA_EXCEEDED_EVENT } from "./utils/idbStorage";
 
@@ -29,7 +29,7 @@ function AppContent({
   const setIsLocked = propSetIsLocked ?? setLocalIsLocked;
   const [showRecovery, setShowRecovery] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const { settings } = useSchoolData();
+  const settings = useSchoolSettings();
   const rawTimeout = settings.autoLockTimeout;
   const timeoutMinutes =
     typeof rawTimeout === "number" &&

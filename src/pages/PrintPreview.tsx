@@ -1,6 +1,6 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
@@ -9,7 +9,8 @@ import type { PrintMode } from "../types";
 import { markPrintStarted } from "../utils/printHandler";
 
 export function PrintPreview() {
-  const { students, settings } = useSchoolData();
+  const students = useSchoolStudents();
+  const settings = useSchoolSettings();
   const { id } = useSearch({ from: "/print" });
 
   const [printMode, setPrintMode] = useState<PrintMode>("color");

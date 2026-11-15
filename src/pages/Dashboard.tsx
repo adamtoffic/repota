@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
 import { HelpCircle, X, Printer, Plus } from "lucide-react";
-import { useSchoolData } from "../hooks/useSchoolData";
+import {
+  useSchoolActions,
+  useSchoolSettings,
+  useSchoolStudents,
+} from "../hooks/useSchoolData";
 import { AddStudentModal } from "../components/AddStudentModal";
 import { StudentList } from "../components/StudentList";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
@@ -31,9 +35,9 @@ import {
 } from "../utils/studentValidation";
 
 export function Dashboard() {
+  const students = useSchoolStudents();
+  const settings = useSchoolSettings();
   const {
-    students,
-    settings,
     addStudent,
     deleteStudent,
     updateStudent,
@@ -41,7 +45,7 @@ export function Dashboard() {
     deletePendingStudents,
     autoGenerateRemarks,
     clearAllScores,
-  } = useSchoolData();
+  } = useSchoolActions();
 
   const { showToast } = useToast();
 

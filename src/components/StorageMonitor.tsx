@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { HardDrive, Trash2, Database } from "lucide-react";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolActions, useSchoolStudents } from "../hooks/useSchoolData";
 import { ConfirmModal } from "./ConfirmModal";
 import { getStorageType } from "../utils/idbStorage";
 
@@ -9,7 +9,8 @@ import { getStorageType } from "../utils/idbStorage";
  * Shows storage type and cleanup options
  */
 export function StorageMonitor() {
-  const { students, removeAllStudentPhotos } = useSchoolData();
+  const students = useSchoolStudents();
+  const { removeAllStudentPhotos } = useSchoolActions();
   const [showClearPhotosConfirm, setShowClearPhotosConfirm] = useState(false);
 
   const storageType = getStorageType();

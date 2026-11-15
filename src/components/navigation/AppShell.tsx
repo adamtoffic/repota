@@ -11,7 +11,11 @@ import {
   Settings,
   ShieldCheck,
 } from "lucide-react";
-import { useSchoolData } from "../../hooks/useSchoolData";
+import {
+  useSchoolLifecycle,
+  useSchoolSettings,
+  useSchoolStudents,
+} from "../../hooks/useSchoolData";
 import { triggerHaptic } from "../../utils/iosInteraction";
 import { AutoSaveIndicator } from "../AutoSaveIndicator";
 import { PageLoader } from "../PageLoader";
@@ -27,8 +31,23 @@ const SETTINGS_QUICK_LINKS = [
   { to: "/settings/security" as const, label: "Security & Backup", icon: ShieldCheck },
 ];
 
+function SidebarStudentCountBadge() {
+  const students = useSchoolStudents();
+  if (students.length === 0) return null;
+  return (
+    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+      {students.length}
+    </span>
+  );
+}
+
+function ConnectedAutoSaveIndicator() {
+  const { isSaving, lastSaved } = useSchoolLifecycle();
+  return <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />;
+}
+
 export function AppShell({ children }: AppShellProps) {
-  const { settings, students, isSaving, lastSaved } = useSchoolData();
+  const settings = useSchoolSettings();
   const pathname = useLocation({ select: (location) => location.pathname });
 
   const isHomeActive = pathname === "/";
@@ -129,11 +148,7 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Printer className="h-4 w-4 shrink-0" />
             <span>Print Reports</span>
-            {students.length > 0 && (
-              <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
-                {students.length}
-              </span>
-            )}
+            <SidebarStudentCountBadge />
           </Link>
         </div>
       </aside>
@@ -143,8 +158,8 @@ export function AppShell({ children }: AppShellProps) {
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </div>
 
-      {/* Persistent Auto-Save Indicator (lives outside route outlet so tab switches never remount it) */}
-      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+      {/* Persistent Auto-Save Indicator (isolated leaf so save ticks never re-render AppShell) */}
+      <ConnectedAutoSaveIndicator />
 
       {/* Mobile Bottom Navigation Bar */}
       <nav

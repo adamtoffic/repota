@@ -5,9 +5,7 @@ export type LoadKeyStatus = "ok" | "error";
 export type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
 export type RecoveryAction = "retry" | "fresh" | "import" | null;
 
-export interface SchoolContextType {
-  students: ProcessedStudent[];
-  settings: SchoolSettings;
+export interface SchoolActionsType {
   setSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
   addStudent: (student: StudentRecord, silent?: boolean) => void;
   deleteStudent: (id: string) => void;
@@ -23,23 +21,35 @@ export interface SchoolContextType {
   checkDuplicateName: (name: string) => boolean;
   restoreDefaults: () => void;
   autoGenerateRemarks: (onProgress?: (current: number, total: number) => void) => void;
-  isDataLoaded: boolean;
-  isStorageReady: boolean;
-  loadStatus: LoadStatus;
-  loadError: boolean;
   retryLoad: () => void;
   startFresh: () => void;
   suspendPersistence: () => void;
   resumePersistence: () => void;
-  isPersistenceSuspended: boolean;
-  isRollbackIncomplete: boolean;
   markIncompleteRollback: () => void;
   clearIncompleteRollback: () => void;
-  isSaving: boolean;
-  lastSaved?: Date;
-  activeRecoveryAction?: RecoveryAction;
   setActiveRecoveryAction?: (action: RecoveryAction) => void;
   waitForMigration?: () => Promise<void>;
 }
 
+export interface SchoolLifecycleType {
+  isDataLoaded: boolean;
+  isStorageReady: boolean;
+  loadStatus: LoadStatus;
+  loadError: boolean;
+  isPersistenceSuspended: boolean;
+  isRollbackIncomplete: boolean;
+  isSaving: boolean;
+  lastSaved?: Date;
+  activeRecoveryAction?: RecoveryAction;
+}
+
+export interface SchoolContextType extends SchoolActionsType, SchoolLifecycleType {
+  students: ProcessedStudent[];
+  settings: SchoolSettings;
+}
+
+export const SchoolStudentsContext = createContext<ProcessedStudent[] | undefined>(undefined);
+export const SchoolSettingsContext = createContext<SchoolSettings | undefined>(undefined);
+export const SchoolActionsContext = createContext<SchoolActionsType | undefined>(undefined);
+export const SchoolLifecycleContext = createContext<SchoolLifecycleType | undefined>(undefined);
 export const SchoolContext = createContext<SchoolContextType | undefined>(undefined);

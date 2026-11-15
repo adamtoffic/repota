@@ -7,7 +7,17 @@ import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
 import { useDebounce } from "../hooks/useDebounce";
 // ✅ Import definition
-import { SchoolContext } from "./SchoolContextDefinition";
+import {
+  SchoolActionsContext,
+  SchoolContext,
+  SchoolLifecycleContext,
+  SchoolSettingsContext,
+  SchoolStudentsContext,
+  type RecoveryAction,
+  type SchoolActionsType,
+  type SchoolContextType,
+  type SchoolLifecycleType,
+} from "./SchoolContextDefinition";
 import {
   generateHeadmasterRemark,
   generateTeacherRemark,
@@ -22,7 +32,6 @@ import {
 } from "../utils/dataProtection";
 import { z } from "zod";
 import { compatibleStudentSchema, mergeSettings } from "../utils/backupValidation";
-import type { RecoveryAction } from "./SchoolContextDefinition";
 // IndexedDB storage
 import {
   initStorage,
@@ -56,6 +65,10 @@ export function SchoolProvider({
 }) {
   // State with empty initialization (will load from IndexedDB)
   const [students, setStudents] = useState<StudentRecord[]>([]);
+  const studentsRef = useRef<StudentRecord[]>([]);
+  useEffect(() => {
+    studentsRef.current = students;
+  }, [students]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isStorageReady, setIsStorageReady] = useState(false);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>({ students: "ok", settings: "ok" });
@@ -171,10 +184,10 @@ export function SchoolProvider({
     setActiveRecoveryAction(action);
   }, []);
 
-  const restoreDefaults = () => {
+  const restoreDefaults = useCallback(() => {
     handleSetSettings(DEFAULT_FACTORY_SETTINGS);
     showToast("Settings restored to factory defaults.", "success");
-  };
+  }, [handleSetSettings, showToast]);
 
   // ✅ INITIALIZE INDEXEDDB AND LOAD DATA
   useEffect(() => {
@@ -349,7 +362,7 @@ export function SchoolProvider({
     queueMicrotask(() => setLastSaved(new Date()));
   }, [debouncedSettings, hasLoadError, isDataLoaded, loadStatus.settings, resumeGeneration, settings]);
 
-  const retryLoad = () => {
+  const retryLoad = useCallback(() => {
     if (freshWritesStartedRef.current) return;
     ++freshOpTokenRef.current;
     setActiveRecoveryAction("retry");
@@ -358,13 +371,72 @@ export function SchoolProvider({
     storageReadyRef.current = false;
     setLoadStatus({ students: "ok", settings: "ok" });
     setLoadAttempt((current) => current + 1);
-  };
+  }, []);
 
-  const startFresh = async () => {
+  const suspendPersistence = useCallback(() => {
+    persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
+  }, []);
+
+  const resumePersistence = useCallback(() => {
+    if (suspendedUntilHydratedRef.current) return;
+    persistenceSuspendedRef.current = false;
+    setIsPersistenceSuspended(false);
+    setResumeGeneration((current) => current + 1);
+  }, []);
+
+  const markIncompleteRollback = useCallback(() => {
+    try {
+      localStorage.setItem("repota_incomplete_rollback", "true");
+    } catch {
+      // ignore
+    }
+    suspendedUntilHydratedRef.current = true;
+    persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
+    setIsRollbackIncomplete(true);
+  }, []);
+
+  const clearIncompleteRollback = useCallback(() => {
+    try {
+      localStorage.removeItem("repota_incomplete_rollback");
+    } catch {
+      // ignore
+    }
+    setIsRollbackIncomplete(false);
+    suspendedUntilHydratedRef.current = false;
+  }, []);
+
+  const waitForMigration = useCallback(async (): Promise<void> => {
+    const pending = migrationPromiseRef.current;
+    if (!pending) return;
+    let timeoutId: number | null = null;
+    try {
+      await Promise.race([
+        pending.then(
+          () => undefined,
+          () => undefined,
+        ),
+        new Promise<never>((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            reject(
+              new Error("Storage migration is still in progress. Please try again shortly."),
+            );
+          }, MIGRATION_WAIT_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    }
+  }, []);
+
+  const startFresh = useCallback(async () => {
     if (isLockedRef.current || freshWritesStartedRef.current) {
       return;
     }
-    if (!isStorageReady || !storageReadyRef.current) {
+    if (!storageReadyRef.current) {
       ++freshOpTokenRef.current;
       setActiveRecoveryAction(null);
       showToast("Storage is not ready. Try again after recovery finishes.", "error");
@@ -425,61 +497,7 @@ export function SchoolProvider({
         setActiveRecoveryAction((prev) => (prev === "fresh" ? null : prev));
       }
     }
-  };
-  const suspendPersistence = () => {
-    persistenceSuspendedRef.current = true;
-    setIsPersistenceSuspended(true);
-  };
-  const resumePersistence = () => {
-    if (suspendedUntilHydratedRef.current) return;
-    persistenceSuspendedRef.current = false;
-    setIsPersistenceSuspended(false);
-    setResumeGeneration((current) => current + 1);
-  };
-  const markIncompleteRollback = () => {
-    try {
-      localStorage.setItem("repota_incomplete_rollback", "true");
-    } catch {
-      // ignore
-    }
-    suspendedUntilHydratedRef.current = true;
-    persistenceSuspendedRef.current = true;
-    setIsPersistenceSuspended(true);
-    setIsRollbackIncomplete(true);
-  };
-  const clearIncompleteRollback = () => {
-    try {
-      localStorage.removeItem("repota_incomplete_rollback");
-    } catch {
-      // ignore
-    }
-    setIsRollbackIncomplete(false);
-    suspendedUntilHydratedRef.current = false;
-  };
-  const waitForMigration = async (): Promise<void> => {
-    const pending = migrationPromiseRef.current;
-    if (!pending) return;
-    let timeoutId: number | null = null;
-    try {
-      await Promise.race([
-        pending.then(
-          () => undefined,
-          () => undefined,
-        ),
-        new Promise<never>((_, reject) => {
-          timeoutId = window.setTimeout(() => {
-            reject(
-              new Error("Storage migration is still in progress. Please try again shortly."),
-            );
-          }, MIGRATION_WAIT_TIMEOUT_MS);
-        }),
-      ]);
-    } finally {
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-    }
-  };
+  }, [markIncompleteRollback, showToast, waitForMigration]);
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {
@@ -498,63 +516,71 @@ export function SchoolProvider({
   // --- ACTIONS ---
 
   // 1. ADD
-  const addStudent = (student: StudentRecord, silent = false) => {
-    handleSetStudents((prev) => [...prev, student]);
-    if (!silent && student.name !== "New Student") {
-      showToast(`Student "${student.name}" added successfully!`, "success");
-      posthog.capture("Added_Student", {
-        school_level: settings.level || "unknown",
-        school_type: settings.schoolType || "unknown",
-      });
-    }
-  };
+  const addStudent = useCallback(
+    (student: StudentRecord, silent = false) => {
+      handleSetStudents((prev) => [...prev, student]);
+      if (!silent && student.name !== "New Student") {
+        showToast(`Student "${student.name}" added successfully!`, "success");
+        posthog.capture("Added_Student", {
+          school_level: settingsRef.current.level || "unknown",
+          school_type: settingsRef.current.schoolType || "unknown",
+        });
+      }
+    },
+    [handleSetStudents, showToast],
+  );
 
   // 2. DELETE (Single)
-  const deleteStudent = (id: string) => {
-    const studentToDelete = students.find((s) => s.id === id);
-    if (!studentToDelete) return;
+  const deleteStudent = useCallback(
+    (id: string) => {
+      const studentToDelete = studentsRef.current.find((s) => s.id === id);
+      if (!studentToDelete) return;
 
-    handleSetStudents((prev) => prev.filter((s) => s.id !== id));
+      handleSetStudents((prev) => prev.filter((s) => s.id !== id));
 
-    showToast("Student moved to trash.", "info", {
-      label: "UNDO",
-      onClick: () => {
-        handleSetStudents((prev) => [...prev, studentToDelete]);
-        showToast("Student restored.", "success");
-      },
-    });
-  };
+      showToast("Student moved to trash.", "info", {
+        label: "UNDO",
+        onClick: () => {
+          handleSetStudents((prev) => [...prev, studentToDelete]);
+          showToast("Student restored.", "success");
+        },
+      });
+    },
+    [handleSetStudents, showToast],
+  );
 
   // 3. 🛑 FIXED: DELETE PENDING (No side effects in setter)
-  const deletePendingStudents = () => {
-    // A. Calculate what to keep based on CURRENT state
-    const active = students.filter(
+  const deletePendingStudents = useCallback(() => {
+    const currentStudents = studentsRef.current;
+    const active = currentStudents.filter(
       (s) =>
         s.subjects.length > 0 && s.subjects.some((sub) => sub.classScore > 0 || sub.examScore > 0),
     );
 
-    const removedCount = students.length - active.length;
+    const removedCount = currentStudents.length - active.length;
 
-    // B. Trigger Side Effect (Toast)
     if (removedCount > 0) {
       showToast(`Cleaned up ${removedCount} incomplete records.`, "success");
-      // C. Update State
       handleSetStudents(active);
     } else {
       showToast("No pending students found.", "info");
     }
-  };
+  }, [handleSetStudents, showToast]);
 
   // 4. UPDATE
-  const updateStudent = (updatedStudent: StudentRecord, silent = false) => {
-    handleSetStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
-    if (!silent) {
-      showToast(`Changes saved successfully!`, "success");
-    }
-  };
+  const updateStudent = useCallback(
+    (updatedStudent: StudentRecord, silent = false) => {
+      handleSetStudents((prev) => prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+      if (!silent) {
+        showToast(`Changes saved successfully!`, "success");
+      }
+    },
+    [handleSetStudents, showToast],
+  );
 
   // 4B. CLEAR ALL SCORES (keeps students, zeros their scores)
-  const clearAllScores = () => {
+  const clearAllScores = useCallback(() => {
+    const count = studentsRef.current.length;
     handleSetStudents((prev) =>
       prev.map((student) => ({
         ...student,
@@ -571,44 +597,46 @@ export function SchoolProvider({
         })),
       })),
     );
-    showToast(`All scores cleared for ${students.length} students!`, "success");
-  };
+    showToast(`All scores cleared for ${count} students!`, "success");
+  }, [handleSetStudents, showToast]);
 
   // 4C. CLEAR SINGLE STUDENT SCORES
-  const clearStudentScores = (id: string) => {
-    handleSetStudents((prev) =>
-      prev.map((student) =>
-        student.id === id
-          ? {
-              ...student,
-              subjects: student.subjects.map((sub) => ({
-                ...sub,
-                classScore: 0,
-                examScore: 0,
-                classScoreComponents: sub.classScoreComponents
-                  ? sub.classScoreComponents.map((comp) => ({
-                      ...comp,
-                      score: 0,
-                    }))
-                  : undefined,
-              })),
-            }
-          : student,
-      ),
-    );
-  };
+  const clearStudentScores = useCallback(
+    (id: string) => {
+      handleSetStudents((prev) =>
+        prev.map((student) =>
+          student.id === id
+            ? {
+                ...student,
+                subjects: student.subjects.map((sub) => ({
+                  ...sub,
+                  classScore: 0,
+                  examScore: 0,
+                  classScoreComponents: sub.classScoreComponents
+                    ? sub.classScoreComponents.map((comp) => ({
+                        ...comp,
+                        score: 0,
+                      }))
+                    : undefined,
+                })),
+              }
+            : student,
+        ),
+      );
+    },
+    [handleSetStudents],
+  );
 
   // 4D. REMOVE ALL STUDENT PHOTOS (Storage cleanup helper)
-  const removeAllStudentPhotos = () => {
-    let removedCount = 0;
+  const removeAllStudentPhotos = useCallback(() => {
+    const removedCount = studentsRef.current.reduce(
+      (count, student) => (student.pictureUrl ? count + 1 : count),
+      0,
+    );
     handleSetStudents((prev) =>
-      prev.map((student) => {
-        if (student.pictureUrl) {
-          removedCount++;
-          return { ...student, pictureUrl: undefined };
-        }
-        return student;
-      }),
+      prev.map((student) =>
+        student.pictureUrl ? { ...student, pictureUrl: undefined } : student,
+      ),
     );
 
     if (removedCount > 0) {
@@ -616,17 +644,19 @@ export function SchoolProvider({
     } else {
       showToast("No student photos found.", "info");
     }
-  };
+  }, [handleSetStudents, showToast]);
 
   // 5. MASS UPDATE
-  const updateClassNameForAll = (newClassName: string) => {
-    handleSetStudents((prev) => prev.map((s) => ({ ...s, className: newClassName })));
-  };
+  const updateClassNameForAll = useCallback(
+    (newClassName: string) => {
+      handleSetStudents((prev) => prev.map((s) => ({ ...s, className: newClassName })));
+    },
+    [handleSetStudents],
+  );
 
   // 5B. DETECT COMPONENT MISMATCHES
-  // Check if any students have outdated/missing components compared to settings
-  const detectComponentMismatches = () => {
-    const { subjectComponentMap } = settings;
+  const detectComponentMismatches = useCallback(() => {
+    const { subjectComponentMap } = settingsRef.current;
 
     if (!subjectComponentMap || Object.keys(subjectComponentMap).length === 0) {
       return { hasOutdated: false, hasMissing: false };
@@ -635,17 +665,15 @@ export function SchoolProvider({
     let hasOutdated = false;
     let hasMissing = false;
 
-    for (const student of students) {
+    for (const student of studentsRef.current) {
       for (const subject of student.subjects) {
         const settingsComponents = subjectComponentMap[subject.name] || [];
         const currentComponents = subject.classScoreComponents || [];
 
-        // Check if settings has components but student doesn't
         if (settingsComponents.length > 0 && currentComponents.length === 0) {
           hasMissing = true;
         }
 
-        // Check for missing or outdated components
         for (const config of settingsComponents) {
           const existing = currentComponents.find((c) => c.name === config.name);
           if (!existing) {
@@ -655,7 +683,6 @@ export function SchoolProvider({
           }
         }
 
-        // Check for components that should be removed
         for (const current of currentComponents) {
           if (!settingsComponents.some((config) => config.name === current.name)) {
             hasOutdated = true;
@@ -663,18 +690,18 @@ export function SchoolProvider({
         }
 
         if (hasOutdated && hasMissing) {
-          return { hasOutdated, hasMissing }; // Early exit
+          return { hasOutdated, hasMissing };
         }
       }
     }
 
     return { hasOutdated, hasMissing };
-  };
+  }, []);
 
   // 5C. SYNC SUBJECT COMPONENTS FROM SETTINGS (MANUAL)
-  // This ensures all students' subjects have the components assigned in settings
-  const syncSubjectComponentsFromSettings = () => {
-    const { subjectComponentMap } = settings;
+  const syncSubjectComponentsFromSettings = useCallback(() => {
+    const currentSettings = settingsRef.current;
+    const { subjectComponentMap } = currentSettings;
 
     if (!subjectComponentMap || Object.keys(subjectComponentMap).length === 0) {
       showToast("No components configured in Settings", "info");
@@ -690,52 +717,45 @@ export function SchoolProvider({
         const updatedSubjects = student.subjects.map((subject) => {
           const settingsComponents = subjectComponentMap[subject.name];
 
-          // If this subject has no components in settings, remove them from student
           if (!settingsComponents || settingsComponents.length === 0) {
             if (subject.classScoreComponents && subject.classScoreComponents.length > 0) {
               studentModified = true;
               return {
                 ...subject,
                 classScoreComponents: undefined,
-                classScore: 0, // Reset to manual entry
+                classScore: 0,
               };
             }
             return subject;
           }
 
-          // Subject has components in settings - sync them
           const currentComponents = subject.classScoreComponents || [];
 
-          // Create component instances from settings configs, preserving existing scores
           const syncedComponents = settingsComponents.map((config) => {
-            // Find existing component with same name to preserve score
             const existing = currentComponents.find((c) => c.name === config.name);
 
             if (existing) {
-              // Update maxScore if it changed, preserve score
               if (existing.maxScore !== config.maxScore) {
                 studentModified = true;
                 return {
                   ...existing,
                   maxScore: config.maxScore,
-                  score: Math.min(existing.score, config.maxScore), // Cap score to new max
+                  score: Math.min(existing.score, config.maxScore),
                 };
               }
               return existing;
             }
 
-            // New component - create with score 0
             studentModified = true;
             return {
               id: crypto.randomUUID(),
               name: config.name,
               score: 0,
               maxScore: config.maxScore,
-              category: config.category, // Preserve category from settings
+              category: config.category,
             };
           });
 
-          // Remove components that are no longer in settings
           const removedComponents = currentComponents.filter(
             (current) => !settingsComponents.some((config) => config.name === current.name),
           );
@@ -744,12 +764,11 @@ export function SchoolProvider({
             studentModified = true;
           }
 
-          // Recalculate class score if components changed
           if (studentModified) {
             const totalScore = syncedComponents.reduce((sum, c) => sum + c.score, 0);
             const totalMax = syncedComponents.reduce((sum, c) => sum + c.maxScore, 0);
             const percentage = totalMax > 0 ? totalScore / totalMax : 0;
-            const convertedClassScore = Math.round(percentage * settings.classScoreMax);
+            const convertedClassScore = Math.round(percentage * currentSettings.classScoreMax);
 
             return {
               ...subject,
@@ -781,12 +800,14 @@ export function SchoolProvider({
     } else {
       showToast("All students already up to date", "info");
     }
-  };
+  }, [handleSetStudents, showToast]);
 
   // 6. DEMO DATA
-  const loadDemoData = () => {
+  const loadDemoData = useCallback(() => {
+    const currentSettings = settingsRef.current;
     const hasComponents =
-      settings.subjectComponentMap && Object.keys(settings.subjectComponentMap).length > 0;
+      currentSettings.subjectComponentMap &&
+      Object.keys(currentSettings.subjectComponentMap).length > 0;
 
     // Helper function to create subject with components from settings map
     const createDemoSubject = (
@@ -803,22 +824,18 @@ export function SchoolProvider({
           examScoreRange[0],
       };
 
-      // Check if this subject has components assigned in settings
-      const subjectComponents = settings.subjectComponentMap?.[subName];
+      const subjectComponents = currentSettings.subjectComponentMap?.[subName];
       if (hasComponents && subjectComponents && subjectComponents.length > 0) {
-        // Create realistic component scores that sum to approximate the target class score
         const targetClassScore =
           Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
           classScoreRange[0];
-        const targetPercentage = targetClassScore / settings.classScoreMax;
+        const targetPercentage = targetClassScore / currentSettings.classScoreMax;
         const totalMaxScore = subjectComponents.reduce((sum, c) => sum + c.maxScore, 0);
         const targetTotalScore = targetPercentage * totalMaxScore;
 
-        // Distribute the target score across components with some variance
         subject.classScoreComponents = subjectComponents.map((config) => {
           const proportion = config.maxScore / totalMaxScore;
           const baseScore = targetTotalScore * proportion;
-          // Add small variance ±15%
           const variance = baseScore * 0.15;
           const score = Math.min(
             config.maxScore,
@@ -833,13 +850,11 @@ export function SchoolProvider({
           };
         });
 
-        // Calculate actual class score from components
         const totalActualScore = subject.classScoreComponents!.reduce((sum, c) => sum + c.score, 0);
         subject.classScore = Math.round(
-          (totalActualScore / totalMaxScore) * settings.classScoreMax,
+          (totalActualScore / totalMaxScore) * currentSettings.classScoreMax,
         );
       } else {
-        // No components - use direct class score
         subject.classScore =
           Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
           classScoreRange[0];
@@ -848,17 +863,16 @@ export function SchoolProvider({
       return subject;
     };
 
-    // Calculate score ranges based on actual max scores
-    const classMax = settings.classScoreMax;
-    const examMax = settings.examScoreMax;
+    const classMax = currentSettings.classScoreMax;
+    const examMax = currentSettings.examScoreMax;
 
     const demoStudents: StudentRecord[] = [
       {
         id: "demo-1",
         name: "Kwame Mensah",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.7), Math.floor(classMax * 0.9)],
@@ -870,9 +884,9 @@ export function SchoolProvider({
       {
         id: "demo-2",
         name: "Ama Asante",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.76), Math.floor(classMax * 0.96)],
@@ -884,9 +898,9 @@ export function SchoolProvider({
       {
         id: "demo-3",
         name: "Kofi Owusu",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.56), Math.floor(classMax * 0.76)],
@@ -898,9 +912,9 @@ export function SchoolProvider({
       {
         id: "demo-4",
         name: "Abena Boateng",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.8), classMax],
@@ -912,9 +926,9 @@ export function SchoolProvider({
       {
         id: "demo-5",
         name: "Yaw Adomako",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.5), Math.floor(classMax * 0.74)],
@@ -926,9 +940,9 @@ export function SchoolProvider({
       {
         id: "demo-6",
         name: "Efua Appiah",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.8), classMax],
@@ -940,9 +954,9 @@ export function SchoolProvider({
       {
         id: "demo-7",
         name: "Kwabena Darko",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.6), Math.floor(classMax * 0.8)],
@@ -954,9 +968,9 @@ export function SchoolProvider({
       {
         id: "demo-8",
         name: "Akosua Frimpong",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.9), classMax],
@@ -968,9 +982,9 @@ export function SchoolProvider({
       {
         id: "demo-9",
         name: "Kwesi Osei",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Male",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.64), Math.floor(classMax * 0.94)],
@@ -982,9 +996,9 @@ export function SchoolProvider({
       {
         id: "demo-10",
         name: "Adwoa Agyeman",
-        className: settings.className || "Primary 5A",
+        className: currentSettings.className || "Primary 5A",
         gender: "Female",
-        subjects: settings.defaultSubjects.map((subName) =>
+        subjects: currentSettings.defaultSubjects.map((subName) =>
           createDemoSubject(
             subName,
             [Math.floor(classMax * 0.76), Math.floor(classMax * 0.96)],
@@ -999,14 +1013,15 @@ export function SchoolProvider({
       handleSetStudents((prev) => [...prev, ...demoStudents]);
       showToast(`${demoStudents.length} demo students loaded!`, "success");
       posthog.capture("Loaded_Demo_Data", {
-        school_level: settings.level || "unknown",
+        school_level: currentSettings.level || "unknown",
       });
     }
-  };
+  }, [handleSetStudents, showToast]);
 
-  const checkDuplicateName = (name: string): boolean => {
-    return students.some((s) => s.name.trim().toLowerCase() === name.trim().toLowerCase());
-  };
+  const checkDuplicateName = useCallback((name: string): boolean => {
+    const normalized = name.trim().toLowerCase();
+    return studentsRef.current.some((s) => s.name.trim().toLowerCase() === normalized);
+  }, []);
 
   // 7. COMPUTED DATA
   const processedStudents = useMemo(() => {
@@ -1016,133 +1031,189 @@ export function SchoolProvider({
   }, [students, settings.level]);
 
   // 8. AUTO-GENERATE REMARKS (Smart Batching with Progress)
-  const autoGenerateRemarks = (onProgress?: (current: number, total: number) => void) => {
-    // A. Temporary memory for this operation only
-    // This ensures we know what was used by Student 1 when we get to Student 2
-    const usedHeadmasterRemarks: string[] = [];
-    const usedTeacherRemarks: string[] = [];
+  const autoGenerateRemarks = useCallback(
+    (onProgress?: (current: number, total: number) => void) => {
+      const currentStudents = studentsRef.current;
+      const currentSettings = settingsRef.current;
+      const usedHeadmasterRemarks: string[] = [];
+      const usedTeacherRemarks: string[] = [];
 
-    const total = students.length;
+      const total = currentStudents.length;
 
-    // B. Loop through all students with progress tracking
-    const updatedStudents = students.map((student, index) => {
-      // Need processed stats (average, etc.) for accurate remarks
-      const processed = processStudent(student, settings.level);
+      const updatedStudents = currentStudents.map((student, index) => {
+        const processed = processStudent(student, currentSettings.level);
 
-      // 1. Generate Unique Headmaster Remark
-      const hRemark = generateHeadmasterRemark(
-        processed.averageScore,
-        settings.term,
-        usedHeadmasterRemarks, // "Don't use these!"
-      );
-      usedHeadmasterRemarks.push(hRemark); // Add to used pile
+        const hRemark = generateHeadmasterRemark(
+          processed.averageScore,
+          currentSettings.term,
+          usedHeadmasterRemarks,
+        );
+        usedHeadmasterRemarks.push(hRemark);
 
-      // 2. Generate Unique Teacher Remark
-      const tRemark = generateTeacherRemark(
-        processed,
-        student.attendancePresent ?? 0,
-        settings.totalAttendanceDays ?? 0,
-        settings.level,
-        usedTeacherRemarks, // "Don't use these!"
-      );
-      usedTeacherRemarks.push(tRemark); // Add to used pile
+        const tRemark = generateTeacherRemark(
+          processed,
+          student.attendancePresent ?? 0,
+          currentSettings.totalAttendanceDays ?? 0,
+          currentSettings.level,
+          usedTeacherRemarks,
+        );
+        usedTeacherRemarks.push(tRemark);
 
-      // 3. Generate Attendance Rating (Standard logic)
-      const attendancePercent =
-        (settings.totalAttendanceDays ?? 0 > 0)
-          ? ((student.attendancePresent ?? 0) / (settings.totalAttendanceDays ?? 0)) * 100
-          : 100;
-      const attRating = generateAttendanceRating(attendancePercent);
+        const attendancePercent =
+          (currentSettings.totalAttendanceDays ?? 0) > 0
+            ? ((student.attendancePresent ?? 0) / (currentSettings.totalAttendanceDays ?? 0)) * 100
+            : 100;
+        const attRating = generateAttendanceRating(attendancePercent);
 
-      // 4. Fill Conduct/Interest ONLY if empty (Optional - remove checks to overwrite all)
-      const conduct = student.conduct || getRandomConductTrait();
-      const interest = student.interest || getRandomInterest();
+        const conduct = student.conduct || getRandomConductTrait();
+        const interest = student.interest || getRandomInterest();
 
-      // Report progress
-      if (onProgress) {
-        queueMicrotask(() => onProgress(index + 1, total));
-      }
+        if (onProgress) {
+          queueMicrotask(() => onProgress(index + 1, total));
+        }
 
-      return {
-        ...student,
-        headMasterRemark: hRemark,
-        teacherRemark: tRemark,
-        attendanceRemark: attRating,
-        conduct: conduct,
-        interest: interest,
-      };
-    });
+        return {
+          ...student,
+          headMasterRemark: hRemark,
+          teacherRemark: tRemark,
+          attendanceRemark: attRating,
+          conduct,
+          interest,
+        };
+      });
 
-    // C. Save everyone at once
-    handleSetStudents(updatedStudents);
-    showToast("Remarks auto-generated and distributed uniquely!", "success");
-    posthog.capture("Auto_Remarks_Generated", {
-      students_count: students.length,
-    });
-  };
+      handleSetStudents(updatedStudents);
+      showToast("Remarks auto-generated and distributed uniquely!", "success");
+      posthog.capture("Auto_Remarks_Generated", {
+        students_count: total,
+      });
+    },
+    [handleSetStudents, showToast],
+  );
+
+  const openStartFreshConfirm = useCallback(() => {
+    if (isLockedRef.current || freshWritesStartedRef.current) return;
+    setActiveRecoveryAction("fresh");
+    setShowFreshConfirm(true);
+  }, []);
+
+  const actionsValue = useMemo<SchoolActionsType>(
+    () => ({
+      setSettings: handleSetSettings,
+      addStudent,
+      deleteStudent,
+      deletePendingStudents,
+      updateStudent,
+      clearAllScores,
+      clearStudentScores,
+      removeAllStudentPhotos,
+      loadDemoData,
+      updateClassNameForAll,
+      detectComponentMismatches,
+      syncSubjectComponentsFromSettings,
+      checkDuplicateName,
+      restoreDefaults,
+      autoGenerateRemarks,
+      retryLoad,
+      startFresh: openStartFreshConfirm,
+      suspendPersistence,
+      resumePersistence,
+      markIncompleteRollback,
+      clearIncompleteRollback,
+      setActiveRecoveryAction: handleSetActiveRecoveryAction,
+      waitForMigration,
+    }),
+    [
+      addStudent,
+      autoGenerateRemarks,
+      checkDuplicateName,
+      clearAllScores,
+      clearIncompleteRollback,
+      clearStudentScores,
+      deletePendingStudents,
+      deleteStudent,
+      detectComponentMismatches,
+      handleSetActiveRecoveryAction,
+      handleSetSettings,
+      loadDemoData,
+      markIncompleteRollback,
+      openStartFreshConfirm,
+      removeAllStudentPhotos,
+      restoreDefaults,
+      resumePersistence,
+      retryLoad,
+      suspendPersistence,
+      syncSubjectComponentsFromSettings,
+      updateClassNameForAll,
+      updateStudent,
+      waitForMigration,
+    ],
+  );
+
+  const lifecycleValue = useMemo<SchoolLifecycleType>(
+    () => ({
+      isDataLoaded,
+      isStorageReady,
+      loadStatus,
+      loadError: hasLoadError,
+      isPersistenceSuspended,
+      isRollbackIncomplete,
+      isSaving,
+      lastSaved,
+      activeRecoveryAction,
+    }),
+    [
+      activeRecoveryAction,
+      hasLoadError,
+      isDataLoaded,
+      isPersistenceSuspended,
+      isRollbackIncomplete,
+      isSaving,
+      isStorageReady,
+      lastSaved,
+      loadStatus,
+    ],
+  );
+
+  const combinedContextValue = useMemo<SchoolContextType>(
+    () => ({
+      students: processedStudents,
+      settings,
+      ...actionsValue,
+      ...lifecycleValue,
+    }),
+    [actionsValue, lifecycleValue, processedStudents, settings],
+  );
 
   return (
-    <SchoolContext.Provider
-      value={{
-        students: processedStudents,
-        settings,
-        setSettings: handleSetSettings,
-        addStudent,
-        deleteStudent,
-        deletePendingStudents,
-        updateStudent,
-        clearAllScores,
-        clearStudentScores,
-        removeAllStudentPhotos,
-        loadDemoData,
-        updateClassNameForAll,
-        detectComponentMismatches,
-        syncSubjectComponentsFromSettings,
-        checkDuplicateName,
-        restoreDefaults,
-        autoGenerateRemarks,
-        isDataLoaded,
-        isStorageReady,
-        loadStatus,
-        loadError: hasLoadError,
-        retryLoad,
-        startFresh: () => {
-          if (isLockedRef.current || freshWritesStartedRef.current) return;
-          setActiveRecoveryAction("fresh");
-          setShowFreshConfirm(true);
-        },
-        suspendPersistence,
-        resumePersistence,
-        isPersistenceSuspended,
-        isRollbackIncomplete,
-        markIncompleteRollback,
-        clearIncompleteRollback,
-        isSaving,
-        lastSaved,
-        activeRecoveryAction,
-        setActiveRecoveryAction: handleSetActiveRecoveryAction,
-        waitForMigration,
-      }}
-    >
-      {children}
-      <ConfirmModal
-        isOpen={showFreshConfirm}
-        title="Start fresh?"
-        message="This replaces any saved data on this device. Restore a backup first if you need it."
-        confirmText="Start fresh"
-        cancelText="Cancel"
-        isDangerous
-        onConfirm={startFresh}
-        onCancel={() => {
-          if (!freshWritesStartedRef.current) {
-            ++freshOpTokenRef.current;
-            setActiveRecoveryAction(null);
-          }
-        }}
-        onClose={() => {
-          setShowFreshConfirm(false);
-        }}
-      />
-    </SchoolContext.Provider>
+    <SchoolActionsContext.Provider value={actionsValue}>
+      <SchoolSettingsContext.Provider value={settings}>
+        <SchoolStudentsContext.Provider value={processedStudents}>
+          <SchoolLifecycleContext.Provider value={lifecycleValue}>
+            <SchoolContext.Provider value={combinedContextValue}>
+              {children}
+              <ConfirmModal
+                isOpen={showFreshConfirm}
+                title="Start fresh?"
+                message="This replaces any saved data on this device. Restore a backup first if you need it."
+                confirmText="Start fresh"
+                cancelText="Cancel"
+                isDangerous
+                onConfirm={startFresh}
+                onCancel={() => {
+                  if (!freshWritesStartedRef.current) {
+                    ++freshOpTokenRef.current;
+                    setActiveRecoveryAction(null);
+                  }
+                }}
+                onClose={() => {
+                  setShowFreshConfirm(false);
+                }}
+              />
+            </SchoolContext.Provider>
+          </SchoolLifecycleContext.Provider>
+        </SchoolStudentsContext.Provider>
+      </SchoolSettingsContext.Provider>
+    </SchoolActionsContext.Provider>
   );
 }

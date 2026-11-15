@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AlertCircle, AlertTriangle, Eraser } from "lucide-react";
 import { SubjectRow } from "../SubjectRow";
 import type { ProcessedStudent, SavedSubject, SchoolLevel, StudentRecord } from "../../types";
-import { useSchoolData } from "../../hooks/useSchoolData";
+import { useSchoolActions, useSchoolSettings } from "../../hooks/useSchoolData";
 import { ConfirmModal } from "../ConfirmModal";
 
 interface Props {
@@ -13,12 +13,9 @@ interface Props {
 }
 
 export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) {
-  const {
-    settings,
-    clearStudentScores,
-    detectComponentMismatches,
-    syncSubjectComponentsFromSettings,
-  } = useSchoolData();
+  const settings = useSchoolSettings();
+  const { clearStudentScores, detectComponentMismatches, syncSubjectComponentsFromSettings } =
+    useSchoolActions();
   const masterList = settings.defaultSubjects || [];
 
   // State for Modals

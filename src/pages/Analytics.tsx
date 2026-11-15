@@ -19,7 +19,7 @@ import {
   FileText,
   Filter,
 } from "lucide-react";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
 import { FilterPanel } from "../components/analytics/FilterPanel";
 import type { AnalyticsFilters } from "../components/analytics/FilterPanel";
@@ -56,7 +56,8 @@ import { useToast } from "../hooks/useToast";
 
 export const Analytics: React.FC = () => {
   const navigate = useNavigate();
-  const { students, settings } = useSchoolData();
+  const students = useSchoolStudents();
+  const settings = useSchoolSettings();
   const { showToast } = useToast();
   const [filters, setFilters] = useState<AnalyticsFilters>({
     gender: "All",

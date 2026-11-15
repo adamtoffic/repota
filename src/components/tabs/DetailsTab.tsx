@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Save, RefreshCw, Wand2 } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../../types";
-import { useSchoolData } from "../../hooks/useSchoolData";
+import { useSchoolSettings } from "../../hooks/useSchoolData";
 import {
   generateTeacherRemark,
   getRandomConductTrait,
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function DetailsTab({ student, onUpdate }: Props) {
-  const { settings } = useSchoolData();
+  const settings = useSchoolSettings();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 

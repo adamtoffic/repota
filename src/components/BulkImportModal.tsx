@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Upload, CheckCircle } from "lucide-react";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolActions, useSchoolSettings } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import type { StudentRecord, SavedSubject } from "../types";
@@ -15,7 +15,8 @@ interface Props {
 }
 
 export function BulkImportModal({ isOpen, onClose }: Props) {
-  const { addStudent, settings } = useSchoolData();
+  const settings = useSchoolSettings();
+  const { addStudent } = useSchoolActions();
   const { showToast } = useToast();
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<string[]>([]);

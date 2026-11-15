@@ -16,6 +16,7 @@ vi.mock("../context/SchoolContext", () => ({
 
 vi.mock("../hooks/useSchoolData", () => ({
   useSchoolData: () => state.context,
+  useSchoolSettings: () => state.context.settings,
 }));
 
 vi.mock("../hooks/useIdleTimer", () => ({

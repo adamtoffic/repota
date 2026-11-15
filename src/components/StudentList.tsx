@@ -6,7 +6,7 @@ import { Edit2, Trash2, Printer, UserPlus, Upload, CameraOff } from "lucide-reac
 import type { ProcessedStudent, StudentRecord } from "../types";
 import { AddStudentModal } from "./AddStudentModal";
 import { ConfirmModal } from "./ConfirmModal";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolSettings } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
 import { getScoredSubjectCounts } from "../utils/studentValidation";
 import { Button } from "./ui";
@@ -51,7 +51,7 @@ export function StudentList({
   // STATE
   const [internalAddOpen, setInternalAddOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
-  const { settings } = useSchoolData();
+  const settings = useSchoolSettings();
 
   const isAddOpen = isAddModalOpen ?? internalAddOpen;
   const setIsAddOpen = onOpenAddModalChange ?? setInternalAddOpen;
