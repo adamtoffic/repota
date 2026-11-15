@@ -1,7 +1,13 @@
 // src/components/StudentList.tsx
 import { Link } from "@tanstack/react-router";
 import { useState, useRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  measureElement as defaultMeasureElement,
+  observeElementRect as defaultObserveElementRect,
+  useVirtualizer,
+  type Rect,
+  type Virtualizer,
+} from "@tanstack/react-virtual";
 import { Edit2, Trash2, Printer, UserPlus, Upload, CameraOff } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../types";
 import { AddStudentModal } from "./AddStudentModal";
@@ -10,6 +16,124 @@ import { useSchoolSettings } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
 import { getScoredSubjectCounts } from "../utils/studentValidation";
 import { Button } from "./ui";
+
+const MOBILE_VIRTUALIZATION_THRESHOLD = 20;
+
+// Headless environments (Happy-DOM) report 0x0 bounding rects; keep mobile virtualization testable while using real viewport bounds on device.
+const observeMobileElementRect = (
+  instance: Virtualizer<HTMLDivElement, HTMLDivElement>,
+  cb: (rect: Rect) => void,
+) =>
+  defaultObserveElementRect(instance, (rect) => {
+    cb(rect.height > 0 ? rect : { width: 390, height: 800 });
+  });
+
+interface MobileStudentCardProps {
+  student: ProcessedStudent;
+  onEditStudent: (student: ProcessedStudent) => void;
+  onDeleteRequest: (studentId: string) => void;
+  virtualIndex?: number;
+  measureRef?: (element: HTMLDivElement | null) => void;
+  offsetTop?: number;
+}
+
+function MobileStudentCard({
+  student,
+  onEditStudent,
+  onDeleteRequest,
+  virtualIndex,
+  measureRef,
+  offsetTop,
+}: MobileStudentCardProps) {
+  const virtualStyle =
+    offsetTop !== undefined
+      ? {
+          position: "absolute" as const,
+          top: 0,
+          left: 0,
+          width: "100%",
+          transform: `translateY(${offsetTop}px)`,
+        }
+      : undefined;
+
+  return (
+    <div
+      data-index={virtualIndex}
+      data-testid="mobile-student-card"
+      ref={measureRef}
+      style={virtualStyle}
+      className="space-y-3 border-b border-gray-100 p-4"
+    >
+      <button
+        type="button"
+        onClick={() => onEditStudent(student)}
+        className="flex w-full items-start justify-between gap-3 text-left"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-main truncate text-base font-bold">{student.name}</p>
+          <p className="text-muted mt-0.5 text-xs">
+            {student.className}
+            {student.gender ? ` • ${student.gender}` : ""}
+          </p>
+        </div>
+        {student.classPosition !== "Pending..." && (
+          <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700">
+            {student.classPosition}
+          </span>
+        )}
+      </button>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+          {student.subjects.length} Subjects
+        </span>
+        <ScoreProgressBadge student={student} />
+        {!student.pictureUrl && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+            <CameraOff className="h-3 w-3" /> No Photo
+          </span>
+        )}
+        <span className="bg-background text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
+          Avg: {student.averageScore > 0 ? `${student.averageScore}%` : "Pending"}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onEditStudent(student)}
+          className="bg-primary/10 text-primary hover:bg-primary/20 flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
+        >
+          <Edit2 className="h-3.5 w-3.5" />
+          <span>Edit Scores</span>
+        </button>
+
+        {student.subjects.length > 0 && (
+          <Link
+            to="/print"
+            search={{ id: student.id }}
+            aria-label={`Print report for ${student.name}`}
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100"
+            title="Print Report"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span>Print</span>
+          </Link>
+        )}
+
+        <button
+          type="button"
+          onClick={() => onDeleteRequest(student.id)}
+          aria-label={`Delete ${student.name}`}
+          className="flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100"
+          title="Delete Student"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ScoreProgressBadge({ student }: { student: ProcessedStudent }) {
   const { scored, completed, total } = getScoredSubjectCounts(student);
@@ -56,8 +180,9 @@ export function StudentList({
   const isAddOpen = isAddModalOpen ?? internalAddOpen;
   const setIsAddOpen = onOpenAddModalChange ?? setInternalAddOpen;
 
-  // Virtual scrolling setup
+  // Virtual scrolling setup (desktop table + mobile card list)
   const parentRef = useRef<HTMLDivElement>(null);
+  const mobileParentRef = useRef<HTMLDivElement>(null);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
@@ -65,6 +190,23 @@ export function StudentList({
     getScrollElement: () => parentRef.current,
     estimateSize: () => 64, // Estimated row height in pixels
     overscan: 5, // Render 5 extra rows above/below viewport for smooth scrolling
+    initialRect: { width: 960, height: 600 },
+  });
+
+  const shouldVirtualizeMobile = students.length > MOBILE_VIRTUALIZATION_THRESHOLD;
+
+  const mobileVirtualizer = useVirtualizer<HTMLDivElement, HTMLDivElement>({
+    count: students.length,
+    getScrollElement: () => mobileParentRef.current,
+    estimateSize: () => 176, // Estimated mobile card height in pixels
+    measureElement: (element, entry, instance) => {
+      const measured = defaultMeasureElement(element, entry, instance);
+      return measured > 0 ? measured : 176;
+    },
+    overscan: 4,
+    initialRect: { width: 390, height: 800 },
+    observeElementRect: observeMobileElementRect,
+    enabled: shouldVirtualizeMobile,
   });
 
   const handleOpenModal = () => {
@@ -104,86 +246,48 @@ export function StudentList({
         </div>
       </div>
 
-      {/* MOBILE CARDS */}
-      <div className="divide-y divide-gray-100 md:hidden">
-        {students.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-gray-400" data-record="true">
-            No students found. Click "Add Student" to start.
+      {/* MOBILE CARDS (Virtualized for large classes) */}
+      {students.length === 0 ? (
+        <div className="px-4 py-10 text-center text-sm text-gray-400 md:hidden" data-record="true">
+          No students found. Click "Add Student" to start.
+        </div>
+      ) : !shouldVirtualizeMobile ? (
+        <div className="md:hidden">
+          {students.map((student) => (
+            <MobileStudentCard
+              key={student.id}
+              student={student}
+              onEditStudent={onEditStudent}
+              onDeleteRequest={setStudentToDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <div
+          ref={mobileParentRef}
+          className="max-h-[68vh] overflow-y-auto overscroll-contain md:hidden"
+        >
+          <div
+            className="relative w-full"
+            style={{ height: `${mobileVirtualizer.getTotalSize()}px` }}
+          >
+            {mobileVirtualizer.getVirtualItems().map((virtualCard) => {
+              const student = students[virtualCard.index];
+              return (
+                <MobileStudentCard
+                  key={student.id}
+                  student={student}
+                  onEditStudent={onEditStudent}
+                  onDeleteRequest={setStudentToDelete}
+                  virtualIndex={virtualCard.index}
+                  measureRef={mobileVirtualizer.measureElement}
+                  offsetTop={virtualCard.start}
+                />
+              );
+            })}
           </div>
-        ) : (
-          students.map((student) => (
-            <div key={student.id} className="space-y-3 p-4">
-              <button
-                type="button"
-                onClick={() => onEditStudent(student)}
-                className="flex w-full items-start justify-between gap-3 text-left"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-main truncate text-base font-bold">{student.name}</p>
-                  <p className="text-muted mt-0.5 text-xs">
-                    {student.className}
-                    {student.gender ? ` • ${student.gender}` : ""}
-                  </p>
-                </div>
-                {student.classPosition !== "Pending..." && (
-                  <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700">
-                    {student.classPosition}
-                  </span>
-                )}
-              </button>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                  {student.subjects.length} Subjects
-                </span>
-                <ScoreProgressBadge student={student} />
-                {!student.pictureUrl && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
-                    <CameraOff className="h-3 w-3" /> No Photo
-                  </span>
-                )}
-                <span className="bg-background text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
-                  Avg: {student.averageScore > 0 ? `${student.averageScore}%` : "Pending"}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => onEditStudent(student)}
-                  className="bg-primary/10 text-primary hover:bg-primary/20 flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                  <span>Edit Scores</span>
-                </button>
-
-                {student.subjects.length > 0 && (
-                  <Link
-                    to="/print"
-                    search={{ id: student.id }}
-                    aria-label={`Print report for ${student.name}`}
-                    className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100"
-                    title="Print Report"
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                    <span>Print</span>
-                  </Link>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setStudentToDelete(student.id)}
-                  aria-label={`Delete ${student.name}`}
-                  className="flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100"
-                  title="Delete Student"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+        </div>
+      )}
 
       {/* DESKTOP TABLE */}
       <div
