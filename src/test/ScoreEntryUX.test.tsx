@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { SubjectRow } from "../components/SubjectRow";
 import { AcademicTab } from "../components/tabs/AcademicTab";
+import { DetailsTab } from "../components/tabs/DetailsTab";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { QuickGradebook } from "../components/QuickGradebook";
 import { PrintPreview } from "../pages/PrintPreview";
@@ -319,6 +320,37 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       fireEvent.click(screen.getByRole("button", { name: "Ready (1)" }));
       expect(screen.getByText("Complete Student")).toBeInTheDocument();
       expect(screen.queryByText("Incomplete Student")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("DetailsTab immediate auto-save", () => {
+    it("auto-saves text edits immediately through onUpdate without a redundant Save button", () => {
+      const student = makeStudent("s1", "Student One", []);
+      const ctx = makeSchoolContext([student]);
+      const onUpdate = vi.fn();
+
+      render(
+        <SchoolContext.Provider value={ctx}>
+          <DetailsTab student={student} onUpdate={onUpdate} />
+        </SchoolContext.Provider>,
+      );
+
+      expect(screen.queryByRole("button", { name: /All Changes Saved/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Save Student Details/i }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByPlaceholderText("Write a custom remark..."), {
+        target: { value: "Focused and diligent." },
+      });
+
+      expect(onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "s1",
+          teacherRemark: "Focused and diligent.",
+        }),
+        true,
+      );
     });
   });
 });
