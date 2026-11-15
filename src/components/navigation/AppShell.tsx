@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useSchoolData } from "../../hooks/useSchoolData";
+import { triggerHaptic } from "../../utils/iosInteraction";
 import { PageLoader } from "../PageLoader";
 
 interface AppShellProps {
@@ -144,7 +145,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Bottom Navigation Bar */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md md:hidden print:hidden"
+        className="safe-bottom fixed inset-x-0 bottom-0 z-40 rounded-t-3xl border-t border-gray-200/80 bg-white/90 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden print:hidden"
       >
         <div className="mx-auto grid h-16 max-w-md grid-cols-4 px-2">
           {primaryItems.map((item) => {
@@ -154,7 +155,8 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.to}
                 to={item.to}
                 aria-current={item.isActive ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-1 rounded-xl text-[11px] transition-colors ${
+                onClick={() => triggerHaptic("light")}
+                className={`spring-tab group flex flex-col items-center justify-center gap-1 rounded-2xl py-1 text-[11px] active:scale-90 ${
                   item.isActive
                     ? "text-primary font-bold"
                     : "font-medium text-gray-500 hover:text-gray-900"
@@ -162,11 +164,13 @@ export function AppShell({ children }: AppShellProps) {
                 data-record="true"
               >
                 <span
-                  className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-                    item.isActive ? "bg-blue-50 text-primary" : ""
+                  className={`spring-tab flex h-7 w-12 items-center justify-center rounded-full ${
+                    item.isActive
+                      ? "text-primary -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs"
+                      : "group-hover:bg-gray-100/70"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className={`spring-tab h-5 w-5 ${item.isActive ? "stroke-[2.5]" : "stroke-2"}`} />
                 </span>
                 <span>{item.label}</span>
               </Link>
