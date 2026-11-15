@@ -1,7 +1,7 @@
 // src/utils/dataProtection.ts
 // Protection against data loss from Android cleaner apps
 
-import { STORAGE_KEYS } from "./storage";
+import { IDB_KEYS as STORAGE_KEYS } from "./idbStorage";
 
 /**
  * Create a backup timestamp to detect if LocalStorage was wiped

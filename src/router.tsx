@@ -142,11 +142,18 @@ function ShellLayout() {
   return (
     <DataGate>
       <AppShell>
-        <SettingsFormProvider>
-          <Outlet />
-        </SettingsFormProvider>
+        <Outlet />
       </AppShell>
     </DataGate>
+  );
+}
+
+// Shared draft & auto-save provider scoped strictly to SBA and Settings routes
+function SettingsFormLayout() {
+  return (
+    <SettingsFormProvider>
+      <Outlet />
+    </SettingsFormProvider>
   );
 }
 
@@ -154,6 +161,12 @@ const shellRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "shell",
   component: ShellLayout,
+});
+
+const settingsFormRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  id: "settings-form",
+  component: SettingsFormLayout,
 });
 
 // 4. Define the Routes
@@ -164,7 +177,7 @@ const indexRoute = createRoute({
 });
 
 const sbaRoute = createRoute({
-  getParentRoute: () => shellRoute,
+  getParentRoute: () => settingsFormRoute,
   path: "/sba",
   component: SbaPage,
 });
@@ -176,31 +189,31 @@ const analyticsRoute = createRoute({
 });
 
 const settingsRoute = createRoute({
-  getParentRoute: () => shellRoute,
+  getParentRoute: () => settingsFormRoute,
   path: "/settings",
   component: SettingsHub,
 });
 
 const settingsSchoolRoute = createRoute({
-  getParentRoute: () => shellRoute,
+  getParentRoute: () => settingsFormRoute,
   path: "/settings/school",
   component: SettingsSchoolPage,
 });
 
 const settingsAcademicRoute = createRoute({
-  getParentRoute: () => shellRoute,
+  getParentRoute: () => settingsFormRoute,
   path: "/settings/academic",
   component: SettingsAcademicPage,
 });
 
 const settingsTemplatesRoute = createRoute({
-  getParentRoute: () => shellRoute,
+  getParentRoute: () => settingsFormRoute,
   path: "/settings/templates",
   component: SettingsTemplatesPage,
 });
 
 const settingsSecurityRoute = createRoute({
-  getParentRoute: () => shellRoute,
+  getParentRoute: () => settingsFormRoute,
   path: "/settings/security",
   component: SettingsSecurityPage,
 });
@@ -225,13 +238,15 @@ const printRoute = createRoute({
 export const routeTree = rootRoute.addChildren([
   shellRoute.addChildren([
     indexRoute,
-    sbaRoute,
     analyticsRoute,
-    settingsRoute,
-    settingsSchoolRoute,
-    settingsAcademicRoute,
-    settingsTemplatesRoute,
-    settingsSecurityRoute,
+    settingsFormRoute.addChildren([
+      sbaRoute,
+      settingsRoute,
+      settingsSchoolRoute,
+      settingsAcademicRoute,
+      settingsTemplatesRoute,
+      settingsSecurityRoute,
+    ]),
   ]),
   printRoute,
 ]);

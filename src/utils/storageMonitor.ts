@@ -3,7 +3,7 @@
  * Helps prevent QuotaExceededError and optimize storage efficiency
  */
 
-import { STORAGE_KEYS } from "./storage";
+import { IDB_KEYS as STORAGE_KEYS } from "./idbStorage";
 
 export interface StorageStats {
   usedBytes: number;
