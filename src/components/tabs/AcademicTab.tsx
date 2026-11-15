@@ -93,8 +93,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
                 </span>
                 <span className="flex items-center gap-1 text-xs text-blue-600">
                   <span className="hidden sm:inline">•</span>
-                  <span className="hidden sm:inline">Auto-saves on blur</span>
-                  <span className="animate-pulse sm:hidden">• Auto-saves</span>
+                  <span data-record="true">Changes auto-save</span>
                 </span>
               </div>
             </div>

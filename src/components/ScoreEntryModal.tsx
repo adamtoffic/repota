@@ -1,5 +1,5 @@
 // src/components/ScoreEntryModal.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, User, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
@@ -30,6 +30,7 @@ export function ScoreEntryModal({
 }: Props) {
   const [activeTab, setActiveTab] = useState<"ACADEMIC" | "DETAILS">(initialTab);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null); // null = show all
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   // Get all unique subjects from current student
   const availableSubjects = student.subjects.map((s) => s.name).sort();
@@ -60,8 +61,10 @@ export function ScoreEntryModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, hasNavigation, hasPrevious, hasNext, currentIndex, allStudents, onNavigate]);
 
-  // Swipe gestures for mobile
+  // Swipe gestures scoped to the open modal sheet (disabled inside inputs)
   useSwipe({
+    enabled: isOpen && Boolean(hasNavigation),
+    targetRef: modalContentRef,
     onSwipeLeft: () => {
       if (hasNavigation && hasNext) {
         onNavigate(allStudents[currentIndex + 1].id);
@@ -84,6 +87,7 @@ export function ScoreEntryModal({
       onClick={onClose}
     >
       <div
+        ref={modalContentRef}
         className="animate-sheet-up flex h-dvh max-h-dvh w-full max-w-4xl flex-col bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -232,6 +236,53 @@ export function ScoreEntryModal({
               <DetailsTab key={student.id} student={student} onUpdate={onUpdateStudent} />
             )}
           </div>
+        </div>
+
+        {/* MOBILE THUMB-ZONE FOOTER */}
+        <div
+          data-testid="mobile-modal-footer"
+          className="safe-bottom flex shrink-0 items-center justify-between gap-2 border-t border-gray-200 bg-white px-4 py-3 sm:hidden"
+        >
+          {hasNavigation ? (
+            <button
+              type="button"
+              onClick={() => hasPrevious && onNavigate(allStudents[currentIndex - 1].id)}
+              disabled={!hasPrevious}
+              aria-label="Previous student"
+              className="flex min-h-11 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 text-sm font-bold text-gray-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              data-record="true"
+            >
+              <ChevronLeft size={16} />
+              <span>Prev</span>
+            </button>
+          ) : (
+            <span />
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-primary hover:bg-primary/90 min-h-11 rounded-xl px-5 text-sm font-bold text-white shadow-sm active:scale-95"
+            data-record="true"
+          >
+            Done
+          </button>
+
+          {hasNavigation ? (
+            <button
+              type="button"
+              onClick={() => hasNext && onNavigate(allStudents[currentIndex + 1].id)}
+              disabled={!hasNext}
+              aria-label="Next student"
+              className="flex min-h-11 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 text-sm font-bold text-gray-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              data-record="true"
+            >
+              <span>Next</span>
+              <ChevronRight size={16} />
+            </button>
+          ) : (
+            <span />
+          )}
         </div>
       </div>
     </div>

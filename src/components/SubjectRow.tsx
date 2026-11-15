@@ -39,30 +39,34 @@ export function SubjectRow({
   const [showExamSaved, setShowExamSaved] = useState(false);
   const [classScoreError, setClassScoreError] = useState<string | null>(null);
   const [examScoreError, setExamScoreError] = useState<string | null>(null);
-  const classTimerRef = useRef<number | null>(null);
-  const examTimerRef = useRef<number | null>(null);
+  const timersRef = useRef<Record<string, number>>({});
 
-  // Track raw exam input (0-100) to avoid conversion rounding issues
-  const [examRawInput, setExamRawInput] = useState<string>(() =>
-    subject.examScore === 0 ? "" : Math.round((subject.examScore / maxExamScore) * 100).toString(),
-  );
+  // Track active typing draft paired with the score it committed, so external clears (e.g. Clear Scores) resync immediately
+  const [examDraft, setExamDraft] = useState<{ baseScore: number; raw: string } | null>(null);
+  const examRawInput =
+    examDraft !== null && examDraft.baseScore === subject.examScore
+      ? examDraft.raw
+      : subject.examScore === 0
+        ? ""
+        : Math.round((subject.examScore / maxExamScore) * 100).toString();
 
   // Cleanup timers on unmount
   useEffect(() => {
-    const classTimer = classTimerRef.current;
-    const examTimer = examTimerRef.current;
-
+    const timers = timersRef.current;
     return () => {
-      if (classTimer) clearTimeout(classTimer);
-      if (examTimer) clearTimeout(examTimer);
+      Object.values(timers).forEach(clearTimeout);
     };
   }, []);
 
+  const scheduleTimer = (key: string, fn: () => void, ms: number) => {
+    if (timersRef.current[key]) clearTimeout(timersRef.current[key]);
+    timersRef.current[key] = window.setTimeout(fn, ms);
+  };
+
   // Update component score (read-only management - components managed in Settings)
   const handleExamChange = (value: string) => {
-    setExamRawInput(value); // Store raw input
-
     if (value === "") {
+      setExamDraft({ baseScore: 0, raw: "" });
       onChange({ ...subject, examScore: 0 });
       setExamScoreError(null);
       return;
@@ -74,11 +78,11 @@ export function SubjectRow({
     if (rawScore > 100) {
       setExamScoreError(`Auto-clamped to 100`);
       const clampedRaw = Math.min(rawScore, 100);
-      const convertedScore = (clampedRaw / 100) * maxExamScore;
-      onChange({ ...subject, examScore: Math.round(convertedScore) });
+      const convertedScore = Math.round((clampedRaw / 100) * maxExamScore);
+      setExamDraft({ baseScore: convertedScore, raw: String(clampedRaw) });
+      onChange({ ...subject, examScore: convertedScore });
 
-      // Clear error message after 2 seconds
-      setTimeout(() => setExamScoreError(null), 2000);
+      scheduleTimer("examError", () => setExamScoreError(null), 2000);
       return;
     }
 
@@ -86,9 +90,10 @@ export function SubjectRow({
     // Clamp to 0-100
     const clampedRaw = Math.min(Math.max(rawScore, 0), 100);
     // Convert to percentage of maxExamScore
-    const convertedScore = (clampedRaw / 100) * maxExamScore;
+    const convertedScore = Math.round((clampedRaw / 100) * maxExamScore);
 
-    onChange({ ...subject, examScore: Math.round(convertedScore) });
+    setExamDraft({ baseScore: convertedScore, raw: value });
+    onChange({ ...subject, examScore: convertedScore });
   };
 
   // Handle class score - direct entry when no components
@@ -109,8 +114,7 @@ export function SubjectRow({
       const clampedScore = Math.min(rawScore, maxClassScore);
       onChange({ ...subject, classScore: Math.round(clampedScore) });
 
-      // Clear error message after 2 seconds
-      setTimeout(() => setClassScoreError(null), 2000);
+      scheduleTimer("classError", () => setClassScoreError(null), 2000);
       return;
     }
 
@@ -152,19 +156,14 @@ export function SubjectRow({
 
   // Save on blur with instant visual feedback
   const handleBlur = (field: "classScore" | "examScore") => {
+    if (field === "examScore") {
+      setExamDraft(null);
+    }
     const setShow = field === "classScore" ? setShowClassSaved : setShowExamSaved;
-    const timerRef = field === "classScore" ? classTimerRef : examTimerRef;
 
-    // Clear existing timer
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    // Show checkmark
+    // Show checkmark and auto-hide after 2 seconds
     setShow(true);
-
-    // Hide after 2 seconds
-    timerRef.current = window.setTimeout(() => {
-      setShow(false);
-    }, 2000);
+    scheduleTimer(field, () => setShow(false), 2000);
   };
 
   return (
@@ -239,6 +238,7 @@ export function SubjectRow({
                     inputMode="numeric"
                     min="0"
                     max={maxClassScore}
+                    aria-label={`${subject.name} Class Score`}
                     value={subject.classScore === 0 ? "" : subject.classScore}
                     onChange={(e) => handleClassChange(e.target.value)}
                     onBlur={() => handleBlur("classScore")}
@@ -287,6 +287,7 @@ export function SubjectRow({
                   inputMode="numeric"
                   min="0"
                   max="100"
+                  aria-label={`${subject.name} Exam Score`}
                   value={examRawInput}
                   onChange={(e) => handleExamChange(e.target.value)}
                   onBlur={() => handleBlur("examScore")}
