@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Lock, AlertCircle, KeyRound, Fingerprint } from "lucide-react";
-import { verifyPin } from "../utils/pinSecurity";
+import {
+  clearPinLockout,
+  getPinLockoutStatus,
+  recordFailedPinAttempt,
+  verifyPin,
+} from "../utils/pinSecurity";
 import {
   isBiometricEnrolled,
   verifyBiometric,
@@ -23,6 +28,21 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
   const [showBiometricButton, setShowBiometricButton] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputReady, setInputReady] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(() =>
+    Math.ceil(getPinLockoutStatus().remainingMs / 1000),
+  );
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      const remaining = Math.ceil(getPinLockoutStatus().remainingMs / 1000);
+      setCooldownSeconds(remaining);
+      if (remaining <= 0) {
+        setError("");
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
 
   const checkAndPromptBiometric = async () => {
     if (isBiometricEnrolled()) {
@@ -46,6 +66,7 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
       const { success, error: biometricError } = await verifyBiometric();
 
       if (success) {
+        clearPinLockout();
         setIsUnlocking(true);
         setTimeout(() => {
           onUnlock();
@@ -84,6 +105,8 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
   }, [inputReady, isUnlocking]);
 
   const handlePinChange = (value: string) => {
+    if (cooldownSeconds > 0 || isVerifying || isUnlocking) return;
+
     // Only allow numeric input
     const numericValue = value.replace(/\D/g, "").slice(0, 4);
     setPin(numericValue);
@@ -93,19 +116,26 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
     if (numericValue.length === 4) {
       // Small delay for better UX on mobile
       setTimeout(() => {
-        verifyPinCode(numericValue);
+        void verifyPinCode(numericValue);
       }, 100);
     }
   };
 
   const handleInputClick = () => {
     // Ensure keyboard opens on iOS
-    if (inputRef.current) {
+    if (inputRef.current && cooldownSeconds <= 0) {
       inputRef.current.focus();
     }
   };
 
   const verifyPinCode = async (pinToVerify: string) => {
+    const status = getPinLockoutStatus();
+    if (status.isLockedOut) {
+      setCooldownSeconds(Math.ceil(status.remainingMs / 1000));
+      setPin("");
+      return;
+    }
+
     setIsVerifying(true);
     const isValid = await verifyPin(pinToVerify);
 
@@ -116,7 +146,17 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
         onUnlock();
       }, 400);
     } else {
-      setError("Incorrect PIN");
+      const lockout = recordFailedPinAttempt();
+      const remainingSeconds = Math.ceil(lockout.remainingMs / 1000);
+      if (lockout.isLockedOut && remainingSeconds > 0) {
+        setCooldownSeconds(remainingSeconds);
+        setError(`Too many incorrect attempts. Try again in ${remainingSeconds}s.`);
+      } else if (lockout.failedAttempts >= 3) {
+        const attemptsLeft = Math.max(1, 5 - lockout.failedAttempts);
+        setError(`Incorrect PIN (${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} before pause)`);
+      } else {
+        setError("Incorrect PIN");
+      }
       setShake(true);
       setPin("");
       setIsVerifying(false);
@@ -172,8 +212,10 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
               value={pin}
               onChange={(e) => handlePinChange(e.target.value)}
               onClick={handleInputClick}
-              onFocus={() => setError("")}
-              disabled={isVerifying || isUnlocking}
+              onFocus={() => {
+                if (cooldownSeconds <= 0) setError("");
+              }}
+              disabled={isVerifying || isUnlocking || cooldownSeconds > 0}
               className="w-full rounded-2xl border-2 border-amber-400/50 bg-white/20 p-6 text-center text-5xl font-bold tracking-[0.5em] text-white placeholder-amber-100/40 shadow-2xl backdrop-blur-xl transition-all outline-none focus:border-amber-400 focus:bg-white/30 focus:ring-4 focus:ring-amber-400/30 disabled:opacity-60"
               style={{
                 WebkitAppearance: "none",
@@ -193,11 +235,15 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
             </div>
           </div>
 
-          {/* Error Message with slide animation */}
-          {error && (
+          {/* Error / Cooldown Message with slide animation */}
+          {(cooldownSeconds > 0 || error) && (
             <div className="animate-in slide-in-from-top-2 mt-4 flex items-center justify-center gap-2 rounded-xl bg-red-600/95 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm duration-300">
               <AlertCircle className="h-5 w-5 shrink-0" />
-              <span>{error}</span>
+              <span>
+                {cooldownSeconds > 0
+                  ? `Too many incorrect attempts. Try again in ${cooldownSeconds}s or use Forgot PIN.`
+                  : error}
+              </span>
             </div>
           )}
         </div>
