@@ -10,6 +10,7 @@ interface Props {
 export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [timeAgo, setTimeAgo] = useState("");
+  const [dismissedSavedTime, setDismissedSavedTime] = useState<number | null>(null);
 
   // Monitor online status
   useEffect(() => {
@@ -51,11 +52,23 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
     return () => clearInterval(interval);
   }, [lastSaved]);
 
-  // Don't show anything if never saved and not currently saving
-  if (!isSaving && !lastSaved && !error) return null;
+  // Auto-hide transient "Saved" pill after 3.5s while keeping errors/offline/saving visible
+  useEffect(() => {
+    if (!lastSaved) return;
+    const savedTimestamp = lastSaved.getTime();
+    const hideTimer = setTimeout(() => {
+      setDismissedSavedTime(savedTimestamp);
+    }, 3500);
+    return () => clearTimeout(hideTimer);
+  }, [lastSaved]);
+
+  const isSavedRecentlyVisible =
+    Boolean(lastSaved) && dismissedSavedTime !== lastSaved?.getTime();
+
+  if (!isSaving && !error && isOnline && !isSavedRecentlyVisible) return null;
 
   return (
-    <div className="animate-fade-in fixed bottom-20 left-4 z-30 md:bottom-6 md:left-72 print:hidden">
+    <div className="animate-fade-in bottom-safe-nav fixed left-4 z-30 md:left-72 print:hidden">
       <div
         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium shadow-lg ${
           error

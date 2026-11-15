@@ -113,6 +113,22 @@ body.modal-open {
       env(safe-area-inset-left);
   }
 
+  /* Bottom navigation bar clearance for standalone PWAs (4rem nav + 1rem gap + safe-area-inset-bottom) */
+  .bottom-safe-nav {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .pb-safe-nav {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 768px) {
+    .bottom-safe-nav {
+      bottom: 1.5rem;
+    }
+    .pb-safe-nav {
+      padding-bottom: 0;
+    }
+  }
+
   /* 🎨 GRADIENT UTILITIES */
   .gradient-shine {
     background: linear-gradient(135deg, var(--color-primary) 0%, #3b82f6 100%);

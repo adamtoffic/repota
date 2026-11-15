@@ -137,7 +137,7 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Main Content Viewport */}
-      <div className="flex min-h-screen flex-col pb-20 md:pb-0 md:pl-64 print:pb-0 print:pl-0">
+      <div className="pb-safe-nav flex min-h-screen flex-col md:pl-64 print:pb-0 print:pl-0">
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </div>
 
