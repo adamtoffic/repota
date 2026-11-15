@@ -70,7 +70,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} debounce={50} className="chart-gpu-line">
       <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -96,7 +96,7 @@ export const LineChart: React.FC<LineChartProps> = ({
             dataKey="value"
             fill="url(#areaGradient)"
             stroke="none"
-            animationDuration={800}
+            isAnimationActive={false}
           />
         )}
         <Line
@@ -106,7 +106,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           strokeWidth={3}
           dot={showDots ? { fill: color, r: 4 } : false}
           activeDot={{ r: 6, fill: color }}
-          animationDuration={800}
+          isAnimationActive={false}
         />
       </ComposedChart>
     </ResponsiveContainer>

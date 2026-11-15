@@ -29,8 +29,7 @@ const SETTINGS_QUICK_LINKS = [
 
 export function AppShell({ children }: AppShellProps) {
   const { settings, students, isSaving, lastSaved } = useSchoolData();
-  const location = useLocation();
-  const pathname = location.pathname;
+  const pathname = useLocation({ select: (location) => location.pathname });
 
   const isHomeActive = pathname === "/";
   const isSbaActive = pathname.startsWith("/sba");
@@ -82,6 +81,7 @@ export function AppShell({ children }: AppShellProps) {
               <Link
                 key={item.to}
                 to={item.to}
+                preload={false}
                 aria-current={item.isActive ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                   item.isActive
@@ -158,6 +158,7 @@ export function AppShell({ children }: AppShellProps) {
               <Link
                 key={item.to}
                 to={item.to}
+                preload={false}
                 aria-current={item.isActive ? "page" : undefined}
                 onClick={() => triggerHaptic("light")}
                 className={`group flex touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl py-1 text-[11px] select-none ${
@@ -166,7 +167,7 @@ export function AppShell({ children }: AppShellProps) {
                 data-record="true"
               >
                 <span
-                  className={`pointer-events-none flex h-7 w-12 items-center justify-center rounded-full transition-transform duration-150 group-active:scale-95 ${
+                  className={`spring-tab pointer-events-none flex h-7 w-12 items-center justify-center rounded-full group-active:scale-95 ${
                     item.isActive ? "text-primary -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs" : ""
                   }`}
                 >

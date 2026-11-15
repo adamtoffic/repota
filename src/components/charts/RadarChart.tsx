@@ -61,7 +61,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} debounce={50} className="chart-gpu-radar">
       <RechartsRadarChart data={chartData}>
         <PolarGrid stroke="#e5e7eb" />
         <PolarAngleAxis dataKey="subject" tick={{ fill: "#6b7280", fontSize: 11 }} />

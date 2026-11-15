@@ -81,7 +81,7 @@ export const BarChart: React.FC<BarChartProps> = ({
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} debounce={50} className="chart-gpu-bars">
       <RechartsBarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
         {gradient && (
           <defs>

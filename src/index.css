@@ -226,6 +226,98 @@ body.modal-open {
     box-shadow 200ms ease;
 }
 
+/* 📊 GPU-COMPOSITED CHART ANIMATIONS (0 React setState calls) */
+@keyframes chartBarGrow {
+  from {
+    opacity: 0;
+    transform: scaleY(0.06);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes chartPieEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.86) rotate(-6deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes chartRadarEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chartLineEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-gpu-bars .recharts-bar-rectangle {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: chartBarGrow 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(2) {
+  animation-delay: 20ms;
+}
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(3) {
+  animation-delay: 40ms;
+}
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(4) {
+  animation-delay: 60ms;
+}
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(5) {
+  animation-delay: 80ms;
+}
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(6) {
+  animation-delay: 100ms;
+}
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(7) {
+  animation-delay: 120ms;
+}
+.chart-gpu-bars .recharts-bar-rectangle:nth-child(8) {
+  animation-delay: 140ms;
+}
+
+.chart-gpu-bars .recharts-label-list,
+.chart-gpu-bars .recharts-line,
+.chart-gpu-line .recharts-line,
+.chart-gpu-line .recharts-area {
+  animation: chartLineEnter 0.38s cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+.chart-gpu-pie .recharts-pie {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chartPieEnter 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chart-gpu-radar .recharts-radar-polygon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chartRadarEnter 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -41,7 +41,7 @@ export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend
 
   return (
     <div className="flex flex-col gap-4">
-      <ResponsiveContainer width="100%" height={size}>
+      <ResponsiveContainer width="100%" height={size} debounce={50} className="chart-gpu-pie">
         <RechartsPieChart>
           <Pie
             data={chartData}

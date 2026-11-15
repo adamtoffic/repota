@@ -63,7 +63,7 @@ export const ComposedChart: React.FC<ComposedChartProps> = ({
   height = 300,
 }) => {
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} debounce={50} className="chart-gpu-bars">
       <RechartsComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
         <XAxis
