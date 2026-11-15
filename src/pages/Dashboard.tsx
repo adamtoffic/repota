@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { HelpCircle, X, Printer, Plus } from "lucide-react";
+import { HelpCircle, X, Printer, Plus, List, TableProperties } from "lucide-react";
 import {
   useSchoolActions,
   useSchoolSettings,
@@ -7,6 +7,7 @@ import {
 } from "../hooks/useSchoolData";
 import { AddStudentModal } from "../components/AddStudentModal";
 import { StudentList } from "../components/StudentList";
+import { QuickGradebook } from "../components/QuickGradebook";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { DashboardStats } from "../components/DashboardStats";
 import { DashboardToolbar } from "../components/DashboardToolbar";
@@ -63,10 +64,11 @@ export function Dashboard() {
     total: number;
   }>({ isOpen: false, current: 0, total: 0 });
 
-  // Search, Filter & Sort State
+  // Search, Filter, Sort & Entry Mode State
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<DashboardFilter>("ALL");
   const [sortBy, setSortBy] = useState<StudentSortOption>("DEFAULT");
+  const [entryViewMode, setEntryViewMode] = useState<"LIST" | "GRADEBOOK">("LIST");
 
   // Debounce Search Logic
   const debounceSearch = useDebounce(searchQuery, 300);
@@ -285,15 +287,63 @@ export function Dashboard() {
                 </button>
               </div>
             ) : (
-              <StudentList
-                students={filteredStudents}
-                onAddStudent={addStudent}
-                onDeleteStudent={deleteStudent}
-                onEditStudent={(s) => setEditingStudentId(s.id)}
-                onImport={() => setShowImportModal(true)}
-                isAddModalOpen={isAddModalOpen}
-                onOpenAddModalChange={setIsAddModalOpen}
-              />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div
+                    role="group"
+                    aria-label="Workspace entry view"
+                    className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setEntryViewMode("LIST")}
+                      aria-pressed={entryViewMode === "LIST"}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                        entryViewMode === "LIST"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                      data-record="true"
+                    >
+                      <List className="h-3.5 w-3.5" />
+                      <span>Student List</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEntryViewMode("GRADEBOOK")}
+                      aria-pressed={entryViewMode === "GRADEBOOK"}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                        entryViewMode === "GRADEBOOK"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                      data-record="true"
+                    >
+                      <TableProperties className="h-3.5 w-3.5" />
+                      <span>Quick Gradebook</span>
+                    </button>
+                  </div>
+                </div>
+
+                {entryViewMode === "GRADEBOOK" ? (
+                  <QuickGradebook
+                    students={filteredStudents}
+                    settings={settings}
+                    onUpdateStudent={updateStudent}
+                    onOpenStudent={(s) => setEditingStudentId(s.id)}
+                  />
+                ) : (
+                  <StudentList
+                    students={filteredStudents}
+                    onAddStudent={addStudent}
+                    onDeleteStudent={deleteStudent}
+                    onEditStudent={(s) => setEditingStudentId(s.id)}
+                    onImport={() => setShowImportModal(true)}
+                    isAddModalOpen={isAddModalOpen}
+                    onOpenAddModalChange={setIsAddModalOpen}
+                  />
+                )}
+              </div>
             )}
           </>
         )}

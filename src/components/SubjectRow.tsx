@@ -4,6 +4,12 @@ import { Link } from "@tanstack/react-router";
 import { Trash2, Check, ChevronDown, ChevronUp } from "lucide-react";
 import type { SavedSubject, SchoolLevel, ClassScoreComponentConfig } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
+import {
+  clampDirectClassScore,
+  convertExamRawToWeighted,
+  formatExamWeightedAsRaw,
+  updateComponentAndRecalculateClassScore,
+} from "../utils/scoreConversion";
 
 interface Props {
   subject: SavedSubject;
@@ -46,9 +52,7 @@ export function SubjectRow({
   const examRawInput =
     examDraft !== null && examDraft.baseScore === subject.examScore
       ? examDraft.raw
-      : subject.examScore === 0
-        ? ""
-        : Math.round((subject.examScore / maxExamScore) * 100).toString();
+      : formatExamWeightedAsRaw(subject.examScore, maxExamScore);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -72,28 +76,22 @@ export function SubjectRow({
       return;
     }
 
-    const rawScore = Number(value);
+    const { clampedRaw, wasClamped, weightedScore } = convertExamRawToWeighted(
+      Number(value),
+      maxExamScore,
+    );
 
-    // Auto-clamp instead of blocking - better UX
-    if (rawScore > 100) {
+    if (wasClamped) {
       setExamScoreError(`Auto-clamped to 100`);
-      const clampedRaw = Math.min(rawScore, 100);
-      const convertedScore = Math.round((clampedRaw / 100) * maxExamScore);
-      setExamDraft({ baseScore: convertedScore, raw: String(clampedRaw) });
-      onChange({ ...subject, examScore: convertedScore });
-
+      setExamDraft({ baseScore: weightedScore, raw: String(clampedRaw) });
+      onChange({ ...subject, examScore: weightedScore });
       scheduleTimer("examError", () => setExamScoreError(null), 2000);
       return;
     }
 
     setExamScoreError(null);
-    // Clamp to 0-100
-    const clampedRaw = Math.min(Math.max(rawScore, 0), 100);
-    // Convert to percentage of maxExamScore
-    const convertedScore = Math.round((clampedRaw / 100) * maxExamScore);
-
-    setExamDraft({ baseScore: convertedScore, raw: value });
-    onChange({ ...subject, examScore: convertedScore });
+    setExamDraft({ baseScore: weightedScore, raw: value });
+    onChange({ ...subject, examScore: weightedScore });
   };
 
   // Handle class score - direct entry when no components
@@ -106,51 +104,35 @@ export function SubjectRow({
       return;
     }
 
-    const rawScore = Number(value);
+    const { score, wasClamped } = clampDirectClassScore(Number(value), maxClassScore);
 
-    // Auto-clamp instead of blocking - better UX
-    if (rawScore > maxClassScore) {
+    if (wasClamped) {
       setClassScoreError(`Auto-clamped to max (${maxClassScore})`);
-      const clampedScore = Math.min(rawScore, maxClassScore);
-      onChange({ ...subject, classScore: Math.round(clampedScore) });
-
+      onChange({ ...subject, classScore: score });
       scheduleTimer("classError", () => setClassScoreError(null), 2000);
       return;
     }
 
     setClassScoreError(null);
-    // Clamp to 0-maxClassScore (direct entry, no conversion)
-    const clampedScore = Math.min(Math.max(rawScore, 0), maxClassScore);
-
-    onChange({ ...subject, classScore: Math.round(clampedScore) });
+    onChange({ ...subject, classScore: score });
   };
 
   // Handle individual component score change
-  const handleComponentChange = (componentId: string, value: string, componentMaxScore: number) => {
+  const handleComponentChange = (componentId: string, value: string) => {
     if (!subject.classScoreComponents) return;
 
     const rawScore = value === "" ? 0 : Number(value);
-    // Clamp to 0-componentMaxScore
-    const clampedScore = Math.min(Math.max(rawScore, 0), componentMaxScore);
-
-    const updatedComponents = subject.classScoreComponents.map((comp) =>
-      comp.id === componentId ? { ...comp, score: clampedScore } : comp,
+    const { updatedComponents, classScore } = updateComponentAndRecalculateClassScore(
+      subject.classScoreComponents,
+      componentId,
+      rawScore,
+      maxClassScore,
     );
-
-    // Sum all actual scores and all max scores
-    const totalActualScore = updatedComponents.reduce((sum, comp) => sum + comp.score, 0);
-    const totalMaxScore = updatedComponents.reduce((sum, comp) => sum + comp.maxScore, 0);
-
-    // Calculate class score: (actualTotal / maxTotal) × classScoreMax
-    // e.g., Assignment: 8/10, Project: 25/30, Test: 18/20 = 51/60 = 85%
-    // If classScoreMax is 40, then: 0.85 × 40 = 34
-    const percentageAchieved = totalMaxScore > 0 ? totalActualScore / totalMaxScore : 0;
-    const convertedClassScore = percentageAchieved * maxClassScore;
 
     onChange({
       ...subject,
       classScoreComponents: updatedComponents,
-      classScore: Math.round(convertedClassScore),
+      classScore,
     });
   };
 
@@ -386,9 +368,7 @@ export function SubjectRow({
                     min="0"
                     max={component.maxScore}
                     value={component.score === 0 ? "" : component.score}
-                    onChange={(e) =>
-                      handleComponentChange(component.id, e.target.value, component.maxScore)
-                    }
+                    onChange={(e) => handleComponentChange(component.id, e.target.value)}
                     className="w-full rounded-lg border border-purple-300 p-2.5 text-center text-base font-bold transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                     placeholder={`/${component.maxScore}`}
                   />
