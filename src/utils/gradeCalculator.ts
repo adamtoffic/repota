@@ -110,8 +110,8 @@ const gradeToNumber = (grade: Grade): number => {
 };
 
 const calculateAggregate = (subjects: ProcessedSubject[], level: SchoolLevel): number | null => {
-  // KG and Primary DO NOT use aggregate
-  if (level === "KG") return null;
+  // KG and students with no subjects DO NOT produce an aggregate
+  if (level === "KG" || subjects.length === 0) return null;
 
   // 1. Separate Cores and Electives
   const cores = subjects.filter((s) => isCoreSubject(s.name, level));

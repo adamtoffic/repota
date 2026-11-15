@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { calculateGrade, processStudent } from "../utils/gradeCalculator";
+import {
+  assignPositions,
+  assignSubjectPositions,
+  calculateGrade,
+  processStudent,
+} from "../utils/gradeCalculator";
 import type { StudentRecord } from "../types";
 
 describe("calculateGrade", () => {
@@ -176,5 +181,159 @@ describe("processStudent", () => {
     const result = processStudent(student, "SHS");
     expect(result.subjects).toHaveLength(0);
     expect(result.averageScore).toBe(0);
+    expect(result.aggregate).toBeNull();
+  });
+
+  describe("Aggregates across school levels", () => {
+    it("returns null aggregate for KG and for PRIMARY with no subjects", () => {
+      const kgStudent: StudentRecord = {
+        id: "kg-1",
+        name: "KG Learner",
+        className: "KG 2",
+        subjects: [{ id: "1", name: "Numeracy", classScore: 45, examScore: 45 }],
+      };
+      expect(processStudent(kgStudent, "KG").aggregate).toBeNull();
+
+      const emptyPrimary: StudentRecord = {
+        id: "pri-0",
+        name: "Primary Empty",
+        className: "Basic 4",
+        subjects: [],
+      };
+      expect(processStudent(emptyPrimary, "PRIMARY").aggregate).toBeNull();
+    });
+
+    it("computes JHS aggregate as 4 Core subjects plus Best 2 Electives", () => {
+      const jhsStudent: StudentRecord = {
+        id: "jhs-1",
+        name: "JHS Candidate",
+        className: "JHS 3",
+        subjects: [
+          { id: "1", name: "English Language", classScore: 45, examScore: 45 }, // 90 -> 1
+          { id: "2", name: "Mathematics", classScore: 40, examScore: 42 }, // 82 -> 2
+          { id: "3", name: "Integrated Science", classScore: 40, examScore: 40 }, // 80 -> 2
+          { id: "4", name: "Social Studies", classScore: 35, examScore: 38 }, // 73 -> 3
+          { id: "5", name: "Computing", classScore: 46, examScore: 46 }, // 92 -> 1 (Best elective)
+          { id: "6", name: "RME", classScore: 40, examScore: 40 }, // 80 -> 2 (2nd best elective)
+          { id: "7", name: "French", classScore: 25, examScore: 25 }, // 50 -> 6 (Ignored)
+        ],
+      };
+
+      const result = processStudent(jhsStudent, "JHS");
+      expect(result.aggregate).toBe(1 + 2 + 2 + 3 + 1 + 2); // 11
+    });
+
+    it("computes SHS aggregate as English + Core Math + best 3rd core + Best 3 Electives", () => {
+      const shsStudent: StudentRecord = {
+        id: "shs-1",
+        name: "SHS Candidate",
+        className: "SHS 2",
+        subjects: [
+          { id: "1", name: "English Language", classScore: 40, examScore: 42 }, // 82 -> A1 (1)
+          { id: "2", name: "Core Mathematics", classScore: 38, examScore: 38 }, // 76 -> B2 (2)
+          { id: "3", name: "Integrated Science", classScore: 36, examScore: 36 }, // 72 -> B3 (3)
+          { id: "4", name: "Social Studies", classScore: 25, examScore: 25 }, // 50 -> D7 (7, weaker than Science)
+          { id: "5", name: "Physics", classScore: 42, examScore: 42 }, // 84 -> A1 (1)
+          { id: "6", name: "Chemistry", classScore: 38, examScore: 38 }, // 76 -> B2 (2)
+          { id: "7", name: "Biology", classScore: 35, examScore: 35 }, // 70 -> B3 (3)
+          { id: "8", name: "Elective Math", classScore: 20, examScore: 25 }, // 45 -> E8 (8, ignored)
+        ],
+      };
+
+      const result = processStudent(shsStudent, "SHS");
+      expect(result.aggregate).toBe(1 + 2 + 3 + 1 + 2 + 3); // 12
+    });
+  });
+
+  describe("Class & Subject Ranking with Tie-Breaking", () => {
+    it("assigns class positions descending with competition ties and ordinal suffixes", () => {
+      const makeRaw = (id: string, avgTotal: number): StudentRecord => ({
+        id,
+        name: `Student ${id}`,
+        className: "JHS 2",
+        subjects: [
+          {
+            id: `sub-${id}`,
+            name: "Mathematics",
+            classScore: Math.floor(avgTotal / 2),
+            examScore: avgTotal - Math.floor(avgTotal / 2),
+          },
+        ],
+      });
+
+      const records = [
+        makeRaw("low", 50),
+        makeRaw("tieA", 90),
+        makeRaw("tieB", 90),
+        makeRaw("fourth", 75),
+      ];
+
+      // Add extra students so we test 11th/12th/13th/21st ordinals cleanly too
+      const many = [
+        ...records,
+        ...Array.from({ length: 18 }, (_, i) => makeRaw(`pad-${i}`, 40 - i)),
+      ];
+      const ranked = assignPositions(many.map((s) => processStudent(s, "JHS")));
+      const byId = new Map(ranked.map((s) => [s.id, s]));
+
+      expect(byId.get("tieA")?.classPosition).toBe("1st");
+      expect(byId.get("tieB")?.classPosition).toBe("1st");
+      expect(byId.get("fourth")?.classPosition).toBe("3rd");
+      expect(byId.get("low")?.classPosition).toBe("4th");
+      expect(ranked[10].classPosition).toBe("11th");
+      expect(ranked[11].classPosition).toBe("12th");
+      expect(ranked[12].classPosition).toBe("13th");
+      expect(ranked[20].classPosition).toBe("21st");
+    });
+
+    it("assigns per-subject positions with tie-breaking across uneven student subject lists", () => {
+      const s1 = processStudent(
+        {
+          id: "s1",
+          name: "Ama",
+          className: "JHS 1",
+          subjects: [
+            { id: "m1", name: "Mathematics", classScore: 40, examScore: 40 }, // 80 (tie 1st)
+            { id: "e1", name: "English", classScore: 30, examScore: 30 }, // 60 (2nd)
+          ],
+        },
+        "JHS",
+      );
+      const s2 = processStudent(
+        {
+          id: "s2",
+          name: "Kofi",
+          className: "JHS 1",
+          subjects: [
+            { id: "m2", name: "Mathematics", classScore: 40, examScore: 40 }, // 80 (tie 1st)
+            { id: "e2", name: "English", classScore: 45, examScore: 45 }, // 90 (1st)
+          ],
+        },
+        "JHS",
+      );
+      const s3 = processStudent(
+        {
+          id: "s3",
+          name: "Yaa",
+          className: "JHS 1",
+          subjects: [
+            { id: "m3", name: "Mathematics", classScore: 35, examScore: 35 }, // 70 (3rd)
+          ],
+        },
+        "JHS",
+      );
+
+      const withSubjectRanks = assignSubjectPositions([s1, s2, s3]);
+      const getSubjectPos = (stuId: string, subName: string) =>
+        withSubjectRanks
+          .find((s) => s.id === stuId)
+          ?.subjects.find((sub) => sub.name === subName)?.subjectPosition;
+
+      expect(getSubjectPos("s1", "Mathematics")).toBe("1st");
+      expect(getSubjectPos("s2", "Mathematics")).toBe("1st");
+      expect(getSubjectPos("s3", "Mathematics")).toBe("3rd");
+      expect(getSubjectPos("s2", "English")).toBe("1st");
+      expect(getSubjectPos("s1", "English")).toBe("2nd");
+    });
   });
 });

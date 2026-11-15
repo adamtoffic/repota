@@ -20,8 +20,11 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
 
     const escapeCsv = (value: string | number | null | undefined): string => {
       if (value === null || value === undefined) return "";
-      const stringValue = String(value).replace(/"/g, '""');
-      return `"${stringValue}"`;
+      const rawString = String(value);
+      // Neutralize spreadsheet formula prefixes (=, +, -, @, tab, CR) on text cells
+      const safeString =
+        typeof value === "string" && /^[=+\-@\t\r]/.test(rawString) ? `'${rawString}` : rawString;
+      return `"${safeString.replace(/"/g, '""')}"`;
     };
 
     // 3. Map Data

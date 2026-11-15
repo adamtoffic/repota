@@ -169,7 +169,11 @@ export function SchoolProvider({
   const handleSetStudents: React.Dispatch<React.SetStateAction<StudentRecord[]>> = useCallback(
     (value) => {
       setUnsavedChanges("school-context-debounce", true);
-      setStudents(value);
+      setStudents((prev) => {
+        const next = typeof value === "function" ? value(prev) : value;
+        studentsRef.current = next;
+        return next;
+      });
     },
     [],
   );

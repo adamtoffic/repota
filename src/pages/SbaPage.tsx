@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, Calculator, Download, RefreshCw } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
@@ -26,7 +25,7 @@ function SbaPageContent() {
     useSchoolData();
   const { showToast } = useToast();
 
-  const mismatch = useMemo(() => detectComponentMismatches(), [detectComponentMismatches]);
+  const mismatch = detectComponentMismatches();
   const hasMismatches = mismatch.hasOutdated || mismatch.hasMissing;
 
   const handleExportScores = () => {
