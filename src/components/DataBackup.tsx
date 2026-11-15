@@ -19,7 +19,13 @@ import {
   saveEntriesToStorage,
   IDB_KEYS,
 } from "../utils/idbStorage";
-import { encryptBackupFile, decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
+import {
+  encryptAppSealedBackup,
+  encryptBackupFile,
+  decryptBackupFile,
+  isEncryptedFile,
+  requiresPassword,
+} from "../utils/fileEncryption";
 import { Input } from "./ui";
 import { useSchoolData } from "../hooks/useSchoolData";
 import {
@@ -127,6 +133,9 @@ export function DataBackup({
   const [showPassword, setShowPassword] = useState(false);
   const [showExportPasswordModal, setShowExportPasswordModal] = useState(false);
 
+  // Empty export confirmation state
+  const [showEmptyExportConfirm, setShowEmptyExportConfirm] = useState(false);
+
   // Import password state
   const [showImportPasswordModal, setShowImportPasswordModal] = useState(false);
   const [importPassword, setImportPassword] = useState("");
@@ -136,39 +145,41 @@ export function DataBackup({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const resetExportPasswordState = () => {
+    setShowExportPasswordModal(false);
+    setPassword("");
+    setConfirmPassword("");
+    setPasswordHint("");
+  };
+
+  const triggerBlobDownload = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // 1. EXPORT HANDLER - Opens password modal or exports directly
   const initiateExport = () => {
     if (usePassword) {
       setShowExportPasswordModal(true);
     } else {
-      handleExport();
+      void handleExport();
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (skipEmptyCheck = false) => {
     try {
       if (loadError || isRollbackIncomplete) {
         throw new Error("Data could not be read. Please use Try again before exporting.");
       }
-      const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
-      const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);
-      if (studentsResult.status === "error" || settingsResult.status === "error") {
-        throw new Error("Data could not be read. Please use Try again before exporting.");
-      }
-      const parsedStudents = studentsResult.status === "found" ? studentsResult.value : [];
-      const parsedSettings = settingsResult.status === "found" ? settingsResult.value : {};
-      if (parsedStudents.length === 0 && !window.confirm("No students found. This backup will contain no students.")) {
-        return;
-      }
 
-      const backup = createBackupPayload(parsedStudents, parsedSettings);
-
-      let finalData: unknown = backup;
-      let fileExtension = "json";
-
-      // Encrypt if password is provided
-      if (usePassword && password) {
-        if (password.length < 4) {
+      if (usePassword) {
+        if (!password || password.length < 4) {
           showToast("Password must be at least 4 characters", "error");
           return;
         }
@@ -176,47 +187,82 @@ export function DataBackup({
           showToast("Passwords do not match", "error");
           return;
         }
-
-        finalData = await encryptBackupFile(backup, password, passwordHint || undefined);
-        fileExtension = "repota"; // Encrypted files get .repota extension
-        showToast("File encrypted successfully! 🔒", "success");
       }
 
-      const blob = new Blob([JSON.stringify(finalData, null, 2)], {
-        type: "application/json",
+      const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
+      const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);
+      if (studentsResult.status === "error" || settingsResult.status === "error") {
+        throw new Error("Data could not be read. Please use Try again before exporting.");
+      }
+      const parsedStudents = studentsResult.status === "found" ? studentsResult.value : [];
+      const parsedSettings = settingsResult.status === "found" ? settingsResult.value : {};
+      if (parsedStudents.length === 0 && !skipEmptyCheck) {
+        setShowExportPasswordModal(false);
+        setShowEmptyExportConfirm(true);
+        return;
+      }
+
+      const backup = createBackupPayload(parsedStudents, parsedSettings);
+
+      // Every saved .repota file is AES-256-GCM encrypted (app-sealed by default, or password-locked).
+      const finalData =
+        usePassword && password
+          ? await encryptBackupFile(backup, password, passwordHint || undefined)
+          : await encryptAppSealedBackup(backup);
+
+      const serialized = JSON.stringify(finalData);
+      const blob = new Blob([serialized], {
+        type: "application/octet-stream",
       });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
 
       const schoolName = (parsedSettings.schoolName as string) || "School";
       const className = (parsedSettings.className as string) || "Class";
       const date = new Date().toISOString().split("T")[0];
+      const fileName = `${schoolName}_${className}_${date}.repota`.replace(/\s+/g, "_");
 
-      // Filename optimized for WhatsApp
-      link.href = url;
-      link.download = `${schoolName}_${className}_${date}.${fileExtension}`.replace(/\s+/g, "_");
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      let sharedViaOs = false;
+      const shareFile =
+        typeof File !== "undefined" ? new File([blob], fileName, { type: "application/octet-stream" }) : null;
+      const nav = typeof navigator !== "undefined" ? navigator : undefined;
+      if (shareFile && nav && typeof nav.share === "function" && nav.canShare?.({ files: [shareFile] })) {
+        try {
+          await nav.share({
+            files: [shareFile],
+            title: `${schoolName} (${className}) Class Backup`,
+          });
+          sharedViaOs = true;
+        } catch (shareError) {
+          if (shareError instanceof Error && shareError.name === "AbortError") {
+            resetExportPasswordState();
+            showToast("Share canceled", "info");
+            return;
+          }
+          // Fall back to direct download if OS share fails or user activation expired after crypto
+          triggerBlobDownload(blob, fileName);
+        }
+      } else {
+        triggerBlobDownload(blob, fileName);
+      }
 
       recordBackup(); // Track backup timestamp
 
       setStatus("success");
       showToast(
-        usePassword
-          ? "Encrypted file saved! Share via WhatsApp 🔒"
-          : "File saved! You can now send this via WhatsApp.",
+        sharedViaOs
+          ? "Encrypted backup shared! 🔒"
+          : usePassword
+            ? "Password-locked .repota file saved! Share via WhatsApp 🔒"
+            : "Encrypted .repota file saved! Share via WhatsApp 🔒",
         "success",
       );
-      setMessage(`File downloaded. Check your 'Downloads' folder.`);
+      setMessage(
+        sharedViaOs
+          ? "Encrypted .repota backup sent via share sheet."
+          : "Encrypted .repota file downloaded. Check your 'Downloads' folder.",
+      );
 
-      // Reset password fields
-      setShowExportPasswordModal(false);
-      setPassword("");
-      setConfirmPassword("");
-      setPasswordHint("");
+      resetExportPasswordState();
+      setShowEmptyExportConfirm(false);
 
       setTimeout(() => setStatus("idle"), 5000);
     } catch (error) {
@@ -239,7 +285,7 @@ export function DataBackup({
       return;
     }
 
-    ++decryptAttemptRef.current;
+    const attempt = ++decryptAttemptRef.current;
     if (typeof setRecoveryAction === "function") {
       setRecoveryAction("import");
     }
@@ -250,7 +296,7 @@ export function DataBackup({
       if (activeReaderRef.current === reader) {
         activeReaderRef.current = null;
       }
-      if (isUnmountedRef.current) return;
+      if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       setDecryptedBackupData(null);
       releaseImportRecoveryOwnership();
       setStatus("error");
@@ -259,25 +305,32 @@ export function DataBackup({
     };
     reader.onerror = handleReaderError;
     reader.onabort = handleReaderError;
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       if (activeReaderRef.current === reader) {
         activeReaderRef.current = null;
       }
-      if (isUnmountedRef.current) return;
+      if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
 
-        // Check if file is encrypted
+        let rawBackup: unknown = data;
+
+        // Handle encrypted envelopes (v1 password-only, v2 password or app-sealed)
         if (isEncryptedFile(data)) {
-          setDecryptedBackupData(null);
-          setEncryptionHint(data.hint || "");
-          setPendingFile(file);
-          setShowImportPasswordModal(true);
-          return;
+          if (requiresPassword(data)) {
+            setDecryptedBackupData(null);
+            setEncryptionHint(data.hint || "");
+            setPendingFile(file);
+            setShowImportPasswordModal(true);
+            return;
+          }
+
+          rawBackup = await decryptBackupFile(data);
+          if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
         }
 
-        const validated = validateBackup(data);
+        const validated = validateBackup(rawBackup);
         setDecryptedBackupData(validated);
         setPendingFile(file);
         setImportStats({
@@ -288,6 +341,7 @@ export function DataBackup({
         });
         setShowImportModal(true);
       } catch {
+        if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
         setDecryptedBackupData(null);
         releaseImportRecoveryOwnership();
         setStatus("error");
@@ -550,8 +604,9 @@ export function DataBackup({
               <span className="font-bold text-amber-900">Password protect this file</span>
             </div>
             <p className="mt-1 text-xs text-amber-700">
-              Recommended when sharing via WhatsApp or email. Only people with the password can open
-              this file.
+              Every saved .repota file is encrypted so WhatsApp and file apps cannot preview student
+              records. Turn this on to add a password so only people with that password can open
+              it.
             </p>
           </div>
         </label>
@@ -628,6 +683,23 @@ export function DataBackup({
         onConfirm={executeImport}
       />
 
+      <ConfirmModal
+        isOpen={showEmptyExportConfirm}
+        title="Save Empty Class File?"
+        message="No students found. This backup will contain no students."
+        confirmText="Yes, Save File"
+        cancelText="Cancel"
+        isDangerous={false}
+        onClose={() => {
+          setShowEmptyExportConfirm(false);
+          resetExportPasswordState();
+        }}
+        onConfirm={() => {
+          setShowEmptyExportConfirm(false);
+          void handleExport(true);
+        }}
+      />
+
       {/* Export Password Modal */}
       {showExportPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -694,18 +766,13 @@ export function DataBackup({
 
             <div className="mt-6 flex gap-3">
               <button
-                onClick={() => {
-                  setShowExportPasswordModal(false);
-                  setPassword("");
-                  setConfirmPassword("");
-                  setPasswordHint("");
-                }}
+                onClick={() => resetExportPasswordState()}
                 className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={handleExport}
+                onClick={() => void handleExport()}
                 disabled={!password || password.length < 4}
                 className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-bold text-white hover:bg-amber-700 disabled:opacity-50"
               >

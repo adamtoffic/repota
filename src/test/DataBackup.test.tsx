@@ -10,7 +10,12 @@ import {
   importBackupAtomically,
   validateBackup,
 } from "../utils/backupValidation";
-import { decryptBackupFile, isEncryptedFile } from "../utils/fileEncryption";
+import {
+  decryptBackupFile,
+  encryptAppSealedBackup,
+  isEncryptedFile,
+  requiresPassword,
+} from "../utils/fileEncryption";
 
 const storage = vi.hoisted(() => ({
   loadFromStorageResult: vi.fn(),
@@ -30,9 +35,11 @@ vi.mock("../utils/idbStorage", () => ({
 vi.mock("../utils/dataProtection", () => ({ recordBackup }));
 vi.mock("../hooks/useToast", () => ({ useToast: () => ({ showToast }) }));
 vi.mock("../utils/fileEncryption", () => ({
+  encryptAppSealedBackup: vi.fn(),
   encryptBackupFile: vi.fn(),
   decryptBackupFile: vi.fn(),
   isEncryptedFile: vi.fn(() => false),
+  requiresPassword: vi.fn(() => true),
 }));
 
 const settings = {
@@ -96,12 +103,24 @@ describe("DataBackup", () => {
     waitForMigrationMock.mockClear();
     showToast.mockClear();
     setActiveRecoveryActionMock.mockClear();
+    vi.mocked(encryptAppSealedBackup).mockReset();
+    vi.mocked(encryptAppSealedBackup).mockResolvedValue({
+      version: "v2",
+      encrypted: true,
+      mode: "app",
+      compressed: false,
+      salt: "salt",
+      iv: "iv",
+      data: "ciphertext",
+    });
     vi.mocked(decryptBackupFile).mockReset();
     vi.mocked(isEncryptedFile).mockReset();
     vi.mocked(isEncryptedFile).mockReturnValue(false);
+    vi.mocked(requiresPassword).mockReset();
+    vi.mocked(requiresPassword).mockReturnValue(true);
     contextValue.loadError = false;
-    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
-    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    vi.spyOn(URL, "createObjectURL").mockClear().mockReturnValue("blob:test");
+    vi.spyOn(URL, "revokeObjectURL").mockClear().mockImplementation(() => undefined);
   });
 
   it("does not export or record a backup when either read fails", async () => {
@@ -126,17 +145,106 @@ describe("DataBackup", () => {
     expect(await screen.findByText(/could not be read/i)).toBeVisible();
   });
 
-  it("requires confirmation before exporting an empty student list", async () => {
+  it("requires confirmation via ConfirmModal before exporting an empty student list", async () => {
     storage.loadFromStorageResult
       .mockResolvedValueOnce({ status: "empty" })
       .mockResolvedValueOnce({ status: "found", value: settings });
-    window.confirm = vi.fn(() => false);
     renderBackup();
     fireEvent.click(screen.getByRole("button", { name: "Save Class File" }));
-    await vi.waitFor(() => expect(window.confirm).toHaveBeenCalledWith(
-      "No students found. This backup will contain no students.",
-    ));
+    expect(await screen.findByText("Save Empty Class File?")).toBeVisible();
     expect(recordBackup).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText("Save Empty Class File?")).not.toBeInTheDocument();
+    expect(recordBackup).not.toHaveBeenCalled();
+
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "empty" })
+      .mockResolvedValueOnce({ status: "found", value: settings })
+      .mockResolvedValueOnce({ status: "empty" })
+      .mockResolvedValueOnce({ status: "found", value: settings });
+    fireEvent.click(screen.getByRole("button", { name: "Save Class File" }));
+    expect(await screen.findByText("Save Empty Class File?")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Save File" }));
+
+    await vi.waitFor(() => expect(encryptAppSealedBackup).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(recordBackup).toHaveBeenCalledTimes(1));
+  });
+
+  it("always encrypts default exports as .repota via encryptAppSealedBackup", async () => {
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "found", value: students })
+      .mockResolvedValueOnce({ status: "found", value: settings });
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+
+    try {
+      renderBackup();
+      fireEvent.click(screen.getByRole("button", { name: "Save Class File" }));
+
+      await vi.waitFor(() => expect(encryptAppSealedBackup).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(recordBackup).toHaveBeenCalledTimes(1));
+      const anchor = clickSpy.mock.instances[0] as HTMLAnchorElement | undefined;
+      expect(anchor?.download).toMatch(/\.repota$/);
+    } finally {
+      clickSpy.mockRestore();
+    }
+  });
+
+  it("uses Web Share API for .repota files when supported and falls back on non-abort share error", async () => {
+    storage.loadFromStorageResult
+      .mockResolvedValueOnce({ status: "found", value: students })
+      .mockResolvedValueOnce({ status: "found", value: settings });
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    const canShareMock = vi.fn().mockReturnValue(true);
+    Object.defineProperty(navigator, "share", { value: shareMock, configurable: true });
+    Object.defineProperty(navigator, "canShare", { value: canShareMock, configurable: true });
+
+    try {
+      renderBackup();
+      fireEvent.click(screen.getByRole("button", { name: "Save Class File" }));
+
+      await vi.waitFor(() => expect(shareMock).toHaveBeenCalledTimes(1));
+      const shareArg = shareMock.mock.calls[0][0] as { files: File[] };
+      expect(shareArg.files[0].name).toMatch(/\.repota$/);
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
+
+      // Now test AbortError does not fall back or show error
+      storage.loadFromStorageResult
+        .mockResolvedValueOnce({ status: "found", value: students })
+        .mockResolvedValueOnce({ status: "found", value: settings });
+      const abortError = Object.assign(new Error("Canceled"), { name: "AbortError" });
+      shareMock.mockRejectedValueOnce(abortError);
+      recordBackup.mockClear();
+
+      fireEvent.click(screen.getByRole("button", { name: "Save Class File" }));
+      await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith("Share canceled", "info"));
+      expect(recordBackup).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(navigator, "share");
+      Reflect.deleteProperty(navigator, "canShare");
+    }
+  });
+
+  it("auto-decrypts app-sealed v2 .repota files without showing the password modal", async () => {
+    const incoming = createBackupPayload(students, settings);
+    vi.mocked(isEncryptedFile).mockReturnValueOnce(true);
+    vi.mocked(requiresPassword).mockReturnValueOnce(false);
+    vi.mocked(decryptBackupFile).mockResolvedValueOnce(incoming);
+
+    const view = renderBackup();
+    const file = new File(
+      [JSON.stringify({ version: "v2", encrypted: true, mode: "app", salt: "s", iv: "i", data: "d" })],
+      "class.repota",
+      { type: "application/octet-stream" },
+    );
+    fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible(),
+    );
+    expect(screen.queryByText("Password Required")).not.toBeInTheDocument();
   });
 
   it("rejects malformed backups before storage writes and round-trips real export payloads", () => {
