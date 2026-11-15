@@ -1,4 +1,4 @@
-import { Suspense, useEffect, type ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -30,13 +30,6 @@ export function AppShell({ children }: AppShellProps) {
   const { settings, students } = useSchoolData();
   const location = useLocation();
   const pathname = location.pathname;
-
-  // Pre-warm primary bottom-nav chunks so switching tabs responds on the first tap
-  useEffect(() => {
-    void import("../../pages/SbaPage");
-    void import("../../pages/Analytics");
-    void import("../../pages/settings/SettingsHub");
-  }, []);
 
   const isHomeActive = pathname === "/";
   const isSbaActive = pathname.startsWith("/sba");
@@ -152,7 +145,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Bottom Navigation Bar */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="safe-bottom fixed inset-x-0 bottom-0 z-40 rounded-t-3xl border-t border-gray-200/80 bg-white/90 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden print:hidden"
+        className="safe-bottom fixed inset-x-0 bottom-0 z-40 transform-gpu rounded-t-3xl border-t border-gray-200/80 bg-white/90 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden print:hidden"
       >
         <div className="mx-auto grid h-16 max-w-md grid-cols-4 px-2">
           {primaryItems.map((item) => {

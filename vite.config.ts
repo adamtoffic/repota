@@ -40,6 +40,8 @@ export default defineConfig({
       ],
 
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         // Precache essential files for offline functionality
         globPatterns: ["**/*.{html,js,css,ico,png,svg,woff,woff2}"],
         // Don't precache large analytics chunks

@@ -31,17 +31,15 @@
   --font-serif: "Times New Roman", Times, serif;
 }
 
-/* iOS specific fixes for better mobile experience */
+/* iOS specific fixes for better mobile experience — single document scroll container */
 html {
-  height: 100%;
-  height: -webkit-fill-available;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   min-height: 100vh;
-  min-height: -webkit-fill-available;
-  overflow-x: hidden;
+  min-height: 100dvh;
+  overflow-x: clip;
   position: relative;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

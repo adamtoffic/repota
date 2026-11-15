@@ -10,6 +10,9 @@ import {
 } from "@tanstack/react-router";
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
+import { SbaPage } from "./pages/SbaPage";
+import { SettingsHub } from "./pages/settings/SettingsHub";
+import { Analytics } from "./pages/Analytics";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
 import { SettingsFormProvider } from "./context/SettingsFormContext";
@@ -113,9 +116,7 @@ export function RouteErrorFallback({ error }: { error?: unknown }) {
   );
 }
 
-// Code-split heavy pages with auto-reload retry on chunk failures
-const SbaPage = lazyWithRetry(() => import("./pages/SbaPage"));
-const SettingsHub = lazyWithRetry(() => import("./pages/settings/SettingsHub"));
+// Code-split heavy secondary pages with auto-reload retry on chunk failures
 const SettingsSchoolPage = lazyWithRetry(() => import("./pages/settings/SettingsSchoolPage"));
 const SettingsAcademicPage = lazyWithRetry(() => import("./pages/settings/SettingsAcademicPage"));
 const SettingsTemplatesPage = lazyWithRetry(() => import("./pages/settings/SettingsTemplatesPage"));
@@ -123,7 +124,6 @@ const SettingsSecurityPage = lazyWithRetry(() => import("./pages/settings/Settin
 const PrintPreview = lazyWithRetry(() =>
   import("./pages/PrintPreview").then((module) => ({ default: module.PrintPreview })),
 );
-const Analytics = lazyWithRetry(() => import("./pages/Analytics"));
 
 // 2. Define the Root Layout
 const rootRoute = createRootRoute({
@@ -242,6 +242,7 @@ export function createAppRouter(history?: RouterHistory) {
     routeTree,
     history,
     defaultPreload: "intent",
+    scrollRestoration: true,
     defaultErrorComponent: RouteErrorFallback,
   });
 }
