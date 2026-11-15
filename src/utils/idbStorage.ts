@@ -77,6 +77,33 @@ export const initStorage = async (): Promise<void> => {
   }
 };
 
+export const STORAGE_QUOTA_EXCEEDED_EVENT = "repota:storage-quota-exceeded";
+const QUOTA_NOTIFY_COOLDOWN_MS = 10_000;
+let lastQuotaNotifyAt = 0;
+
+function isQuotaExceededError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED")
+  );
+}
+
+function notifyQuotaExceeded(): void {
+  console.error("Storage quota exceeded");
+  if (typeof window === "undefined") return;
+  const now = Date.now();
+  if (now - lastQuotaNotifyAt < QUOTA_NOTIFY_COOLDOWN_MS) return;
+  lastQuotaNotifyAt = now;
+  window.dispatchEvent(
+    new CustomEvent(STORAGE_QUOTA_EXCEEDED_EVENT, {
+      detail: {
+        message:
+          "Storage full: cannot save latest changes. Save a .repota backup and clear old photos or unused records.",
+      },
+    }),
+  );
+}
+
 /**
  * Save data to storage (IndexedDB or localStorage fallback)
  */
@@ -92,15 +119,9 @@ export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> 
     }
     return true;
   } catch (error: unknown) {
-    // Handle quota errors
-    if (error instanceof Error) {
-      if (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED") {
-        console.error("Storage quota exceeded");
-        alert(
-          "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
-        );
-        return false;
-      }
+    if (isQuotaExceededError(error)) {
+      notifyQuotaExceeded();
+      return false;
     }
 
     console.error("Storage save error:", error);
@@ -143,14 +164,8 @@ export const saveEntriesToStorage = async (
           // ignore if already aborted
         }
         await tx.done.catch(() => {});
-        if (
-          error instanceof Error &&
-          (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED")
-        ) {
-          console.error("Storage quota exceeded");
-          alert(
-            "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
-          );
+        if (isQuotaExceededError(error)) {
+          notifyQuotaExceeded();
         } else {
           console.error("Storage batch write error:", error);
         }
@@ -191,14 +206,9 @@ export const saveEntriesToStorage = async (
     if (error instanceof StorageBatchRollbackError) {
       throw error;
     }
-    if (error instanceof Error) {
-      if (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED") {
-        console.error("Storage quota exceeded");
-        alert(
-          "⚠️ STORAGE FULL: Cannot save more data. Please backup and clear old students or photos.",
-        );
-        return false;
-      }
+    if (isQuotaExceededError(error)) {
+      notifyQuotaExceeded();
+      return false;
     }
 
     console.error("Storage save entries error:", error);

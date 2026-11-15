@@ -1,6 +1,6 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { SchoolProvider } from "./context/SchoolContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
@@ -12,6 +12,7 @@ import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
 import { useSchoolData } from "./hooks/useSchoolData";
 import { PRINT_STARTED_EVENT } from "./utils/printHandler";
+import { STORAGE_QUOTA_EXCEEDED_EVENT } from "./utils/idbStorage";
 
 export const HIDDEN_LOCK_GRACE_MS = 30_000;
 export const PRINT_LOCK_SUPPRESSION_MS = 2 * 60_000;
@@ -97,12 +98,23 @@ function AppContent({
       }
     };
 
+    const handleStorageQuotaExceeded = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      toast.error(
+        detail?.message ||
+          "Storage full: cannot save latest changes. Save a .repota backup and clear old photos.",
+        { id: "storage-quota-exceeded", duration: 8000 },
+      );
+    };
+
     window.addEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
     window.addEventListener("beforeprint", markPrintInProgress);
+    window.addEventListener(STORAGE_QUOTA_EXCEEDED_EVENT, handleStorageQuotaExceeded);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener(PRINT_STARTED_EVENT, markPrintInProgress);
       window.removeEventListener("beforeprint", markPrintInProgress);
+      window.removeEventListener(STORAGE_QUOTA_EXCEEDED_EVENT, handleStorageQuotaExceeded);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (printTimeoutRef.current !== null) {
         window.clearTimeout(printTimeoutRef.current);
