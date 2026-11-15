@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, Calculator, Download, RefreshCw } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
@@ -7,7 +8,6 @@ import { useToast } from "../hooks/useToast";
 import { exportToCSV } from "../utils/export";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Button } from "../components/ui";
-import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { SettingsHeaderActions } from "../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../components/settings/SettingsStatusBanners";
 import { SbaAssessmentSection } from "../components/settings/SbaAssessmentSection";
@@ -21,13 +21,12 @@ export function SbaPage() {
 }
 
 function SbaPageContent() {
-  const { formData, committedSchoolName, isPersistenceSuspended, isSaving, lastSaved } =
-    useSettingsForm();
+  const { formData, committedSchoolName, isPersistenceSuspended } = useSettingsForm();
   const { students, detectComponentMismatches, syncSubjectComponentsFromSettings } =
     useSchoolData();
   const { showToast } = useToast();
 
-  const mismatch = detectComponentMismatches();
+  const mismatch = useMemo(() => detectComponentMismatches(), [detectComponentMismatches]);
   const hasMismatches = mismatch.hasOutdated || mismatch.hasMissing;
 
   const handleExportScores = () => {
@@ -143,8 +142,6 @@ function SbaPageContent() {
 
         <SbaAssessmentSection />
       </main>
-
-      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
     </div>
   );
 }

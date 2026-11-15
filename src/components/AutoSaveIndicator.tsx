@@ -10,7 +10,13 @@ interface Props {
 export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [timeAgo, setTimeAgo] = useState("");
-  const [dismissedSavedTime, setDismissedSavedTime] = useState<number | null>(null);
+  const [dismissedSavedTime, setDismissedSavedTime] = useState<number | null>(() =>
+    lastSaved && Date.now() - lastSaved.getTime() >= 3500 ? lastSaved.getTime() : null,
+  );
+
+  const isSavedRecentlyVisible =
+    Boolean(lastSaved) && dismissedSavedTime !== lastSaved?.getTime();
+  const isVisible = isSaving || Boolean(error) || !isOnline || isSavedRecentlyVisible;
 
   // Monitor online status
   useEffect(() => {
@@ -26,9 +32,9 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
     };
   }, []);
 
-  // Update time ago every 10 seconds
+  // Update time ago every 10 seconds only while visible
   useEffect(() => {
-    if (!lastSaved) return;
+    if (!lastSaved || !isVisible) return;
 
     const updateTimeAgo = () => {
       const seconds = Math.floor((Date.now() - lastSaved.getTime()) / 1000);
@@ -50,22 +56,21 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
     const interval = setInterval(updateTimeAgo, 10000); // Update every 10s
 
     return () => clearInterval(interval);
-  }, [lastSaved]);
+  }, [lastSaved, isVisible]);
 
   // Auto-hide transient "Saved" pill after 3.5s while keeping errors/offline/saving visible
   useEffect(() => {
     if (!lastSaved) return;
     const savedTimestamp = lastSaved.getTime();
+    const elapsed = Date.now() - savedTimestamp;
+    const remaining = Math.max(0, 3500 - elapsed);
     const hideTimer = setTimeout(() => {
       setDismissedSavedTime(savedTimestamp);
-    }, 3500);
+    }, remaining);
     return () => clearTimeout(hideTimer);
   }, [lastSaved]);
 
-  const isSavedRecentlyVisible =
-    Boolean(lastSaved) && dismissedSavedTime !== lastSaved?.getTime();
-
-  if (!isSaving && !error && isOnline && !isSavedRecentlyVisible) return null;
+  if (!isVisible) return null;
 
   return (
     <div className="animate-fade-in bottom-safe-nav fixed left-4 z-30 md:left-72 print:hidden">

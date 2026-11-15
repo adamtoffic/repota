@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import { SettingsFormProvider } from "../../context/SettingsFormContext";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { AutoSaveIndicator } from "../../components/AutoSaveIndicator";
 import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 
@@ -25,7 +24,7 @@ export function SettingsSubPageLayout({ title, subtitle, children }: SettingsSub
 }
 
 function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPageLayoutProps) {
-  const { committedSchoolName, hasUnsavedChanges, isSaving, lastSaved } = useSettingsForm();
+  const { committedSchoolName, hasUnsavedChanges } = useSettingsForm();
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
@@ -53,8 +52,6 @@ function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPa
         <SettingsStatusBanners />
         {children}
       </main>
-
-      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useSchoolData } from "../../hooks/useSchoolData";
 import { triggerHaptic } from "../../utils/iosInteraction";
+import { AutoSaveIndicator } from "../AutoSaveIndicator";
 import { PageLoader } from "../PageLoader";
 
 interface AppShellProps {
@@ -27,7 +28,7 @@ const SETTINGS_QUICK_LINKS = [
 ];
 
 export function AppShell({ children }: AppShellProps) {
-  const { settings, students } = useSchoolData();
+  const { settings, students, isSaving, lastSaved } = useSchoolData();
   const location = useLocation();
   const pathname = location.pathname;
 
@@ -141,6 +142,9 @@ export function AppShell({ children }: AppShellProps) {
       <div className="pb-safe-nav flex min-h-screen flex-col md:pl-64 print:pb-0 print:pl-0">
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </div>
+
+      {/* Persistent Auto-Save Indicator (lives outside route outlet so tab switches never remount it) */}
+      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
       {/* Mobile Bottom Navigation Bar */}
       <nav

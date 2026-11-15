@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertCircle, ArrowRight, FileText, Image, X } from "lucide-react";
 import type { SchoolSettings, StudentRecord } from "../types";
 import {
@@ -30,11 +30,17 @@ export function ValidationWarnings({
   );
 
   // Calculate validation issues using shared dashboard predicates
-  const studentsWithNoScores = students.filter(hasNoScoresEntered);
-  const studentsWithMissingPhotos = students.filter(hasMissingPhoto);
-  const studentsWithIncompleteScores = students.filter((student) =>
-    hasPartialScores(student, settings),
-  );
+  const { studentsWithNoScores, studentsWithMissingPhotos, studentsWithIncompleteScores } =
+    useMemo(
+      () => ({
+        studentsWithNoScores: students.filter(hasNoScoresEntered),
+        studentsWithMissingPhotos: students.filter(hasMissingPhoto),
+        studentsWithIncompleteScores: students.filter((student) =>
+          hasPartialScores(student, settings),
+        ),
+      }),
+      [students, settings],
+    );
 
   const warnings: Array<{
     key: DashboardFilter;

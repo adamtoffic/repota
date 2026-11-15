@@ -141,11 +141,11 @@ const rootRoute = createRootRoute({
 function ShellLayout() {
   return (
     <DataGate>
-      <SettingsFormProvider>
-        <AppShell>
+      <AppShell>
+        <SettingsFormProvider>
           <Outlet />
-        </AppShell>
-      </SettingsFormProvider>
+        </SettingsFormProvider>
+      </AppShell>
     </DataGate>
   );
 }

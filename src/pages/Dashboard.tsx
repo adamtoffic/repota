@@ -14,7 +14,6 @@ import { useDebounce } from "../hooks/useDebounce";
 import { exportToCSV } from "../utils/export";
 import { BulkImportModal } from "../components/BulkImportModal";
 import { ScrollButton } from "../components/ScrollButton";
-import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { WelcomeTour } from "../components/WelcomeTour";
 import { ValidationWarnings } from "../components/ValidationWarnings";
 import { ProgressModal } from "../components/ProgressModal";
@@ -42,8 +41,6 @@ export function Dashboard() {
     deletePendingStudents,
     autoGenerateRemarks,
     clearAllScores,
-    isSaving,
-    lastSaved,
   } = useSchoolData();
 
   const { showToast } = useToast();
@@ -365,9 +362,6 @@ export function Dashboard() {
 
       {/* ✅ SCROLL TO TOP/BOTTOM BUTTON */}
       {students.length >= 10 && <ScrollButton />}
-
-      {/* ✅ AUTO-SAVE INDICATOR */}
-      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
 
       {/* ✅ WELCOME TOUR for first-time users */}
       <WelcomeTour

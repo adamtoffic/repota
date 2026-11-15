@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useContext } from "react";
+import { useState, useEffect, useRef, useCallback, useContext, useMemo } from "react";
 import type { MouseEvent, ReactNode, SetStateAction } from "react";
 import posthog from "posthog-js";
 import { useSchoolData } from "../hooks/useSchoolData";
@@ -121,7 +121,15 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const hasUnsavedChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
+  const studentsCountRef = useRef(students.length);
+  useEffect(() => {
+    studentsCountRef.current = students.length;
+  }, [students.length]);
+
+  const hasUnsavedChanges = useMemo(
+    () => JSON.stringify(formData) !== JSON.stringify(lastSavedSettings),
+    [formData, lastSavedSettings],
+  );
 
   useEffect(() => {
     setUnsavedChanges("settings-draft", hasUnsavedChanges);
@@ -135,7 +143,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     if (debouncedString === lastAutoSaveRef.current) return;
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
     const isClassNameEmpty = !(debouncedFormData.className ?? "").trim();
-    if ((classNameChanged && students.length > 0) || isClassNameEmpty) {
+    if ((classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty) {
       const savedFormData = {
         ...debouncedFormData,
         className: lastSavedSettings.className,
@@ -172,7 +180,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     debouncedPayload.generation,
     lastSavedSettings.className,
     showResetModal,
-    students.length,
     setSettings,
   ]);
 

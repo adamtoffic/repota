@@ -20,7 +20,8 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
     const pendingStudents = students.filter((s) => isStudentPending(s, settings));
 
     // 2. Calculate Completed Students (The inverse of Pending)
-    const completedStudents = students.filter((s) => !pendingStudents.includes(s));
+    const pendingSet = new Set(pendingStudents);
+    const completedStudents = students.filter((s) => !pendingSet.has(s));
 
     // 3. Calculate Failing (Only count students who have actually been graded)
     const failingCount = completedStudents.filter((s) => s.averageScore < 50).length;

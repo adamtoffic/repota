@@ -10,7 +10,6 @@ import {
 import { SettingsFormProvider } from "../../context/SettingsFormContext";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { AutoSaveIndicator } from "../../components/AutoSaveIndicator";
 import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
@@ -25,7 +24,7 @@ export function SettingsHub() {
 }
 
 function SettingsHubContent() {
-  const { formData, committedSchoolName, isSaving, lastSaved } = useSettingsForm();
+  const { formData, committedSchoolName } = useSettingsForm();
 
   const currentTemplateName =
     TEMPLATE_REGISTRY.find((t) => t.id === (formData.templateId || "original_v1"))?.name ||
@@ -129,8 +128,6 @@ function SettingsHubContent() {
           })}
         </div>
       </main>
-
-      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
     </div>
   );
 }

@@ -84,10 +84,18 @@ export const Analytics: React.FC = () => {
     filters.subjectFilter !== "All" ||
     Boolean(filters.scoreRange && (filters.scoreRange.min > 0 || filters.scoreRange.max < 100));
 
-  // Filter students based on selected filters
+  // Filter students based on selected filters (reuse ProcessedStudent averageScore when available)
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
-      const processed = processStudent(student, settings.level);
+      const needsScoreCheck =
+        (filters.performanceLevel && filters.performanceLevel !== "All") ||
+        Boolean(filters.scoreRange);
+
+      const avgScore = needsScoreCheck
+        ? "averageScore" in student && typeof student.averageScore === "number"
+          ? student.averageScore
+          : processStudent(student, settings.level).averageScore
+        : 0;
 
       // Gender filter
       if (filters.gender && filters.gender !== "All") {
@@ -96,7 +104,6 @@ export const Analytics: React.FC = () => {
 
       // Performance level filter
       if (filters.performanceLevel && filters.performanceLevel !== "All") {
-        const avgScore = processed.averageScore;
         if (filters.performanceLevel === "Excellence" && avgScore < 80) return false;
         if (filters.performanceLevel === "Pass" && (avgScore < 50 || avgScore >= 80)) return false;
         if (filters.performanceLevel === "Fail" && avgScore >= 50) return false;
@@ -104,7 +111,6 @@ export const Analytics: React.FC = () => {
 
       // Score range filter
       if (filters.scoreRange) {
-        const avgScore = processed.averageScore;
         if (avgScore < filters.scoreRange.min || avgScore > filters.scoreRange.max) return false;
       }
 
@@ -118,80 +124,114 @@ export const Analytics: React.FC = () => {
     });
   }, [students, filters, settings]);
 
-  // Calculate analytics data
+  // Calculate analytics data only for the active sub-tab
   const classMetrics = useMemo(
-    () => calculateClassMetrics(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "overview" || activeView === "insights"
+        ? calculateClassMetrics(filteredStudents, settings)
+        : {
+            totalStudents: 0,
+            averageScore: 0,
+            medianScore: 0,
+            highestScore: 0,
+            lowestScore: 0,
+            passRate: 0,
+            excellenceRate: 0,
+            averageAttendance: 0,
+          },
+    [activeView, filteredStudents, settings],
   );
 
   const subjectPerformance = useMemo(
-    () => calculateSubjectPerformance(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "subjects" ? calculateSubjectPerformance(filteredStudents, settings) : [],
+    [activeView, filteredStudents, settings],
   );
 
   const scoreDistribution = useMemo(
-    () => calculateScoreDistribution(filteredStudents, settings),
-    [filteredStudents, settings],
+    () => (activeView === "overview" ? calculateScoreDistribution(filteredStudents, settings) : []),
+    [activeView, filteredStudents, settings],
   );
 
   const genderAnalysis = useMemo(
-    () => calculateGenderAnalysis(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "overview" || activeView === "demographics" || activeView === "insights"
+        ? calculateGenderAnalysis(filteredStudents, settings)
+        : { maleCount: 0, femaleCount: 0, maleAverage: 0, femaleAverage: 0, totalCount: 0 },
+    [activeView, filteredStudents, settings],
   );
 
   const topPerformers = useMemo(
-    () => getTopPerformers(filteredStudents, settings, 5),
-    [filteredStudents, settings],
+    () => (activeView === "overview" ? getTopPerformers(filteredStudents, settings, 5) : []),
+    [activeView, filteredStudents, settings],
   );
 
   const ageDistribution = useMemo(
-    () => calculateAgeDistribution(filteredStudents),
-    [filteredStudents],
+    () => (activeView === "demographics" ? calculateAgeDistribution(filteredStudents) : []),
+    [activeView, filteredStudents],
   );
 
   const subjectGenderComparison = useMemo(
-    () => calculateSubjectGenderComparison(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "subjects" ? calculateSubjectGenderComparison(filteredStudents, settings) : [],
+    [activeView, filteredStudents, settings],
   );
 
   const subjectInsights = useMemo(
-    () => calculateSubjectInsights(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "subjects" || activeView === "insights"
+        ? calculateSubjectInsights(filteredStudents, settings)
+        : { strongest: [], weakest: [], needsAttention: [] },
+    [activeView, filteredStudents, settings],
   );
 
   const performanceQuartiles = useMemo(
-    () => calculatePerformanceQuartiles(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "insights"
+        ? calculatePerformanceQuartiles(filteredStudents, settings)
+        : { q1: 0, q2: 0, q3: 0, q4Count: 0, strugglingStudents: [] },
+    [activeView, filteredStudents, settings],
   );
 
   const gradeDistribution = useMemo(
-    () => calculateGradeDistribution(filteredStudents, settings),
-    [filteredStudents, settings],
+    () => (activeView === "overview" ? calculateGradeDistribution(filteredStudents, settings) : []),
+    [activeView, filteredStudents, settings],
   );
 
   const attendanceInsights = useMemo(
-    () => calculateAttendanceInsights(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "demographics" || activeView === "insights"
+        ? calculateAttendanceInsights(filteredStudents, settings)
+        : {
+            averageAttendance: 0,
+            perfectAttendance: 0,
+            poorAttendance: 0,
+            correlationWithPerformance: "neutral" as const,
+          },
+    [activeView, filteredStudents, settings],
   );
 
   const atRiskStudents = useMemo(
-    () => calculateAtRiskStudents(filteredStudents, settings),
-    [filteredStudents, settings],
+    () => (activeView === "insights" ? calculateAtRiskStudents(filteredStudents, settings) : []),
+    [activeView, filteredStudents, settings],
   );
 
   const performanceByAge = useMemo(
-    () => calculatePerformanceByAge(filteredStudents, settings),
-    [filteredStudents, settings],
+    () => (activeView === "demographics" ? calculatePerformanceByAge(filteredStudents, settings) : []),
+    [activeView, filteredStudents, settings],
   );
 
   const subjectVariance = useMemo(
-    () => calculateSubjectVariance(filteredStudents, settings),
-    [filteredStudents, settings],
+    () => (activeView === "subjects" ? calculateSubjectVariance(filteredStudents, settings) : []),
+    [activeView, filteredStudents, settings],
   );
 
   const attendanceByGender = useMemo(
-    () => calculateAttendanceByGender(filteredStudents, settings),
-    [filteredStudents, settings],
+    () =>
+      activeView === "demographics"
+        ? calculateAttendanceByGender(filteredStudents, settings)
+        : { maleAttendanceRate: 0, femaleAttendanceRate: 0, attendanceRanges: [] },
+    [activeView, filteredStudents, settings],
   );
 
   // Export handlers
