@@ -9,8 +9,19 @@ import type { DBSchema, IDBPDatabase } from "idb";
 
 // Database configuration
 const DB_NAME = "repota-storage";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "app-data";
+const MEDIA_STORE_NAME = "media-blobs";
+const BLOB_REF_PREFIX = "idb-blob://";
+const STUDENT_PHOTO_PREFIX = "student-photo:";
+const SETTINGS_MEDIA_PREFIX = "settings-media:";
+const SETTINGS_MEDIA_FIELDS = [
+  "logoUrl",
+  "schoolLogo",
+  "headTeacherSignature",
+  "teacherSignature",
+] as const;
+const INLINE_BLOB_MIN_LENGTH = 512;
 
 // Storage keys (same as localStorage for compatibility)
 export const IDB_KEYS = {
@@ -24,11 +35,27 @@ interface RepotaDB extends DBSchema {
     key: string;
     value: unknown;
   };
+  "media-blobs": {
+    key: string;
+    value: string;
+  };
 }
 
 // Track if IndexedDB is available
 let isIndexedDBAvailable = true;
 let db: IDBPDatabase<RepotaDB> | null = null;
+
+// Remember last persisted blob strings per key so routine score/setting writes skip rewriting unchanged photos
+const blobMemoryCache = new Map<string, string>();
+
+function ensureStores(database: IDBPDatabase<RepotaDB>): void {
+  if (!database.objectStoreNames.contains(STORE_NAME)) {
+    database.createObjectStore(STORE_NAME);
+  }
+  if (!database.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+    database.createObjectStore(MEDIA_STORE_NAME);
+  }
+}
 
 /**
  * Check if IndexedDB is available (fails in Safari Private Mode)
@@ -37,10 +64,8 @@ const checkIndexedDBAvailability = async (): Promise<boolean> => {
   try {
     // Try to open database
     const testDB = await openDB<RepotaDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
+      upgrade(database) {
+        ensureStores(database);
       },
     });
 
@@ -65,17 +90,255 @@ export const initStorage = async (): Promise<void> => {
   if (!isIndexedDBAvailable) {
     console.warn("⚠️ Using localStorage fallback (Safari Private Mode detected)");
   } else {
+    blobMemoryCache.clear();
     // Open database connection
     db = await openDB<RepotaDB>(DB_NAME, DB_VERSION, {
       upgrade(database) {
-        if (!database.objectStoreNames.contains(STORE_NAME)) {
-          database.createObjectStore(STORE_NAME);
-        }
+        ensureStores(database);
       },
     });
     console.log("✅ IndexedDB initialized successfully");
   }
 };
+
+function isExtractableMediaString(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    !value.startsWith(BLOB_REF_PREFIX) &&
+    (value.startsWith("data:") || value.length >= INLINE_BLOB_MIN_LENGTH)
+  );
+}
+
+interface PreparedEntry {
+  key: string;
+  strippedValue: unknown;
+  blobsToPut: Array<{ key: string; value: string }>;
+  cleanupScope?: { prefix: string; keepKeys: Set<string> };
+}
+
+function prepareEntryForIdb(key: string, value: unknown): PreparedEntry {
+  if (key === IDB_KEYS.STUDENTS && Array.isArray(value)) {
+    const keepKeys = new Set<string>();
+    const blobsToPut: Array<{ key: string; value: string }> = [];
+    const strippedStudents = value.map((item) => {
+      if (!item || typeof item !== "object") return item;
+      const student = item as { id?: unknown; pictureUrl?: unknown };
+      if (typeof student.id !== "string") return item;
+      const blobKey = `${STUDENT_PHOTO_PREFIX}${student.id}`;
+
+      if (typeof student.pictureUrl === "string" && student.pictureUrl.startsWith(BLOB_REF_PREFIX)) {
+        keepKeys.add(blobKey);
+        return item;
+      }
+
+      if (isExtractableMediaString(student.pictureUrl)) {
+        keepKeys.add(blobKey);
+        if (blobMemoryCache.get(blobKey) !== student.pictureUrl) {
+          blobsToPut.push({ key: blobKey, value: student.pictureUrl });
+        }
+        return { ...student, pictureUrl: `${BLOB_REF_PREFIX}${blobKey}` };
+      }
+
+      return item;
+    });
+
+    return {
+      key,
+      strippedValue: strippedStudents,
+      blobsToPut,
+      cleanupScope: { prefix: STUDENT_PHOTO_PREFIX, keepKeys },
+    };
+  }
+
+  if (key === IDB_KEYS.SETTINGS && value && typeof value === "object" && !Array.isArray(value)) {
+    const keepKeys = new Set<string>();
+    const blobsToPut: Array<{ key: string; value: string }> = [];
+    let cloned: Record<string, unknown> | null = null;
+    const settingsObj = value as Record<string, unknown>;
+
+    for (const field of SETTINGS_MEDIA_FIELDS) {
+      const fieldVal = settingsObj[field];
+      const blobKey = `${SETTINGS_MEDIA_PREFIX}${field}`;
+
+      if (typeof fieldVal === "string" && fieldVal.startsWith(BLOB_REF_PREFIX)) {
+        keepKeys.add(blobKey);
+        continue;
+      }
+
+      if (isExtractableMediaString(fieldVal)) {
+        keepKeys.add(blobKey);
+        if (blobMemoryCache.get(blobKey) !== fieldVal) {
+          blobsToPut.push({ key: blobKey, value: fieldVal });
+        }
+        if (!cloned) cloned = { ...settingsObj };
+        cloned[field] = `${BLOB_REF_PREFIX}${blobKey}`;
+      }
+    }
+
+    return {
+      key,
+      strippedValue: cloned ?? value,
+      blobsToPut,
+      cleanupScope: { prefix: SETTINGS_MEDIA_PREFIX, keepKeys },
+    };
+  }
+
+  return { key, strippedValue: value, blobsToPut: [] };
+}
+
+async function writeEntriesToIdb(
+  database: IDBPDatabase<RepotaDB>,
+  entries: Array<{ key: string; value: unknown }>,
+): Promise<void> {
+  const prepared = entries.map((e) => prepareEntryForIdb(e.key, e.value));
+  const useMediaStore = database.objectStoreNames.contains(MEDIA_STORE_NAME);
+
+  if (!useMediaStore) {
+    const tx = database.transaction(STORE_NAME, "readwrite");
+    try {
+      for (const entry of entries) {
+        await tx.store.put(entry.value, entry.key);
+      }
+      await tx.done;
+      return;
+    } catch (error) {
+      try {
+        tx.abort();
+      } catch {
+        // ignore if already aborted
+      }
+      await tx.done.catch(() => {});
+      throw error;
+    }
+  }
+
+  const tx = database.transaction([STORE_NAME, MEDIA_STORE_NAME], "readwrite");
+  const appStore = tx.objectStore(STORE_NAME);
+  const mediaStore = tx.objectStore(MEDIA_STORE_NAME);
+  const pendingCacheUpdates: Array<{ key: string; value: string }> = [];
+  const pendingCacheDeletes: string[] = [];
+
+  try {
+    const scopes = prepared
+      .map((p) => p.cleanupScope)
+      .filter((scope): scope is { prefix: string; keepKeys: Set<string> } => Boolean(scope));
+    const existingMediaKeys = scopes.length > 0 ? await mediaStore.getAllKeys() : [];
+
+    for (const entry of prepared) {
+      for (const blob of entry.blobsToPut) {
+        await mediaStore.put(blob.value, blob.key);
+        pendingCacheUpdates.push(blob);
+      }
+
+      if (entry.cleanupScope) {
+        const { prefix, keepKeys } = entry.cleanupScope;
+        for (const existingKey of existingMediaKeys) {
+          if (
+            typeof existingKey === "string" &&
+            existingKey.startsWith(prefix) &&
+            !keepKeys.has(existingKey)
+          ) {
+            await mediaStore.delete(existingKey);
+            pendingCacheDeletes.push(existingKey);
+          }
+        }
+      }
+
+      await appStore.put(entry.strippedValue, entry.key);
+    }
+
+    await tx.done;
+
+    for (const delKey of pendingCacheDeletes) {
+      blobMemoryCache.delete(delKey);
+    }
+    for (const update of pendingCacheUpdates) {
+      blobMemoryCache.set(update.key, update.value);
+    }
+  } catch (error) {
+    try {
+      tx.abort();
+    } catch {
+      // ignore if already aborted
+    }
+    await tx.done.catch(() => {});
+    throw error;
+  }
+}
+
+async function hydrateValueFromIdb(
+  database: IDBPDatabase<RepotaDB>,
+  key: string,
+  rawValue: unknown,
+): Promise<unknown> {
+  if (!rawValue || !database.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+    return rawValue;
+  }
+
+  if (key === IDB_KEYS.STUDENTS && Array.isArray(rawValue)) {
+    const refsNeeded: Array<{ index: number; blobKey: string }> = [];
+    for (let i = 0; i < rawValue.length; i++) {
+      const item = rawValue[i] as { pictureUrl?: unknown } | null | undefined;
+      if (item && typeof item.pictureUrl === "string" && item.pictureUrl.startsWith(BLOB_REF_PREFIX)) {
+        refsNeeded.push({
+          index: i,
+          blobKey: item.pictureUrl.slice(BLOB_REF_PREFIX.length),
+        });
+      }
+    }
+    if (refsNeeded.length === 0) return rawValue;
+
+    const tx = database.transaction(MEDIA_STORE_NAME, "readonly");
+    const blobs = await Promise.all(refsNeeded.map((ref) => tx.store.get(ref.blobKey)));
+    await tx.done;
+
+    const hydrated = [...rawValue];
+    for (let i = 0; i < refsNeeded.length; i++) {
+      const { index, blobKey } = refsNeeded[i];
+      const resolved = blobs[i];
+      const student = hydrated[index] as Record<string, unknown>;
+      if (typeof resolved === "string") {
+        blobMemoryCache.set(blobKey, resolved);
+        hydrated[index] = { ...student, pictureUrl: resolved };
+      } else {
+        hydrated[index] = { ...student, pictureUrl: undefined };
+      }
+    }
+    return hydrated;
+  }
+
+  if (key === IDB_KEYS.SETTINGS && typeof rawValue === "object" && !Array.isArray(rawValue)) {
+    const settingsObj = rawValue as Record<string, unknown>;
+    const refsNeeded: Array<{ field: string; blobKey: string }> = [];
+    for (const field of SETTINGS_MEDIA_FIELDS) {
+      const val = settingsObj[field];
+      if (typeof val === "string" && val.startsWith(BLOB_REF_PREFIX)) {
+        refsNeeded.push({ field, blobKey: val.slice(BLOB_REF_PREFIX.length) });
+      }
+    }
+    if (refsNeeded.length === 0) return rawValue;
+
+    const tx = database.transaction(MEDIA_STORE_NAME, "readonly");
+    const blobs = await Promise.all(refsNeeded.map((ref) => tx.store.get(ref.blobKey)));
+    await tx.done;
+
+    const hydrated = { ...settingsObj };
+    for (let i = 0; i < refsNeeded.length; i++) {
+      const { field, blobKey } = refsNeeded[i];
+      const resolved = blobs[i];
+      if (typeof resolved === "string") {
+        blobMemoryCache.set(blobKey, resolved);
+        hydrated[field] = resolved;
+      } else {
+        hydrated[field] = "";
+      }
+    }
+    return hydrated;
+  }
+
+  return rawValue;
+}
 
 export const STORAGE_QUOTA_EXCEEDED_EVENT = "repota:storage-quota-exceeded";
 const QUOTA_NOTIFY_COOLDOWN_MS = 10_000;
@@ -110,8 +373,7 @@ function notifyQuotaExceeded(): void {
 export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> => {
   try {
     if (isIndexedDBAvailable && db) {
-      // IndexedDB: Can store 50MB+ easily
-      await db.put(STORE_NAME, value, key);
+      await writeEntriesToIdb(db, [{ key, value }]);
     } else {
       // localStorage fallback: 5-10MB limit
       const jsonString = JSON.stringify(value);
@@ -150,20 +412,10 @@ export const saveEntriesToStorage = async (
       await initStorage();
     }
     if (isIndexedDBAvailable && db) {
-      const tx = db.transaction(STORE_NAME, "readwrite");
       try {
-        for (const entry of entries) {
-          await tx.store.put(entry.value, entry.key);
-        }
-        await tx.done;
+        await writeEntriesToIdb(db, entries);
         return true;
       } catch (error) {
-        try {
-          tx.abort();
-        } catch {
-          // ignore if already aborted
-        }
-        await tx.done.catch(() => {});
         if (isQuotaExceededError(error)) {
           notifyQuotaExceeded();
         } else {
@@ -228,8 +480,12 @@ export const loadFromStorageResult = async <T>(key: string): Promise<StorageLoad
   try {
     if (isIndexedDBAvailable && db) {
       // IndexedDB
-      const value = await db.get(STORE_NAME, key);
-      return value == null ? { status: "empty" } : { status: "found", value: value as T };
+      const rawValue = await db.get(STORE_NAME, key);
+      if (rawValue == null) {
+        return { status: "empty" };
+      }
+      const value = await hydrateValueFromIdb(db, key, rawValue);
+      return { status: "found", value: value as T };
     } else {
       // localStorage fallback
       const jsonString = localStorage.getItem(key);
@@ -259,7 +515,28 @@ export const loadFromStorage = async <T>(key: string): Promise<T | null> => {
 export const deleteFromStorage = async (key: string): Promise<boolean> => {
   try {
     if (isIndexedDBAvailable && db) {
-      await db.delete(STORE_NAME, key);
+      const cleanupPrefix =
+        key === IDB_KEYS.STUDENTS
+          ? STUDENT_PHOTO_PREFIX
+          : key === IDB_KEYS.SETTINGS
+            ? SETTINGS_MEDIA_PREFIX
+            : null;
+
+      if (cleanupPrefix && db.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+        const tx = db.transaction([STORE_NAME, MEDIA_STORE_NAME], "readwrite");
+        const mediaStore = tx.objectStore(MEDIA_STORE_NAME);
+        const mediaKeys = await mediaStore.getAllKeys();
+        for (const mediaKey of mediaKeys) {
+          if (typeof mediaKey === "string" && mediaKey.startsWith(cleanupPrefix)) {
+            await mediaStore.delete(mediaKey);
+            blobMemoryCache.delete(mediaKey);
+          }
+        }
+        await tx.objectStore(STORE_NAME).delete(key);
+        await tx.done;
+      } else {
+        await db.delete(STORE_NAME, key);
+      }
     } else {
       localStorage.removeItem(key);
     }
@@ -275,8 +552,12 @@ export const deleteFromStorage = async (key: string): Promise<boolean> => {
  */
 export const clearAllStorage = async (): Promise<boolean> => {
   try {
+    blobMemoryCache.clear();
     if (isIndexedDBAvailable && db) {
       await db.clear(STORE_NAME);
+      if (db.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+        await db.clear(MEDIA_STORE_NAME);
+      }
     } else {
       localStorage.clear();
     }
@@ -328,8 +609,9 @@ export const migrateFromLocalStorage = async (): Promise<{
     const studentsJSON = localStorage.getItem(IDB_KEYS.STUDENTS);
     const students = studentsJSON ? JSON.parse(studentsJSON) : [];
 
+    const migrationEntries: Array<{ key: string; value: unknown }> = [];
     if (students.length > 0) {
-      await db.put(STORE_NAME, students, IDB_KEYS.STUDENTS);
+      migrationEntries.push({ key: IDB_KEYS.STUDENTS, value: students });
     }
 
     // Migrate settings
@@ -337,7 +619,11 @@ export const migrateFromLocalStorage = async (): Promise<{
     const settings = settingsJSON ? JSON.parse(settingsJSON) : null;
 
     if (settings) {
-      await db.put(STORE_NAME, settings, IDB_KEYS.SETTINGS);
+      migrationEntries.push({ key: IDB_KEYS.SETTINGS, value: settings });
+    }
+
+    if (migrationEntries.length > 0) {
+      await writeEntriesToIdb(db, migrationEntries);
     }
 
     // Success!
