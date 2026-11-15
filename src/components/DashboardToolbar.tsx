@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import type { DashboardFilter } from "../utils/studentValidation";
+import type { DashboardFilter, StudentSortOption } from "../utils/studentValidation";
 
 export interface DashboardFilterCounts {
   all: number;
@@ -31,6 +31,8 @@ interface ToolbarProps {
   isSearching?: boolean;
   activeFilter: DashboardFilter;
   onFilterChange: (filter: DashboardFilter) => void;
+  sortBy?: StudentSortOption;
+  onSortChange?: (sort: StudentSortOption) => void;
   counts?: DashboardFilterCounts;
   onExport: () => void;
   onDeletePending: () => void;
@@ -56,6 +58,8 @@ export function DashboardToolbar({
   isSearching = false,
   activeFilter,
   onFilterChange,
+  sortBy = "DEFAULT",
+  onSortChange,
   counts,
   onExport,
   onDeletePending,
@@ -67,36 +71,55 @@ export function DashboardToolbar({
 
   return (
     <div className="mb-6 flex flex-col gap-3">
-      {/* ROW 1: Search Bar (Full Width) */}
-      <div className="relative w-full">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-4 w-4 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          placeholder="Search students..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-        {isSearching ? (
-          <div
-            className="pointer-events-none absolute inset-y-0 right-3 flex items-center"
-            aria-label="Searching"
-          >
-            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+      {/* ROW 1: Search Bar & Sort */}
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <Search className="h-4 w-4 text-gray-400" />
           </div>
-        ) : (
-          searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              aria-label="Clear search"
-              className="text-muted hover:text-main absolute inset-y-0 right-3 flex items-center"
+          <input
+            type="text"
+            className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            placeholder="Search students..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+          {isSearching ? (
+            <div
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+              aria-label="Searching"
             >
-              <X className="h-4 w-4" />
-            </button>
-          )
+              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+            </div>
+          ) : (
+            searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                aria-label="Clear search"
+                className="text-muted hover:text-main absolute inset-y-0 right-3 flex items-center"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )
+          )}
+        </div>
+
+        {onSortChange && (
+          <select
+            aria-label="Sort students"
+            value={sortBy}
+            onChange={(e) => onSortChange(e.target.value as StudentSortOption)}
+            className="hover:bg-background h-[42px] shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-bold text-gray-700 shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:px-3 sm:text-sm"
+            data-record="true"
+          >
+            <option value="DEFAULT">Sort: Roll Order</option>
+            <option value="NAME_ASC">Name (A–Z)</option>
+            <option value="NAME_DESC">Name (Z–A)</option>
+            <option value="AVG_DESC">Avg (High → Low)</option>
+            <option value="AVG_ASC">Avg (Low → High)</option>
+            <option value="INCOMPLETE_FIRST">Incomplete First</option>
+          </select>
         )}
       </div>
 

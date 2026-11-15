@@ -8,6 +8,14 @@ export type DashboardFilter =
   | "MISSING_PHOTOS"
   | "FAILING";
 
+export type StudentSortOption =
+  | "DEFAULT"
+  | "NAME_ASC"
+  | "NAME_DESC"
+  | "AVG_DESC"
+  | "AVG_ASC"
+  | "INCOMPLETE_FIRST";
+
 export function hasNoScoresEntered(student: StudentRecord): boolean {
   return (
     student.subjects.length === 0 ||
@@ -56,4 +64,37 @@ export function getScoredSubjectCounts(student: StudentRecord): {
     (sub) => sub.classScore > 0 && sub.examScore > 0,
   ).length;
   return { scored, completed, total };
+}
+
+export function sortStudents(
+  students: ProcessedStudent[],
+  sortBy: StudentSortOption,
+  settings?: Pick<SchoolSettings, "defaultSubjects">,
+): ProcessedStudent[] {
+  if (sortBy === "DEFAULT") return students;
+
+  return [...students].sort((a, b) => {
+    switch (sortBy) {
+      case "NAME_ASC":
+        return a.name.localeCompare(b.name);
+      case "NAME_DESC":
+        return b.name.localeCompare(a.name);
+      case "AVG_DESC": {
+        const diff = b.averageScore - a.averageScore;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }
+      case "AVG_ASC": {
+        const diff = a.averageScore - b.averageScore;
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }
+      case "INCOMPLETE_FIRST": {
+        const aPending = isStudentPending(a, settings) ? 0 : 1;
+        const bPending = isStudentPending(b, settings) ? 0 : 1;
+        if (aPending !== bPending) return aPending - bPending;
+        return a.name.localeCompare(b.name);
+      }
+      default:
+        return 0;
+    }
+  });
 }

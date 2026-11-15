@@ -1,12 +1,13 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
 import { getTemplateById } from "../templates/registry";
 import type { PrintMode } from "../types";
 import { markPrintStarted } from "../utils/printHandler";
+import { isStudentPending } from "../utils/studentValidation";
 
 export function PrintPreview() {
   const students = useSchoolStudents();
@@ -14,6 +15,7 @@ export function PrintPreview() {
   const { id } = useSearch({ from: "/print" });
 
   const [printMode, setPrintMode] = useState<PrintMode>("color");
+  const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -69,7 +71,15 @@ export function PrintPreview() {
     };
   }, []);
 
-  const printableStudents = id ? students.filter((s) => s.id === id) : students;
+  const readyStudents = useMemo(
+    () => students.filter((s) => !isStudentPending(s, settings)),
+    [students, settings],
+  );
+  const printableStudents = id
+    ? students.filter((s) => s.id === id)
+    : printFilter === "ready"
+      ? readyStudents
+      : students;
   const studentsWithMissingPhotos = printableStudents.filter((student) => !student.pictureUrl);
 
   const SelectedTemplate = getTemplateById(settings.templateId);
@@ -91,20 +101,36 @@ export function PrintPreview() {
   };
 
   if (printableStudents.length === 0) {
+    const isFilteredToReady = !id && printFilter === "ready" && students.length > 0;
     return (
       <div className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center">
         <div className="max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-orange-500" />
-          <h2 className="text-main mb-2 text-xl font-bold">No Students Found</h2>
+          <h2 className="text-main mb-2 text-xl font-bold">
+            {isFilteredToReady ? "No Complete Report Cards Ready" : "No Students Found"}
+          </h2>
           <p className="mb-6 text-gray-600">
-            Add students and enter their grades before generating reports.
+            {isFilteredToReady
+              ? `All ${students.length} students still have missing subjects or zero scores.`
+              : "Add students and enter their grades before generating reports."}
           </p>
-          <Link
-            to="/"
-            className="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-6 py-2 font-bold text-white"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {isFilteredToReady && (
+              <button
+                type="button"
+                onClick={() => setPrintFilter("all")}
+                className="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white"
+              >
+                Show All Students ({students.length})
+              </button>
+            )}
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -132,8 +158,46 @@ export function PrintPreview() {
             </div>
           </div>
 
-          {/* RIGHT: Mode toggle + Print button */}
+          {/* RIGHT: Ready filter + Mode toggle + Print button */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            {!id && students.length > 0 && (
+              <div className="flex flex-col items-center gap-0.5">
+                <p className="hidden text-[9px] font-black tracking-widest text-gray-400 uppercase sm:block">
+                  Students
+                </p>
+                <div
+                  role="group"
+                  aria-label="Print readiness filter"
+                  className="flex h-9 items-center rounded-xl border border-gray-200 bg-gray-100 p-0.5 shadow-inner"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPrintFilter("all")}
+                    aria-pressed={printFilter === "all"}
+                    className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                      printFilter === "all"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    All ({students.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintFilter("ready")}
+                    aria-pressed={printFilter === "ready"}
+                    className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                      printFilter === "ready"
+                        ? "bg-white text-emerald-700 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Ready ({readyStudents.length})
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ── INK MODE TOGGLE ───────────────────────────────────── */}
             <div className="flex flex-col items-center gap-0.5">
               <p className="hidden text-[9px] font-black tracking-widest text-gray-400 uppercase sm:block">

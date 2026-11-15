@@ -27,11 +27,13 @@ import { triggerHaptic } from "../utils/iosInteraction";
 import { PageHeader } from "../components/ui/PageHeader";
 import {
   type DashboardFilter,
+  type StudentSortOption,
   hasMissingPhoto,
   hasNoScoresEntered,
   hasPartialScores,
   isStudentFailing,
   isStudentPending,
+  sortStudents,
 } from "../utils/studentValidation";
 
 export function Dashboard() {
@@ -61,9 +63,10 @@ export function Dashboard() {
     total: number;
   }>({ isOpen: false, current: 0, total: 0 });
 
-  // Search & Filter State
+  // Search, Filter & Sort State
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<DashboardFilter>("ALL");
+  const [sortBy, setSortBy] = useState<StudentSortOption>("DEFAULT");
 
   // Debounce Search Logic
   const debounceSearch = useDebounce(searchQuery, 300);
@@ -86,10 +89,10 @@ export function Dashboard() {
     };
   }, [students, settings]);
 
-  // Filter Logic (uses shared validation predicates)
+  // Filter & Sort Logic (uses shared validation predicates)
   const filteredStudents = useMemo(() => {
     const normalizedSearch = debounceSearch.toLowerCase();
-    return students.filter((student) => {
+    const matched = students.filter((student) => {
       const matchesSearch = student.name.toLowerCase().includes(normalizedSearch);
       if (!matchesSearch) return false;
 
@@ -109,7 +112,8 @@ export function Dashboard() {
           return true;
       }
     });
-  }, [students, settings, debounceSearch, activeFilter]);
+    return sortStudents(matched, sortBy, settings);
+  }, [students, settings, debounceSearch, activeFilter, sortBy]);
 
   const editingStudent = students.find((s) => s.id === editingStudentId);
 
@@ -233,6 +237,8 @@ export function Dashboard() {
               isSearching={isSearching}
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
               counts={filterCounts}
               onExport={handleExportFullData}
               onDeletePending={() => setConfirmCleanModal(true)}
