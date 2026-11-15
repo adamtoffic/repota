@@ -193,15 +193,16 @@ describe("NavigationShell and route exclusions", () => {
       });
     }
 
-    await screen.findByRole("button", { name: "Quick actions" });
-    expect(screen.getByRole("heading", { name: "Student Records" })).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Student Records" });
     expect(screen.getByPlaceholderText("Search students...")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Print" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quick actions" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Import student list/i })).toBeInTheDocument();
 
-    // Dashboard header shows Print and Quick actions instead of Analytics/Settings
-    fireEvent.click(screen.getByRole("button", { name: "Quick actions" }));
-    expect(screen.getByRole("button", { name: "Add Student" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Import Names" })).toBeInTheDocument();
+    // Workspace Class Tools menu replaces header Quick actions
+    fireEvent.click(screen.getByRole("button", { name: /Class Tools/i }));
+    expect(screen.getByRole("menuitem", { name: /Auto-Fill Teacher Remarks/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Export Broadsheet \(CSV\)/i })).toBeInTheDocument();
 
     // Navigate to SBA
     await navigateTo("/sba");

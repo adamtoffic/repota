@@ -4,19 +4,25 @@ interface PageHeaderProps {
   schoolName?: string;
   actions?: ReactNode;
   variant?: "solid" | "transparent";
+  hideOnDesktop?: boolean;
 }
 
 /**
  * Reusable page header with Repota branding and school name
  * Used across Dashboard, Analytics, and other main pages
  */
-export function PageHeader({ schoolName, actions, variant = "solid" }: PageHeaderProps) {
+export function PageHeader({
+  schoolName,
+  actions,
+  variant = "solid",
+  hideOnDesktop = false,
+}: PageHeaderProps) {
   const bgClass = variant === "transparent" ? "bg-white/95 backdrop-blur-sm" : "bg-white";
   const safeAreaBg = variant === "transparent" ? "bg-white/95" : "bg-white";
 
   return (
     <nav
-      className={`sticky top-0 z-30 border-b border-gray-200 shadow-sm ${bgClass} ${!actions ? "md:hidden" : ""}`}
+      className={`sticky top-0 z-30 border-b border-gray-200 shadow-sm ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
     >
       {/* Safe area spacer for notch/dynamic island */}
       <div className={`safe-top ${safeAreaBg}`} />

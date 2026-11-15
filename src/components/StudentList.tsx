@@ -2,7 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Edit2, Trash2, Printer, UserPlus } from "lucide-react";
+import { Edit2, Trash2, Printer, UserPlus, Upload } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../types";
 import { AddStudentModal } from "./AddStudentModal";
 import { ConfirmModal } from "./ConfirmModal";
@@ -15,6 +15,7 @@ interface Props {
   onAddStudent: (student: StudentRecord) => void;
   onDeleteStudent: (id: string) => void;
   onEditStudent: (student: ProcessedStudent) => void;
+  onImport?: () => void;
   isAddModalOpen?: boolean;
   onOpenAddModalChange?: (open: boolean) => void;
 }
@@ -24,6 +25,7 @@ export function StudentList({
   onAddStudent,
   onDeleteStudent,
   onEditStudent,
+  onImport,
   isAddModalOpen,
   onOpenAddModalChange,
 }: Props) {
@@ -59,15 +61,28 @@ export function StudentList({
           Student Records
         </h2>
 
-        <Button
-          onClick={handleOpenModal}
-          variant="primary"
-          size="md"
-          aria-label="Add new student"
-          data-record="true"
-        >
-          <UserPlus className="h-4 w-4" /> Add Student
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {onImport && (
+            <Button
+              onClick={onImport}
+              variant="secondary"
+              size="md"
+              aria-label="Import student list"
+              data-record="true"
+            >
+              <Upload className="h-4 w-4" /> Import List
+            </Button>
+          )}
+          <Button
+            onClick={handleOpenModal}
+            variant="primary"
+            size="md"
+            aria-label="Add new student"
+            data-record="true"
+          >
+            <UserPlus className="h-4 w-4" /> Add Student
+          </Button>
+        </div>
       </div>
 
       {/* MOBILE CARDS */}

@@ -2,15 +2,15 @@
 import {
   Search,
   Download,
-  MoreVertical,
+  SlidersHorizontal,
+  ChevronDown,
   Trash2,
-  Upload,
   Wand2,
   Eraser,
   FileSpreadsheet,
   Loader2,
   X,
-} from "lucide-react"; // ✅ Added new icons
+} from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -23,10 +23,10 @@ interface ToolbarProps {
   onFilterChange: (filter: "ALL" | "PENDING" | "FAILING") => void;
   onExport: () => void;
   onDeletePending: () => void;
-  onImport: () => void;
+  onImport?: () => void;
   onAutoRemarks: () => void;
-  onClearScores: () => void; // ✅ NEW
-  onExportStudentList: () => void; // ✅ NEW
+  onClearScores: () => void;
+  onExportStudentList: () => void;
 }
 
 // 2. Define Props for the Helper Button
@@ -47,10 +47,9 @@ export function DashboardToolbar({
   onFilterChange,
   onExport,
   onDeletePending,
-  onImport,
   onAutoRemarks,
-  onClearScores, // ✅ NEW
-  onExportStudentList, // ✅ NEW
+  onClearScores,
+  onExportStudentList,
 }: ToolbarProps) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -112,88 +111,139 @@ export function DashboardToolbar({
           />
         </div>
 
-        {/* Fixed Actions Dropdown */}
+        {/* Fixed Class Tools Dropdown / Mobile Bottom Sheet */}
         <div className="relative shrink-0">
           <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="hover:bg-background flex h-9 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm active:scale-95 sm:text-sm"
+            type="button"
+            onClick={() => setShowMenu((prev) => !prev)}
+            aria-expanded={showMenu}
+            aria-haspopup="menu"
+            className="hover:bg-background flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm active:scale-95 sm:text-sm"
             data-record="true"
           >
-            Actions <MoreVertical size={14} />
+            <SlidersHorizontal size={14} className="text-primary" />
+            <span>Class Tools</span>
+            <ChevronDown
+              size={14}
+              className={`text-gray-400 transition-transform ${showMenu ? "rotate-180" : ""}`}
+            />
           </button>
 
           {showMenu && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute top-full right-0 z-20 mt-2 w-60 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
-                {/* ✅ Auto-Generate Remarks */}
+              <div
+                className="fixed inset-0 z-[45] bg-black/30 backdrop-blur-[1px] sm:z-10 sm:bg-transparent sm:backdrop-blur-none"
+                onClick={() => setShowMenu(false)}
+              />
+              <div
+                role="menu"
+                aria-label="Class Tools"
+                className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-gray-200 bg-white p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:right-0 sm:z-20 sm:mt-2 sm:w-64 sm:rounded-2xl sm:border sm:p-1.5 sm:pb-1.5 sm:shadow-xl"
+              >
+                {/* Mobile Drag Handle & Header */}
+                <div className="mb-3 flex flex-col items-center sm:hidden">
+                  <div className="mb-2 h-1 w-10 rounded-full bg-gray-300" />
+                  <div className="flex w-full items-center justify-between px-1">
+                    <span className="text-main text-sm font-bold" data-record="true">
+                      Class Tools
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowMenu(false)}
+                      aria-label="Close Class Tools"
+                      className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Group 1: Smart Assistant */}
+                <p
+                  className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                  data-record="true"
+                >
+                  Smart Assistant
+                </p>
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     onAutoRemarks();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 bg-purple-50 px-4 py-3 text-sm font-bold text-purple-700 hover:bg-purple-100"
+                  className="flex w-full items-center gap-2.5 rounded-xl bg-purple-50 px-3 py-3 text-left text-sm font-bold text-purple-700 hover:bg-purple-100 sm:py-2.5"
                   data-record="true"
                 >
-                  <Wand2 size={16} className="text-purple-600" /> Auto-Fill Remarks
+                  <Wand2 size={16} className="shrink-0 text-purple-600" /> Auto-Fill Teacher Remarks
                 </button>
 
-                <div className="my-1 border-t border-gray-100" />
+                <div className="my-1.5 border-t border-gray-100" />
 
-                {/* ✅ Import/Export Actions */}
-                <button
-                  onClick={() => {
-                    onImport();
-                    setShowMenu(false);
-                  }}
-                  className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                {/* Group 2: Export & Share */}
+                <p
+                  className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
                   data-record="true"
                 >
-                  <Upload size={16} className="text-green-600" /> Import Names
-                </button>
+                  Export & Share
+                </p>
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     onExport();
                     setShowMenu(false);
                   }}
-                  className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                  className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
                   data-record="true"
                 >
-                  <Download size={16} className="text-blue-600" /> Export Full Data
+                  <Download size={16} className="shrink-0 text-blue-600" /> Export Broadsheet (CSV)
                 </button>
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     onExportStudentList();
                     setShowMenu(false);
                   }}
-                  className="hover:bg-background flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700"
+                  className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
                   data-record="true"
                 >
-                  <FileSpreadsheet size={16} className="text-indigo-600" /> Export Student List
+                  <FileSpreadsheet size={16} className="shrink-0 text-indigo-600" /> Export Student Roll (.txt)
                 </button>
 
-                <div className="my-1 border-t border-gray-100" />
+                <div className="my-1.5 border-t border-gray-100" />
 
-                {/* ✅ Destructive Actions */}
+                {/* Group 3: Term Cleanup */}
+                <p
+                  className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                  data-record="true"
+                >
+                  Term Cleanup
+                </p>
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     onClearScores();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-orange-600 hover:bg-orange-50 sm:py-2.5"
                   data-record="true"
                 >
-                  <Eraser size={16} /> Clear All Scores
+                  <Eraser size={16} className="shrink-0" /> Clear All Scores
                 </button>
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     onDeletePending();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 sm:py-2.5"
                   data-record="true"
                 >
-                  <Trash2 size={16} /> Clean Empty Rows
+                  <Trash2 size={16} className="shrink-0" /> Remove Incomplete Students
                 </button>
               </div>
             </>

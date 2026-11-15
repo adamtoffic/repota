@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { HelpCircle, X, Printer, Plus, UserPlus, Upload, Download, Wand2 } from "lucide-react";
+import { HelpCircle, X, Printer, Plus } from "lucide-react";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { AddStudentModal } from "../components/AddStudentModal";
 import { StudentList } from "../components/StudentList";
@@ -46,7 +46,6 @@ export function Dashboard() {
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showQuickActions, setShowQuickActions] = useState(false);
   const [remarksProgress, setRemarksProgress] = useState<{
     isOpen: boolean;
     current: number;
@@ -118,92 +117,18 @@ export function Dashboard() {
     <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
       <PageHeader
+        hideOnDesktop
         schoolName={settings.schoolName}
         actions={
           students.length > 0 ? (
-            <>
-              <Link
-                to="/print"
-                className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
-                data-record="true"
-              >
-                <Printer className="h-5 w-5 sm:h-4 sm:w-4" />
-                <span className="hidden text-sm font-medium sm:inline">Print</span>
-              </Link>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowQuickActions((prev) => !prev)}
-                  aria-label="Quick actions"
-                  aria-expanded={showQuickActions}
-                  className="bg-background text-main flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 shadow-sm transition-all hover:bg-gray-100 active:scale-95 sm:px-3.5"
-                  data-record="true"
-                >
-                  <Plus className="h-5 w-5 sm:h-4 sm:w-4" />
-                  <span className="hidden text-sm font-medium sm:inline">Actions</span>
-                </button>
-
-                {showQuickActions && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowQuickActions(false)}
-                    />
-                    <div className="absolute top-full right-0 z-20 mt-2 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowQuickActions(false);
-                          handleOpenAddStudent();
-                        }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-semibold text-gray-800"
-                        data-record="true"
-                      >
-                        <UserPlus className="text-primary h-4 w-4" />
-                        Add Student
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowQuickActions(false);
-                          setShowImportModal(true);
-                        }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-medium text-gray-700"
-                        data-record="true"
-                      >
-                        <Upload className="h-4 w-4 text-green-600" />
-                        Import Names
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowQuickActions(false);
-                          handleExportFullData();
-                        }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm font-medium text-gray-700"
-                        data-record="true"
-                      >
-                        <Download className="h-4 w-4 text-blue-600" />
-                        Export Full Data
-                      </button>
-                      <div className="my-1 border-t border-gray-100" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowQuickActions(false);
-                          handleAutoFillRemarks();
-                        }}
-                        className="flex w-full items-center gap-2.5 bg-purple-50 px-4 py-3 text-left text-sm font-bold text-purple-700 hover:bg-purple-100"
-                        data-record="true"
-                      >
-                        <Wand2 className="h-4 w-4 text-purple-600" />
-                        Auto-Fill Remarks
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
+            <Link
+              to="/print"
+              className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
+              data-record="true"
+            >
+              <Printer className="h-4 w-4" />
+              <span className="text-sm font-medium">Print</span>
+            </Link>
           ) : (
             <button
               type="button"
@@ -274,7 +199,6 @@ export function Dashboard() {
               onFilterChange={setActiveFilter}
               onExport={handleExportFullData}
               onDeletePending={() => setConfirmCleanModal(true)}
-              onImport={() => setShowImportModal(true)}
               onAutoRemarks={handleAutoFillRemarks}
               onClearScores={() => setConfirmClearScoresModal(true)}
               onExportStudentList={() => {
@@ -320,6 +244,7 @@ export function Dashboard() {
                 onAddStudent={addStudent}
                 onDeleteStudent={deleteStudent}
                 onEditStudent={(s) => setEditingStudentId(s.id)}
+                onImport={() => setShowImportModal(true)}
                 isAddModalOpen={isAddModalOpen}
                 onOpenAddModalChange={setIsAddModalOpen}
               />
