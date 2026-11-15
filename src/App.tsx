@@ -147,9 +147,15 @@ function AppContent({
       <div
         className={`transition-opacity duration-300 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
       >
-        {/* Sonner Toaster - positioned at bottom-right */}
+        {/* Sonner Toaster - top-center so it never overlaps the mobile bottom nav */}
         <Toaster
-          position="bottom-right"
+          position="top-center"
+          offset={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+          mobileOffset={{
+            top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+            left: "1rem",
+            right: "1rem",
+          }}
           toastOptions={{
             className: "print:hidden",
             style: {

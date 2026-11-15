@@ -241,7 +241,7 @@ body.modal-open {
 
 /* ✅ PWA INTERACTION OPTIMIZATION (iOS + Android) */
 button,
-a[role="button"],
+a,
 [role="button"] {
   /* Eliminate 300ms tap delay on mobile */
   touch-action: manipulation;
@@ -249,12 +249,13 @@ a[role="button"],
   /* Remove iOS tap highlight (we use our own active states) */
   -webkit-tap-highlight-color: transparent;
 
-  /* Prevent iOS callout menu on long-press for buttons only */
+  /* Prevent iOS callout menu on long-press */
   -webkit-touch-callout: none;
 }
 
-/* Prevent text selection on buttons during interaction */
-button {
+/* Prevent text selection on buttons and nav links during interaction */
+button,
+nav a {
   -webkit-user-select: none;
   user-select: none;
 }

@@ -138,10 +138,8 @@ const rootRoute = createRootRoute({
 });
 
 // 3. Navigation Shell Layout Route (Excluded on /print and DataGate error/recovery screens)
-const shellRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  id: "shell",
-  component: () => (
+function ShellLayout() {
+  return (
     <DataGate>
       <SettingsFormProvider>
         <AppShell>
@@ -149,7 +147,13 @@ const shellRoute = createRoute({
         </AppShell>
       </SettingsFormProvider>
     </DataGate>
-  ),
+  );
+}
+
+const shellRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "shell",
+  component: ShellLayout,
 });
 
 // 4. Define the Routes
@@ -237,6 +241,7 @@ export function createAppRouter(history?: RouterHistory) {
   return createRouter({
     routeTree,
     history,
+    defaultPreload: "intent",
     defaultErrorComponent: RouteErrorFallback,
   });
 }

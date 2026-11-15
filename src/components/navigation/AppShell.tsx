@@ -1,4 +1,4 @@
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -30,6 +30,13 @@ export function AppShell({ children }: AppShellProps) {
   const { settings, students } = useSchoolData();
   const location = useLocation();
   const pathname = location.pathname;
+
+  // Pre-warm primary bottom-nav chunks so switching tabs responds on the first tap
+  useEffect(() => {
+    void import("../../pages/SbaPage");
+    void import("../../pages/Analytics");
+    void import("../../pages/settings/SettingsHub");
+  }, []);
 
   const isHomeActive = pathname === "/";
   const isSbaActive = pathname.startsWith("/sba");
@@ -156,23 +163,21 @@ export function AppShell({ children }: AppShellProps) {
                 to={item.to}
                 aria-current={item.isActive ? "page" : undefined}
                 onClick={() => triggerHaptic("light")}
-                className={`spring-tab group flex flex-col items-center justify-center gap-1 rounded-2xl py-1 text-[11px] active:scale-90 ${
-                  item.isActive
-                    ? "text-primary font-bold"
-                    : "font-medium text-gray-500 hover:text-gray-900"
+                className={`group flex touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl py-1 text-[11px] select-none ${
+                  item.isActive ? "text-primary font-bold" : "font-medium text-gray-500"
                 }`}
                 data-record="true"
               >
                 <span
-                  className={`spring-tab flex h-7 w-12 items-center justify-center rounded-full ${
-                    item.isActive
-                      ? "text-primary -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs"
-                      : "group-hover:bg-gray-100/70"
+                  className={`pointer-events-none flex h-7 w-12 items-center justify-center rounded-full transition-transform duration-150 group-active:scale-95 ${
+                    item.isActive ? "text-primary -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs" : ""
                   }`}
                 >
-                  <Icon className={`spring-tab h-5 w-5 ${item.isActive ? "stroke-[2.5]" : "stroke-2"}`} />
+                  <Icon
+                    className={`pointer-events-none h-5 w-5 ${item.isActive ? "stroke-[2.5]" : "stroke-2"}`}
+                  />
                 </span>
-                <span>{item.label}</span>
+                <span className="pointer-events-none">{item.label}</span>
               </Link>
             );
           })}
