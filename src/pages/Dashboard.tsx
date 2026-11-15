@@ -22,6 +22,14 @@ import { useToast } from "../hooks/useToast";
 
 import { triggerHaptic } from "../utils/iosInteraction";
 import { PageHeader } from "../components/ui/PageHeader";
+import {
+  type DashboardFilter,
+  hasMissingPhoto,
+  hasNoScoresEntered,
+  hasPartialScores,
+  isStudentFailing,
+  isStudentPending,
+} from "../utils/studentValidation";
 
 export function Dashboard() {
   const {
@@ -54,28 +62,53 @@ export function Dashboard() {
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "PENDING" | "FAILING">("ALL");
+  const [activeFilter, setActiveFilter] = useState<DashboardFilter>("ALL");
 
   // Debounce Search Logic
   const debounceSearch = useDebounce(searchQuery, 300);
   const isSearching = searchQuery !== "" && debounceSearch !== searchQuery;
 
-  // Filter Logic
-  const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      const matchesSearch = student.name.toLowerCase().includes(debounceSearch.toLowerCase());
-      const hasMissingSubjects = student.subjects.length === 0;
-      const hasIncompleteScores = student.subjects.some(
-        (sub) => sub.classScore === 0 || sub.examScore === 0,
-      );
-      const isPending = hasMissingSubjects || hasIncompleteScores;
-      const isFailing = !isPending && student.averageScore < 50;
+  const filterCounts = useMemo(() => {
+    const noScores = students.filter(hasNoScoresEntered).length;
+    const partialScores = students.filter((s) => hasPartialScores(s, settings)).length;
+    const pending = students.filter((s) => isStudentPending(s, settings)).length;
+    const missingPhotos = students.filter(hasMissingPhoto).length;
+    const failing = students.filter((s) => isStudentFailing(s, settings)).length;
 
-      if (activeFilter === "PENDING") return matchesSearch && isPending;
-      if (activeFilter === "FAILING") return matchesSearch && isFailing;
-      return matchesSearch;
+    return {
+      all: students.length,
+      pending,
+      noScores,
+      partialScores,
+      missingPhotos,
+      failing,
+    };
+  }, [students, settings]);
+
+  // Filter Logic (uses shared validation predicates)
+  const filteredStudents = useMemo(() => {
+    const normalizedSearch = debounceSearch.toLowerCase();
+    return students.filter((student) => {
+      const matchesSearch = student.name.toLowerCase().includes(normalizedSearch);
+      if (!matchesSearch) return false;
+
+      switch (activeFilter) {
+        case "PENDING":
+          return isStudentPending(student, settings);
+        case "NO_SCORES":
+          return hasNoScoresEntered(student);
+        case "PARTIAL_SCORES":
+          return hasPartialScores(student, settings);
+        case "MISSING_PHOTOS":
+          return hasMissingPhoto(student);
+        case "FAILING":
+          return isStudentFailing(student, settings);
+        case "ALL":
+        default:
+          return true;
+      }
     });
-  }, [students, debounceSearch, activeFilter]);
+  }, [students, settings, debounceSearch, activeFilter]);
 
   const editingStudent = students.find((s) => s.id === editingStudentId);
 
@@ -188,6 +221,8 @@ export function Dashboard() {
             <ValidationWarnings
               students={students}
               settings={settings}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
               onReviewPending={() => setActiveFilter("PENDING")}
             />
 
@@ -197,6 +232,7 @@ export function Dashboard() {
               isSearching={isSearching}
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
+              counts={filterCounts}
               onExport={handleExportFullData}
               onDeletePending={() => setConfirmCleanModal(true)}
               onAutoRemarks={handleAutoFillRemarks}
@@ -225,7 +261,10 @@ export function Dashboard() {
                 </h3>
                 <p className="text-muted mt-1 text-sm">
                   No results for "{searchQuery}" in{" "}
-                  {activeFilter === "ALL" ? "all students" : activeFilter.toLowerCase()}.
+                  {activeFilter === "ALL"
+                    ? "all students"
+                    : activeFilter.toLowerCase().replace(/_/g, " ")}
+                  .
                 </p>
                 <button
                   onClick={() => {
@@ -287,6 +326,7 @@ export function Dashboard() {
           onUpdateStudent={updateStudent}
           allStudents={filteredStudents}
           onNavigate={setEditingStudentId}
+          initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
         />
       )}
 

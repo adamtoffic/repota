@@ -1,12 +1,13 @@
 import { Users, Clock, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
 import { useMemo } from "react";
 import type { ProcessedStudent, SchoolSettings } from "../types";
+import { type DashboardFilter, isStudentPending } from "../utils/studentValidation";
 
 interface Props {
   students: ProcessedStudent[];
   settings: SchoolSettings;
-  activeFilter?: "ALL" | "PENDING" | "FAILING";
-  onFilterChange?: (filter: "ALL" | "PENDING" | "FAILING") => void;
+  activeFilter?: DashboardFilter;
+  onFilterChange?: (filter: DashboardFilter) => void;
 }
 
 export function DashboardStats({ students, settings, activeFilter, onFilterChange }: Props) {
@@ -15,14 +16,8 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
     const classSize = settings.classSize || 0;
     const isOverCapacity = classSize > 0 && total > classSize;
 
-    // 1. Calculate Pending (Exact same logic as the Filter)
-    const pendingStudents = students.filter((s) => {
-      const hasMissingSubjects = s.subjects.length === 0;
-      const hasIncompleteScores = s.subjects.some(
-        (sub) => sub.classScore === 0 || sub.examScore === 0,
-      );
-      return hasMissingSubjects || hasIncompleteScores;
-    });
+    // 1. Calculate Pending (Shared predicate matching Dashboard filter)
+    const pendingStudents = students.filter((s) => isStudentPending(s, settings));
 
     // 2. Calculate Completed Students (The inverse of Pending)
     const completedStudents = students.filter((s) => !pendingStudents.includes(s));
@@ -49,7 +44,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
       passRate,
       classAverage,
     };
-  }, [students, settings.classSize]);
+  }, [students, settings]);
 
   return (
     <>
@@ -117,7 +112,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           colorClass="bg-purple-50/50 border-purple-100"
         />
 
-        {/* CARD 4: PASS RATE (Success Metric) */}
+        {/* CARD 4: PASS RATE (Success Metric / Actionable Failing Filter) */}
         <StatCard
           label="Pass Rate"
           value={`${stats.passRate}%`}
@@ -130,6 +125,14 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           }
           colorClass={
             stats.passRate >= 50 ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"
+          }
+          alert={stats.failing > 0}
+          alertColor="red"
+          isActive={activeFilter === "FAILING"}
+          onClick={
+            onFilterChange && stats.failing > 0
+              ? () => onFilterChange(activeFilter === "FAILING" ? "ALL" : "FAILING")
+              : undefined
           }
         />
       </div>
@@ -196,13 +199,17 @@ function StatCard({
   );
 
   if (onClick) {
+    const hoverRingClass =
+      alertColor === "red" ? "hover:ring-red-300" : "hover:ring-orange-300";
+    const activeRingClass =
+      alertColor === "red" ? "ring-2 ring-red-500" : "ring-2 ring-orange-500";
     return (
       <button
         type="button"
         onClick={onClick}
         aria-pressed={isActive}
-        className={`animate-fade-in flex w-full cursor-pointer items-center justify-between rounded-xl border p-4 text-left shadow-sm transition-all hover:ring-2 hover:ring-orange-300 active:scale-[0.99] ${
-          isActive ? "ring-2 ring-orange-500" : ""
+        className={`animate-fade-in flex w-full cursor-pointer items-center justify-between rounded-xl border p-4 text-left shadow-sm transition-all hover:ring-2 active:scale-[0.99] ${hoverRingClass} ${
+          isActive ? activeRingClass : ""
         } ${colorClass}`}
       >
         {content}

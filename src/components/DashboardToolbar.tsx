@@ -13,14 +13,25 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import type { DashboardFilter } from "../utils/studentValidation";
+
+export interface DashboardFilterCounts {
+  all: number;
+  pending: number;
+  noScores: number;
+  partialScores?: number;
+  missingPhotos: number;
+  failing: number;
+}
 
 // 1. Define Props for the Main Toolbar
 interface ToolbarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   isSearching?: boolean;
-  activeFilter: "ALL" | "PENDING" | "FAILING";
-  onFilterChange: (filter: "ALL" | "PENDING" | "FAILING") => void;
+  activeFilter: DashboardFilter;
+  onFilterChange: (filter: DashboardFilter) => void;
+  counts?: DashboardFilterCounts;
   onExport: () => void;
   onDeletePending: () => void;
   onImport?: () => void;
@@ -45,6 +56,7 @@ export function DashboardToolbar({
   isSearching = false,
   activeFilter,
   onFilterChange,
+  counts,
   onExport,
   onDeletePending,
   onAutoRemarks,
@@ -93,22 +105,52 @@ export function DashboardToolbar({
         {/* Scrollable Filters */}
         <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto pb-1">
           <FilterButton
-            label="All"
+            label={counts ? `All (${counts.all})` : "All"}
             isActive={activeFilter === "ALL"}
             onClick={() => onFilterChange("ALL")}
           />
           <FilterButton
-            label="Incomplete"
+            label={counts ? `Incomplete (${counts.pending})` : "Incomplete"}
             isActive={activeFilter === "PENDING"}
-            onClick={() => onFilterChange("PENDING")}
+            onClick={() => onFilterChange(activeFilter === "PENDING" ? "ALL" : "PENDING")}
             activeColor="bg-orange-500"
           />
+          {((counts?.missingPhotos ?? 0) > 0 || activeFilter === "MISSING_PHOTOS") && (
+            <FilterButton
+              label={counts ? `Missing Photos (${counts.missingPhotos})` : "Missing Photos"}
+              isActive={activeFilter === "MISSING_PHOTOS"}
+              onClick={() =>
+                onFilterChange(activeFilter === "MISSING_PHOTOS" ? "ALL" : "MISSING_PHOTOS")
+              }
+              activeColor="bg-yellow-600"
+            />
+          )}
           <FilterButton
-            label="Failing"
+            label={counts ? `Failing (${counts.failing})` : "Failing"}
             isActive={activeFilter === "FAILING"}
-            onClick={() => onFilterChange("FAILING")}
+            onClick={() => onFilterChange(activeFilter === "FAILING" ? "ALL" : "FAILING")}
             activeColor="bg-red-500"
           />
+          {activeFilter === "NO_SCORES" && (
+            <FilterButton
+              label={counts ? `No Scores (${counts.noScores}) ×` : "No Scores ×"}
+              isActive={true}
+              onClick={() => onFilterChange("ALL")}
+              activeColor="bg-red-600"
+            />
+          )}
+          {activeFilter === "PARTIAL_SCORES" && (
+            <FilterButton
+              label={
+                counts && counts.partialScores !== undefined
+                  ? `Partial Scores (${counts.partialScores}) ×`
+                  : "Partial Scores ×"
+              }
+              isActive={true}
+              onClick={() => onFilterChange("ALL")}
+              activeColor="bg-orange-600"
+            />
+          )}
         </div>
 
         {/* Fixed Class Tools Dropdown / Mobile Bottom Sheet */}

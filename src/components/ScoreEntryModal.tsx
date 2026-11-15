@@ -15,6 +15,7 @@ interface Props {
   // Navigation props
   allStudents?: ProcessedStudent[];
   onNavigate?: (studentId: string) => void;
+  initialTab?: "ACADEMIC" | "DETAILS";
 }
 
 export function ScoreEntryModal({
@@ -25,8 +26,9 @@ export function ScoreEntryModal({
   onUpdateStudent,
   allStudents,
   onNavigate,
+  initialTab = "ACADEMIC",
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"ACADEMIC" | "DETAILS">("ACADEMIC");
+  const [activeTab, setActiveTab] = useState<"ACADEMIC" | "DETAILS">(initialTab);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null); // null = show all
 
   // Get all unique subjects from current student
