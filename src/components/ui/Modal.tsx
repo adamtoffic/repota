@@ -46,7 +46,7 @@ export const Modal = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={`my-auto w-full max-w-md flex-shrink-0 rounded-lg bg-white shadow-xl ${className}`}
+        className={`animate-sheet-up my-auto w-full max-w-md flex-shrink-0 rounded-lg bg-white shadow-xl ${className}`}
       >
         {children}
       </div>

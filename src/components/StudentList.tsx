@@ -2,13 +2,32 @@
 import { Link } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Edit2, Trash2, Printer, UserPlus, Upload } from "lucide-react";
+import { Edit2, Trash2, Printer, UserPlus, Upload, CameraOff } from "lucide-react";
 import type { ProcessedStudent, StudentRecord } from "../types";
 import { AddStudentModal } from "./AddStudentModal";
 import { ConfirmModal } from "./ConfirmModal";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { triggerHaptic } from "../utils/iosInteraction";
+import { getScoredSubjectCounts } from "../utils/studentValidation";
 import { Button } from "./ui";
+
+function ScoreProgressBadge({ student }: { student: ProcessedStudent }) {
+  const { scored, completed, total } = getScoredSubjectCounts(student);
+  const toneClass =
+    completed === total && total > 0
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : scored === 0
+        ? "border-red-200 bg-red-50 text-red-700"
+        : "border-amber-200 bg-amber-50 text-amber-800";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${toneClass}`}
+    >
+      {completed}/{total} Scored
+    </span>
+  );
+}
 
 interface Props {
   students: ProcessedStudent[];
@@ -117,6 +136,12 @@ export function StudentList({
                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                   {student.subjects.length} Subjects
                 </span>
+                <ScoreProgressBadge student={student} />
+                {!student.pictureUrl && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                    <CameraOff className="h-3 w-3" /> No Photo
+                  </span>
+                )}
                 <span className="bg-background text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
                   Avg: {student.averageScore > 0 ? `${student.averageScore}%` : "Pending"}
                 </span>
@@ -228,9 +253,12 @@ export function StudentList({
                         {student.className}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
-                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                          {student.subjects.length} Subjects
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                            {student.subjects.length} Subjects
+                          </span>
+                          <ScoreProgressBadge student={student} />
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-bold text-gray-800 sm:px-6 sm:py-4">
                         {student.averageScore > 0 ? `${student.averageScore}%` : "-"}

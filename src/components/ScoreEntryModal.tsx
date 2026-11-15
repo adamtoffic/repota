@@ -84,7 +84,7 @@ export function ScoreEntryModal({
       onClick={onClose}
     >
       <div
-        className="flex h-dvh max-h-dvh w-full max-w-4xl flex-col bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
+        className="animate-sheet-up flex h-dvh max-h-dvh w-full max-w-4xl flex-col bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER WITH NAVIGATION */}
@@ -179,8 +179,11 @@ export function ScoreEntryModal({
         </div>
 
         {/* TABS */}
-        <div className="flex flex-shrink-0 border-b border-gray-200 px-6">
+        <div role="tablist" className="flex flex-shrink-0 border-b border-gray-200 px-6">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "ACADEMIC"}
             onClick={() => setActiveTab("ACADEMIC")}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
               activeTab === "ACADEMIC"
@@ -192,6 +195,9 @@ export function ScoreEntryModal({
             <BookOpen className="h-4 w-4" /> Academic Scores
           </button>
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "DETAILS"}
             onClick={() => setActiveTab("DETAILS")}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
               activeTab === "DETAILS"
@@ -211,19 +217,21 @@ export function ScoreEntryModal({
             these components when you switch students. This ensures 'DetailsTab'
             resets its state without needing useEffect!
           */}
-          {activeTab === "ACADEMIC" && (
-            <AcademicTab
-              key={student.id}
-              student={student}
-              level={level}
-              onUpdate={(updated) => onUpdateStudent(updated, true)} // Silent mode - tab shows its own toast
-              filterSubject={selectedSubject}
-            />
-          )}
+          <div key={`${student.id}-${activeTab}`} className="animate-page-enter">
+            {activeTab === "ACADEMIC" && (
+              <AcademicTab
+                key={student.id}
+                student={student}
+                level={level}
+                onUpdate={(updated) => onUpdateStudent(updated, true)} // Silent mode - tab shows its own toast
+                filterSubject={selectedSubject}
+              />
+            )}
 
-          {activeTab === "DETAILS" && (
-            <DetailsTab key={student.id} student={student} onUpdate={onUpdateStudent} />
-          )}
+            {activeTab === "DETAILS" && (
+              <DetailsTab key={student.id} student={student} onUpdate={onUpdateStudent} />
+            )}
+          </div>
         </div>
       </div>
     </div>

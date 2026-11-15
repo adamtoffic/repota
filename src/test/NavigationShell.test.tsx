@@ -33,6 +33,7 @@ vi.mock("../utils/dataProtection", () => ({
   detectDataLoss: vi.fn(() => false),
 }));
 
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { SchoolProvider } from "../context/SchoolContext";
 import { createAppRouter } from "../router";
 import { setUnsavedChanges } from "../utils/preloadErrorHandler";
@@ -260,5 +261,135 @@ describe("NavigationShell and route exclusions", () => {
     expect(await screen.findByText("Saved data could not be loaded")).toBeInTheDocument();
     expect(screen.queryByLabelText("Sidebar navigation")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Mobile bottom navigation")).not.toBeInTheDocument();
+  });
+
+  it("filters dashboard students directly from warning cards and deep-links missing photo to Details tab", async () => {
+    const demoWarningStudents: StudentRecord[] = [
+      {
+        id: "demo-zero",
+        name: "Student Zero",
+        className: "JHS 1",
+        gender: "Female",
+        attendancePresent: 70,
+        pictureUrl: "data:image/png;base64,abc",
+        subjects: [
+          { id: "z1", name: "English", classScore: 0, examScore: 0 },
+          { id: "z2", name: "Mathematics", classScore: 0, examScore: 0 },
+        ],
+      },
+      {
+        id: "demo-partial",
+        name: "Student Partial",
+        className: "JHS 1",
+        gender: "Male",
+        attendancePresent: 72,
+        pictureUrl: "data:image/png;base64,def",
+        subjects: [
+          { id: "p1", name: "English", classScore: 30, examScore: 0 },
+          { id: "p2", name: "Mathematics", classScore: 35, examScore: 40 },
+        ],
+      },
+      {
+        id: "demo-nophoto",
+        name: "Student NoPhoto",
+        className: "JHS 1",
+        gender: "Female",
+        attendancePresent: 78,
+        pictureUrl: "",
+        subjects: [
+          { id: "n1", name: "English", classScore: 40, examScore: 45 },
+          { id: "n2", name: "Mathematics", classScore: 42, examScore: 44 },
+        ],
+      },
+    ];
+
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return { status: "found", value: demoWarningStudents };
+      }
+      if (key === "ges_v1_settings") {
+        return { status: "found", value: demoSettings };
+      }
+      return { status: "empty" };
+    });
+
+    renderAppAt("/");
+
+    expect(await screen.findByText("Student Zero")).toBeInTheDocument();
+    expect(screen.getByText("Student Partial")).toBeInTheDocument();
+    expect(screen.getByText("Student NoPhoto")).toBeInTheDocument();
+
+    // Score progress badges & missing photo pill appear on cards
+    expect(screen.getByText("0/2 Scored")).toBeInTheDocument();
+    expect(screen.getByText("1/2 Scored")).toBeInTheDocument();
+    expect(screen.getByText("2/2 Scored")).toBeInTheDocument();
+    expect(screen.getByText("No Photo")).toBeInTheDocument();
+
+    // Filter by "no scores entered" and toggle back
+    const noScoresBtn = screen.getByRole("button", { name: /1 student has no scores entered/i });
+    fireEvent.click(noScoresBtn);
+    expect(screen.getByText("Student Zero")).toBeInTheDocument();
+    expect(screen.queryByText("Student Partial")).not.toBeInTheDocument();
+    expect(screen.queryByText("Student NoPhoto")).not.toBeInTheDocument();
+
+    fireEvent.click(noScoresBtn);
+    expect(screen.getByText("Student Partial")).toBeInTheDocument();
+    expect(screen.getByText("Student NoPhoto")).toBeInTheDocument();
+
+    // Filter by "incomplete scores"
+    const partialBtn = screen.getByRole("button", { name: /1 student with incomplete scores/i });
+    fireEvent.click(partialBtn);
+    expect(screen.getByText("Student Partial")).toBeInTheDocument();
+    expect(screen.queryByText("Student Zero")).not.toBeInTheDocument();
+    expect(screen.queryByText("Student NoPhoto")).not.toBeInTheDocument();
+
+    // Filter by "missing photo" and open student -> lands on Student Details tab
+    const missingPhotoBtn = screen.getByRole("button", { name: /1 student missing photo/i });
+    fireEvent.click(missingPhotoBtn);
+    expect(screen.getByText("Student NoPhoto")).toBeInTheDocument();
+    expect(screen.queryByText("Student Zero")).not.toBeInTheDocument();
+    expect(screen.queryByText("Student Partial")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Edit Scores/i }));
+    expect(screen.getByRole("tab", { name: /Student Details/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: /Academic Scores/i })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByDisplayValue("Student NoPhoto")).toBeInTheDocument();
+
+    // Closing modal and dismissing photo warning resets active photo filter
+    fireEvent.click(screen.getByRole("button", { name: /Close modal/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Dismiss missing photos warning/i }));
+    expect(sessionStorage.getItem("repota_dismiss_photo_warning")).toBe("true");
+    expect(screen.queryByRole("button", { name: /1 student missing photo/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Student Zero")).toBeInTheDocument();
+  });
+
+  it("auto-hides AutoSaveIndicator after 3.5 seconds while keeping saving state visible", () => {
+    vi.useFakeTimers();
+    try {
+      const savedAt = new Date();
+      const { rerender } = render(<AutoSaveIndicator isSaving={false} lastSaved={savedAt} />);
+
+      expect(screen.getByText(/Saved just now/i)).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(3500);
+      });
+
+      expect(screen.queryByText(/Saved just now/i)).not.toBeInTheDocument();
+
+      rerender(<AutoSaveIndicator isSaving={true} lastSaved={savedAt} />);
+      act(() => {
+        vi.advanceTimersByTime(3500);
+      });
+      expect(screen.getByText(/Saving\.\.\./i)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
