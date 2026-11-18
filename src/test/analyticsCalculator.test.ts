@@ -3,12 +3,19 @@ import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { SchoolSettings, StudentRecord } from "../types";
 import {
   calculateAtRiskStudents,
+  calculateAttendanceInsights,
+  calculateBorderlineStudents,
   calculateClassMetrics,
+  calculateCoreVsElectiveStats,
   calculateGenderAnalysis,
   calculatePerformanceQuartiles,
+  calculatePrivateFeeSummary,
+  calculateSbaCategoryMastery,
+  calculateSbaVsExamAnalysis,
   calculateScoreDistribution,
   calculateSubjectPerformance,
   calculateSubjectVariance,
+  partitionGradedStudents,
 } from "../utils/analyticsCalculator";
 
 const settings: SchoolSettings = {
@@ -163,5 +170,97 @@ describe("analyticsCalculator", () => {
     const variance = calculateSubjectVariance(students, settings);
     expect(variance).toHaveLength(3);
     expect(variance[0].consistency).toBe("Low"); // Math spread 30 vs 90 -> stdDev 30
+  });
+
+  it("does not flag unrecorded attendance as Poor Attendance and computes Pearson r", () => {
+    const students: StudentRecord[] = [
+      makeStudent("s1", "No Att Pass", [["Math", 40, 40]]),
+      makeStudent("s2", "Att High", [["Math", 45, 45]], { attendancePresent: 78 }),
+      makeStudent("s3", "Att Low", [["Math", 20, 20]], { attendancePresent: 35 }),
+    ];
+
+    const atRisk = calculateAtRiskStudents(students, settings);
+    const noAtt = atRisk.find((s) => s.id === "s1");
+    expect(noAtt).toBeUndefined();
+
+    const attInsights = calculateAttendanceInsights(students, settings);
+    expect(attInsights.correlationWithPerformance).toBe("positive");
+    expect(attInsights.correlationCoefficient).toBe(1);
+  });
+
+  it("partitions graded vs ungraded students and detects SBA-vs-Exam & borderline cohorts", () => {
+    const classList: StudentRecord[] = [
+      {
+        id: "u1",
+        name: "Ungraded",
+        className: "JHS 2",
+        gender: "Male",
+        subjects: [{ id: "su1", name: "Mathematics", classScore: 0, examScore: 0 }],
+      },
+      {
+        id: "b1",
+        name: "Borderline",
+        className: "JHS 2",
+        gender: "Female",
+        subjects: [
+          { id: "sb1", name: "Mathematics", classScore: 22, examScore: 25 }, // 47
+          { id: "sb2", name: "English Language", classScore: 24, examScore: 26 }, // 50 -> avg 48.5
+        ],
+      },
+      {
+        id: "e1",
+        name: "Exam Anxious",
+        className: "JHS 2",
+        gender: "Male",
+        subjects: [
+          {
+            id: "se1",
+            name: "Mathematics",
+            classScore: 45, // 90% SBA
+            examScore: 20, // 40% Exam -> gap 50%
+            classScoreComponents: [
+              { id: "c1", name: "CAT 1", score: 18, maxScore: 20, category: "CAT" },
+              { id: "c2", name: "Project", score: 27, maxScore: 30, category: "PROJECT" },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const { graded, ungraded } = partitionGradedStudents(classList);
+    expect(graded).toHaveLength(2);
+    expect(ungraded).toHaveLength(1);
+
+    const sbaExam = calculateSbaVsExamAnalysis(graded, settings);
+    expect(sbaExam.available).toBe(true);
+    expect(sbaExam.examUnderperformers.map((s) => s.name)).toEqual(["Exam Anxious"]);
+
+    const mastery = calculateSbaCategoryMastery(graded);
+    expect(mastery.map((m) => m.category)).toEqual(["CAT", "PROJECT"]);
+    expect(mastery[0].averagePercent).toBe(90);
+
+    const borderline = calculateBorderlineStudents(graded, settings);
+    expect(borderline.map((s) => s.name)).toEqual(["Borderline"]);
+
+    const coreElective = calculateCoreVsElectiveStats(graded, settings);
+    expect(coreElective.coreAverage).toBeGreaterThan(0);
+    expect(coreElective.aggregateBands.length).toBeGreaterThan(0);
+  });
+
+  it("summarizes private school fee statuses and arrears", () => {
+    const privateStudents: StudentRecord[] = [
+      { ...makeStudent("p1", "Paid Stu", [["Math", 40, 40]]), feeStatus: "PAID" },
+      {
+        ...makeStudent("p2", "Owing Stu", [["Math", 30, 30]]),
+        feeStatus: "OWING",
+        feeArrears: 320,
+        guardianPhone: "0240000000",
+      },
+    ];
+    const summary = calculatePrivateFeeSummary(privateStudents);
+    expect(summary.paidCount).toBe(1);
+    expect(summary.owingCount).toBe(1);
+    expect(summary.totalArrears).toBe(320);
+    expect(summary.topOwingStudents[0].name).toBe("Owing Stu");
   });
 });
