@@ -1,9 +1,8 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, Printer, AlertCircle, Image, Wrench } from "lucide-react";
+import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PdfExportModal } from "../components/PdfExportModal";
-import { PrintDiagnostics } from "../components/PrintDiagnostics";
 import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
 import { usePdfShareFlow } from "../hooks/usePdfShareFlow";
@@ -20,10 +19,7 @@ export function PrintPreview() {
 
   const [printMode, setPrintMode] = useState<PrintMode>("color");
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
-  // TEST BUILD: on-device print diagnostics for the iOS 27 Home Screen issue
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
-  const getPrintArea = useCallback(() => printAreaRef.current, []);
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -297,21 +293,6 @@ export function PrintPreview() {
             {/* ──────────────────────────────────────────────────────── */}
 
             <button
-              type="button"
-              onClick={() => setShowDiagnostics((v) => !v)}
-              aria-pressed={showDiagnostics}
-              aria-label="Print diagnostics"
-              title="Print diagnostics"
-              className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
-                showDiagnostics
-                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                  : "border-gray-200 bg-white text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Wrench className="h-4 w-4" />
-            </button>
-
-            <button
               onClick={handlePrint}
               className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm transition-all active:scale-95 sm:px-6"
             >
@@ -341,17 +322,6 @@ export function PrintPreview() {
           </div>
         )}
       </div>
-
-      {/* TEST BUILD: print diagnostics panel (outside the sticky toolbar) */}
-      {showDiagnostics && (
-        <div className="px-3 sm:px-4 print:hidden">
-          <PrintDiagnostics
-            getSource={getPrintArea}
-            contentKey={contentKey}
-            onClose={() => setShowDiagnostics(false)}
-          />
-        </div>
-      )}
 
       {/* 2. THE PREVIEW AREA - All rendered upfront for fast printing */}
       <div

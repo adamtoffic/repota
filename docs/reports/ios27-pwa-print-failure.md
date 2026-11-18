@@ -1,8 +1,20 @@
 # iOS 27: Print button does nothing in the installed PWA
 
 **Date:** 2026-11-18
-**Status:** Print Preview verified working on iOS 27.2 PWA (single/all students, Color & B&W) and desktop; extended the same shared PDF + Share Sheet fallback to `/analytics` (`Export PDF`).
+**Status:** Resolved & verified on device (`/print` and `/analytics` on iOS 27.2 standalone PWA and desktop). Temporary diagnostics removed; ready for `feat/navigation-shell`.
 **Scope:** `/print` (`PrintPreview`) and `/analytics` (`Analytics`) running as a Home Screen web app on iOS 27 (`Version/27.2`), installed from Safari or from Chrome.
+
+---
+
+## Update 2026-11-18 (4): Final verification & cleanup
+
+- **Analytics `Export PDF` verified on iOS 27.2 PWA:** Exporting analytics reports works on device and surfaces the native iOS Share Sheet (**Print** / **Save to Files**).
+- **Diagnostics scaffolding removed:** Deleted the temporary test UI (`PrintDiagnostics.tsx` and `printStrategies.ts`) and its toolbar button from [PrintPreview.tsx](../../src/pages/PrintPreview.tsx).
+- **Final implementation:**
+  - [iosInteraction.ts](../../src/utils/iosInteraction.ts) — `isIOSDevice()`, `isIOSPWA()`, `getSafariMajorVersion()`, `shouldUseIOSPdfPrintFallback()`.
+  - [pdfPrint.ts](../../src/utils/pdfPrint.ts) — dynamic `html2canvas-pro` + `jspdf` offline A4 PDF builders (`generateReportsPdfFile`, `generateBlocksPdfFile`), `sharePdfFile`, `downloadPdfFile`.
+  - [usePdfShareFlow.ts](../../src/hooks/usePdfShareFlow.ts) & [PdfExportModal.tsx](../../src/components/PdfExportModal.tsx) — shared print/PDF fallback flow, in-memory cache, transient-activation fallback modal, and 1.5s watchdog for older iOS standalone versions.
+  - [PrintPreview.tsx](../../src/pages/PrintPreview.tsx) & [Analytics.tsx](../../src/pages/Analytics.tsx) — wired into `handlePrint` and `handleExportPDF`.
 
 ---
 
