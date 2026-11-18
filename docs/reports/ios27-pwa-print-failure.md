@@ -1,8 +1,27 @@
 # iOS 27: Print button does nothing in the installed PWA
 
 **Date:** 2026-11-18
-**Status:** Finding A ruled out on device. Investigating Finding B with the diagnostics build on branch `feat/ios27-pwa-print-diagnostics` (see the [update](#update-2026-11-18-device-results)).
-**Scope:** `/print` route (`PrintPreview`) running as a Home Screen web app on iOS 27, installed from Safari or from Chrome.
+**Status:** Root cause confirmed on device (`Version/27.2` standalone web app drops `window.print()` across all contexts; `navigator.share` with files works). Implementing PDF + Share Sheet fallback for testing on `feat/ios27-pwa-print-diagnostics`.
+**Scope:** `/print` route (`PrintPreview`) running as a Home Screen web app on iOS 27 (`Version/27.2`), installed from Safari or from Chrome.
+
+---
+
+## Update 2026-11-18 (2): On-device diagnostics confirmed Finding B
+
+Testing the diagnostics panel on an iPhone running `Version/27.2` (`Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1`) in standalone mode (`standalone=true`, `navigator.standalone=true`) produced the following results:
+
+- **Pre-conditions were all valid** on every tap: `userActivation` was active (`isActive=true hasBeenActive=true`), `readyState=complete`, `visibility=visible`, `hasFocus=true`.
+- **Option A (`direct` — `window.print()`):** Returned in `0ms`. Zero `beforeprint`, `afterprint`, or `matchMedia("print")` events fired; no print dialog appeared.
+- **Option B (`pause-analytics`):** Pausing PostHog session recording before `window.print()` made no difference (`1–5ms`, zero print events, no dialog). Rules out network-in-flight / PostHog interference.
+- **Option C (`iframe`):** `iframe.contentWindow.print()` returned in `0ms` (with only `blur`/`focus` from `win.focus()`), no print dialog appeared.
+- **Option D (`new-window`):** `window.open("", "_blank")` opened a child view **inside** the standalone PWA container (without Safari chrome or a back button, requiring force-close to exit), and tapping "Tap to Print" (`window.print()`) inside that window also did nothing.
+- **Option E (`share-file`):** `navigator.share({ files: [...] })` succeeded (`7ms`) and **opened the native iOS Share Sheet**.
+
+### Conclusion & fix direction
+
+1. **Why it fails:** In Apple's iOS 27 (`Version/27.2`) standalone Home Screen web-app container, `window.print()` is silently ignored across top-level windows, iframes, and `window.open` child windows — even with valid transient user activation and no network blockers.
+2. **Why `x-safari-https://` is not viable:** iOS isolates IndexedDB/`localStorage` between the Home Screen PWA and Safari, so opening `/print` in Safari would show an empty school database.
+3. **Why PDF + `navigator.share` is the fix:** Passing an `.html` file to `navigator.share` only offers file-saving actions, whereas passing a real **multi-page A4 `.pdf` file** (`application/pdf`) surfaces iOS's native Share Sheet with **Print** (AirPrint), **Save to Files**, **Markup**, and **Share**, while running **100% offline** using the PWA's own IndexedDB data.
 
 ---
 

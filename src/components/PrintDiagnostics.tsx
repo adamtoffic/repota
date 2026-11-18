@@ -15,6 +15,8 @@ import {
   runPrintStrategy,
   type PrintStrategyId,
 } from "../utils/printStrategies";
+import { getSafariMajorVersion, shouldUseIOSPdfPrintFallback } from "../utils/iosInteraction";
+import { generateReportsPdfFile, sharePdfFile } from "../utils/pdfPrint";
 import { markPrintStarted } from "../utils/printHandler";
 
 const DIALOG_WATCHDOG_MS = 2500;
@@ -35,7 +37,7 @@ const environmentLines = (): string[] => {
   const nav = navigator as Navigator & { standalone?: boolean };
   return [
     `UA: ${navigator.userAgent}`,
-    `iOS=${isIOSDevice()} standalone=${isStandaloneDisplay()} navigator.standalone=${String(nav.standalone)}`,
+    `iOS=${isIOSDevice()} standalone=${isStandaloneDisplay()} navigator.standalone=${String(nav.standalone)} safariMajor=${String(getSafariMajorVersion())} pdfFallback=${shouldUseIOSPdfPrintFallback()}`,
     `readyState=${document.readyState} visibility=${document.visibilityState} hasFocus=${document.hasFocus()}`,
     `userActivation API: ${getUserActivation()}`,
     `share=${typeof navigator.share === "function"} canShare=${typeof navigator.canShare === "function"}`,
@@ -135,6 +137,29 @@ export function PrintDiagnostics({ getSource, contentKey, onClose }: PrintDiagno
     }, DIALOG_WATCHDOG_MS);
   };
 
+  const handleTestPdfShare = async () => {
+    const source = getSource();
+    if (!source) {
+      log("[pdf-share] no printable content found");
+      return;
+    }
+    log(`[pdf-share] generating A4 PDF...`);
+    try {
+      const file = await generateReportsPdfFile(source, {
+        onProgress: ({ current, total }) => {
+          if (current === 1 || current === total) {
+            log(`[pdf-share] rendered page ${current}/${total}`);
+          }
+        },
+      });
+      log(`[pdf-share] built ${file.name} (${Math.round(file.size / 1024)} KB); calling navigator.share...`);
+      const outcome = await sharePdfFile(file);
+      log(`[pdf-share] outcome=${outcome}`);
+    } catch (err) {
+      log(`[pdf-share] ERROR: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`);
+    }
+  };
+
   const handleCopy = () => {
     const text = lines.join("\n");
     const done = () => {
@@ -178,6 +203,18 @@ export function PrintDiagnostics({ getSource, contentKey, onClose }: PrintDiagno
             <span className="block text-xs text-gray-600">{s.description}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => void handleTestPdfShare()}
+          className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-left active:scale-[0.98]"
+        >
+          <span className="block text-sm font-bold text-emerald-900">
+            F. Generate PDF → Share Sheet
+          </span>
+          <span className="block text-xs text-emerald-700">
+            Builds an A4 PDF offline and opens the Share Sheet (Print / Save to Files)
+          </span>
+        </button>
       </div>
 
       <div className="mt-3 flex items-center gap-2">

@@ -23,10 +23,40 @@ interface NavigatorStandalone extends Navigator {
   standalone?: boolean;
 }
 
-export const isIOSPWA = (): boolean => {
+export const isIOSDevice = (): boolean => {
+  const ua = navigator.userAgent;
   return (
-    "standalone" in window.navigator &&
-    (window.navigator as NavigatorStandalone).standalone === true &&
-    /iPad|iPhone|iPod/.test(navigator.userAgent)
+    /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS Safari/WebApps identify as Macintosh with touch points
+    (ua.includes("Macintosh") && navigator.maxTouchPoints > 1)
   );
+};
+
+export const isIOSPWA = (): boolean => {
+  const nav = window.navigator as NavigatorStandalone;
+  const standalone =
+    nav.standalone === true ||
+    (typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches);
+  return standalone && isIOSDevice();
+};
+
+/**
+ * Parse Safari/WebKit major version from the UA string (e.g. `Version/27.2` -> `27`).
+ */
+export const getSafariMajorVersion = (ua: string = navigator.userAgent): number | null => {
+  const match = /Version\/(\d+)(?:\.\d+)?/.exec(ua);
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+/**
+ * On iOS 27+ (Safari/WebKit Version/27+) Home Screen web apps, `window.print()` is
+ * silently dropped by the standalone container. Use PDF + Share Sheet instead.
+ */
+export const shouldUseIOSPdfPrintFallback = (): boolean => {
+  if (!isIOSPWA()) return false;
+  const safariMajor = getSafariMajorVersion();
+  return safariMajor !== null && safariMajor >= 27;
 };
