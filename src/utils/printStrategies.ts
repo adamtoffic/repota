@@ -15,7 +15,9 @@ export interface PrintStrategyResult {
   detail: string;
 }
 
-interface NavigatorWithExtras extends Navigator {
+// Standalone shape (not extending Navigator) so it never conflicts with lib.dom
+// typings, which declare userActivation as non-optional in newer TS versions.
+interface NavigatorWithExtras {
   standalone?: boolean;
   userActivation?: { isActive: boolean; hasBeenActive: boolean };
 }
@@ -208,7 +210,16 @@ export const PRINT_STRATEGIES: { id: PrintStrategyId; label: string; description
   { id: "share-file", label: "E. Share sheet → Print", description: "Shares an HTML file; choose Print in the sheet" },
 ];
 
-export const runPrintStrategy = (id: PrintStrategyId, source: HTMLElement): PrintStrategyResult => {
+export const runPrintStrategy = (
+  id: PrintStrategyId,
+  source: HTMLElement,
+): PrintStrategyResult & { elapsedMs: number } => {
+  const t0 = performance.now();
+  const result = executeStrategy(id, source);
+  return { ...result, elapsedMs: Math.round(performance.now() - t0) };
+};
+
+const executeStrategy = (id: PrintStrategyId, source: HTMLElement): PrintStrategyResult => {
   try {
     switch (id) {
       case "direct":

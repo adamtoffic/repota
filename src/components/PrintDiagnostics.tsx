@@ -45,7 +45,7 @@ const environmentLines = (): string[] => {
 export function PrintDiagnostics({ getSource, contentKey, onClose }: PrintDiagnosticsProps) {
   const [lines, setLines] = useState<string[]>(environmentLines);
   const [copied, setCopied] = useState(false);
-  const lastAttemptRef = useRef<{ id: PrintStrategyId; at: number; sawPrint: boolean } | null>(null);
+  const lastAttemptRef = useRef<{ id: PrintStrategyId; sawPrint: boolean } | null>(null);
 
   const log = useCallback((msg: string) => {
     setLines((prev) => [...prev, `${stamp()}  ${msg}`]);
@@ -118,12 +118,10 @@ export function PrintDiagnostics({ getSource, contentKey, onClose }: PrintDiagno
     log(
       `[${id}] TAP userActivation(${getUserActivation()}) readyState=${document.readyState} hasFocus=${document.hasFocus()}`,
     );
-    lastAttemptRef.current = { id, at: performance.now(), sawPrint: false };
+    lastAttemptRef.current = { id, sawPrint: false };
     markPrintStarted();
-    const t0 = performance.now();
     const result = runPrintStrategy(id, source);
-    const elapsed = Math.round(performance.now() - t0);
-    log(`[${id}] ${result.ok ? "OK" : "FAIL"} in ${elapsed}ms: ${result.detail}`);
+    log(`[${id}] ${result.ok ? "OK" : "FAIL"} in ${result.elapsedMs}ms: ${result.detail}`);
 
     window.setTimeout(() => {
       const attempt = lastAttemptRef.current;
