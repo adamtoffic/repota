@@ -12,6 +12,8 @@ export type SharePdfOutcome = "shared" | "aborted" | "activation-expired" | "uns
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
+const BLOCK_MARGIN_MM = 10;
+const BLOCK_GAP_MM = 4;
 const WATERMARK_URL = "/assets/coat-of-arms.png";
 
 const preloadImage = (src: string): Promise<void> =>
@@ -55,14 +57,40 @@ const yieldToMain = (): Promise<void> =>
     window.setTimeout(resolve, 0);
   });
 
-export const buildPdfFilename = (className?: string, count?: number): string => {
-  const cleanClass = (className || "Repota")
+const freeCanvas = (canvas: HTMLCanvasElement | null): void => {
+  if (!canvas) return;
+  canvas.width = 0;
+  canvas.height = 0;
+};
+
+const loadPdfDependencies = async () => {
+  const [{ jsPDF }, html2canvasModule] = await Promise.all([
+    import("jspdf"),
+    import("html2canvas-pro"),
+    document.fonts?.ready.catch(() => undefined),
+    preloadImage(WATERMARK_URL),
+  ]);
+  return { jsPDF, html2canvas: html2canvasModule.default };
+};
+
+const sanitizeFilenamePart = (value: string | undefined, fallback: string): string => {
+  const clean = (value || "")
     .trim()
     .replace(/[^a-zA-Z0-9_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const prefix = cleanClass || "Repota";
+  return clean || fallback;
+};
+
+export const buildPdfFilename = (className?: string, count?: number): string => {
+  const prefix = sanitizeFilenamePart(className, "Repota");
   const suffix = count === 1 ? "report-card" : "report-cards";
   return `${prefix}-${suffix}.pdf`;
+};
+
+export const buildAnalyticsPdfFilename = (className?: string, viewName?: string): string => {
+  const prefix = sanitizeFilenamePart(className, "Repota");
+  const view = sanitizeFilenamePart(viewName, "overview");
+  return `${prefix}-analytics-${view}.pdf`;
 };
 
 /**
@@ -82,14 +110,7 @@ export async function generateReportsPdfFile(
     throw new Error("No report cards found to export.");
   }
 
-  const [{ jsPDF }, html2canvasModule] = await Promise.all([
-    import("jspdf"),
-    import("html2canvas-pro"),
-    document.fonts?.ready.catch(() => undefined),
-    preloadImage(WATERMARK_URL),
-  ]);
-  const html2canvas = html2canvasModule.default;
-
+  const { jsPDF, html2canvas } = await loadPdfDependencies();
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -147,10 +168,7 @@ export async function generateReportsPdfFile(
         pdf.addImage(imgData, "JPEG", offsetX, 0, fittedWidthMm, A4_HEIGHT_MM, undefined, "FAST");
       }
     } finally {
-      if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-      }
+      freeCanvas(canvas);
       stage.remove();
     }
 
@@ -161,6 +179,165 @@ export async function generateReportsPdfFile(
 
   const blob = pdf.output("blob");
   const filename = options.filename || "repota-report-cards.pdf";
+  return new File([blob], filename, { type: "application/pdf" });
+}
+
+/**
+ * Render an array of flow-layout section blocks (e.g. Analytics header + cards)
+ * into a multi-page A4 PDF without splitting cards mid-chart across page breaks.
+ */
+export async function generateBlocksPdfFile(
+  blocks: HTMLElement[],
+  options: {
+    filename?: string;
+    onProgress?: (progress: PdfGenerationProgress) => void;
+    signal?: AbortSignal;
+  } = {},
+): Promise<File> {
+  const validBlocks = blocks.filter((b) => b && b.offsetHeight > 0);
+  if (validBlocks.length === 0) {
+    throw new Error("No content sections found to export.");
+  }
+
+  const { jsPDF, html2canvas } = await loadPdfDependencies();
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+    compress: true,
+  });
+
+  const printableWidthMm = A4_WIDTH_MM - BLOCK_MARGIN_MM * 2;
+  const printableHeightMm = A4_HEIGHT_MM - BLOCK_MARGIN_MM * 2;
+  let cursorY = BLOCK_MARGIN_MM;
+  const total = validBlocks.length;
+
+  for (let i = 0; i < total; i++) {
+    if (options.signal?.aborted) {
+      throw new DOMException("PDF generation cancelled", "AbortError");
+    }
+
+    options.onProgress?.({ current: i + 1, total });
+
+    const block = validBlocks[i];
+    const baseWidth = Math.max(block.offsetWidth, 320);
+
+    const stage = document.createElement("div");
+    stage.setAttribute("aria-hidden", "true");
+    stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${baseWidth}px;background:#ffffff;margin:0;padding:4px;pointer-events:none;z-index:-1;`;
+
+    // Freeze GPU chart/page animations at final visible frame during capture
+    const noAnimStyle = document.createElement("style");
+    noAnimStyle.textContent =
+      "*{animation:none!important;transition:none!important;} .recharts-bar-rectangle,.recharts-pie,.recharts-radar-polygon,.recharts-line,.recharts-area{opacity:1!important;transform:none!important;}";
+    stage.appendChild(noAnimStyle);
+
+    const clone = block.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[data-no-print="true"]').forEach((el) => el.remove());
+    clone.querySelectorAll<HTMLElement>(".overflow-x-auto").forEach((el) => {
+      el.style.overflow = "visible";
+      el.style.marginLeft = "0";
+      el.style.marginRight = "0";
+    });
+    stage.appendChild(clone);
+    document.body.appendChild(stage);
+
+    // Expand stage if an unclipped wide table needs more horizontal room
+    const captureWidth = Math.max(baseWidth, clone.scrollWidth + 8);
+    stage.style.width = `${captureWidth}px`;
+
+    let canvas: HTMLCanvasElement | null = null;
+    try {
+      await waitForImages(clone);
+      canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: captureWidth,
+      });
+
+      const blockHeightMm = (canvas.height * printableWidthMm) / canvas.width;
+
+      if (blockHeightMm <= printableHeightMm) {
+        if (cursorY > BLOCK_MARGIN_MM && cursorY + blockHeightMm > A4_HEIGHT_MM - BLOCK_MARGIN_MM) {
+          pdf.addPage("a4", "portrait");
+          cursorY = BLOCK_MARGIN_MM;
+        }
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        pdf.addImage(
+          imgData,
+          "JPEG",
+          BLOCK_MARGIN_MM,
+          cursorY,
+          printableWidthMm,
+          blockHeightMm,
+          undefined,
+          "FAST",
+        );
+        cursorY += blockHeightMm + BLOCK_GAP_MM;
+      } else {
+        // Oversized single block (e.g. a very long table): slice cleanly across pages
+        if (cursorY > BLOCK_MARGIN_MM) {
+          pdf.addPage("a4", "portrait");
+          cursorY = BLOCK_MARGIN_MM;
+        }
+        const sliceHeightPx = Math.floor((printableHeightMm * canvas.width) / printableWidthMm);
+        let offsetY = 0;
+        while (offsetY < canvas.height) {
+          const currentSlicePx = Math.min(sliceHeightPx, canvas.height - offsetY);
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = currentSlicePx;
+          const ctx = sliceCanvas.getContext("2d");
+          if (ctx) {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+            ctx.drawImage(
+              canvas,
+              0,
+              offsetY,
+              canvas.width,
+              currentSlicePx,
+              0,
+              0,
+              canvas.width,
+              currentSlicePx,
+            );
+            const sliceHeightMm = (currentSlicePx * printableWidthMm) / canvas.width;
+            const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
+            pdf.addImage(
+              sliceData,
+              "JPEG",
+              BLOCK_MARGIN_MM,
+              BLOCK_MARGIN_MM,
+              printableWidthMm,
+              sliceHeightMm,
+              undefined,
+              "FAST",
+            );
+            cursorY = BLOCK_MARGIN_MM + sliceHeightMm + BLOCK_GAP_MM;
+          }
+          freeCanvas(sliceCanvas);
+          offsetY += currentSlicePx;
+          if (offsetY < canvas.height) {
+            pdf.addPage("a4", "portrait");
+            cursorY = BLOCK_MARGIN_MM;
+          }
+        }
+      }
+    } finally {
+      freeCanvas(canvas);
+      stage.remove();
+    }
+
+    if (i < total - 1) {
+      await yieldToMain();
+    }
+  }
+
+  const blob = pdf.output("blob");
+  const filename = options.filename || "repota-analytics.pdf";
   return new File([blob], filename, { type: "application/pdf" });
 }
 

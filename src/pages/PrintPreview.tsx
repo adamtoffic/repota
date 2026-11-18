@@ -1,21 +1,15 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, Printer, AlertCircle, Image, Wrench, Share2, Download, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, AlertCircle, Image, Wrench } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PdfExportModal } from "../components/PdfExportModal";
 import { PrintDiagnostics } from "../components/PrintDiagnostics";
 import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
-import { useToast } from "../hooks/useToast";
+import { usePdfShareFlow } from "../hooks/usePdfShareFlow";
 import { getTemplateById } from "../templates/registry";
 import type { PrintMode } from "../types";
-import { isIOSPWA, shouldUseIOSPdfPrintFallback } from "../utils/iosInteraction";
-import {
-  buildPdfFilename,
-  downloadPdfFile,
-  generateReportsPdfFile,
-  sharePdfFile,
-  type PdfGenerationProgress,
-} from "../utils/pdfPrint";
+import { buildPdfFilename, generateReportsPdfFile } from "../utils/pdfPrint";
 import { markPrintStarted } from "../utils/printHandler";
 import { isStudentPending } from "../utils/studentValidation";
 
@@ -26,21 +20,10 @@ export function PrintPreview() {
 
   const [printMode, setPrintMode] = useState<PrintMode>("color");
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
-  const { showToast } = useToast();
   // TEST BUILD: on-device print diagnostics for the iOS 27 Home Screen issue
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
   const getPrintArea = useCallback(() => printAreaRef.current, []);
-
-  // iOS 27+ PWA PDF + Share Sheet print fallback state
-  const [pdfModalOpen, setPdfModalOpen] = useState(false);
-  const [pdfStatus, setPdfStatus] = useState<"idle" | "generating" | "ready" | "error">("idle");
-  const [pdfProgress, setPdfProgress] = useState<PdfGenerationProgress | null>(null);
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfError, setPdfError] = useState<string | null>(null);
-  const pdfCacheRef = useRef<{ key: string; file: File } | null>(null);
-  const pdfAbortRef = useRef<AbortController | null>(null);
-  const printWatchdogRef = useRef<(() => void) | null>(null);
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -117,128 +100,33 @@ export function PrintPreview() {
     [printMode, printFilter, id, settings.templateId, printableStudents],
   );
 
-  // Invalidate cached PDF whenever the visible cards, mode, filter, or template change
-  useEffect(() => {
-    pdfCacheRef.current = null;
-  }, [contentKey]);
-
-  useEffect(() => {
-    return () => {
-      pdfAbortRef.current?.abort();
-      printWatchdogRef.current?.();
-    };
-  }, []);
-
-  const closePdfModal = () => {
-    pdfAbortRef.current?.abort();
-    pdfAbortRef.current = null;
-    setPdfModalOpen(false);
-    setPdfStatus("idle");
-    setPdfProgress(null);
-    setPdfError(null);
-  };
-
-  const triggerShareForFile = async (file: File) => {
-    try {
-      const outcome = await sharePdfFile(file);
-      if (outcome === "shared" || outcome === "aborted") {
-        setPdfModalOpen(false);
-        setPdfStatus("idle");
-        return;
+  const buildReportCardsPdf = useCallback(
+    ({
+      onProgress,
+      signal,
+    }: {
+      onProgress: (p: { current: number; total: number }) => void;
+      signal: AbortSignal;
+    }) => {
+      const container = printAreaRef.current;
+      if (!container) {
+        return Promise.reject(new Error("Report preview is not ready."));
       }
-      // activation-expired or unsupported: keep the modal open with ready buttons
-      setPdfFile(file);
-      setPdfStatus("ready");
-      setPdfModalOpen(true);
-    } catch (err) {
-      setPdfFile(file);
-      setPdfError(err instanceof Error ? err.message : "Could not open the share sheet.");
-      setPdfStatus("ready");
-      setPdfModalOpen(true);
-    }
-  };
-
-  const openPdfPrintFlow = async () => {
-    const container = printAreaRef.current;
-    if (!container) return;
-
-    const cached = pdfCacheRef.current;
-    if (cached && cached.key === contentKey) {
-      await triggerShareForFile(cached.file);
-      return;
-    }
-
-    pdfAbortRef.current?.abort();
-    const controller = new AbortController();
-    pdfAbortRef.current = controller;
-
-    setPdfFile(null);
-    setPdfError(null);
-    setPdfStatus("generating");
-    setPdfProgress({ current: 0, total: printableStudents.length });
-    setPdfModalOpen(true);
-
-    try {
-      const filename = buildPdfFilename(settings.className, printableStudents.length);
-      const file = await generateReportsPdfFile(container, {
-        filename,
-        onProgress: setPdfProgress,
-        signal: controller.signal,
+      return generateReportsPdfFile(container, {
+        filename: buildPdfFilename(settings.className, printableStudents.length),
+        onProgress,
+        signal,
       });
-      if (controller.signal.aborted) return;
+    },
+    [settings.className, printableStudents.length],
+  );
 
-      pdfCacheRef.current = { key: contentKey, file };
-      setPdfFile(file);
-      await triggerShareForFile(file);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setPdfStatus("error");
-      setPdfError(err instanceof Error ? err.message : "Failed to build PDF.");
-    }
-  };
-
-  const armIOSPrintWatchdog = () => {
-    printWatchdogRef.current?.();
-
-    let sawPrint = false;
-    const mql = typeof window.matchMedia === "function" ? window.matchMedia("print") : null;
-    const onBeforePrint = (e: Event) => {
-      if (e.isTrusted) sawPrint = true;
-    };
-    const onMediaChange = (e: MediaQueryListEvent) => {
-      if (e.matches) sawPrint = true;
-    };
-    const onBlur = () => {
-      sawPrint = true;
-    };
-
-    window.addEventListener("beforeprint", onBeforePrint);
-    mql?.addEventListener("change", onMediaChange);
-    window.addEventListener("blur", onBlur);
-
-    const timer = window.setTimeout(() => {
-      cleanup();
-      if (!sawPrint) {
-        showToast("Print sheet did not open in this web app.", "info", {
-          label: "Print / Save PDF",
-          onClick: () => {
-            void openPdfPrintFlow();
-          },
-        });
-      }
-    }, 1500);
-
-    const cleanup = () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("beforeprint", onBeforePrint);
-      mql?.removeEventListener("change", onMediaChange);
-      window.removeEventListener("blur", onBlur);
-      if (printWatchdogRef.current === cleanup) {
-        printWatchdogRef.current = null;
-      }
-    };
-    printWatchdogRef.current = cleanup;
-  };
+  const { modalProps: pdfModalProps, runPrintOrPdfFallback } = usePdfShareFlow({
+    cacheKey: contentKey,
+    totalCount: printableStudents.length,
+    itemLabel: "report card",
+    buildPdf: buildReportCardsPdf,
+  });
 
   const handlePrint = () => {
     try {
@@ -253,16 +141,7 @@ export function PrintPreview() {
       // Analytics must never block printing
     }
     markPrintStarted();
-
-    if (shouldUseIOSPdfPrintFallback()) {
-      void openPdfPrintFlow();
-      return;
-    }
-
-    if (isIOSPWA()) {
-      armIOSPrintWatchdog();
-    }
-    window.print();
+    runPrintOrPdfFallback(() => window.print());
   };
 
   if (printableStudents.length === 0) {
@@ -499,109 +378,7 @@ export function PrintPreview() {
       {/* SCROLL BUTTON */}
       {printableStudents.length >= 3 && <ScrollButton />}
 
-      {/* iOS PWA PDF Print / Share Sheet Modal */}
-      {pdfModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="ios-pdf-modal-title"
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs print:hidden"
-        >
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h2 id="ios-pdf-modal-title" className="text-main text-base font-bold">
-                  {pdfStatus === "generating"
-                    ? "Preparing Print PDF…"
-                    : pdfStatus === "error"
-                      ? "PDF Preparation Failed"
-                      : "PDF Ready to Print or Save"}
-                </h2>
-                <p className="text-muted mt-0.5 text-xs">
-                  {pdfStatus === "generating"
-                    ? `Rendering report card ${pdfProgress?.current ?? 0} of ${pdfProgress?.total ?? printableStudents.length}`
-                    : pdfStatus === "error"
-                      ? pdfError || "Something went wrong."
-                      : "Tap Print / Share PDF below, then choose Print or Save to Files."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closePdfModal}
-                aria-label="Close"
-                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {pdfStatus === "generating" && (
-              <div className="my-4">
-                <div className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-gray-700">
-                  <Loader2 className="text-primary h-5 w-5 animate-spin" />
-                  <span>
-                    {pdfProgress && pdfProgress.total > 0
-                      ? `${Math.round((pdfProgress.current / pdfProgress.total) * 100)}%`
-                      : "Starting…"}
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="bg-primary h-full transition-all duration-200"
-                    style={{
-                      width:
-                        pdfProgress && pdfProgress.total > 0
-                          ? `${Math.round((pdfProgress.current / pdfProgress.total) * 100)}%`
-                          : "10%",
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {pdfStatus === "ready" && pdfFile && (
-              <div className="mt-4 flex flex-col gap-2">
-                {pdfError && <p className="text-xs text-amber-700">{pdfError}</p>}
-                <button
-                  type="button"
-                  onClick={() => void triggerShareForFile(pdfFile)}
-                  className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm active:scale-[0.98]"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Print / Share PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => downloadPdfFile(pdfFile)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 active:scale-[0.98]"
-                >
-                  <Download className="h-4 w-4" />
-                  Download PDF
-                </button>
-              </div>
-            )}
-
-            {pdfStatus === "error" && (
-              <div className="mt-4 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => void openPdfPrintFlow()}
-                  className="bg-primary hover:bg-primary/90 flex-1 rounded-xl px-4 py-2.5 text-sm font-bold text-white"
-                >
-                  Try Again
-                </button>
-                <button
-                  type="button"
-                  onClick={closePdfModal}
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <PdfExportModal {...pdfModalProps} />
     </div>
   );
 }

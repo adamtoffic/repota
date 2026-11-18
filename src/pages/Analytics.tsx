@@ -1,5 +1,5 @@
 // src/pages/Analytics.tsx
-import React, { useState, useMemo } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -27,7 +27,9 @@ import { Card } from "../components/ui/Card";
 import { ChartCard } from "../components/analytics/ChartCard";
 import { InsightCard } from "../components/analytics/InsightCard";
 import { ScrollButton } from "../components/ScrollButton";
+import { PdfExportModal } from "../components/PdfExportModal";
 import { PageHeader } from "../components/ui/PageHeader";
+import { usePdfShareFlow } from "../hooks/usePdfShareFlow";
 
 import { BarChart } from "../components/charts/BarChart";
 import { PieChart } from "../components/charts/PieChart";
@@ -52,6 +54,8 @@ import {
 } from "../utils/analyticsCalculator";
 import { processStudent } from "../utils/gradeCalculator";
 import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
+import { buildAnalyticsPdfFilename, generateBlocksPdfFile } from "../utils/pdfPrint";
+import { markPrintStarted } from "../utils/printHandler";
 import { useToast } from "../hooks/useToast";
 
 export const Analytics: React.FC = () => {
@@ -69,6 +73,8 @@ export const Analytics: React.FC = () => {
     "overview" | "subjects" | "demographics" | "insights"
   >("overview");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const analyticsHeaderRef = useRef<HTMLDivElement>(null);
+  const analyticsContentRef = useRef<HTMLDivElement>(null);
 
   const hasActiveFilters =
     filters.gender !== "All" ||
@@ -226,11 +232,55 @@ export const Analytics: React.FC = () => {
     [activeView, filteredStudents, settings],
   );
 
+  const analyticsPdfKey = useMemo(
+    () =>
+      `${activeView}|${settings.className || ""}|${JSON.stringify(filters)}|${filteredStudents
+        .map((s) => `${s.id}:${s.totalScore ?? 0}`)
+        .join(",")}`,
+    [activeView, settings.className, filters, filteredStudents],
+  );
+
+  const buildAnalyticsPdf = useCallback(
+    ({
+      onProgress,
+      signal,
+    }: {
+      onProgress: (p: { current: number; total: number }) => void;
+      signal: AbortSignal;
+    }) => {
+      const blocks: HTMLElement[] = [];
+      if (analyticsHeaderRef.current) {
+        blocks.push(analyticsHeaderRef.current);
+      }
+      if (analyticsContentRef.current) {
+        Array.from(analyticsContentRef.current.children).forEach((child) => {
+          if (child instanceof HTMLElement) blocks.push(child);
+        });
+      }
+      return generateBlocksPdfFile(blocks, {
+        filename: buildAnalyticsPdfFilename(settings.className, activeView),
+        onProgress,
+        signal,
+      });
+    },
+    [settings.className, activeView],
+  );
+
+  const { modalProps: pdfModalProps, runPrintOrPdfFallback } = usePdfShareFlow({
+    cacheKey: analyticsPdfKey,
+    totalCount: 4,
+    itemLabel: "analytics section",
+    buildPdf: buildAnalyticsPdf,
+  });
+
   // Export handlers
   const handleExportPDF = () => {
     try {
-      exportAnalyticsAsPDF();
-      showToast("Analytics exported as PDF", "success");
+      markPrintStarted();
+      runPrintOrPdfFallback(() => {
+        exportAnalyticsAsPDF();
+        showToast("Analytics exported as PDF", "success");
+      });
     } catch (err) {
       console.error("Export PDF failed:", err);
       showToast("Failed to export PDF", "error");
@@ -303,7 +353,7 @@ export const Analytics: React.FC = () => {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* Header */}
-        <div className="mb-4 sm:mb-6">
+        <div ref={analyticsHeaderRef} className="mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1
@@ -399,7 +449,7 @@ export const Analytics: React.FC = () => {
           </div>
 
           {/* Main Content */}
-          <div className="space-y-4 sm:space-y-6 lg:col-span-3">
+          <div ref={analyticsContentRef} className="space-y-4 sm:space-y-6 lg:col-span-3">
             {/* Overview Tab */}
             {activeView === "overview" && (
               <>
@@ -1322,6 +1372,8 @@ export const Analytics: React.FC = () => {
 
       {/* ✅ SCROLL BUTTON - Show when there's analytics data to navigate */}
       {filteredStudents.length > 0 && <ScrollButton />}
+
+      <PdfExportModal {...pdfModalProps} />
     </div>
   );
 };

@@ -1,8 +1,32 @@
 # iOS 27: Print button does nothing in the installed PWA
 
 **Date:** 2026-11-18
-**Status:** Root cause confirmed on device (`Version/27.2` standalone web app drops `window.print()` across all contexts; `navigator.share` with files works). Implementing PDF + Share Sheet fallback for testing on `feat/ios27-pwa-print-diagnostics`.
-**Scope:** `/print` route (`PrintPreview`) running as a Home Screen web app on iOS 27 (`Version/27.2`), installed from Safari or from Chrome.
+**Status:** Print Preview verified working on iOS 27.2 PWA (single/all students, Color & B&W) and desktop; extended the same shared PDF + Share Sheet fallback to `/analytics` (`Export PDF`).
+**Scope:** `/print` (`PrintPreview`) and `/analytics` (`Analytics`) running as a Home Screen web app on iOS 27 (`Version/27.2`), installed from Safari or from Chrome.
+
+---
+
+## Update 2026-11-18 (3): Print Preview verified & Analytics Export PDF fixed
+
+### Verified on device
+- **iOS 27.2 installed PWA (`/print`):** Both single-student and all-student PDF exports work in both Color and B&W modes via `navigator.share({ files })`.
+- **Desktop:** Native `window.print()` dialog still opens as before.
+
+### Extending the fix to `/analytics` (`Export PDF`)
+- `exportAnalyticsAsPDF()` ([analyticsExport.ts](../../src/utils/analyticsExport.ts)) also relied directly on `window.print()`, so it failed silently on iOS 27 standalone PWAs too.
+- Extracted shared hook [usePdfShareFlow.ts](../../src/hooks/usePdfShareFlow.ts) and [PdfExportModal.tsx](../../src/components/PdfExportModal.tsx) so `/print` and `/analytics` share one flow.
+- Added `generateBlocksPdfFile` in [pdfPrint.ts](../../src/utils/pdfPrint.ts), which captures the Analytics header and each card/chart/table section individually (freezing CSS animations and expanding `.overflow-x-auto` tables so no columns clip) and packs them onto A4 pages without splitting charts across page breaks.
+
+### Architecture comparison: `window.print()` vs `html2canvas-pro` + `jsPDF`
+
+| Aspect | Native `window.print()` | `html2canvas-pro` + `jsPDF` (via Share Sheet) |
+| --- | --- | --- |
+| **Output type** | Vector text & shapes via browser print engine | Rasterized A4 JPEG pages (`scale: 2`) inside a PDF |
+| **iOS 27 standalone PWA** | ❌ Broken (silently ignored by iOS container) | ✅ Works offline via `navigator.share({ files })` |
+| **Desktop / Safari / Android / iOS 26** | ✅ Instant, sharp vector text, small file | Slower (~100–300ms/page), larger file (~300KB/page) |
+| **New templates & custom colors** | ✅ Zero extra code needed (`@media print` CSS) | ✅ Zero extra code needed (`html2canvas-pro` supports Tailwind v4 `oklch()` / CSS variables) |
+
+**Recommended strategy (implemented):** Keep a **hybrid** setup—use native `window.print()` everywhere it works (desktop, Android, Safari/Chrome browser tabs, iOS 26), and automatically route iOS 27+ standalone PWAs (plus any older iOS standalone session where `window.print()` fires no print events within 1.5s) to `html2canvas-pro` + `jsPDF`. Because `html2canvas-pro` snapshots the live DOM/CSS, adding new report templates or dynamic custom color themes works automatically in both paths.
 
 ---
 

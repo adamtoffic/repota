@@ -4,7 +4,7 @@ import {
   isIOSPWA,
   shouldUseIOSPdfPrintFallback,
 } from "../utils/iosInteraction";
-import { buildPdfFilename, sharePdfFile } from "../utils/pdfPrint";
+import { buildAnalyticsPdfFilename, buildPdfFilename, sharePdfFile } from "../utils/pdfPrint";
 
 describe("iosInteraction print detection", () => {
   const originalUserAgent = navigator.userAgent;
@@ -93,6 +93,10 @@ describe("pdfPrint helpers", () => {
     expect(buildPdfFilename("Basic 6 A", 12)).toBe("Basic-6-A-report-cards.pdf");
     expect(buildPdfFilename("JHS 2", 1)).toBe("JHS-2-report-card.pdf");
     expect(buildPdfFilename("", 3)).toBe("Repota-report-cards.pdf");
+    expect(buildAnalyticsPdfFilename("Basic 6 A", "subjects")).toBe(
+      "Basic-6-A-analytics-subjects.pdf",
+    );
+    expect(buildAnalyticsPdfFilename("", "")).toBe("Repota-analytics-overview.pdf");
   });
 
   it("returns share outcomes cleanly", async () => {
