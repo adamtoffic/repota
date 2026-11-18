@@ -8,6 +8,7 @@ import type {
   SchoolSettings,
   StudentRecord,
 } from "../types";
+import { calculateGrade } from "./gradeCalculator";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
@@ -388,6 +389,140 @@ export function buildRosterTemplateCsv(
 }
 
 /**
+ * Generates a clean 2-column CSV template for a single SBA component (e.g. "English Summary Group Work").
+ */
+export function buildSingleComponentTemplateCsv(
+  subjectName: string,
+  task: Pick<ClassScoreComponentConfig, "name" | "maxScore">,
+  students: Pick<StudentRecord, "name" | "subjects">[],
+): string {
+  const headers = ["Name", `${task.name} (/${task.maxScore})`];
+  const rows =
+    students.length > 0
+      ? students.map((student) => {
+          const subject = student.subjects.find((s) => s.name === subjectName);
+          const comp = subject?.classScoreComponents?.find(
+            (c) => normalizeHeader(c.name) === normalizeHeader(task.name),
+          );
+          return [
+            escapeCsvCell(student.name),
+            escapeCsvCell(comp && comp.score > 0 ? comp.score : ""),
+          ];
+        })
+      : [
+          [
+            escapeCsvCell("Kwame Mensah"),
+            escapeCsvCell(Math.round(task.maxScore * 0.8)),
+          ],
+        ];
+
+  return [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+/**
+ * Exports recorded scores for a single SBA component (Excel-ready with % and Class Score total).
+ */
+export function buildSingleComponentExportCsv(
+  subjectName: string,
+  task: Pick<ClassScoreComponentConfig, "name" | "maxScore">,
+  students: Pick<StudentRecord, "name" | "subjects">[],
+  settings: Pick<SchoolSettings, "classScoreMax">,
+): string {
+  const headers = [
+    "Name",
+    `${task.name} (/${task.maxScore})`,
+    "Task Score (%)",
+    `Subject Class Score (/${settings.classScoreMax})`,
+  ];
+
+  const rows = students.map((student) => {
+    const subject = student.subjects.find((s) => s.name === subjectName);
+    const comp = subject?.classScoreComponents?.find(
+      (c) => normalizeHeader(c.name) === normalizeHeader(task.name),
+    );
+    const score = comp?.score ?? 0;
+    const pct = task.maxScore > 0 ? Math.round((score / task.maxScore) * 100) : 0;
+    return [
+      escapeCsvCell(student.name),
+      escapeCsvCell(comp ? score : ""),
+      escapeCsvCell(comp ? `${pct}%` : ""),
+      escapeCsvCell(subject ? subject.classScore : ""),
+    ];
+  });
+
+  return [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+/**
+ * Generates a clean 2-column CSV template for end-of-term Final Exam scores (/100) only.
+ */
+export function buildExamOnlyTemplateCsv(
+  subjectName: string,
+  students: Pick<StudentRecord, "name" | "subjects">[],
+  settings: Pick<SchoolSettings, "examType" | "examScoreMax">,
+): string {
+  const isMock = settings.examType === "MOCK";
+  const headers = ["Name", isMock ? "Score (/100)" : "Exam (/100)"];
+  const rows =
+    students.length > 0
+      ? students.map((student) => {
+          const subject = student.subjects.find((s) => s.name === subjectName);
+          return [
+            escapeCsvCell(student.name),
+            escapeCsvCell(
+              subject ? formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax) : "",
+            ),
+          ];
+        })
+      : [[escapeCsvCell("Kwame Mensah"), escapeCsvCell(78)]];
+
+  return [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+/**
+ * Exports a subject's Class & Exam view from Quick Gradebook to CSV.
+ */
+export function buildSubjectQuickExportCsv(
+  subjectName: string,
+  students: Pick<StudentRecord, "name" | "subjects">[],
+  settings: Pick<SchoolSettings, "level" | "examType" | "classScoreMax" | "examScoreMax">,
+): string {
+  const isMock = settings.examType === "MOCK";
+  const headers = isMock
+    ? ["Name", "Score (/100)", "Grade"]
+    : [
+        "Name",
+        `Class (/${settings.classScoreMax})`,
+        "Exam (/100)",
+        `Weighted Exam (/${settings.examScoreMax})`,
+        "Total (/100)",
+        "Grade",
+      ];
+
+  const rows = students.map((student) => {
+    const subject = student.subjects.find((s) => s.name === subjectName);
+    if (!subject) {
+      return [escapeCsvCell(student.name), ...headers.slice(1).map(() => "")];
+    }
+    const total = (subject.classScore || 0) + (subject.examScore || 0);
+    const { grade } = calculateGrade(total, settings.level);
+    if (isMock) {
+      return [escapeCsvCell(student.name), escapeCsvCell(total), escapeCsvCell(grade)];
+    }
+    return [
+      escapeCsvCell(student.name),
+      escapeCsvCell(subject.classScore),
+      escapeCsvCell(formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax)),
+      escapeCsvCell(subject.examScore),
+      escapeCsvCell(total),
+      escapeCsvCell(grade),
+    ];
+  });
+
+  return [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+/**
  * Resolves the active SBA component definitions for a subject from Settings or existing students.
  */
 export function resolveSubjectSbaTasks(
@@ -565,6 +700,8 @@ export function inferAssessmentCategory(name: string): AssessmentCategory {
   return "CAT";
 }
 
+export type SbaImportMode = "FULL_SUBJECT" | "SINGLE_COMPONENT" | "EXAM_ONLY";
+
 export function parseSbaScoreImport({
   rawText,
   subjectName,
@@ -572,6 +709,8 @@ export function parseSbaScoreImport({
   settings,
   customNewTasks,
   conflictPolicy = "OVERWRITE",
+  importMode = "FULL_SUBJECT",
+  targetTask,
 }: {
   rawText: string;
   subjectName: string;
@@ -579,6 +718,8 @@ export function parseSbaScoreImport({
   settings: SchoolSettings;
   customNewTasks?: Record<number, NewSbaColumnOverride>;
   conflictPolicy?: SbaConflictPolicy;
+  importMode?: SbaImportMode;
+  targetTask?: ClassScoreComponentConfig;
 }): SbaImportParseResult {
   const table = parseTabularText(rawText);
   const existingTasks = resolveSubjectSbaTasks(subjectName, existingStudents, settings);
@@ -617,76 +758,130 @@ export function parseSbaScoreImport({
   const detectedNewColumns: DetectedNewSbaColumn[] = [];
   const dataRows = table.slice(1);
 
-  rawHeaders.forEach((rawHeader, idx) => {
-    if (idx === effectiveNameCol) return;
-    const norm = normalizedHeaders[idx];
-    if (!norm) return;
-
-    const matchingTask = existingTasks.find((t) => normalizeHeader(t.name) === norm);
-    if (matchingTask && !isMock) {
-      taskColMap.set(idx, { ...matchingTask, isNewTask: false });
-      matchedColumns.push(`${rawHeader} -> SBA: ${matchingTask.name}`);
-      return;
-    }
-
-    if (
-      !isMock &&
-      ["classscore", "class", "sba", "sbatotal", "continuousassessment"].includes(norm)
-    ) {
-      directClassCol = idx;
-      matchedColumns.push(`${rawHeader} -> Class Score`);
-      return;
-    }
-
-    if (["exam", "examscore", "exams", "score", "terminalexam", "finalexam"].includes(norm)) {
-      examCol = idx;
-      matchedColumns.push(`${rawHeader} -> Exam (/100)`);
-      return;
-    }
-
-    // Check if unmatched column contains numeric scores (potential new SBA component)
-    const numericSamples = dataRows
-      .map((r) => parseOptionalNumber(r[idx]))
-      .filter((v): v is number => v !== undefined);
-
-    if (!isMock && numericSamples.length > 0) {
-      const cleanedName = cleanTaskNameFromHeader(rawHeader) || rawHeader.trim();
-      const headerMax = extractHeaderMaxScore(rawHeader);
-      const maxObserved = Math.max(...numericSamples);
-      const suggestedMaxScore =
-        headerMax ?? (maxObserved > 20 ? Math.min(100, Math.ceil(maxObserved / 5) * 5) : maxObserved > 15 ? 20 : 15);
-      const suggestedCategory = inferAssessmentCategory(cleanedName);
-
-      detectedNewColumns.push({
-        colIndex: idx,
-        rawHeader,
-        suggestedName: cleanedName,
-        suggestedMaxScore,
-        suggestedCategory,
-      });
-
-      const override = customNewTasks?.[idx];
-      const isEnabled = override ? override.enabled : true;
-      if (isEnabled) {
-        const effectiveName = (override?.name ?? cleanedName).trim() || cleanedName;
-        const effectiveMax = Math.min(
-          100,
-          Math.max(1, override?.maxScore ?? suggestedMaxScore),
-        );
-        const effectiveCat = override?.category ?? suggestedCategory;
-        taskColMap.set(idx, {
-          name: effectiveName,
-          maxScore: effectiveMax,
-          category: effectiveCat,
-          isNewTask: true,
-        });
-        matchedColumns.push(`${rawHeader} -> New SBA: ${effectiveName} (/${effectiveMax})`);
+  if (importMode === "EXAM_ONLY") {
+    rawHeaders.forEach((rawHeader, idx) => {
+      if (idx === effectiveNameCol) return;
+      const norm = normalizedHeaders[idx];
+      if (!norm) return;
+      if (
+        examCol === -1 &&
+        ["exam", "examscore", "exams", "score", "marks", "terminalexam", "finalexam"].includes(norm)
+      ) {
+        examCol = idx;
+        matchedColumns.push(`${rawHeader} -> Exam (/100)`);
         return;
       }
+      unmatchedHeaders.push(rawHeader);
+    });
+    // Fallback for 2-column exam sheets with custom header
+    if (examCol === -1 && rawHeaders.length === 2) {
+      const otherIdx = effectiveNameCol === 0 ? 1 : 0;
+      examCol = otherIdx;
+      matchedColumns.push(`${rawHeaders[otherIdx]} -> Exam (/100)`);
+    }
+  } else if (importMode === "SINGLE_COMPONENT" && targetTask && !isMock) {
+    const targetNorm = normalizeHeader(targetTask.name);
+    const alreadyExists = existingTasks.some((t) => normalizeHeader(t.name) === targetNorm);
+    let mappedIdx = rawHeaders.findIndex(
+      (_, idx) => idx !== effectiveNameCol && normalizedHeaders[idx] === targetNorm,
+    );
+    if (mappedIdx === -1) {
+      mappedIdx = rawHeaders.findIndex(
+        (_, idx) =>
+          idx !== effectiveNameCol &&
+          ["score", "marks", "mark", "sba", "points"].includes(normalizedHeaders[idx]),
+      );
+    }
+    if (mappedIdx === -1 && rawHeaders.length === 2) {
+      mappedIdx = effectiveNameCol === 0 ? 1 : 0;
     }
 
-    unmatchedHeaders.push(rawHeader);
-  });
+    if (mappedIdx >= 0) {
+      taskColMap.set(mappedIdx, { ...targetTask, isNewTask: !alreadyExists });
+      matchedColumns.push(
+        `${rawHeaders[mappedIdx]} -> ${alreadyExists ? "SBA" : "New SBA"}: ${targetTask.name} (/${targetTask.maxScore})`,
+      );
+    }
+    rawHeaders.forEach((h, idx) => {
+      if (idx !== effectiveNameCol && idx !== mappedIdx) unmatchedHeaders.push(h);
+    });
+  } else {
+    rawHeaders.forEach((rawHeader, idx) => {
+      if (idx === effectiveNameCol) return;
+      const norm = normalizedHeaders[idx];
+      if (!norm) return;
+
+      const matchingTask = existingTasks.find((t) => normalizeHeader(t.name) === norm);
+      if (matchingTask && !isMock) {
+        taskColMap.set(idx, { ...matchingTask, isNewTask: false });
+        matchedColumns.push(`${rawHeader} -> SBA: ${matchingTask.name}`);
+        return;
+      }
+
+      if (
+        !isMock &&
+        ["classscore", "class", "sba", "sbatotal", "continuousassessment"].includes(norm)
+      ) {
+        directClassCol = idx;
+        matchedColumns.push(`${rawHeader} -> Class Score`);
+        return;
+      }
+
+      if (["exam", "examscore", "exams", "score", "terminalexam", "finalexam"].includes(norm)) {
+        examCol = idx;
+        matchedColumns.push(`${rawHeader} -> Exam (/100)`);
+        return;
+      }
+
+      // Check if unmatched column contains numeric scores (potential new SBA component)
+      const numericSamples = dataRows
+        .map((r) => parseOptionalNumber(r[idx]))
+        .filter((v): v is number => v !== undefined);
+
+      if (!isMock && numericSamples.length > 0) {
+        const cleanedName = cleanTaskNameFromHeader(rawHeader) || rawHeader.trim();
+        const headerMax = extractHeaderMaxScore(rawHeader);
+        const maxObserved = Math.max(...numericSamples);
+        const suggestedMaxScore =
+          headerMax ??
+          (maxObserved > 20
+            ? Math.min(100, Math.ceil(maxObserved / 5) * 5)
+            : maxObserved > 15
+              ? 20
+              : 15);
+        const suggestedCategory = inferAssessmentCategory(cleanedName);
+
+        detectedNewColumns.push({
+          colIndex: idx,
+          rawHeader,
+          suggestedName: cleanedName,
+          suggestedMaxScore,
+          suggestedCategory,
+        });
+
+        const override = customNewTasks?.[idx];
+        const isEnabled = override ? override.enabled : true;
+        if (isEnabled) {
+          const effectiveName = (override?.name ?? cleanedName).trim() || cleanedName;
+          const effectiveMax = Math.min(
+            100,
+            Math.max(1, override?.maxScore ?? suggestedMaxScore),
+          );
+          const effectiveCat = override?.category ?? suggestedCategory;
+          taskColMap.set(idx, {
+            name: effectiveName,
+            maxScore: effectiveMax,
+            category: effectiveCat,
+            isNewTask: true,
+          });
+          matchedColumns.push(`${rawHeader} -> New SBA: ${effectiveName} (/${effectiveMax})`);
+          return;
+        }
+      }
+
+      unmatchedHeaders.push(rawHeader);
+    });
+  }
 
   // Merge existing tasks with any enabled new tasks so classScore recalculation sees full denominator
   const combinedTasks: ClassScoreComponentConfig[] = [...existingTasks];

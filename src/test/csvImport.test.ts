@@ -3,8 +3,11 @@ import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { SchoolSettings, StudentRecord } from "../types";
 import {
   buildDefaultSubjectsForStudent,
+  buildExamOnlyTemplateCsv,
   buildRosterTemplateCsv,
   buildSbaScoreTemplateCsv,
+  buildSingleComponentExportCsv,
+  buildSingleComponentTemplateCsv,
   parseRosterImport,
   parseSbaScoreImport,
   parseTabularText,
@@ -186,5 +189,106 @@ describe("csvImport", () => {
     });
     // KEEP_EXISTING keeps CAT 1 at 12 + adds Science Project 16 => 28 / 35 * 50 = 40
     expect(parsed.rows[0].computedClassScore).toBe(40);
+  });
+
+  it("builds and parses Single SBA Task templates/exports separately from Exam", () => {
+    const task = { name: "English Summary Group Work", maxScore: 15, category: "GROUP" as const };
+    const englishStudents: StudentRecord[] = [
+      {
+        id: "stu-e1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        subjects: [
+          {
+            id: "sub-e1",
+            name: "English",
+            classScore: 30,
+            examScore: 40,
+            classScoreComponents: [
+              { id: "c1", name: "English Summary Group Work", score: 12, maxScore: 15, category: "GROUP" },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const template = buildSingleComponentTemplateCsv("English", task, englishStudents);
+    expect(template).toBe('"Name","English Summary Group Work (/15)"\n"Kwame Mensah","12"');
+
+    const exported = buildSingleComponentExportCsv("English", task, englishStudents, {
+      classScoreMax: 50,
+    });
+    expect(exported).toBe(
+      '"Name","English Summary Group Work (/15)","Task Score (%)","Subject Class Score (/50)"\n"Kwame Mensah","12","80%","30"',
+    );
+
+    const parsedSingle = parseSbaScoreImport({
+      rawText: "Name\tScore\nKwame Mensah\t14",
+      subjectName: "English",
+      existingStudents: englishStudents,
+      settings: settingsWithSba,
+      importMode: "SINGLE_COMPONENT",
+      targetTask: task,
+      conflictPolicy: "OVERWRITE",
+    });
+
+    expect(parsedSingle.matchedColumns).toEqual([
+      "Name -> col 1",
+      "Score -> SBA: English Summary Group Work (/15)",
+    ]);
+    expect(parsedSingle.conflictCount).toBe(1);
+    expect(parsedSingle.rows[0].componentScores[0]).toMatchObject({
+      name: "English Summary Group Work",
+      score: 14,
+      existingScore: 12,
+      maxScore: 15,
+    });
+    expect(parsedSingle.rows[0].examRawScore).toBeUndefined();
+  });
+
+  it("builds and parses Final Exam-only sheets while preserving SBA components", () => {
+    const examStudents: StudentRecord[] = [
+      {
+        id: "stu-ex1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        subjects: [
+          {
+            id: "sub-ex1",
+            name: "Mathematics",
+            classScore: 40,
+            examScore: 30,
+            classScoreComponents: [
+              { id: "c1", name: "CAT 1", score: 12, maxScore: 15, category: "CAT" },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const examTemplate = buildExamOnlyTemplateCsv("Mathematics", examStudents, settingsWithSba);
+    expect(examTemplate).toBe('"Name","Exam (/100)"\n"Kwame Mensah","60"');
+
+    const parsedExam = parseSbaScoreImport({
+      rawText: "Name\tExam Score\nKwame Mensah\t84",
+      subjectName: "Mathematics",
+      existingStudents: examStudents,
+      settings: settingsWithSba,
+      importMode: "EXAM_ONLY",
+    });
+
+    expect(parsedExam.matchedColumns).toEqual([
+      "Name -> col 1",
+      "Exam Score -> Exam (/100)",
+    ]);
+    expect(parsedExam.conflictCount).toBe(1);
+    expect(parsedExam.rows[0].componentScores).toHaveLength(0);
+    expect(parsedExam.rows[0].directClassScore).toBeUndefined();
+    expect(parsedExam.rows[0].examRawScore).toMatchObject({
+      raw: 84,
+      existingRaw: 60,
+      weighted: 42,
+      isConflict: true,
+    });
   });
 });

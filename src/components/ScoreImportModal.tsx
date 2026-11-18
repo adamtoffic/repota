@@ -20,12 +20,16 @@ import type {
 } from "../types";
 import {
   buildDefaultSubjectsForStudent,
+  buildExamOnlyTemplateCsv,
   buildSbaScoreTemplateCsv,
+  buildSingleComponentExportCsv,
+  buildSingleComponentTemplateCsv,
   downloadCsvFile,
   parseSbaScoreImport,
   resolveSubjectSbaTasks,
   type NewSbaColumnOverride,
   type SbaConflictPolicy,
+  type SbaImportMode,
 } from "../utils/csvImport";
 import { updateComponentAndRecalculateClassScore } from "../utils/scoreConversion";
 import { Button } from "./ui/Button";
@@ -36,13 +40,25 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   initialSubject?: string;
+  initialMode?: SbaImportMode;
+  initialTaskName?: string;
 }
 
-export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
+const CREATE_NEW_TASK_VALUE = "__CREATE_NEW_TASK__";
+
+export function ScoreImportModal({
+  isOpen,
+  onClose,
+  initialSubject,
+  initialMode,
+  initialTaskName,
+}: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
   const { addStudent, updateStudent, setSettings } = useSchoolActions();
   const { showToast } = useToast();
+
+  const isMock = settings.examType === "MOCK";
 
   const availableSubjects = useMemo(() => {
     const ordered: string[] = [];
@@ -63,6 +79,52 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
     ? selectedSubject
     : (availableSubjects[0] ?? "");
 
+  const [modeState, setModeState] = useState<SbaImportMode>(
+    initialMode ?? (initialTaskName ? "SINGLE_COMPONENT" : "FULL_SUBJECT"),
+  );
+  const activeMode: SbaImportMode = isMock && modeState !== "EXAM_ONLY" ? "EXAM_ONLY" : modeState;
+
+  const activeTasks = useMemo(
+    () => (activeSubject ? resolveSubjectSbaTasks(activeSubject, students, settings) : []),
+    [activeSubject, students, settings],
+  );
+
+  const [selectedTaskOption, setSelectedTaskOption] = useState<string>(initialTaskName || "");
+  const effectiveTaskOption =
+    selectedTaskOption === CREATE_NEW_TASK_VALUE ||
+    activeTasks.some((t) => t.name === selectedTaskOption)
+      ? selectedTaskOption
+      : (activeTasks[0]?.name ?? CREATE_NEW_TASK_VALUE);
+
+  const isCreatingSingleTask =
+    activeMode === "SINGLE_COMPONENT" && effectiveTaskOption === CREATE_NEW_TASK_VALUE;
+
+  const [newSingleTaskName, setNewSingleTaskName] = useState("");
+  const [newSingleTaskMax, setNewSingleTaskMax] = useState("15");
+  const [newSingleTaskCategory, setNewSingleTaskCategory] = useState<AssessmentCategory>("CAT");
+
+  const activeSingleTask: ClassScoreComponentConfig | undefined = useMemo(() => {
+    if (activeMode !== "SINGLE_COMPONENT") return undefined;
+    if (isCreatingSingleTask) {
+      const trimmed = newSingleTaskName.trim();
+      if (!trimmed) return undefined;
+      return {
+        name: trimmed,
+        maxScore: Math.min(100, Math.max(1, Number(newSingleTaskMax) || 15)),
+        category: newSingleTaskCategory,
+      };
+    }
+    return activeTasks.find((t) => t.name === effectiveTaskOption);
+  }, [
+    activeMode,
+    isCreatingSingleTask,
+    newSingleTaskName,
+    newSingleTaskMax,
+    newSingleTaskCategory,
+    activeTasks,
+    effectiveTaskOption,
+  ]);
+
   const [rawText, setRawText] = useState("");
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [createUnmatched, setCreateUnmatched] = useState(true);
@@ -70,11 +132,6 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
   const [newColumnOverrides, setNewColumnOverrides] = useState<
     Record<number, NewSbaColumnOverride>
   >({});
-
-  const activeTasks = useMemo(
-    () => (activeSubject ? resolveSubjectSbaTasks(activeSubject, students, settings) : []),
-    [activeSubject, students, settings],
-  );
 
   const parsedResult = useMemo(() => {
     if (!isPreviewing || !activeSubject || !rawText.trim()) return null;
@@ -85,19 +142,63 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
       settings,
       customNewTasks: newColumnOverrides,
       conflictPolicy,
+      importMode: activeMode,
+      targetTask: activeSingleTask,
     });
-  }, [isPreviewing, activeSubject, rawText, students, settings, newColumnOverrides, conflictPolicy]);
+  }, [
+    isPreviewing,
+    activeSubject,
+    rawText,
+    students,
+    settings,
+    newColumnOverrides,
+    conflictPolicy,
+    activeMode,
+    activeSingleTask,
+  ]);
 
   if (!isOpen) return null;
 
   const handleDownloadTemplate = () => {
     if (!activeSubject) return;
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const safeSub = activeSubject.replace(/\s+/g, "_");
+
+    if (activeMode === "SINGLE_COMPONENT") {
+      if (!activeSingleTask) {
+        showToast("Enter a task name first to download its template.", "info");
+        return;
+      }
+      const csv = buildSingleComponentTemplateCsv(activeSubject, activeSingleTask, students);
+      downloadCsvFile(
+        csv,
+        `${safeSub}_${activeSingleTask.name.replace(/\s+/g, "_")}_Template_${dateStamp}.csv`,
+      );
+      showToast(`Downloaded ${activeSingleTask.name} template!`, "success");
+      return;
+    }
+
+    if (activeMode === "EXAM_ONLY") {
+      const csv = buildExamOnlyTemplateCsv(activeSubject, students, settings);
+      downloadCsvFile(csv, `${safeSub}_Final_Exam_Template_${dateStamp}.csv`);
+      showToast(`Downloaded ${activeSubject} Exam template!`, "success");
+      return;
+    }
+
     const csv = buildSbaScoreTemplateCsv(activeSubject, students, settings);
+    downloadCsvFile(csv, `${safeSub}_Full_SBA_Template_${dateStamp}.csv`);
+    showToast(`Downloaded ${activeSubject} Full Subject template!`, "success");
+  };
+
+  const handleExportSingleComponent = () => {
+    if (!activeSubject || !activeSingleTask) return;
+    const csv = buildSingleComponentExportCsv(activeSubject, activeSingleTask, students, settings);
+    const dateStamp = new Date().toISOString().split("T")[0];
     downloadCsvFile(
       csv,
-      `${activeSubject.replace(/\s+/g, "_")}_SBA_Template_${new Date().toISOString().split("T")[0]}.csv`,
+      `${activeSubject.replace(/\s+/g, "_")}_${activeSingleTask.name.replace(/\s+/g, "_")}_${dateStamp}.csv`,
     );
-    showToast(`Downloaded ${activeSubject} SBA template!`, "success");
+    showToast(`Exported ${activeSingleTask.name} scores to CSV!`, "success");
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +256,6 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
           }))
         : undefined;
 
-    // Ensure all tasks (including newly created ones) exist on nextComponents
     if (nextComponents) {
       for (const task of tasks) {
         if (!nextComponents.some((c) => c.name.toLowerCase() === task.name.toLowerCase())) {
@@ -227,7 +327,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
   const handleApplyScores = () => {
     if (!parsedResult || parsedResult.rows.length === 0) return;
 
-    // 1. Register any newly created SBA components in Settings library + subjectComponentMap
+    // 1. Collect newly created SBA tasks (either auto-detected in FULL_SUBJECT or explicit in SINGLE_COMPONENT)
     const enabledNewTasks: ClassScoreComponentConfig[] = parsedResult.detectedNewColumns
       .map((col) => getOverrideForDetected(col))
       .filter((ov) => ov.enabled && ov.name.trim().length > 0)
@@ -236,6 +336,21 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
         maxScore: Math.min(100, Math.max(1, ov.maxScore)),
         category: ov.category,
       }));
+
+    if (
+      activeMode === "SINGLE_COMPONENT" &&
+      activeSingleTask &&
+      !activeTasks.some((t) => t.name.toLowerCase() === activeSingleTask.name.toLowerCase())
+    ) {
+      enabledNewTasks.push(activeSingleTask);
+    }
+
+    const mergedTasksForCreation = [...activeTasks];
+    for (const t of enabledNewTasks) {
+      if (!mergedTasksForCreation.some((e) => e.name.toLowerCase() === t.name.toLowerCase())) {
+        mergedTasksForCreation.push(t);
+      }
+    }
 
     if (enabledNewTasks.length > 0 && typeof setSettings === "function") {
       const currentLib = settings.componentLibrary ?? [];
@@ -275,12 +390,12 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
       if (row.matchedStudentId && studentMap.has(row.matchedStudentId)) {
         const student = studentMap.get(row.matchedStudentId)!;
         const existingSub = student.subjects.find((s) => s.name === activeSubject);
-        const updatedSub = applyScoreRowToSubject(existingSub, row, parsedResult.tasks);
+        const updatedSub = applyScoreRowToSubject(existingSub, row, mergedTasksForCreation);
         const nextSubjects = existingSub
           ? student.subjects.map((s) => (s.id === existingSub.id ? updatedSub : s))
           : [...student.subjects, updatedSub];
 
-        const nextRecord = { ...student, subjects: nextSubjects };
+        const nextRecord: StudentRecord = { ...student, subjects: nextSubjects };
         studentMap.set(student.id, nextRecord);
         touchedStudentIds.add(student.id);
         updateStudent(nextRecord, true);
@@ -291,7 +406,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
       if (createUnmatched && row.isNewStudent) {
         const defaultSubs = buildDefaultSubjectsForStudent(settings);
         const targetExisting = defaultSubs.find((s) => s.name === activeSubject);
-        const updatedSub = applyScoreRowToSubject(targetExisting, row, parsedResult.tasks);
+        const updatedSub = applyScoreRowToSubject(targetExisting, row, mergedTasksForCreation);
         const nextSubjects = targetExisting
           ? defaultSubs.map((s) => (s.id === targetExisting.id ? updatedSub : s))
           : [...defaultSubs, updatedSub];
@@ -309,7 +424,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
       }
     });
 
-    // 3. Keep remaining existing students synced with newly created SBA tasks (with score 0)
+    // 3. Keep remaining existing students synced with newly created SBA tasks (score: 0)
     if (enabledNewTasks.length > 0) {
       students.forEach((student) => {
         if (touchedStudentIds.has(student.id)) return;
@@ -352,7 +467,9 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
     if (updatedCount > 0) summary.push(`${updatedCount} updated`);
     if (createdCount > 0) summary.push(`${createdCount} added`);
     if (enabledNewTasks.length > 0) {
-      summary.push(`${enabledNewTasks.length} new SBA task${enabledNewTasks.length > 1 ? "s" : ""} created`);
+      summary.push(
+        `${enabledNewTasks.length} new SBA task${enabledNewTasks.length > 1 ? "s" : ""} created`,
+      );
     }
     showToast(
       summary.length > 0
@@ -374,13 +491,33 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
     onClose();
   };
 
+  const modeTabs: Array<{ id: SbaImportMode; label: string; hint: string }> = isMock
+    ? [{ id: "EXAM_ONLY", label: "Mock Exam (/100)", hint: "Final mock scores only" }]
+    : [
+        {
+          id: "SINGLE_COMPONENT",
+          label: "Single SBA Task",
+          hint: "Import or export 1 SBA component (e.g. Group Work)",
+        },
+        {
+          id: "EXAM_ONLY",
+          label: "Final Exam (/100)",
+          hint: "End-of-term exam scores only (keeps SBA untouched)",
+        },
+        {
+          id: "FULL_SUBJECT",
+          label: "Full Subject Sheet",
+          hint: "All SBA tasks + Exam together",
+        },
+      ];
+
   return (
     <Modal isOpen={isOpen} onClose={resetAndClose} closeOnBackdrop={false} className="max-w-3xl">
-      <div className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 p-4">
+      <div className="flex max-h-[90vh] flex-col overflow-hidden">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
             <Upload className="text-primary h-5 w-5" />
-            Import Scored SBA &amp; Exam Sheet
+            Import &amp; Export Subject Scores
           </h3>
           <button
             type="button"
@@ -392,76 +529,188 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
           </button>
         </div>
 
-        <div className="max-h-[80vh] space-y-4 overflow-y-auto p-5 sm:p-6">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
           {availableSubjects.length === 0 ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               Add at least one subject in Settings before importing scores.
             </div>
           ) : (
             <>
-              {/* Subject Selector + Template Download */}
-              <div className="flex flex-col gap-3 rounded-xl border border-purple-200 bg-purple-50/70 p-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <label
-                    htmlFor="sba-import-subject"
-                    className="mb-1 block text-xs font-bold tracking-wider text-purple-900 uppercase"
+              {/* Step 1: Subject + Mode Tabs */}
+              <div className="space-y-3 rounded-xl border border-purple-200 bg-purple-50/70 p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div>
+                    <label
+                      htmlFor="sba-import-subject"
+                      className="mb-1 block text-xs font-bold tracking-wider text-purple-900 uppercase"
+                    >
+                      1. Target Subject (Subject-by-Subject)
+                    </label>
+                    <select
+                      id="sba-import-subject"
+                      value={activeSubject}
+                      onChange={(e) => {
+                        setSelectedSubject(e.target.value);
+                        setNewColumnOverrides({});
+                        setIsPreviewing(false);
+                      }}
+                      className="w-full rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-bold text-gray-800 outline-none focus:border-purple-500"
+                    >
+                      {availableSubjects.map((sub) => (
+                        <option key={sub} value={sub}>
+                          {sub}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Mode Switcher */}
+                  <div
+                    role="tablist"
+                    aria-label="Score import mode"
+                    className="grid grid-cols-3 gap-1 rounded-xl border border-purple-200 bg-white p-1"
                   >
-                    Target Subject
-                  </label>
-                  <select
-                    id="sba-import-subject"
-                    value={activeSubject}
-                    onChange={(e) => {
-                      setSelectedSubject(e.target.value);
-                      setNewColumnOverrides({});
-                      setIsPreviewing(false);
-                    }}
-                    className="w-full rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-bold text-gray-800 outline-none focus:border-purple-500"
-                  >
-                    {availableSubjects.map((sub) => (
-                      <option key={sub} value={sub}>
-                        {sub}
-                      </option>
+                    {modeTabs.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMode === tab.id}
+                        onClick={() => {
+                          setModeState(tab.id);
+                          setIsPreviewing(false);
+                        }}
+                        className={`rounded-lg px-2.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
+                          activeMode === tab.id
+                            ? "bg-purple-700 text-white shadow-xs"
+                            : "text-gray-600 hover:bg-purple-50"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
                     ))}
-                  </select>
-                  <p className="mt-1.5 text-[11px] text-purple-800">
-                    Configured columns:{" "}
-                    <strong>
-                      Name
-                      {settings.examType === "MOCK"
-                        ? ", Score (/100)"
-                        : activeTasks.length > 0
-                          ? `, ${activeTasks.map((t) => `${t.name} (/${t.maxScore})`).join(", ")}, Exam (/100)`
-                          : `, Class Score (/${settings.classScoreMax}), Exam (/100)`}
-                    </strong>
-                    {settings.examType !== "MOCK" && (
-                      <span className="block text-[10px] text-purple-700">
-                        New SBA columns (e.g. <code>Science Project (/20)</code>) are automatically
-                        detected and created for you.
-                      </span>
-                    )}
-                  </p>
+                  </div>
                 </div>
 
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadTemplate}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-800 hover:bg-purple-100"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download Template (CSV)
-                  </button>
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white hover:bg-purple-800">
-                    <FileSpreadsheet className="h-3.5 w-3.5" />
-                    <span>Upload CSV</span>
-                    <input
-                      type="file"
-                      accept=".csv,.tsv,.txt,text/csv"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
+                {/* Single SBA Component Picker / Creator */}
+                {activeMode === "SINGLE_COMPONENT" && (
+                  <div className="space-y-3 rounded-lg border border-purple-200 bg-white p-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
+                      <div>
+                        <label
+                          htmlFor="single-sba-task-select"
+                          className="mb-1 block text-[11px] font-bold text-gray-600 uppercase"
+                        >
+                          SBA Component
+                        </label>
+                        <select
+                          id="single-sba-task-select"
+                          value={effectiveTaskOption}
+                          onChange={(e) => {
+                            setSelectedTaskOption(e.target.value);
+                            setIsPreviewing(false);
+                          }}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-purple-500"
+                        >
+                          {activeTasks.map((task) => (
+                            <option key={task.name} value={task.name}>
+                              {task.name} (/{task.maxScore})
+                            </option>
+                          ))}
+                          <option value={CREATE_NEW_TASK_VALUE}>
+                            + Create New SBA Task...
+                          </option>
+                        </select>
+                      </div>
+
+                      {!isCreatingSingleTask && activeSingleTask && students.length > 0 && (
+                        <div className="flex justify-start sm:justify-end">
+                          <button
+                            type="button"
+                            onClick={handleExportSingleComponent}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Export {activeSingleTask.name} (CSV)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {isCreatingSingleTask && (
+                      <div className="grid grid-cols-1 gap-2 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5 sm:grid-cols-[1.5fr_0.7fr_1fr]">
+                        <input
+                          type="text"
+                          aria-label="New SBA Task Name"
+                          value={newSingleTaskName}
+                          onChange={(e) => setNewSingleTaskName(e.target.value)}
+                          placeholder="e.g. English Summary Group Work"
+                          className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500"
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          aria-label="New SBA Max Score"
+                          value={newSingleTaskMax}
+                          onChange={(e) => setNewSingleTaskMax(e.target.value)}
+                          placeholder="Max (15)"
+                          className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-center text-xs font-bold outline-none focus:border-indigo-500"
+                        />
+                        <select
+                          aria-label="New SBA Category"
+                          value={newSingleTaskCategory}
+                          onChange={(e) =>
+                            setNewSingleTaskCategory(e.target.value as AssessmentCategory)
+                          }
+                          className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
+                        >
+                          <option value="CAT">CAT (Test)</option>
+                          <option value="GROUP">Group Work</option>
+                          <option value="PROJECT">Project</option>
+                          <option value="HOMEWORK">Homework</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Template Download & CSV Upload Actions */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[11px] text-purple-900">
+                    {activeMode === "SINGLE_COMPONENT"
+                      ? activeSingleTask
+                        ? `2-column sheet: Name, ${activeSingleTask.name} (/${activeSingleTask.maxScore})`
+                        : "Enter a new SBA task name above to generate its 2-column template."
+                      : activeMode === "EXAM_ONLY"
+                        ? "2-column end-of-term sheet: Name, Exam (/100). Keeps SBA tasks untouched."
+                        : `Expected columns: Name${
+                            activeTasks.length > 0
+                              ? `, ${activeTasks.map((t) => `${t.name} (/${t.maxScore})`).join(", ")}, Exam (/100)`
+                              : `, Class Score (/${settings.classScoreMax}), Exam (/100)`
+                          }`}
+                  </p>
+
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-800 hover:bg-purple-100"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download Template (CSV)
+                    </button>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white hover:bg-purple-800">
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      <span>Upload CSV</span>
+                      <input
+                        type="file"
+                        accept=".csv,.tsv,.txt,text/csv"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -474,15 +723,26 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                   <Textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder={`Name\t${activeTasks[0]?.name || "Science Project (/20)"}\tExam\nKwame Mensah\t16\t78\nAma Serwaa\t18\t85`}
-                    className="h-52 font-mono text-xs"
+                    placeholder={
+                      activeMode === "EXAM_ONLY"
+                        ? "Name\tExam (/100)\nKwame Mensah\t78\nAma Serwaa\t85"
+                        : activeMode === "SINGLE_COMPONENT"
+                          ? `Name\t${activeSingleTask?.name || "English Summary Group Work"} (/${
+                              activeSingleTask?.maxScore || 15
+                            })\nKwame Mensah\t13\nAma Serwaa\t14`
+                          : `Name\t${activeTasks[0]?.name || "Science Project (/20)"}\tExam\nKwame Mensah\t16\t78\nAma Serwaa\t18\t85`
+                    }
+                    className="h-44 font-mono text-xs sm:h-52"
                   />
                   <Button
                     type="button"
                     variant="primary"
                     size="md"
                     fullWidth
-                    disabled={!rawText.trim()}
+                    disabled={
+                      !rawText.trim() ||
+                      (activeMode === "SINGLE_COMPONENT" && !activeSingleTask)
+                    }
                     onClick={() => setIsPreviewing(true)}
                   >
                     Preview &amp; Validate Scores
@@ -512,7 +772,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                         </label>
                       </div>
 
-                      {/* Newly Detected SBA Components Card */}
+                      {/* Newly Detected SBA Components Card (Full Subject mode) */}
                       {parsedResult.detectedNewColumns.length > 0 && (
                         <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5">
                           <div className="flex items-center gap-2 text-xs font-bold text-indigo-950">

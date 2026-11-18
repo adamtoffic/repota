@@ -63,6 +63,10 @@ export function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showScoreImportModal, setShowScoreImportModal] = useState(false);
+  const [scoreImportPreset, setScoreImportPreset] = useState<{
+    subject?: string;
+    taskName?: string;
+  }>({});
   const [showBulkAttendanceModal, setShowBulkAttendanceModal] = useState(false);
   const [showBulkPromotionModal, setShowBulkPromotionModal] = useState(false);
   const [remarksProgress, setRemarksProgress] = useState<{
@@ -398,6 +402,10 @@ export function Dashboard() {
                     settings={settings}
                     onUpdateStudent={updateStudent}
                     onOpenStudent={(s) => setEditingStudentId(s.id)}
+                    onOpenScoreImport={(subject, taskName) => {
+                      setScoreImportPreset({ subject, taskName });
+                      setShowScoreImportModal(true);
+                    }}
                   />
                 ) : (
                   <StudentList
@@ -459,8 +467,15 @@ export function Dashboard() {
 
       {/* ✅ SCORE IMPORT MODAL */}
       <ScoreImportModal
+        key={`${scoreImportPreset.subject ?? ""}:${scoreImportPreset.taskName ?? ""}`}
         isOpen={showScoreImportModal}
-        onClose={() => setShowScoreImportModal(false)}
+        onClose={() => {
+          setShowScoreImportModal(false);
+          setScoreImportPreset({});
+        }}
+        initialSubject={scoreImportPreset.subject}
+        initialMode={scoreImportPreset.taskName ? "SINGLE_COMPONENT" : undefined}
+        initialTaskName={scoreImportPreset.taskName}
       />
 
       {/* ✅ BULK ATTENDANCE MODAL */}

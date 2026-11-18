@@ -1,6 +1,11 @@
 import { useMemo, useRef, useState } from "react";
-import { BookOpen, ExternalLink, PlusCircle, TableProperties } from "lucide-react";
+import { BookOpen, Download, ExternalLink, PlusCircle, TableProperties, Upload } from "lucide-react";
 import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
+import {
+  buildSingleComponentExportCsv,
+  buildSubjectQuickExportCsv,
+  downloadCsvFile,
+} from "../utils/csvImport";
 import { calculateGrade } from "../utils/gradeCalculator";
 import {
   clampDirectClassScore,
@@ -14,6 +19,7 @@ interface QuickGradebookProps {
   settings: SchoolSettings;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
   onOpenStudent?: (student: ProcessedStudent) => void;
+  onOpenScoreImport?: (subject: string, taskName?: string) => void;
 }
 
 type FocusColumn = "CLASS_EXAM" | `COMP:${string}`;
@@ -23,6 +29,7 @@ export function QuickGradebook({
   settings,
   onUpdateStudent,
   onOpenStudent,
+  onOpenScoreImport,
 }: QuickGradebookProps) {
   const isMockExam = settings.examType === "MOCK";
   const maxClassScore = settings.classScoreMax;
@@ -79,15 +86,60 @@ export function QuickGradebook({
     ? activeFocusColumn.slice("COMP:".length)
     : null;
 
-  const scoredCount = useMemo(() => {
-    if (!activeSubject) return 0;
-    return students.filter((student) => {
-      const subject = student.subjects.find((sub) => sub.name === activeSubject);
-      if (!subject) return false;
-      if (isMockExam) return subject.examScore > 0;
-      return subject.classScore > 0 || subject.examScore > 0;
-    }).length;
-  }, [activeSubject, isMockExam, students]);
+  const activeTaskConfig = activeComponentName
+    ? sbaTaskOptions.find((t) => t.name === activeComponentName)
+    : undefined;
+
+  const columnStats = useMemo(() => {
+    if (!activeSubject || students.length === 0) return { scored: 0, avgLabel: "" };
+    if (activeTaskConfig) {
+      const scores: number[] = [];
+      students.forEach((student) => {
+        const sub = student.subjects.find((s) => s.name === activeSubject);
+        const comp = sub?.classScoreComponents?.find((c) => c.name === activeTaskConfig.name);
+        if (comp && comp.score > 0) scores.push(comp.score);
+      });
+      const avg =
+        scores.length > 0
+          ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
+          : "0";
+      return {
+        scored: scores.length,
+        avgLabel: `Avg: ${avg}/${activeTaskConfig.maxScore}`,
+      };
+    }
+
+    const totals: number[] = [];
+    students.forEach((student) => {
+      const sub = student.subjects.find((s) => s.name === activeSubject);
+      if (!sub) return;
+      const hasAny = isMockExam ? sub.examScore > 0 : sub.classScore > 0 || sub.examScore > 0;
+      if (hasAny) totals.push((sub.classScore || 0) + (sub.examScore || 0));
+    });
+    const avg =
+      totals.length > 0
+        ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1)
+        : "0";
+    return { scored: totals.length, avgLabel: `Avg: ${avg}%` };
+  }, [activeSubject, activeTaskConfig, isMockExam, students]);
+
+  const handleExportCurrentView = () => {
+    if (!activeSubject || students.length === 0) return;
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const safeSub = activeSubject.replace(/\s+/g, "_");
+    if (activeTaskConfig) {
+      const csv = buildSingleComponentExportCsv(activeSubject, activeTaskConfig, students, settings);
+      downloadCsvFile(
+        csv,
+        `${safeSub}_${activeTaskConfig.name.replace(/\s+/g, "_")}_${dateStamp}.csv`,
+      );
+      return;
+    }
+    const csv = buildSubjectQuickExportCsv(activeSubject, students, settings);
+    downloadCsvFile(csv, `${safeSub}_Gradebook_${dateStamp}.csv`);
+  };
+
+  const scoredCount = columnStats.scored;
 
   const focusAdjacentStudentInput = (
     field: "class" | "exam" | "comp",
@@ -217,6 +269,11 @@ export function QuickGradebook({
               <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
                 {scoredCount}/{students.length} scored
               </span>
+              {scoredCount > 0 && columnStats.avgLabel && (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                  {columnStats.avgLabel}
+                </span>
+              )}
             </div>
             <p className="text-muted mt-0.5 text-xs" data-record="true">
               Enter scores subject-by-subject. Use Enter/Arrows to move or paste a column from Excel.
@@ -251,6 +308,35 @@ export function QuickGradebook({
                   </option>
                 ))}
               </select>
+            )}
+
+            {students.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExportCurrentView}
+                title={
+                  activeTaskConfig
+                    ? `Export ${activeTaskConfig.name} scores to CSV`
+                    : `Export ${activeSubject} scores to CSV`
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-xs transition-colors hover:bg-emerald-100"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>{activeTaskConfig ? "Export Task CSV" : "Export CSV"}</span>
+              </button>
+            )}
+
+            {onOpenScoreImport && (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenScoreImport(activeSubject, activeComponentName ?? undefined)
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-700 shadow-xs transition-colors hover:bg-purple-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Import</span>
+              </button>
             )}
           </div>
         </div>
