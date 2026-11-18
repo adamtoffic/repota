@@ -168,4 +168,17 @@ describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colo
       expect(bwContainer.innerHTML).not.toMatch(/#881337|#620e28|rgb\(136,\s*19,\s*55\)/i);
     },
   );
+
+  it.each(TEMPLATES)(
+    "$name leaves school logo area blank without placeholder text when logoUrl is empty",
+    ({ Component }) => {
+      render(
+        <Component student={baseStudent} settings={{ ...baseSettings, logoUrl: "" }} printMode="color" />,
+      );
+
+      expect(screen.queryByText(/^No Logo$/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^LOGO$/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Crest$/i)).not.toBeInTheDocument();
+    },
+  );
 });

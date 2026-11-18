@@ -99,18 +99,14 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
         )}
 
         <div className="flex items-center justify-between gap-4">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center" aria-hidden={!settings.logoUrl}>
             {settings.logoUrl ? (
               <img
                 src={settings.logoUrl}
                 alt="Logo"
                 className={`h-full w-full object-contain mix-blend-multiply ${isBW ? "grayscale" : ""}`}
               />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center border-2 border-dashed border-gray-300 text-[10px] font-bold text-gray-400">
-                LOGO
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex-1 text-center">

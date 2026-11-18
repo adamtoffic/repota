@@ -17,18 +17,17 @@ export function ReportHeader({ settings, isIslamic = false }: Props) {
 
       <div className="flex items-center justify-between gap-4">
         {/* Logo */}
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center print:h-24 print:w-24">
+        <div
+          className="flex h-20 w-20 shrink-0 items-center justify-center print:h-24 print:w-24"
+          aria-hidden={!settings.logoUrl}
+        >
           {settings.logoUrl ? (
             <img
               src={settings.logoUrl}
               alt="Logo"
               className="h-full w-full object-contain mix-blend-multiply"
             />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center border-2 border-dashed border-slate-300 text-[10px] font-bold text-slate-400">
-              LOGO
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* School Details */}

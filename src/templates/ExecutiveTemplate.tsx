@@ -70,19 +70,17 @@ export function ExecutiveTemplate({ student, settings, printMode }: ReportTempla
           style={{ backgroundColor: palette.primary, color: palette.onPrimary }}
         >
           {/* Left: School Crest */}
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white p-1 shadow-sm">
-            {settings.logoUrl ? (
+          {settings.logoUrl ? (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white p-1 shadow-sm">
               <img
                 src={settings.logoUrl}
                 alt="School Crest"
                 className={`h-full w-full object-contain ${imgFilter}`}
               />
-            ) : (
-              <span className="text-[9px] font-black tracking-wider text-gray-400 uppercase">
-                Crest
-              </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="h-16 w-16 shrink-0" aria-hidden="true" />
+          )}
 
           {/* Center: School Identity */}
           <div className="min-w-0 flex-1 text-center">

@@ -65,20 +65,20 @@ export function ModernTemplate({ student, settings, printMode }: ReportTemplateP
           ========================================== */}
       <header className={`flex items-center justify-between border-b-2 ${brandBorder} pb-4`} style={customBorder}>
         {/* School Logo */}
-        <div
-          className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border-2 ${brandBorder} ${brandBgLight} p-2`}
-          style={{ ...customBorder, ...customSoftBg }}
-        >
-          {settings.logoUrl ? (
+        {settings.logoUrl ? (
+          <div
+            className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border-2 ${brandBorder} ${brandBgLight} p-2`}
+            style={{ ...customBorder, ...customSoftBg }}
+          >
             <img
               src={settings.logoUrl}
               alt="Logo"
               className={`max-h-full max-w-full object-contain ${imgFilter}`}
             />
-          ) : (
-            <span className={`text-[10px] font-bold uppercase ${brandTextAccent}`} style={customTextAccent}>No Logo</span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="h-20 w-20 shrink-0" aria-hidden="true" />
+        )}
 
         {/* School Details — centred */}
         <div className="flex-1 px-5 text-center">

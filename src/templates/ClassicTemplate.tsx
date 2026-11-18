@@ -69,18 +69,14 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           ========================================== */}
       <header className={`mb-1 border-b-2 ${borderColor} pb-1`} style={customBorder}>
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex h-24 w-24 items-center justify-center">
+          <div className="flex h-24 w-24 items-center justify-center" aria-hidden={!settings.logoUrl}>
             {settings.logoUrl ? (
               <img
                 src={settings.logoUrl}
                 alt="Logo"
                 className={`max-h-full max-w-full object-contain ${imgFilter}`}
               />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-center text-xs text-gray-400">
-                No Logo
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex-1 px-4 text-center">
