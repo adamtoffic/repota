@@ -1,5 +1,6 @@
 // Shared Student Info Card Component
 import type { ProcessedStudent, SchoolSettings } from "../../types";
+import { resolvePositionVisibility } from "../../utils/privateSchoolFees";
 
 interface Props {
   student: ProcessedStudent;
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export function StudentInfo({ student, settings }: Props) {
+  const { showClassPositionHeader } = resolvePositionVisibility(settings);
+
   return (
     <section className="flex border-2 border-blue-950 bg-white">
       {/* Student Photo */}
@@ -23,7 +26,13 @@ export function StudentInfo({ student, settings }: Props) {
       {/* Details Grid */}
       <div className="flex-1">
         {/* Row 1: Main Identity */}
-        <div className="grid grid-cols-[1fr_100px_80px_80px] divide-x-2 divide-blue-950 border-b-2 border-blue-950">
+        <div
+          className={`grid ${
+            showClassPositionHeader
+              ? "grid-cols-[1fr_100px_80px_80px]"
+              : "grid-cols-[1fr_100px_90px]"
+          } divide-x-2 divide-blue-950 border-b-2 border-blue-950`}
+        >
           <div className="p-2">
             <span className="text-muted block text-[9px] font-black uppercase">
               Name of Student
@@ -44,10 +53,12 @@ export function StudentInfo({ student, settings }: Props) {
               {settings.classSize || "-"}
             </span>
           </div>
-          <div className="bg-primary p-2 text-center text-white print:bg-black">
-            <span className="block text-[9px] font-black uppercase opacity-90">Pos.</span>
-            <span className="block text-xl leading-tight font-black">{student.classPosition}</span>
-          </div>
+          {showClassPositionHeader && (
+            <div className="bg-primary p-2 text-center text-white print:bg-black">
+              <span className="block text-[9px] font-black uppercase opacity-90">Pos.</span>
+              <span className="block text-xl leading-tight font-black">{student.classPosition}</span>
+            </div>
+          )}
         </div>
 
         {/* Row 2: Secondary Stats */}
