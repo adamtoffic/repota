@@ -89,13 +89,77 @@ export function QuickGradebook({
     }).length;
   }, [activeSubject, isMockExam, students]);
 
-  const focusNextStudentInput = (field: "class" | "exam" | "comp", currentIndex: number) => {
-    for (let nextIndex = currentIndex + 1; nextIndex < students.length; nextIndex++) {
+  const focusAdjacentStudentInput = (
+    field: "class" | "exam" | "comp",
+    currentIndex: number,
+    direction: 1 | -1 = 1,
+  ) => {
+    for (
+      let nextIndex = currentIndex + direction;
+      nextIndex >= 0 && nextIndex < students.length;
+      nextIndex += direction
+    ) {
       const nextInput = inputRefs.current[`${field}:${students[nextIndex].id}`];
       if (nextInput && !nextInput.disabled) {
         nextInput.focus();
         nextInput.select();
         return;
+      }
+    }
+  };
+
+  /**
+   * Power-user clipboard paste: pasting a multi-line column of numbers copied from
+   * Excel or Google Sheets fills consecutive students downward from `startIndex`.
+   */
+  const handleColumnPaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    field: "class" | "exam" | "comp",
+    startIndex: number,
+  ) => {
+    const text = e.clipboardData.getData("text");
+    if (!text || !/[\r\n]/.test(text)) return;
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (lines.length <= 1) return;
+
+    e.preventDefault();
+    let lineOffset = 0;
+
+    for (let idx = startIndex; idx < students.length && lineOffset < lines.length; idx++) {
+      const targetStudent = students[idx];
+      const sub = targetStudent.subjects.find((s) => s.name === activeSubject);
+      if (!sub) continue;
+
+      const rawCell = lines[lineOffset].split(/\t|,/)[0].trim();
+      lineOffset++;
+      const numeric = Number(rawCell);
+      if (!Number.isFinite(numeric)) continue;
+
+      if (field === "comp" && activeComponentName) {
+        const comp = sub.classScoreComponents?.find((c) => c.name === activeComponentName);
+        if (!comp || !sub.classScoreComponents) continue;
+        const { updatedComponents, classScore } = updateComponentAndRecalculateClassScore(
+          sub.classScoreComponents,
+          comp.id,
+          numeric,
+          maxClassScore,
+        );
+        commitSubjectUpdate(targetStudent, {
+          ...sub,
+          classScoreComponents: updatedComponents,
+          classScore,
+        });
+      } else if (field === "class") {
+        if (!isMockExam && sub.classScoreComponents?.length) continue;
+        const { score } = clampDirectClassScore(numeric, maxClassScore);
+        commitSubjectUpdate(targetStudent, { ...sub, classScore: score });
+      } else if (field === "exam") {
+        const { weightedScore } = convertExamRawToWeighted(numeric, maxExamScore);
+        commitSubjectUpdate(targetStudent, { ...sub, examScore: weightedScore });
       }
     }
   };
@@ -155,7 +219,7 @@ export function QuickGradebook({
               </span>
             </div>
             <p className="text-muted mt-0.5 text-xs" data-record="true">
-              Enter scores subject-by-subject. Press Next or Enter to advance to the next student.
+              Enter scores subject-by-subject. Use Enter/Arrows to move or paste a column from Excel.
             </p>
           </div>
 
@@ -314,10 +378,14 @@ export function QuickGradebook({
                             classScore,
                           });
                         }}
+                        onPaste={(e) => handleColumnPaste(e, "comp", index)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") {
+                          if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusNextStudentInput("comp", index);
+                            focusAdjacentStudentInput("comp", index, 1);
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            focusAdjacentStudentInput("comp", index, -1);
                           }
                         }}
                         className="w-24 rounded-lg border border-purple-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
@@ -361,10 +429,14 @@ export function QuickGradebook({
                             );
                             commitSubjectUpdate(student, { ...subject, classScore: score });
                           }}
+                          onPaste={(e) => handleColumnPaste(e, "class", index)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
+                            if (e.key === "Enter" || e.key === "ArrowDown") {
                               e.preventDefault();
-                              focusNextStudentInput("class", index);
+                              focusAdjacentStudentInput("class", index, 1);
+                            } else if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              focusAdjacentStudentInput("class", index, -1);
                             }
                           }}
                           className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -423,10 +495,14 @@ export function QuickGradebook({
                             return next;
                           });
                         }}
+                        onPaste={(e) => handleColumnPaste(e, "exam", index)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") {
+                          if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusNextStudentInput("exam", index);
+                            focusAdjacentStudentInput("exam", index, 1);
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            focusAdjacentStudentInput("exam", index, -1);
                           }
                         }}
                         className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"

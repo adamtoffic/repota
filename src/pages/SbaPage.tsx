@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertCircle, Calculator, Download, RefreshCw } from "lucide-react";
+import { AlertCircle, Calculator, Download, RefreshCw, Upload } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSettingsForm } from "../hooks/useSettingsForm";
 import { useSchoolData } from "../hooks/useSchoolData";
@@ -7,6 +8,7 @@ import { useToast } from "../hooks/useToast";
 import { exportToCSV } from "../utils/export";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Button } from "../components/ui";
+import { ScoreImportModal } from "../components/ScoreImportModal";
 import { SettingsHeaderActions } from "../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../components/settings/SettingsStatusBanners";
 import { SbaAssessmentSection } from "../components/settings/SbaAssessmentSection";
@@ -24,6 +26,7 @@ function SbaPageContent() {
   const { students, detectComponentMismatches, syncSubjectComponentsFromSettings } =
     useSchoolData();
   const { showToast } = useToast();
+  const [showScoreImport, setShowScoreImport] = useState(false);
 
   const mismatch = detectComponentMismatches();
   const hasMismatches = mismatch.hasOutdated || mismatch.hasMissing;
@@ -66,36 +69,49 @@ function SbaPageContent() {
               </div>
             </div>
 
-            {students.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={hasMismatches ? "primary" : "secondary"}
-                  disabled={isPersistenceSuspended}
-                  onClick={syncSubjectComponentsFromSettings}
-                  className="gap-1.5"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Sync Tasks to Students</span>
-                  {hasMismatches && (
-                    <span className="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950">
-                      Outdated
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleExportScores}
-                  className="gap-1.5"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Export Scores (CSV)</span>
-                </Button>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={isPersistenceSuspended}
+                onClick={() => setShowScoreImport(true)}
+                className="gap-1.5"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Import Scores (CSV)</span>
+              </Button>
+              {students.length > 0 && (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={hasMismatches ? "primary" : "secondary"}
+                    disabled={isPersistenceSuspended}
+                    onClick={syncSubjectComponentsFromSettings}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Sync Tasks to Students</span>
+                    {hasMismatches && (
+                      <span className="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950">
+                        Outdated
+                      </span>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleExportScores}
+                    className="gap-1.5"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Export Scores (CSV)</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -141,6 +157,8 @@ function SbaPageContent() {
 
         <SbaAssessmentSection />
       </main>
+
+      <ScoreImportModal isOpen={showScoreImport} onClose={() => setShowScoreImport(false)} />
     </div>
   );
 }
