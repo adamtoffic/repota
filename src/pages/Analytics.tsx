@@ -18,6 +18,10 @@ import {
   Download,
   FileText,
   Filter,
+  Copy,
+  Check,
+  Sparkles,
+  Wallet,
 } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
@@ -51,7 +55,14 @@ import {
   calculatePerformanceByAge,
   calculateSubjectVariance,
   calculateAttendanceByGender,
+  partitionGradedStudents,
+  calculateSbaVsExamAnalysis,
+  calculateSbaCategoryMastery,
+  calculateBorderlineStudents,
+  calculateCoreVsElectiveStats,
+  calculatePrivateFeeSummary,
 } from "../utils/analyticsCalculator";
+import { generateClassStory } from "../utils/classStoryGenerator";
 import { processStudent } from "../utils/gradeCalculator";
 import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
 import { buildAnalyticsPdfFilename, generateBlocksPdfFile } from "../utils/pdfPrint";
@@ -73,6 +84,7 @@ export const Analytics: React.FC = () => {
     "overview" | "subjects" | "demographics" | "insights"
   >("overview");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [copiedBrief, setCopiedBrief] = useState(false);
   const analyticsHeaderRef = useRef<HTMLDivElement>(null);
   const analyticsContentRef = useRef<HTMLDivElement>(null);
 
@@ -122,11 +134,17 @@ export const Analytics: React.FC = () => {
     });
   }, [students, filters, settings]);
 
+  const { graded: gradedStudents, ungraded: ungradedStudents } = useMemo(
+    () => partitionGradedStudents(filteredStudents),
+    [filteredStudents],
+  );
+  const analysisStudents = gradedStudents.length > 0 ? gradedStudents : filteredStudents;
+
   // Calculate analytics data only for the active sub-tab
   const classMetrics = useMemo(
     () =>
       activeView === "overview" || activeView === "insights"
-        ? calculateClassMetrics(filteredStudents, settings)
+        ? calculateClassMetrics(analysisStudents, settings)
         : {
             totalStudents: 0,
             averageScore: 0,
@@ -137,31 +155,31 @@ export const Analytics: React.FC = () => {
             excellenceRate: 0,
             averageAttendance: 0,
           },
-    [activeView, filteredStudents, settings],
+    [activeView, analysisStudents, settings],
   );
 
   const subjectPerformance = useMemo(
     () =>
-      activeView === "subjects" ? calculateSubjectPerformance(filteredStudents, settings) : [],
-    [activeView, filteredStudents, settings],
+      activeView === "subjects" ? calculateSubjectPerformance(analysisStudents, settings) : [],
+    [activeView, analysisStudents, settings],
   );
 
   const scoreDistribution = useMemo(
-    () => (activeView === "overview" ? calculateScoreDistribution(filteredStudents, settings) : []),
-    [activeView, filteredStudents, settings],
+    () => (activeView === "overview" ? calculateScoreDistribution(analysisStudents, settings) : []),
+    [activeView, analysisStudents, settings],
   );
 
   const genderAnalysis = useMemo(
     () =>
       activeView === "overview" || activeView === "demographics" || activeView === "insights"
-        ? calculateGenderAnalysis(filteredStudents, settings)
+        ? calculateGenderAnalysis(analysisStudents, settings)
         : { maleCount: 0, femaleCount: 0, maleAverage: 0, femaleAverage: 0, totalCount: 0 },
-    [activeView, filteredStudents, settings],
+    [activeView, analysisStudents, settings],
   );
 
   const topPerformers = useMemo(
-    () => (activeView === "overview" ? getTopPerformers(filteredStudents, settings, 5) : []),
-    [activeView, filteredStudents, settings],
+    () => (activeView === "overview" ? getTopPerformers(analysisStudents, settings, 5) : []),
+    [activeView, analysisStudents, settings],
   );
 
   const ageDistribution = useMemo(
@@ -171,57 +189,58 @@ export const Analytics: React.FC = () => {
 
   const subjectGenderComparison = useMemo(
     () =>
-      activeView === "subjects" ? calculateSubjectGenderComparison(filteredStudents, settings) : [],
-    [activeView, filteredStudents, settings],
+      activeView === "subjects" ? calculateSubjectGenderComparison(analysisStudents, settings) : [],
+    [activeView, analysisStudents, settings],
   );
 
   const subjectInsights = useMemo(
     () =>
       activeView === "subjects" || activeView === "insights"
-        ? calculateSubjectInsights(filteredStudents, settings)
+        ? calculateSubjectInsights(analysisStudents, settings)
         : { strongest: [], weakest: [], needsAttention: [] },
-    [activeView, filteredStudents, settings],
+    [activeView, analysisStudents, settings],
   );
 
   const performanceQuartiles = useMemo(
     () =>
       activeView === "insights"
-        ? calculatePerformanceQuartiles(filteredStudents, settings)
+        ? calculatePerformanceQuartiles(analysisStudents, settings)
         : { q1: 0, q2: 0, q3: 0, q4Count: 0, strugglingStudents: [] },
-    [activeView, filteredStudents, settings],
+    [activeView, analysisStudents, settings],
   );
 
   const gradeDistribution = useMemo(
-    () => (activeView === "overview" ? calculateGradeDistribution(filteredStudents, settings) : []),
-    [activeView, filteredStudents, settings],
+    () => (activeView === "overview" ? calculateGradeDistribution(analysisStudents, settings) : []),
+    [activeView, analysisStudents, settings],
   );
 
   const attendanceInsights = useMemo(
     () =>
       activeView === "demographics" || activeView === "insights"
-        ? calculateAttendanceInsights(filteredStudents, settings)
+        ? calculateAttendanceInsights(analysisStudents, settings)
         : {
             averageAttendance: 0,
             perfectAttendance: 0,
             poorAttendance: 0,
             correlationWithPerformance: "neutral" as const,
+            correlationCoefficient: 0,
           },
-    [activeView, filteredStudents, settings],
+    [activeView, analysisStudents, settings],
   );
 
   const atRiskStudents = useMemo(
-    () => (activeView === "insights" ? calculateAtRiskStudents(filteredStudents, settings) : []),
-    [activeView, filteredStudents, settings],
+    () => (activeView === "insights" ? calculateAtRiskStudents(analysisStudents, settings) : []),
+    [activeView, analysisStudents, settings],
   );
 
   const performanceByAge = useMemo(
-    () => (activeView === "demographics" ? calculatePerformanceByAge(filteredStudents, settings) : []),
-    [activeView, filteredStudents, settings],
+    () => (activeView === "demographics" ? calculatePerformanceByAge(analysisStudents, settings) : []),
+    [activeView, analysisStudents, settings],
   );
 
   const subjectVariance = useMemo(
-    () => (activeView === "subjects" ? calculateSubjectVariance(filteredStudents, settings) : []),
-    [activeView, filteredStudents, settings],
+    () => (activeView === "subjects" ? calculateSubjectVariance(analysisStudents, settings) : []),
+    [activeView, analysisStudents, settings],
   );
 
   const attendanceByGender = useMemo(
@@ -231,6 +250,67 @@ export const Analytics: React.FC = () => {
         : { maleAttendanceRate: 0, femaleAttendanceRate: 0, attendanceRanges: [] },
     [activeView, filteredStudents, settings],
   );
+
+  const sbaVsExam = useMemo(
+    () =>
+      activeView === "subjects" || activeView === "insights"
+        ? calculateSbaVsExamAnalysis(analysisStudents, settings)
+        : {
+            available: false,
+            classSbaAvgPercent: 0,
+            classExamAvgPercent: 0,
+            examUnderperformers: [],
+            lowClassworkStudents: [],
+            subjectBreakdown: [],
+          },
+    [activeView, analysisStudents, settings],
+  );
+
+  const sbaCategoryMastery = useMemo(
+    () => (activeView === "subjects" ? calculateSbaCategoryMastery(analysisStudents) : []),
+    [activeView, analysisStudents],
+  );
+
+  const borderlineStudents = useMemo(
+    () => (activeView === "insights" ? calculateBorderlineStudents(analysisStudents, settings) : []),
+    [activeView, analysisStudents, settings],
+  );
+
+  const coreVsElective = useMemo(
+    () =>
+      activeView === "overview"
+        ? calculateCoreVsElectiveStats(analysisStudents, settings)
+        : { coreAverage: 0, corePassRate: 0, electiveAverage: 0, electivePassRate: 0, aggregateBands: [] },
+    [activeView, analysisStudents, settings],
+  );
+
+  const privateFeeSummary = useMemo(
+    () =>
+      activeView === "overview" && settings.schoolType === "PRIVATE"
+        ? calculatePrivateFeeSummary(filteredStudents)
+        : null,
+    [activeView, filteredStudents, settings.schoolType],
+  );
+
+  const classStory = useMemo(
+    () =>
+      activeView === "overview" || activeView === "insights"
+        ? generateClassStory(filteredStudents, settings)
+        : null,
+    [activeView, filteredStudents, settings],
+  );
+
+  const handleCopyStaffBrief = async () => {
+    if (!classStory) return;
+    try {
+      await navigator.clipboard.writeText(classStory.plainTextBrief);
+      setCopiedBrief(true);
+      showToast("Staff meeting brief copied to clipboard!", "success");
+      setTimeout(() => setCopiedBrief(false), 2000);
+    } catch {
+      showToast("Could not copy automatically. Please select and copy the text.", "info");
+    }
+  };
 
   const analyticsPdfKey = useMemo(
     () =>
@@ -450,9 +530,47 @@ export const Analytics: React.FC = () => {
 
           {/* Main Content */}
           <div ref={analyticsContentRef} className="space-y-4 sm:space-y-6 lg:col-span-3">
+            {ungradedStudents.length > 0 && gradedStudents.length > 0 && (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+                <span>
+                  Analyzing <strong>{gradedStudents.length}</strong> graded student
+                  {gradedStudents.length === 1 ? "" : "s"} ({ungradedStudents.length} ungraded
+                  excluded from averages).
+                </span>
+              </div>
+            )}
+
             {/* Overview Tab */}
             {activeView === "overview" && (
               <>
+                {/* Class Pulse Story Banner */}
+                {classStory && (
+                  <div className="rounded-xl border border-indigo-200 bg-linear-to-r from-indigo-50 via-blue-50 to-purple-50 p-4 shadow-sm sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p
+                          data-record="true"
+                          className="flex items-center gap-1.5 text-xs font-black tracking-wider text-indigo-700 uppercase"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Class Pulse Story
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed font-semibold text-gray-800">
+                          {classStory.headline}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView("insights")}
+                        className="inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-indigo-700"
+                        data-record="true"
+                      >
+                        Full AI Story &amp; Plan →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                   <StatCard
@@ -662,6 +780,117 @@ export const Analytics: React.FC = () => {
                     </div>
                   </ChartCard>
                 </div>
+
+                {/* Core vs Elective & Aggregate Bands */}
+                {(coreVsElective.coreAverage > 0 || coreVsElective.aggregateBands.length > 0) && (
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+                    <Card>
+                      <h3
+                        data-record="true"
+                        className="text-main mb-3 flex items-center gap-2 text-base font-bold"
+                      >
+                        <Target className="h-4 w-4 text-blue-600" />
+                        Core vs. Elective Health
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3">
+                          <p className="text-[11px] font-bold text-blue-700 uppercase" data-record="true">
+                            Core Subjects
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-blue-950">
+                            {coreVsElective.coreAverage}%
+                          </p>
+                          <p className="text-xs font-semibold text-blue-700">
+                            {coreVsElective.corePassRate}% pass rate
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-purple-100 bg-purple-50/70 p-3">
+                          <p className="text-[11px] font-bold text-purple-700 uppercase" data-record="true">
+                            Electives
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-purple-950">
+                            {coreVsElective.electiveAverage}%
+                          </p>
+                          <p className="text-xs font-semibold text-purple-700">
+                            {coreVsElective.electivePassRate}% pass rate
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {coreVsElective.aggregateBands.length > 0 && (
+                      <Card>
+                        <h3
+                          data-record="true"
+                          className="text-main mb-3 flex items-center gap-2 text-base font-bold"
+                        >
+                          <Award className="h-4 w-4 text-amber-600" />
+                          Aggregate Distribution Bands
+                        </h3>
+                        <div className="space-y-2">
+                          {coreVsElective.aggregateBands.map((band) => (
+                            <div key={band.band} className="flex items-center justify-between text-xs">
+                              <span className="font-semibold text-gray-700">{band.band}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-gray-900">{band.count} students</span>
+                                <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">
+                                  {band.percentage}%
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
+                {/* Private School Fee & Arrears Overview */}
+                {privateFeeSummary &&
+                  (privateFeeSummary.trackedCount > 0 || privateFeeSummary.totalArrears > 0) && (
+                    <Card>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <h3
+                          data-record="true"
+                          className="text-main flex items-center gap-2 text-base font-bold"
+                        >
+                          <Wallet className="h-4 w-4 text-purple-600" />
+                          Private School Fee Tracking
+                        </h3>
+                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">
+                          Total Arrears: GH₵{privateFeeSummary.totalArrears.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="rounded-lg bg-emerald-50 p-3 text-center">
+                          <p className="text-[10px] font-bold text-emerald-700 uppercase">Paid</p>
+                          <p className="text-xl font-black text-emerald-900">
+                            {privateFeeSummary.paidCount}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-amber-50 p-3 text-center">
+                          <p className="text-[10px] font-bold text-amber-700 uppercase">Part-Paid</p>
+                          <p className="text-xl font-black text-amber-900">
+                            {privateFeeSummary.partPaidCount}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-red-50 p-3 text-center">
+                          <p className="text-[10px] font-bold text-red-700 uppercase">Owing</p>
+                          <p className="text-xl font-black text-red-900">
+                            {privateFeeSummary.owingCount}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-blue-50 p-3 text-center">
+                          <p className="text-[10px] font-bold text-blue-700 uppercase">
+                            Scholarship
+                          </p>
+                          <p className="text-xl font-black text-blue-900">
+                            {privateFeeSummary.scholarshipCount}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
               </>
             )}
 
@@ -707,6 +936,39 @@ export const Analytics: React.FC = () => {
                         { key: "Female", color: "#ec4899", name: "Female Avg" },
                       ]}
                       height={320}
+                    />
+                  </ChartCard>
+                )}
+
+                {/* SBA Classwork vs Exam Comparison by Subject */}
+                {sbaVsExam.available && sbaVsExam.subjectBreakdown.length > 0 && (
+                  <ChartCard title="SBA Classwork vs. Exam Score (%)" icon={Activity}>
+                    <ComposedChart
+                      data={sbaVsExam.subjectBreakdown.slice(0, 10).map((item) => ({
+                        name: item.subject,
+                        SBA: item.sbaPercent,
+                        Exam: item.examPercent,
+                      }))}
+                      barKeys={[
+                        { key: "SBA", color: "#8b5cf6", name: "SBA Avg (%)" },
+                        { key: "Exam", color: "#0ea5e9", name: "Exam Avg (%)" },
+                      ]}
+                      height={320}
+                    />
+                  </ChartCard>
+                )}
+
+                {/* SBA Category Mastery */}
+                {sbaCategoryMastery.length > 0 && (
+                  <ChartCard title="SBA Task Category Mastery (%)" icon={Zap}>
+                    <BarChart
+                      data={sbaCategoryMastery.map((cat) => ({
+                        label: cat.label,
+                        value: cat.averagePercent,
+                      }))}
+                      height={260}
+                      showValues={true}
+                      gradient={true}
                     />
                   </ChartCard>
                 )}
@@ -1090,6 +1352,225 @@ export const Analytics: React.FC = () => {
             {/* AI Insights Tab */}
             {activeView === "insights" && (
               <>
+                {/* Class Story Hero Card */}
+                {classStory && (
+                  <div className="rounded-xl border border-indigo-200 bg-linear-to-br from-indigo-50 via-white to-purple-50 p-5 shadow-sm sm:p-6">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3
+                          data-record="true"
+                          className="text-main flex items-center gap-2 text-lg font-black"
+                        >
+                          <Sparkles className="h-5 w-5 text-indigo-600" />
+                          AI Class Story &amp; Intervention Brief
+                        </h3>
+                        <p className="mt-1 text-sm font-bold text-indigo-950">
+                          {classStory.headline}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyStaffBrief}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-50"
+                        data-record="true"
+                      >
+                        {copiedBrief ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        <span>{copiedBrief ? "Copied!" : "Copy Staff Brief"}</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 text-sm leading-relaxed text-gray-700">
+                      {classStory.narrativeParagraphs.map((para, idx) => (
+                        <p key={idx}>{para}</p>
+                      ))}
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
+                        <h4
+                          data-record="true"
+                          className="mb-2 text-xs font-black tracking-wider text-emerald-900 uppercase"
+                        >
+                          What&apos;s Working
+                        </h4>
+                        <ul className="space-y-1.5 text-xs text-emerald-950">
+                          {classStory.strengths.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5">
+                              <span>•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4">
+                        <h4
+                          data-record="true"
+                          className="mb-2 text-xs font-black tracking-wider text-amber-900 uppercase"
+                        >
+                          Watchouts
+                        </h4>
+                        {classStory.watchouts.length > 0 ? (
+                          <ul className="space-y-1.5 text-xs text-amber-950">
+                            {classStory.watchouts.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span>•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-amber-900">No major warning signals detected.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Prioritized Next-Week Action Plan */}
+                    <div className="mt-5 space-y-2.5">
+                      <h4
+                        data-record="true"
+                        className="text-xs font-black tracking-wider text-gray-600 uppercase"
+                      >
+                        Prioritized Teacher Action Plan
+                      </h4>
+                      {classStory.actionPlan.map((step, idx) => (
+                        <div
+                          key={idx}
+                          className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3.5 shadow-xs sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[10px] font-black uppercase ${
+                                  step.priority === "HIGH"
+                                    ? "bg-red-100 text-red-700"
+                                    : step.priority === "MEDIUM"
+                                      ? "bg-amber-100 text-amber-800"
+                                      : "bg-blue-100 text-blue-700"
+                                }`}
+                              >
+                                {step.priority}
+                              </span>
+                              <p className="text-sm font-bold text-gray-900">{step.title}</p>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-600">{step.detail}</p>
+                          </div>
+                          {step.targetSubject && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFilters((prev) => ({ ...prev, subjectFilter: step.targetSubject }));
+                                setActiveView("subjects");
+                              }}
+                              className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                            >
+                              Inspect Subject →
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Borderline "One Push Away" Cohort */}
+                {borderlineStudents.length > 0 && (
+                  <Card>
+                    <h3
+                      data-record="true"
+                      className="text-main mb-2 flex items-center gap-2 text-base font-bold sm:text-lg"
+                    >
+                      <Target className="h-5 w-5 text-amber-600" />
+                      Borderline Cohort (42%–54%): Highest Coaching ROI
+                    </h3>
+                    <p className="text-muted mb-4 text-xs">
+                      Students sitting right near the 50% pass threshold and their lowest subjects.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {borderlineStudents.slice(0, 6).map((stu) => (
+                        <div
+                          key={stu.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-gray-900">{stu.name}</p>
+                            <p className="truncate text-xs text-gray-600">
+                              Focus:{" "}
+                              {stu.weakestSubjects
+                                .map((w) => `${w.name} (${w.score})`)
+                                .join(", ")}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-900">
+                            {stu.averageScore}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* SBA vs Exam Discrepancy Spotlight */}
+                {sbaVsExam.available &&
+                  (sbaVsExam.examUnderperformers.length > 0 ||
+                    sbaVsExam.lowClassworkStudents.length > 0) && (
+                    <Card>
+                      <h3
+                        data-record="true"
+                        className="text-main mb-2 flex items-center gap-2 text-base font-bold sm:text-lg"
+                      >
+                        <Activity className="h-5 w-5 text-purple-600" />
+                        SBA Classwork vs. Exam Discrepancy Spotlight
+                      </h3>
+                      <p className="text-muted mb-4 text-xs">
+                        Detects students whose classwork performance differs sharply (18+ pts) from
+                        their exam scores.
+                      </p>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {sbaVsExam.examUnderperformers.length > 0 && (
+                          <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3.5">
+                            <p className="mb-2 text-xs font-bold text-purple-900 uppercase">
+                              Strong SBA, Low Exam (Exam Technique / Anxiety)
+                            </p>
+                            <div className="space-y-2">
+                              {sbaVsExam.examUnderperformers.slice(0, 5).map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center justify-between rounded bg-white px-2.5 py-1.5 text-xs"
+                                >
+                                  <span className="font-bold text-gray-800">{item.name}</span>
+                                  <span className="font-mono text-purple-700">
+                                    SBA {item.sbaPercent}% vs Exam {item.examPercent}%
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {sbaVsExam.lowClassworkStudents.length > 0 && (
+                          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3.5">
+                            <p className="mb-2 text-xs font-bold text-blue-900 uppercase">
+                              Low SBA, Strong Exam (Missing Classwork)
+                            </p>
+                            <div className="space-y-2">
+                              {sbaVsExam.lowClassworkStudents.slice(0, 5).map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center justify-between rounded bg-white px-2.5 py-1.5 text-xs"
+                                >
+                                  <span className="font-bold text-gray-800">{item.name}</span>
+                                  <span className="font-mono text-blue-700">
+                                    SBA {item.sbaPercent}% vs Exam {item.examPercent}%
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+
                 {/* At-Risk Students - Priority Alert */}
                 {atRiskStudents.length > 0 && (
                   <Card>
@@ -1140,7 +1621,9 @@ export const Analytics: React.FC = () => {
                                 {student.averageScore}%
                               </p>
                               <p className="text-xs text-gray-600">
-                                {student.attendanceRate}% attendance
+                                {student.attendanceRecorded
+                                  ? `${student.attendanceRate}% attendance`
+                                  : "Attendance N/A"}
                               </p>
                             </div>
                           </div>
@@ -1273,7 +1756,7 @@ export const Analytics: React.FC = () => {
                             : "Neutral →"}
                       </p>
                       <p data-record="true" className="mt-1 text-xs text-blue-600">
-                        with performance
+                        Pearson r = {attendanceInsights.correlationCoefficient}
                       </p>
                     </div>
                   </div>
