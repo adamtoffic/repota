@@ -10,8 +10,13 @@ import {
   FileSpreadsheet,
   Loader2,
   X,
+  Upload,
+  CalendarCheck,
+  RefreshCw,
+  GraduationCap,
+  Table2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { DashboardFilter, StudentSortOption } from "../utils/studentValidation";
 
@@ -35,8 +40,13 @@ interface ToolbarProps {
   onSortChange?: (sort: StudentSortOption) => void;
   counts?: DashboardFilterCounts;
   onExport: () => void;
+  onExportDetailed?: () => void;
   onDeletePending: () => void;
   onImport?: () => void;
+  onImportScores?: () => void;
+  onBulkAttendance?: () => void;
+  onSyncClassSubjects?: () => void;
+  onBulkPromotion?: () => void;
   onAutoRemarks: () => void;
   onClearScores: () => void;
   onExportStudentList: () => void;
@@ -62,12 +72,27 @@ export function DashboardToolbar({
   onSortChange,
   counts,
   onExport,
+  onExportDetailed,
   onDeletePending,
+  onImport,
+  onImportScores,
+  onBulkAttendance,
+  onSyncClassSubjects,
+  onBulkPromotion,
   onAutoRemarks,
   onClearScores,
   onExportStudentList,
 }: ToolbarProps) {
   const [showMenu, setShowMenu] = useState(false);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMenu(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showMenu]);
 
   return (
     <div className="mb-6 flex flex-col gap-3">
@@ -203,7 +228,7 @@ export function DashboardToolbar({
               <div
                 role="menu"
                 aria-label="Class Tools"
-                className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-gray-200 bg-white p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:right-0 sm:z-20 sm:mt-2 sm:w-64 sm:rounded-2xl sm:border sm:p-1.5 sm:pb-1.5 sm:shadow-xl"
+                className="fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-t-3xl border-t border-gray-200 bg-white p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:right-0 sm:z-20 sm:mt-2 sm:max-h-[75vh] sm:w-72 sm:rounded-2xl sm:border sm:p-1.5 sm:pb-1.5 sm:shadow-xl"
               >
                 {/* Mobile Drag Handle & Header */}
                 <div className="mb-3 flex flex-col items-center sm:hidden">
@@ -243,14 +268,106 @@ export function DashboardToolbar({
                   <Wand2 size={16} className="shrink-0 text-purple-600" /> Auto-Fill Teacher Remarks
                 </button>
 
+                {/* Group 2: Import & Bulk Operations */}
+                {(onImport ||
+                  onImportScores ||
+                  onBulkAttendance ||
+                  onSyncClassSubjects ||
+                  onBulkPromotion) && (
+                  <>
+                    <div className="my-1.5 border-t border-gray-100" />
+                    <p
+                      className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                      data-record="true"
+                    >
+                      Import &amp; Class Setup
+                    </p>
+                    {onImport && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onImport();
+                          setShowMenu(false);
+                        }}
+                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        data-record="true"
+                      >
+                        <Upload size={16} className="shrink-0 text-blue-600" /> Import Student
+                        Roster
+                      </button>
+                    )}
+                    {onImportScores && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onImportScores();
+                          setShowMenu(false);
+                        }}
+                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        data-record="true"
+                      >
+                        <Table2 size={16} className="shrink-0 text-purple-600" /> Import SBA / Exam
+                        Scores
+                      </button>
+                    )}
+                    {onBulkAttendance && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onBulkAttendance();
+                          setShowMenu(false);
+                        }}
+                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        data-record="true"
+                      >
+                        <CalendarCheck size={16} className="shrink-0 text-emerald-600" /> Bulk
+                        Attendance Entry
+                      </button>
+                    )}
+                    {onSyncClassSubjects && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onSyncClassSubjects();
+                          setShowMenu(false);
+                        }}
+                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        data-record="true"
+                      >
+                        <RefreshCw size={16} className="shrink-0 text-teal-600" /> Sync Subjects
+                        &amp; SBA Tasks
+                      </button>
+                    )}
+                    {onBulkPromotion && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onBulkPromotion();
+                          setShowMenu(false);
+                        }}
+                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        data-record="true"
+                      >
+                        <GraduationCap size={16} className="shrink-0 text-indigo-600" /> Bulk
+                        Promotion Status
+                      </button>
+                    )}
+                  </>
+                )}
+
                 <div className="my-1.5 border-t border-gray-100" />
 
-                {/* Group 2: Export & Share */}
+                {/* Group 3: Export & Share */}
                 <p
                   className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
                   data-record="true"
                 >
-                  Export & Share
+                  Export &amp; Share
                 </p>
                 <button
                   type="button"
@@ -264,6 +381,21 @@ export function DashboardToolbar({
                 >
                   <Download size={16} className="shrink-0 text-blue-600" /> Export Broadsheet (CSV)
                 </button>
+                {onExportDetailed && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onExportDetailed();
+                      setShowMenu(false);
+                    }}
+                    className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                    data-record="true"
+                  >
+                    <FileSpreadsheet size={16} className="shrink-0 text-emerald-600" /> Export
+                    Detailed Broadsheet
+                  </button>
+                )}
                 <button
                   type="button"
                   role="menuitem"
@@ -274,12 +406,13 @@ export function DashboardToolbar({
                   className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
                   data-record="true"
                 >
-                  <FileSpreadsheet size={16} className="shrink-0 text-indigo-600" /> Export Student Roll (.txt)
+                  <FileSpreadsheet size={16} className="shrink-0 text-indigo-600" /> Export Student
+                  Roll (.txt)
                 </button>
 
                 <div className="my-1.5 border-t border-gray-100" />
 
-                {/* Group 3: Term Cleanup */}
+                {/* Group 4: Term Cleanup */}
                 <p
                   className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
                   data-record="true"
@@ -309,6 +442,7 @@ export function DashboardToolbar({
                   data-record="true"
                 >
                   <Trash2 size={16} className="shrink-0" /> Remove Incomplete Students
+                  {counts && counts.pending > 0 ? ` (${counts.pending})` : ""}
                 </button>
               </div>
             </>

@@ -16,8 +16,11 @@ import { EmptyState } from "../components/EmptyState";
 import { Footer } from "../components/Footer";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { useDebounce } from "../hooks/useDebounce";
-import { exportToCSV } from "../utils/export";
+import { exportDetailedBroadsheetCSV, exportToCSV } from "../utils/export";
+import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
 import { BulkImportModal } from "../components/BulkImportModal";
+import { BulkPromotionModal } from "../components/BulkPromotionModal";
+import { ScoreImportModal } from "../components/ScoreImportModal";
 import { ScrollButton } from "../components/ScrollButton";
 import { WelcomeTour } from "../components/WelcomeTour";
 import { ValidationWarnings } from "../components/ValidationWarnings";
@@ -48,6 +51,7 @@ export function Dashboard() {
     deletePendingStudents,
     autoGenerateRemarks,
     clearAllScores,
+    syncSubjectComponentsFromSettings,
   } = useSchoolActions();
 
   const { showToast } = useToast();
@@ -58,6 +62,9 @@ export function Dashboard() {
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showScoreImportModal, setShowScoreImportModal] = useState(false);
+  const [showBulkAttendanceModal, setShowBulkAttendanceModal] = useState(false);
+  const [showBulkPromotionModal, setShowBulkPromotionModal] = useState(false);
   const [remarksProgress, setRemarksProgress] = useState<{
     isOpen: boolean;
     current: number;
@@ -133,6 +140,60 @@ export function Dashboard() {
         error instanceof Error ? error.message : "Export failed. Please try again.",
         "error",
       );
+    }
+  };
+
+  const handleExportDetailedBroadsheet = () => {
+    try {
+      exportDetailedBroadsheetCSV(
+        students,
+        settings,
+        `Detailed_Broadsheet_${new Date().toISOString().split("T")[0]}`,
+      );
+      showToast("Detailed broadsheet exported!", "success");
+    } catch (error) {
+      console.error("Detailed export failed:", error);
+      showToast(
+        error instanceof Error ? error.message : "Export failed. Please try again.",
+        "error",
+      );
+    }
+  };
+
+  const handleSyncClassSubjectsAndTasks = () => {
+    const masterList = settings.defaultSubjects || [];
+    let addedSubjectsCount = 0;
+
+    students.forEach((student) => {
+      const missing = masterList.filter(
+        (name) => !student.subjects.some((sub) => sub.name === name),
+      );
+      if (missing.length > 0) {
+        const additions = missing.map((name) => ({
+          id: crypto.randomUUID(),
+          name,
+          classScore: 0,
+          examScore: 0,
+          ...(settings.examType !== "MOCK" && settings.subjectComponentMap?.[name]?.length
+            ? {
+                classScoreComponents: settings.subjectComponentMap[name].map((task) => ({
+                  id: crypto.randomUUID(),
+                  name: task.name,
+                  score: 0,
+                  maxScore: task.maxScore,
+                  category: task.category,
+                })),
+              }
+            : {}),
+        }));
+        updateStudent({ ...student, subjects: [...student.subjects, ...additions] }, true);
+        addedSubjectsCount += missing.length;
+      }
+    });
+
+    syncSubjectComponentsFromSettings();
+    if (addedSubjectsCount > 0) {
+      showToast(`Added ${addedSubjectsCount} missing subject entries across the class.`, "success");
     }
   };
 
@@ -243,6 +304,12 @@ export function Dashboard() {
               onSortChange={setSortBy}
               counts={filterCounts}
               onExport={handleExportFullData}
+              onExportDetailed={handleExportDetailedBroadsheet}
+              onImport={() => setShowImportModal(true)}
+              onImportScores={() => setShowScoreImportModal(true)}
+              onBulkAttendance={() => setShowBulkAttendanceModal(true)}
+              onSyncClassSubjects={handleSyncClassSubjectsAndTasks}
+              onBulkPromotion={() => setShowBulkPromotionModal(true)}
               onDeletePending={() => setConfirmCleanModal(true)}
               onAutoRemarks={handleAutoFillRemarks}
               onClearScores={() => setConfirmClearScoresModal(true)}
@@ -389,6 +456,24 @@ export function Dashboard() {
 
       {/* ✅ BULK IMPORT MODAL */}
       <BulkImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
+
+      {/* ✅ SCORE IMPORT MODAL */}
+      <ScoreImportModal
+        isOpen={showScoreImportModal}
+        onClose={() => setShowScoreImportModal(false)}
+      />
+
+      {/* ✅ BULK ATTENDANCE MODAL */}
+      <BulkAttendanceModal
+        isOpen={showBulkAttendanceModal}
+        onClose={() => setShowBulkAttendanceModal(false)}
+      />
+
+      {/* ✅ BULK PROMOTION MODAL */}
+      <BulkPromotionModal
+        isOpen={showBulkPromotionModal}
+        onClose={() => setShowBulkPromotionModal(false)}
+      />
 
       {/* ✅ CONFIRM CLEAN MODAL */}
       <ConfirmModal

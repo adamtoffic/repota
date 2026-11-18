@@ -1,4 +1,5 @@
-import type { ProcessedStudent } from "../types";
+import type { ProcessedStudent, SchoolSettings } from "../types";
+import { downloadCsvFile, escapeCsvCell } from "./csvImport";
 
 export function exportToCSV(students: ProcessedStudent[], fileName: string): boolean {
   try {
@@ -76,4 +77,85 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
     console.error("CSV Export Error:", error);
     throw error; // Re-throw so caller can handle with toast
   }
+}
+
+export function exportDetailedBroadsheetCSV(
+  students: ProcessedStudent[],
+  settings: Pick<SchoolSettings, "schoolType" | "totalAttendanceDays" | "examType">,
+  fileName: string,
+): boolean {
+  if (!students || students.length === 0) {
+    throw new Error("No students to export");
+  }
+  if (!fileName || fileName.trim() === "") {
+    throw new Error("Invalid filename");
+  }
+
+  const isPrivate = settings.schoolType === "PRIVATE";
+  const isMock = settings.examType === "MOCK";
+  const subjectNames = Array.from(
+    new Set(students.flatMap((student) => student.subjects.map((subject) => subject.name))),
+  );
+
+  const subjectHeaders = subjectNames.flatMap((name) =>
+    isMock ? [`${name} (Total)`] : [`${name} (Class)`, `${name} (Exam)`, `${name} (Total)`],
+  );
+
+  const headers = [
+    "Name",
+    "Gender",
+    "Attendance",
+    ...subjectHeaders,
+    "Total Score",
+    "Average (%)",
+    "Position",
+    "Aggregate",
+    "Promotion Status",
+    "Teacher Remark",
+    ...(isPrivate ? ["Admission No", "Fee Status", "Fee Arrears"] : []),
+  ];
+
+  const rows = students.map((student) => {
+    const subMap = new Map(student.subjects.map((sub) => [sub.name, sub]));
+    const subjectCells = subjectNames.flatMap((name) => {
+      const sub = subMap.get(name);
+      if (!sub) return isMock ? [""] : ["", "", ""];
+      const total =
+        typeof sub.totalScore === "number" ? sub.totalScore : sub.classScore + sub.examScore;
+      return isMock
+        ? [escapeCsvCell(total)]
+        : [escapeCsvCell(sub.classScore), escapeCsvCell(sub.examScore), escapeCsvCell(total)];
+    });
+
+    const attendanceLabel =
+      settings.totalAttendanceDays && student.attendancePresent !== undefined
+        ? `${student.attendancePresent}/${settings.totalAttendanceDays}`
+        : (student.attendancePresent ?? "");
+
+    return [
+      escapeCsvCell(student.name),
+      escapeCsvCell(student.gender || ""),
+      escapeCsvCell(attendanceLabel),
+      ...subjectCells,
+      escapeCsvCell(student.totalScore),
+      escapeCsvCell(student.averageScore),
+      escapeCsvCell(student.classPosition),
+      escapeCsvCell(student.aggregate),
+      escapeCsvCell(student.promotionStatus || ""),
+      escapeCsvCell(student.teacherRemark || ""),
+      ...(isPrivate
+        ? [
+            escapeCsvCell(student.admissionNumber || ""),
+            escapeCsvCell(student.feeStatus || ""),
+            escapeCsvCell(student.feeArrears ?? ""),
+          ]
+        : []),
+    ];
+  });
+
+  const csvContent = [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join(
+    "\n",
+  );
+  downloadCsvFile(csvContent, fileName);
+  return true;
 }
