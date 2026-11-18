@@ -134,6 +134,70 @@ export function normalizeStudentNameKey(name: string): string {
   return name.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+function stripNameListPrefix(name: string): string {
+  return name
+    .replace(/^\s*(?:\d+\s*[.):-]\s*|[-•*]\s+)/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildStudentLookup(existingStudents: StudentRecord[]): Map<string, StudentRecord> {
+  const byKey = new Map<string, StudentRecord>();
+  const reversedCandidates = new Map<string, StudentRecord[]>();
+
+  existingStudents.forEach((student) => {
+    const exactKey = normalizeStudentNameKey(student.name);
+    if (!byKey.has(exactKey)) {
+      byKey.set(exactKey, student);
+    }
+
+    const stripped = normalizeStudentNameKey(stripNameListPrefix(student.name));
+    if (stripped && !byKey.has(stripped)) {
+      byKey.set(stripped, student);
+    }
+
+    const parts = exactKey.split(" ").filter(Boolean);
+    if (parts.length >= 2) {
+      const reversed = `${parts[parts.length - 1]} ${parts.slice(0, -1).join(" ")}`;
+      const list = reversedCandidates.get(reversed) ?? [];
+      list.push(student);
+      reversedCandidates.set(reversed, list);
+    }
+  });
+
+  reversedCandidates.forEach((matches, reversedKey) => {
+    if (matches.length === 1 && !byKey.has(reversedKey)) {
+      byKey.set(reversedKey, matches[0]);
+    }
+  });
+
+  return byKey;
+}
+
+function findMatchingStudent(
+  rawName: string,
+  lookup: Map<string, StudentRecord>,
+): StudentRecord | undefined {
+  const exact = normalizeStudentNameKey(rawName);
+  if (lookup.has(exact)) return lookup.get(exact);
+
+  const stripped = normalizeStudentNameKey(stripNameListPrefix(rawName));
+  if (stripped && lookup.has(stripped)) return lookup.get(stripped);
+
+  if (rawName.includes(",")) {
+    const commaParts = rawName
+      .split(",")
+      .map((p) => p.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+    if (commaParts.length === 2) {
+      const reordered = `${commaParts[1]} ${commaParts[0]}`.toLowerCase();
+      if (lookup.has(reordered)) return lookup.get(reordered);
+    }
+  }
+
+  return undefined;
+}
+
 function normalizeHeader(header: string): string {
   return header
     .toLowerCase()
@@ -633,6 +697,7 @@ export type SbaConflictPolicy = "OVERWRITE" | "KEEP_EXISTING";
 
 export interface ParsedSbaComponentPatch {
   name: string;
+  rawScore: number;
   score: number;
   existingScore?: number;
   maxScore: number;
@@ -648,8 +713,15 @@ export interface ParsedSbaScoreRow {
   isNewStudent: boolean;
   isDuplicateInImport: boolean;
   componentScores: ParsedSbaComponentPatch[];
-  directClassScore?: { score: number; existingScore?: number; clamped: boolean; isConflict: boolean };
+  directClassScore?: {
+    rawScore: number;
+    score: number;
+    existingScore?: number;
+    clamped: boolean;
+    isConflict: boolean;
+  };
   examRawScore?: {
+    enteredRaw: number;
     raw: number;
     existingRaw?: number;
     weighted: number;
@@ -658,6 +730,7 @@ export interface ParsedSbaScoreRow {
   };
   computedClassScore: number;
   hasWarnings: boolean;
+  hasOverMaxError: boolean;
   hasConflicts: boolean;
 }
 
@@ -669,6 +742,9 @@ export interface SbaImportParseResult {
   tasks: ClassScoreComponentConfig[];
   conflictCount: number;
   duplicateRowCount: number;
+  overMaxCount: number;
+  matchedStudentCount: number;
+  unmatchedStudentCount: number;
 }
 
 export function extractHeaderMaxScore(header: string): number | undefined {
@@ -732,6 +808,9 @@ export function parseSbaScoreImport({
       tasks: existingTasks,
       conflictCount: 0,
       duplicateRowCount: 0,
+      overMaxCount: 0,
+      matchedStudentCount: 0,
+      unmatchedStudentCount: 0,
     };
   }
 
@@ -739,11 +818,7 @@ export function parseSbaScoreImport({
   const rawHeaders = table[0];
   const normalizedHeaders = rawHeaders.map(normalizeHeader);
 
-  const studentByName = new Map<string, StudentRecord>();
-  existingStudents.forEach((s) => {
-    const key = normalizeStudentNameKey(s.name);
-    if (!studentByName.has(key)) studentByName.set(key, s);
-  });
+  const studentByName = buildStudentLookup(existingStudents);
 
   const nameColIdx = normalizedHeaders.findIndex((h) =>
     ["name", "studentname", "fullname", "student"].includes(h),
@@ -899,26 +974,37 @@ export function parseSbaScoreImport({
   const seenNames = new Set<string>();
   let conflictCount = 0;
   let duplicateRowCount = 0;
+  let overMaxCount = 0;
+  let matchedStudentCount = 0;
+  let unmatchedStudentCount = 0;
 
   for (const cells of dataRows) {
     const rawName = (cells[effectiveNameCol] ?? "").replace(/\s+/g, " ").trim();
     if (!rawName) continue;
 
-    const nameKey = normalizeStudentNameKey(rawName);
+    const matchedStudent = findMatchingStudent(rawName, studentByName);
+    const nameKey = matchedStudent
+      ? normalizeStudentNameKey(matchedStudent.name)
+      : normalizeStudentNameKey(rawName);
     const isDuplicateInImport = seenNames.has(nameKey);
     if (isDuplicateInImport) duplicateRowCount++;
     seenNames.add(nameKey);
 
-    const matchedStudent = studentByName.get(nameKey);
+    if (matchedStudent) matchedStudentCount++;
+    else unmatchedStudentCount++;
+
     const existingSubject = matchedStudent?.subjects.find((s) => s.name === subjectName);
 
     let hasWarnings = false;
+    let hasOverMaxError = false;
     let hasConflicts = false;
     const componentScores: ParsedSbaComponentPatch[] = [];
 
     // Seed baseline components from existing subject or combined tasks
     let workingComponents: ClassScoreComponent[] = combinedTasks.map((t) => {
-      const existingComp = existingSubject?.classScoreComponents?.find((c) => c.name === t.name);
+      const existingComp = existingSubject?.classScoreComponents?.find(
+        (c) => normalizeHeader(c.name) === normalizeHeader(t.name),
+      );
       return {
         id: existingComp?.id || crypto.randomUUID(),
         name: t.name,
@@ -935,7 +1021,11 @@ export function parseSbaScoreImport({
         const val = parseOptionalNumber(cells[colIdx]);
         if (val === undefined) return;
         const clamped = val > task.maxScore;
-        if (clamped) hasWarnings = true;
+        if (clamped) {
+          hasWarnings = true;
+          hasOverMaxError = true;
+          overMaxCount++;
+        }
         const clampedVal = Math.min(Math.max(val, 0), task.maxScore);
 
         const existingComp = existingSubject?.classScoreComponents?.find(
@@ -955,6 +1045,7 @@ export function parseSbaScoreImport({
 
         componentScores.push({
           name: task.name,
+          rawScore: val,
           score: clampedVal,
           existingScore,
           maxScore: task.maxScore,
@@ -985,7 +1076,11 @@ export function parseSbaScoreImport({
       const val = parseOptionalNumber(cells[directClassCol]);
       if (val !== undefined) {
         const res = clampDirectClassScore(val, settings.classScoreMax);
-        if (res.wasClamped) hasWarnings = true;
+        if (res.wasClamped) {
+          hasWarnings = true;
+          hasOverMaxError = true;
+          overMaxCount++;
+        }
         const existingCls =
           existingSubject && existingSubject.classScore > 0 ? existingSubject.classScore : undefined;
         const isConflict = existingCls !== undefined && existingCls !== res.score;
@@ -998,6 +1093,7 @@ export function parseSbaScoreImport({
             ? existingCls
             : res.score;
         directClassScore = {
+          rawScore: val,
           score: res.score,
           existingScore: existingCls,
           clamped: res.wasClamped,
@@ -1012,7 +1108,11 @@ export function parseSbaScoreImport({
       const val = parseOptionalNumber(cells[examCol]);
       if (val !== undefined) {
         const res = convertExamRawToWeighted(val, settings.examScoreMax);
-        if (res.wasClamped) hasWarnings = true;
+        if (res.wasClamped) {
+          hasWarnings = true;
+          hasOverMaxError = true;
+          overMaxCount++;
+        }
         const existingRawStr = existingSubject
           ? formatExamWeightedAsRaw(existingSubject.examScore, settings.examScoreMax)
           : "";
@@ -1035,6 +1135,7 @@ export function parseSbaScoreImport({
             : res.clampedRaw;
 
         examRawScore = {
+          enteredRaw: val,
           raw: effectiveRaw,
           existingRaw,
           weighted: effectiveWeighted,
@@ -1045,7 +1146,7 @@ export function parseSbaScoreImport({
     }
 
     rows.push({
-      studentName: rawName,
+      studentName: matchedStudent ? matchedStudent.name : stripNameListPrefix(rawName),
       matchedStudentId: matchedStudent?.id,
       isNewStudent: !matchedStudent,
       isDuplicateInImport,
@@ -1054,6 +1155,7 @@ export function parseSbaScoreImport({
       examRawScore,
       computedClassScore,
       hasWarnings,
+      hasOverMaxError,
       hasConflicts,
     });
   }
@@ -1066,6 +1168,9 @@ export function parseSbaScoreImport({
     tasks: combinedTasks,
     conflictCount,
     duplicateRowCount,
+    overMaxCount,
+    matchedStudentCount,
+    unmatchedStudentCount,
   };
 }
 

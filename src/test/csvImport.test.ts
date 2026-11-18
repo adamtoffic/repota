@@ -291,4 +291,44 @@ describe("csvImport", () => {
       isConflict: true,
     });
   });
+
+  it("matches numbered and comma-reversed student names and counts over-max scores", () => {
+    const studentsToMatch: StudentRecord[] = [
+      {
+        id: "stu-m1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        subjects: [{ id: "sub1", name: "English", classScore: 0, examScore: 0 }],
+      },
+      {
+        id: "stu-m2",
+        name: "Ama Serwaa",
+        className: "Basic 6",
+        subjects: [{ id: "sub2", name: "English", classScore: 0, examScore: 0 }],
+      },
+    ];
+
+    const parsed = parseSbaScoreImport({
+      rawText: "Name\tReading Quiz (/15)\n1. Kwame Mensah\t25\nSerwaa, Ama\t14\nUnknown Person\t10",
+      subjectName: "English",
+      existingStudents: studentsToMatch,
+      settings: settingsWithSba,
+      importMode: "SINGLE_COMPONENT",
+      targetTask: { name: "Reading Quiz", maxScore: 15, category: "CAT" },
+    });
+
+    expect(parsed.matchedStudentCount).toBe(2);
+    expect(parsed.unmatchedStudentCount).toBe(1);
+    expect(parsed.overMaxCount).toBe(1);
+    expect(parsed.rows[0].matchedStudentId).toBe("stu-m1");
+    expect(parsed.rows[0].hasOverMaxError).toBe(true);
+    expect(parsed.rows[0].componentScores[0]).toMatchObject({
+      rawScore: 25,
+      score: 15,
+      maxScore: 15,
+      clamped: true,
+    });
+    expect(parsed.rows[1].matchedStudentId).toBe("stu-m2");
+    expect(parsed.rows[2].isNewStudent).toBe(true);
+  });
 });

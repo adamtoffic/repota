@@ -416,4 +416,91 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
 
     downloadSpy.mockRestore();
   });
+
+  it("blocks over-max scores in preview until clamping is allowed and validates new task max score", async () => {
+    const user = userEvent.setup();
+    const { ctx, updateStudent, toastCtx } = createContexts();
+
+    render(
+      <ToastContext.Provider value={toastCtx}>
+        <SchoolContext.Provider value={ctx}>
+          <ScoreImportModal
+            isOpen={true}
+            onClose={vi.fn()}
+            initialSubject="Mathematics"
+            initialMode="SINGLE_COMPONENT"
+            initialTaskName="__CREATE_NEW_TASK__"
+          />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    await user.type(screen.getByLabelText("New SBA Task Name"), "Quiz 2");
+    await user.clear(screen.getByLabelText("New SBA Max Score"));
+    await user.type(screen.getByLabelText("New SBA Max Score"), "150");
+    expect(screen.getByText(/Max score must be between 1 and 100/i)).toBeInTheDocument();
+
+    const textarea = screen
+      .getAllByRole("textbox")
+      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
+    fireEvent.change(textarea, {
+      target: { value: "Name\tQuiz 2\nKwame Mensah\t80\nAma Serwaa\t12" },
+    });
+    expect(screen.getByRole("button", { name: /preview & validate scores/i })).toBeDisabled();
+
+    // Set valid max score 15, now 80 exceeds max
+    await user.clear(screen.getByLabelText("New SBA Max Score"));
+    await user.type(screen.getByLabelText("New SBA Max Score"), "15");
+    await user.click(screen.getByRole("button", { name: /preview & validate scores/i }));
+
+    expect(screen.getByText(/1 score exceeds the maximum allowed limit/i)).toBeInTheDocument();
+    expect(screen.getByText(/80 > \/15!/i)).toBeInTheDocument();
+    const applyBtn = screen.getByRole("button", { name: /apply scores/i });
+    expect(applyBtn).toBeDisabled();
+
+    // Explicitly opt into clamping
+    await user.click(screen.getByLabelText(/Clamp scores above maximum to allowed limit/i));
+    expect(applyBtn).toBeEnabled();
+    await user.click(applyBtn);
+
+    expect(updateStudent).toHaveBeenCalledTimes(2);
+    expect(
+      updateStudent.mock.calls[0][0].subjects[0].classScoreComponents.find(
+        (c: { name: string }) => c.name === "Quiz 2",
+      )?.score,
+    ).toBe(15);
+  });
+
+  it("blocks applying when 0 rows match existing students so empty components are not synced", async () => {
+    const user = userEvent.setup();
+    const { ctx, updateStudent, setSettings, toastCtx } = createContexts();
+
+    render(
+      <ToastContext.Provider value={toastCtx}>
+        <SchoolContext.Provider value={ctx}>
+          <ScoreImportModal
+            isOpen={true}
+            onClose={vi.fn()}
+            initialSubject="Mathematics"
+            initialMode="SINGLE_COMPONENT"
+            initialTaskName="__CREATE_NEW_TASK__"
+          />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    await user.type(screen.getByLabelText("New SBA Task Name"), "Oral Drill");
+    const textarea = screen
+      .getAllByRole("textbox")
+      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
+    fireEvent.change(textarea, {
+      target: { value: "Name\tOral Drill (/15)\nCompletely Different Name\t12" },
+    });
+
+    await user.click(screen.getByRole("button", { name: /preview & validate scores/i }));
+    expect(screen.getByText(/did not match any existing student/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /apply scores/i })).toBeDisabled();
+    expect(updateStudent).not.toHaveBeenCalled();
+    expect(setSettings).not.toHaveBeenCalled();
+  });
 });

@@ -103,14 +103,22 @@ export function ScoreImportModal({
   const [newSingleTaskMax, setNewSingleTaskMax] = useState("15");
   const [newSingleTaskCategory, setNewSingleTaskCategory] = useState<AssessmentCategory>("CAT");
 
+  const parsedNewSingleTaskMax = Number(newSingleTaskMax);
+  const isSingleTaskMaxValid =
+    !isCreatingSingleTask ||
+    (newSingleTaskMax.trim() !== "" &&
+      Number.isFinite(parsedNewSingleTaskMax) &&
+      parsedNewSingleTaskMax >= 1 &&
+      parsedNewSingleTaskMax <= 100);
+
   const activeSingleTask: ClassScoreComponentConfig | undefined = useMemo(() => {
     if (activeMode !== "SINGLE_COMPONENT") return undefined;
     if (isCreatingSingleTask) {
       const trimmed = newSingleTaskName.trim();
-      if (!trimmed) return undefined;
+      if (!trimmed || !isSingleTaskMaxValid) return undefined;
       return {
         name: trimmed,
-        maxScore: Math.min(100, Math.max(1, Number(newSingleTaskMax) || 15)),
+        maxScore: Math.round(parsedNewSingleTaskMax),
         category: newSingleTaskCategory,
       };
     }
@@ -119,7 +127,8 @@ export function ScoreImportModal({
     activeMode,
     isCreatingSingleTask,
     newSingleTaskName,
-    newSingleTaskMax,
+    isSingleTaskMaxValid,
+    parsedNewSingleTaskMax,
     newSingleTaskCategory,
     activeTasks,
     effectiveTaskOption,
@@ -127,7 +136,8 @@ export function ScoreImportModal({
 
   const [rawText, setRawText] = useState("");
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const [createUnmatched, setCreateUnmatched] = useState(true);
+  const [createUnmatched, setCreateUnmatched] = useState(false);
+  const [allowClampExceeding, setAllowClampExceeding] = useState(false);
   const [conflictPolicy, setConflictPolicy] = useState<SbaConflictPolicy>("OVERWRITE");
   const [newColumnOverrides, setNewColumnOverrides] = useState<
     Record<number, NewSbaColumnOverride>
@@ -166,7 +176,12 @@ export function ScoreImportModal({
 
     if (activeMode === "SINGLE_COMPONENT") {
       if (!activeSingleTask) {
-        showToast("Enter a task name first to download its template.", "info");
+        showToast(
+          !isSingleTaskMaxValid
+            ? "Max score must be between 1 and 100."
+            : "Enter a task name first to download its template.",
+          "info",
+        );
         return;
       }
       const csv = buildSingleComponentTemplateCsv(activeSubject, activeSingleTask, students);
@@ -254,11 +269,20 @@ export function ScoreImportModal({
             maxScore: t.maxScore,
             category: t.category,
           }))
-        : undefined;
+        : row.componentScores.length > 0
+          ? row.componentScores.map((c) => ({
+              id: crypto.randomUUID(),
+              name: c.name,
+              score: 0,
+              maxScore: c.maxScore,
+              category: c.category,
+            }))
+          : undefined;
 
     if (nextComponents) {
       for (const task of tasks) {
-        if (!nextComponents.some((c) => c.name.toLowerCase() === task.name.toLowerCase())) {
+        const normalizedTaskName = task.name.trim().toLowerCase();
+        if (!nextComponents.some((c) => c.name.trim().toLowerCase() === normalizedTaskName)) {
           nextComponents.push({
             id: crypto.randomUUID(),
             name: task.name,
@@ -274,8 +298,9 @@ export function ScoreImportModal({
 
     if (row.componentScores.length > 0 && nextComponents) {
       for (const compPatch of row.componentScores) {
+        const normalizedPatchName = compPatch.name.trim().toLowerCase();
         let target = nextComponents.find(
-          (c) => c.name.toLowerCase() === compPatch.name.toLowerCase(),
+          (c) => c.name.trim().toLowerCase() === normalizedPatchName,
         );
         if (!target) {
           target = {
@@ -389,10 +414,14 @@ export function ScoreImportModal({
     parsedResult.rows.forEach((row, idx) => {
       if (row.matchedStudentId && studentMap.has(row.matchedStudentId)) {
         const student = studentMap.get(row.matchedStudentId)!;
-        const existingSub = student.subjects.find((s) => s.name === activeSubject);
+        const existingSub = student.subjects.find(
+          (s) => s.name.trim().toLowerCase() === activeSubject.trim().toLowerCase(),
+        );
         const updatedSub = applyScoreRowToSubject(existingSub, row, mergedTasksForCreation);
         const nextSubjects = existingSub
-          ? student.subjects.map((s) => (s.id === existingSub.id ? updatedSub : s))
+          ? student.subjects.map((s) =>
+              s === existingSub || (existingSub.id && s.id === existingSub.id) ? updatedSub : s,
+            )
           : [...student.subjects, updatedSub];
 
         const nextRecord: StudentRecord = { ...student, subjects: nextSubjects };
@@ -425,15 +454,22 @@ export function ScoreImportModal({
     });
 
     // 3. Keep remaining existing students synced with newly created SBA tasks (score: 0)
-    if (enabledNewTasks.length > 0) {
+    if (enabledNewTasks.length > 0 && updatedCount + createdCount > 0) {
       students.forEach((student) => {
         if (touchedStudentIds.has(student.id)) return;
-        const existingSub = student.subjects.find((s) => s.name === activeSubject);
+        const existingSub = student.subjects.find(
+          (s) => s.name.trim().toLowerCase() === activeSubject.trim().toLowerCase(),
+        );
         if (!existingSub) return;
 
         const existingComps = existingSub.classScoreComponents ?? [];
         const additions = enabledNewTasks
-          .filter((t) => !existingComps.some((c) => c.name.toLowerCase() === t.name.toLowerCase()))
+          .filter(
+            (t) =>
+              !existingComps.some(
+                (c) => c.name.trim().toLowerCase() === t.name.trim().toLowerCase(),
+              ),
+          )
           .map((t) => ({
             id: crypto.randomUUID(),
             name: t.name,
@@ -480,6 +516,7 @@ export function ScoreImportModal({
 
     setRawText("");
     setNewColumnOverrides({});
+    setAllowClampExceeding(false);
     setIsPreviewing(false);
     onClose();
   };
@@ -487,6 +524,7 @@ export function ScoreImportModal({
   const resetAndClose = () => {
     setRawText("");
     setNewColumnOverrides({});
+    setAllowClampExceeding(false);
     setIsPreviewing(false);
     onClose();
   };
@@ -638,38 +676,49 @@ export function ScoreImportModal({
                     </div>
 
                     {isCreatingSingleTask && (
-                      <div className="grid grid-cols-1 gap-2 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5 sm:grid-cols-[1.5fr_0.7fr_1fr]">
-                        <input
-                          type="text"
-                          aria-label="New SBA Task Name"
-                          value={newSingleTaskName}
-                          onChange={(e) => setNewSingleTaskName(e.target.value)}
-                          placeholder="e.g. English Summary Group Work"
-                          className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500"
-                        />
-                        <input
-                          type="number"
-                          min={1}
-                          max={100}
-                          aria-label="New SBA Max Score"
-                          value={newSingleTaskMax}
-                          onChange={(e) => setNewSingleTaskMax(e.target.value)}
-                          placeholder="Max (15)"
-                          className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-center text-xs font-bold outline-none focus:border-indigo-500"
-                        />
-                        <select
-                          aria-label="New SBA Category"
-                          value={newSingleTaskCategory}
-                          onChange={(e) =>
-                            setNewSingleTaskCategory(e.target.value as AssessmentCategory)
-                          }
-                          className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
-                        >
-                          <option value="CAT">CAT (Test)</option>
-                          <option value="GROUP">Group Work</option>
-                          <option value="PROJECT">Project</option>
-                          <option value="HOMEWORK">Homework</option>
-                        </select>
+                      <div className="space-y-1.5 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.5fr_0.7fr_1fr]">
+                          <input
+                            type="text"
+                            aria-label="New SBA Task Name"
+                            value={newSingleTaskName}
+                            onChange={(e) => setNewSingleTaskName(e.target.value)}
+                            placeholder="e.g. English Summary Group Work"
+                            className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500"
+                          />
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            aria-label="New SBA Max Score"
+                            value={newSingleTaskMax}
+                            onChange={(e) => setNewSingleTaskMax(e.target.value)}
+                            placeholder="Max (15)"
+                            className={`rounded-lg border bg-white px-2.5 py-1.5 text-center text-xs font-bold outline-none focus:border-indigo-500 ${
+                              isSingleTaskMaxValid
+                                ? "border-indigo-200"
+                                : "border-red-400 text-red-700"
+                            }`}
+                          />
+                          <select
+                            aria-label="New SBA Category"
+                            value={newSingleTaskCategory}
+                            onChange={(e) =>
+                              setNewSingleTaskCategory(e.target.value as AssessmentCategory)
+                            }
+                            className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
+                          >
+                            <option value="CAT">CAT (Test)</option>
+                            <option value="GROUP">Group Work</option>
+                            <option value="PROJECT">Project</option>
+                            <option value="HOMEWORK">Homework</option>
+                          </select>
+                        </div>
+                        {!isSingleTaskMaxValid && (
+                          <p className="text-[11px] font-semibold text-red-700" role="alert">
+                            Max score must be between 1 and 100.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -741,9 +790,13 @@ export function ScoreImportModal({
                     fullWidth
                     disabled={
                       !rawText.trim() ||
-                      (activeMode === "SINGLE_COMPONENT" && !activeSingleTask)
+                      (activeMode === "SINGLE_COMPONENT" &&
+                        (!activeSingleTask || !isSingleTaskMaxValid))
                     }
-                    onClick={() => setIsPreviewing(true)}
+                    onClick={() => {
+                      setAllowClampExceeding(false);
+                      setIsPreviewing(true);
+                    }}
                   >
                     Preview &amp; Validate Scores
                   </Button>
@@ -756,7 +809,8 @@ export function ScoreImportModal({
                         <div className="flex items-center gap-2 font-semibold">
                           <CheckCircle className="h-4 w-4 shrink-0 text-green-600" />
                           <span>
-                            Parsed <strong>{parsedResult.rows.length}</strong> row
+                            Matched <strong>{parsedResult.matchedStudentCount}</strong> of{" "}
+                            <strong>{parsedResult.rows.length}</strong> row
                             {parsedResult.rows.length === 1 ? "" : "s"} •{" "}
                             {parsedResult.matchedColumns.join(" | ")}
                           </span>
@@ -771,6 +825,27 @@ export function ScoreImportModal({
                           <span>Add unmatched students</span>
                         </label>
                       </div>
+
+                      {parsedResult.unmatchedStudentCount > 0 && (
+                        <div
+                          role="alert"
+                          className={`flex items-start gap-2 rounded-lg border p-2.5 text-xs ${
+                            parsedResult.matchedStudentCount === 0 && !createUnmatched
+                              ? "border-red-300 bg-red-50 text-red-900"
+                              : "border-amber-200 bg-amber-50 text-amber-900"
+                          }`}
+                        >
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                          <span>
+                            <strong>{parsedResult.unmatchedStudentCount}</strong> row
+                            {parsedResult.unmatchedStudentCount === 1 ? " did" : "s did"} not match
+                            any existing student in your class.
+                            {createUnmatched
+                              ? " They will be created as new students (existing students will not receive those scores)."
+                              : " Unmatched rows will be skipped — verify student names match your roster."}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Newly Detected SBA Components Card (Full Subject mode) */}
                       {parsedResult.detectedNewColumns.length > 0 && (
@@ -910,13 +985,30 @@ export function ScoreImportModal({
                         </div>
                       )}
 
-                      {parsedResult.rows.some((r) => r.hasWarnings) && (
-                        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                          <span>
-                            Some scores exceeded column maximums and were clamped safely to valid
-                            limits.
-                          </span>
+                      {parsedResult.overMaxCount > 0 && (
+                        <div
+                          role="alert"
+                          className="space-y-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-950"
+                        >
+                          <div className="flex items-start gap-2 font-bold">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                            <span>
+                              {parsedResult.overMaxCount} score
+                              {parsedResult.overMaxCount === 1 ? " exceeds" : "s exceed"} the
+                              maximum allowed limit. Fix the out-of-range score
+                              {parsedResult.overMaxCount === 1 ? "" : "s"} in your sheet or enable
+                              clamping below.
+                            </span>
+                          </div>
+                          <label className="inline-flex cursor-pointer items-center gap-1.5 font-semibold text-red-900">
+                            <input
+                              type="checkbox"
+                              checked={allowClampExceeding}
+                              onChange={(e) => setAllowClampExceeding(e.target.checked)}
+                              className="h-3.5 w-3.5 rounded border-red-300 text-red-600"
+                            />
+                            <span>Clamp scores above maximum to allowed limit</span>
+                          </label>
                         </div>
                       )}
 
@@ -937,7 +1029,10 @@ export function ScoreImportModal({
                               const examWeighted = row.examRawScore?.weighted ?? 0;
                               const total = row.computedClassScore + examWeighted;
                               return (
-                                <tr key={idx}>
+                                <tr
+                                  key={idx}
+                                  className={row.hasOverMaxError ? "bg-red-50/60" : undefined}
+                                >
                                   <td className="px-3 py-2 font-bold text-gray-800">
                                     {row.studentName}
                                     {row.isDuplicateInImport && (
@@ -961,7 +1056,14 @@ export function ScoreImportModal({
                                     {row.componentScores.map((c) => (
                                       <span key={c.name} className="mr-2 inline-block">
                                         <strong>{c.name}:</strong>{" "}
-                                        {c.isConflict ? (
+                                        {c.clamped ? (
+                                          <span className="font-bold text-red-700">
+                                            {c.rawScore} &gt; /{c.maxScore}!{" "}
+                                            <span className="text-[10px] font-normal">
+                                              (max {c.maxScore})
+                                            </span>
+                                          </span>
+                                        ) : c.isConflict ? (
                                           <span className="font-bold text-amber-700">
                                             {conflictPolicy === "KEEP_EXISTING"
                                               ? `${c.existingScore} (kept)`
@@ -979,15 +1081,17 @@ export function ScoreImportModal({
                                   <td className="px-3 py-2 text-center font-mono font-bold">
                                     {row.computedClassScore}
                                     {row.hasWarnings && (
-                                      <span className="ml-1 text-[10px] text-amber-600">*</span>
+                                      <span className="ml-1 text-[10px] text-red-600">*</span>
                                     )}
                                   </td>
                                   <td className="px-3 py-2 text-center font-mono font-bold">
                                     {row.examRawScore
-                                      ? row.examRawScore.isConflict &&
-                                        conflictPolicy === "OVERWRITE"
-                                        ? `${row.examRawScore.existingRaw ?? "?"}% → ${row.examRawScore.raw}%`
-                                        : `${examWeighted} (${row.examRawScore.raw}%)`
+                                      ? row.examRawScore.clamped
+                                        ? `${row.examRawScore.enteredRaw}% > /100!`
+                                        : row.examRawScore.isConflict &&
+                                            conflictPolicy === "OVERWRITE"
+                                          ? `${row.examRawScore.existingRaw ?? "?"}% → ${row.examRawScore.raw}%`
+                                          : `${examWeighted} (${row.examRawScore.raw}%)`
                                       : "—"}
                                   </td>
                                   <td className="text-primary px-3 py-2 text-center font-mono font-black">
@@ -1013,7 +1117,10 @@ export function ScoreImportModal({
                       variant="secondary"
                       size="md"
                       className="flex-1"
-                      onClick={() => setIsPreviewing(false)}
+                      onClick={() => {
+                        setAllowClampExceeding(false);
+                        setIsPreviewing(false);
+                      }}
                     >
                       Back
                     </Button>
@@ -1022,7 +1129,13 @@ export function ScoreImportModal({
                       variant="primary"
                       size="md"
                       className="flex-1"
-                      disabled={!parsedResult || parsedResult.rows.length === 0}
+                      disabled={
+                        !parsedResult ||
+                        parsedResult.rows.length === 0 ||
+                        (parsedResult.overMaxCount > 0 && !allowClampExceeding) ||
+                        (parsedResult.matchedStudentCount === 0 &&
+                          (!createUnmatched || parsedResult.unmatchedStudentCount === 0))
+                      }
                       onClick={handleApplyScores}
                     >
                       Apply Scores
