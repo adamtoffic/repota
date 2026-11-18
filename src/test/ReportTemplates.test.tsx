@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { ClassicTemplate } from "../templates/ClassicTemplate";
+import { ExecutiveTemplate } from "../templates/ExecutiveTemplate";
 import { MinimalTemplate } from "../templates/MinimalTemplate";
 import { ModernTemplate } from "../templates/ModernTemplate";
 import { OriginalTemplate } from "../templates/OriginalTemplate";
@@ -80,6 +81,7 @@ const TEMPLATES = [
   { name: "ClassicTemplate", Component: ClassicTemplate },
   { name: "ModernTemplate", Component: ModernTemplate },
   { name: "MinimalTemplate", Component: MinimalTemplate },
+  { name: "ExecutiveTemplate", Component: ExecutiveTemplate },
 ] as const;
 
 describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colors", () => {

@@ -2,8 +2,9 @@
 import type { TemplateDefinition } from "../types";
 import { OriginalTemplate } from "./OriginalTemplate";
 import { ClassicTemplate } from "./ClassicTemplate";
-import { ModernTemplate } from "./ModernTemplate";
+import { ExecutiveTemplate } from "./ExecutiveTemplate";
 import { MinimalTemplate } from "./MinimalTemplate";
+import { ModernTemplate } from "./ModernTemplate";
 
 export const TEMPLATE_REGISTRY: TemplateDefinition[] = [
   {
@@ -29,6 +30,13 @@ export const TEMPLATE_REGISTRY: TemplateDefinition[] = [
     name: "University Minimal",
     description: "Clean typography with minimal borders. Ideal for SHS.",
     component: MinimalTemplate,
+  },
+  {
+    id: "executive_v1",
+    name: "Executive Crest",
+    description:
+      "Institutional banner + compact single-A4 grid tailored for all levels and custom school colors.",
+    component: ExecutiveTemplate,
   },
 ];
 

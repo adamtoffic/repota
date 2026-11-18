@@ -90,10 +90,30 @@ export function PrintPreview() {
 
   const contentKey = useMemo(
     () =>
-      `${printMode}|${printFilter}|${id ?? ""}|${settings.templateId ?? ""}|${printableStudents
-        .map((s) => `${s.id}:${s.totalScore}:${s.pictureUrl ?? ""}`)
+      `${printMode}|${printFilter}|${id ?? ""}|${settings.templateId ?? ""}|${
+        settings.showClassPosition ?? true
+      }|${settings.showSubjectPosition ?? true}|${settings.useCustomTemplateColor ?? false}|${
+        settings.primaryColor ?? ""
+      }|${settings.accentColor ?? ""}|${settings.showFeeSchedule ?? true}|${
+        settings.showStudentFeeArrearsOnReport ?? false
+      }|${JSON.stringify(settings.privateFeeItems ?? [])}|${printableStudents
+        .map((s) => `${s.id}:${s.totalScore}:${s.pictureUrl ?? ""}:${s.feeArrears ?? 0}`)
         .join(",")}`,
-    [printMode, printFilter, id, settings.templateId, printableStudents],
+    [
+      printMode,
+      printFilter,
+      id,
+      settings.templateId,
+      settings.showClassPosition,
+      settings.showSubjectPosition,
+      settings.useCustomTemplateColor,
+      settings.primaryColor,
+      settings.accentColor,
+      settings.showFeeSchedule,
+      settings.showStudentFeeArrearsOnReport,
+      settings.privateFeeItems,
+      printableStudents,
+    ],
   );
 
   const buildReportCardsPdf = useCallback(
