@@ -1,5 +1,6 @@
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import type {
+  AssessmentCategory,
   ClassScoreComponent,
   ClassScoreComponentConfig,
   FeeStatus,
@@ -478,22 +479,90 @@ export function buildSbaScoreTemplateCsv(
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
 }
 
+export interface DetectedNewSbaColumn {
+  colIndex: number;
+  rawHeader: string;
+  suggestedName: string;
+  suggestedMaxScore: number;
+  suggestedCategory: AssessmentCategory;
+}
+
+export interface NewSbaColumnOverride {
+  enabled: boolean;
+  name: string;
+  maxScore: number;
+  category: AssessmentCategory;
+}
+
+export type SbaConflictPolicy = "OVERWRITE" | "KEEP_EXISTING";
+
+export interface ParsedSbaComponentPatch {
+  name: string;
+  score: number;
+  existingScore?: number;
+  maxScore: number;
+  clamped: boolean;
+  isConflict: boolean;
+  isNewTask: boolean;
+  category?: AssessmentCategory;
+}
+
 export interface ParsedSbaScoreRow {
   studentName: string;
   matchedStudentId?: string;
   isNewStudent: boolean;
-  componentScores: Array<{ name: string; score: number; maxScore: number; clamped: boolean }>;
-  directClassScore?: { score: number; clamped: boolean };
-  examRawScore?: { raw: number; weighted: number; clamped: boolean };
+  isDuplicateInImport: boolean;
+  componentScores: ParsedSbaComponentPatch[];
+  directClassScore?: { score: number; existingScore?: number; clamped: boolean; isConflict: boolean };
+  examRawScore?: {
+    raw: number;
+    existingRaw?: number;
+    weighted: number;
+    clamped: boolean;
+    isConflict: boolean;
+  };
   computedClassScore: number;
   hasWarnings: boolean;
+  hasConflicts: boolean;
 }
 
 export interface SbaImportParseResult {
   rows: ParsedSbaScoreRow[];
   matchedColumns: string[];
   unmatchedHeaders: string[];
+  detectedNewColumns: DetectedNewSbaColumn[];
   tasks: ClassScoreComponentConfig[];
+  conflictCount: number;
+  duplicateRowCount: number;
+}
+
+export function extractHeaderMaxScore(header: string): number | undefined {
+  const match =
+    header.match(/\(\s*(?:\/\s*|max\s*)?(\d{1,3})\s*\)/i) ??
+    header.match(/\[\s*(?:\/\s*)?(\d{1,3})\s*\]/i) ??
+    header.match(/\/\s*(\d{1,3})\s*$/);
+  if (!match) return undefined;
+  const num = Number(match[1]);
+  return Number.isFinite(num) && num >= 1 && num <= 100 ? num : undefined;
+}
+
+export function cleanTaskNameFromHeader(header: string): string {
+  return header
+    .replace(/\(\s*(?:\/\s*|max\s*)?\d{1,3}\s*\)/gi, "")
+    .replace(/\[\s*(?:\/\s*)?\d{1,3}\s*\]/gi, "")
+    .replace(/\/\s*\d{1,3}\s*$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function inferAssessmentCategory(name: string): AssessmentCategory {
+  const lower = name.toLowerCase();
+  if (lower.includes("project")) return "PROJECT";
+  if (lower.includes("group")) return "GROUP";
+  if (lower.includes("homework") || lower.includes("home work") || lower.includes("assignment") || /\bhw\b/.test(lower)) {
+    return "HOMEWORK";
+  }
+  return "CAT";
 }
 
 export function parseSbaScoreImport({
@@ -501,16 +570,28 @@ export function parseSbaScoreImport({
   subjectName,
   existingStudents,
   settings,
+  customNewTasks,
+  conflictPolicy = "OVERWRITE",
 }: {
   rawText: string;
   subjectName: string;
   existingStudents: StudentRecord[];
   settings: SchoolSettings;
+  customNewTasks?: Record<number, NewSbaColumnOverride>;
+  conflictPolicy?: SbaConflictPolicy;
 }): SbaImportParseResult {
   const table = parseTabularText(rawText);
-  const tasks = resolveSubjectSbaTasks(subjectName, existingStudents, settings);
+  const existingTasks = resolveSubjectSbaTasks(subjectName, existingStudents, settings);
   if (table.length < 2) {
-    return { rows: [], matchedColumns: [], unmatchedHeaders: [], tasks };
+    return {
+      rows: [],
+      matchedColumns: [],
+      unmatchedHeaders: [],
+      detectedNewColumns: [],
+      tasks: existingTasks,
+      conflictCount: 0,
+      duplicateRowCount: 0,
+    };
   }
 
   const isMock = settings.examType === "MOCK";
@@ -528,20 +609,22 @@ export function parseSbaScoreImport({
   );
   const effectiveNameCol = nameColIdx >= 0 ? nameColIdx : 0;
 
-  const taskColMap = new Map<number, ClassScoreComponentConfig>();
+  const taskColMap = new Map<number, ClassScoreComponentConfig & { isNewTask: boolean }>();
   let directClassCol = -1;
   let examCol = -1;
   const matchedColumns: string[] = [`Name -> col ${effectiveNameCol + 1}`];
   const unmatchedHeaders: string[] = [];
+  const detectedNewColumns: DetectedNewSbaColumn[] = [];
+  const dataRows = table.slice(1);
 
   rawHeaders.forEach((rawHeader, idx) => {
     if (idx === effectiveNameCol) return;
     const norm = normalizedHeaders[idx];
     if (!norm) return;
 
-    const matchingTask = tasks.find((t) => normalizeHeader(t.name) === norm);
+    const matchingTask = existingTasks.find((t) => normalizeHeader(t.name) === norm);
     if (matchingTask && !isMock) {
-      taskColMap.set(idx, matchingTask);
+      taskColMap.set(idx, { ...matchingTask, isNewTask: false });
       matchedColumns.push(`${rawHeader} -> SBA: ${matchingTask.name}`);
       return;
     }
@@ -561,28 +644,90 @@ export function parseSbaScoreImport({
       return;
     }
 
+    // Check if unmatched column contains numeric scores (potential new SBA component)
+    const numericSamples = dataRows
+      .map((r) => parseOptionalNumber(r[idx]))
+      .filter((v): v is number => v !== undefined);
+
+    if (!isMock && numericSamples.length > 0) {
+      const cleanedName = cleanTaskNameFromHeader(rawHeader) || rawHeader.trim();
+      const headerMax = extractHeaderMaxScore(rawHeader);
+      const maxObserved = Math.max(...numericSamples);
+      const suggestedMaxScore =
+        headerMax ?? (maxObserved > 20 ? Math.min(100, Math.ceil(maxObserved / 5) * 5) : maxObserved > 15 ? 20 : 15);
+      const suggestedCategory = inferAssessmentCategory(cleanedName);
+
+      detectedNewColumns.push({
+        colIndex: idx,
+        rawHeader,
+        suggestedName: cleanedName,
+        suggestedMaxScore,
+        suggestedCategory,
+      });
+
+      const override = customNewTasks?.[idx];
+      const isEnabled = override ? override.enabled : true;
+      if (isEnabled) {
+        const effectiveName = (override?.name ?? cleanedName).trim() || cleanedName;
+        const effectiveMax = Math.min(
+          100,
+          Math.max(1, override?.maxScore ?? suggestedMaxScore),
+        );
+        const effectiveCat = override?.category ?? suggestedCategory;
+        taskColMap.set(idx, {
+          name: effectiveName,
+          maxScore: effectiveMax,
+          category: effectiveCat,
+          isNewTask: true,
+        });
+        matchedColumns.push(`${rawHeader} -> New SBA: ${effectiveName} (/${effectiveMax})`);
+        return;
+      }
+    }
+
     unmatchedHeaders.push(rawHeader);
   });
 
-  const rows: ParsedSbaScoreRow[] = [];
+  // Merge existing tasks with any enabled new tasks so classScore recalculation sees full denominator
+  const combinedTasks: ClassScoreComponentConfig[] = [...existingTasks];
+  taskColMap.forEach((task) => {
+    if (task.isNewTask && !combinedTasks.some((t) => normalizeHeader(t.name) === normalizeHeader(task.name))) {
+      combinedTasks.push({
+        name: task.name,
+        maxScore: task.maxScore,
+        category: task.category,
+      });
+    }
+  });
 
-  for (const cells of table.slice(1)) {
+  const rows: ParsedSbaScoreRow[] = [];
+  const seenNames = new Set<string>();
+  let conflictCount = 0;
+  let duplicateRowCount = 0;
+
+  for (const cells of dataRows) {
     const rawName = (cells[effectiveNameCol] ?? "").replace(/\s+/g, " ").trim();
     if (!rawName) continue;
 
-    const matchedStudent = studentByName.get(normalizeStudentNameKey(rawName));
+    const nameKey = normalizeStudentNameKey(rawName);
+    const isDuplicateInImport = seenNames.has(nameKey);
+    if (isDuplicateInImport) duplicateRowCount++;
+    seenNames.add(nameKey);
+
+    const matchedStudent = studentByName.get(nameKey);
     const existingSubject = matchedStudent?.subjects.find((s) => s.name === subjectName);
 
     let hasWarnings = false;
-    const componentScores: ParsedSbaScoreRow["componentScores"] = [];
+    let hasConflicts = false;
+    const componentScores: ParsedSbaComponentPatch[] = [];
 
-    // Seed baseline components from existing subject or configured tasks
-    let workingComponents: ClassScoreComponent[] = tasks.map((t) => {
+    // Seed baseline components from existing subject or combined tasks
+    let workingComponents: ClassScoreComponent[] = combinedTasks.map((t) => {
       const existingComp = existingSubject?.classScoreComponents?.find((c) => c.name === t.name);
       return {
         id: existingComp?.id || crypto.randomUUID(),
         name: t.name,
-        maxScore: t.maxScore,
+        maxScore: existingComp?.maxScore ?? t.maxScore,
         score: existingComp?.score ?? 0,
         category: t.category ?? existingComp?.category,
       };
@@ -597,19 +742,41 @@ export function parseSbaScoreImport({
         const clamped = val > task.maxScore;
         if (clamped) hasWarnings = true;
         const clampedVal = Math.min(Math.max(val, 0), task.maxScore);
+
+        const existingComp = existingSubject?.classScoreComponents?.find(
+          (c) => normalizeHeader(c.name) === normalizeHeader(task.name),
+        );
+        const existingScore = existingComp && existingComp.score > 0 ? existingComp.score : undefined;
+        const isConflict = existingScore !== undefined && existingScore !== clampedVal;
+        if (isConflict) {
+          hasConflicts = true;
+          conflictCount++;
+        }
+
+        const effectiveVal =
+          isConflict && conflictPolicy === "KEEP_EXISTING" && existingScore !== undefined
+            ? existingScore
+            : clampedVal;
+
         componentScores.push({
           name: task.name,
           score: clampedVal,
+          existingScore,
           maxScore: task.maxScore,
           clamped,
+          isConflict,
+          isNewTask: task.isNewTask,
+          category: task.category,
         });
 
-        const targetComp = workingComponents.find((c) => c.name === task.name);
+        const targetComp = workingComponents.find(
+          (c) => normalizeHeader(c.name) === normalizeHeader(task.name),
+        );
         if (targetComp) {
           const res = updateComponentAndRecalculateClassScore(
             workingComponents,
             targetComp.id,
-            val,
+            effectiveVal,
             settings.classScoreMax,
           );
           workingComponents = res.updatedComponents;
@@ -624,8 +791,24 @@ export function parseSbaScoreImport({
       if (val !== undefined) {
         const res = clampDirectClassScore(val, settings.classScoreMax);
         if (res.wasClamped) hasWarnings = true;
-        directClassScore = { score: res.score, clamped: res.wasClamped };
-        computedClassScore = res.score;
+        const existingCls =
+          existingSubject && existingSubject.classScore > 0 ? existingSubject.classScore : undefined;
+        const isConflict = existingCls !== undefined && existingCls !== res.score;
+        if (isConflict) {
+          hasConflicts = true;
+          conflictCount++;
+        }
+        const effectiveCls =
+          isConflict && conflictPolicy === "KEEP_EXISTING" && existingCls !== undefined
+            ? existingCls
+            : res.score;
+        directClassScore = {
+          score: res.score,
+          existingScore: existingCls,
+          clamped: res.wasClamped,
+          isConflict,
+        };
+        computedClassScore = effectiveCls;
       }
     }
 
@@ -635,10 +818,33 @@ export function parseSbaScoreImport({
       if (val !== undefined) {
         const res = convertExamRawToWeighted(val, settings.examScoreMax);
         if (res.wasClamped) hasWarnings = true;
+        const existingRawStr = existingSubject
+          ? formatExamWeightedAsRaw(existingSubject.examScore, settings.examScoreMax)
+          : "";
+        const existingRaw = existingRawStr ? Number(existingRawStr) : undefined;
+        const isConflict =
+          existingSubject !== undefined &&
+          existingSubject.examScore > 0 &&
+          existingSubject.examScore !== res.weightedScore;
+        if (isConflict) {
+          hasConflicts = true;
+          conflictCount++;
+        }
+        const effectiveWeighted =
+          isConflict && conflictPolicy === "KEEP_EXISTING" && existingSubject
+            ? existingSubject.examScore
+            : res.weightedScore;
+        const effectiveRaw =
+          isConflict && conflictPolicy === "KEEP_EXISTING" && existingRaw !== undefined
+            ? existingRaw
+            : res.clampedRaw;
+
         examRawScore = {
-          raw: res.clampedRaw,
-          weighted: res.weightedScore,
+          raw: effectiveRaw,
+          existingRaw,
+          weighted: effectiveWeighted,
           clamped: res.wasClamped,
+          isConflict,
         };
       }
     }
@@ -647,15 +853,25 @@ export function parseSbaScoreImport({
       studentName: rawName,
       matchedStudentId: matchedStudent?.id,
       isNewStudent: !matchedStudent,
+      isDuplicateInImport,
       componentScores,
       directClassScore,
       examRawScore,
       computedClassScore,
       hasWarnings,
+      hasConflicts,
     });
   }
 
-  return { rows, matchedColumns, unmatchedHeaders, tasks };
+  return {
+    rows,
+    matchedColumns,
+    unmatchedHeaders,
+    detectedNewColumns,
+    tasks: combinedTasks,
+    conflictCount,
+    duplicateRowCount,
+  };
 }
 
 /**

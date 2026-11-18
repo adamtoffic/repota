@@ -128,4 +128,63 @@ describe("csvImport", () => {
     );
     expect(csv).toContain("\"'=HYPERLINK");
   });
+
+  it("auto-detects unknown SBA component columns like Science Project (/20) and flags existing score conflicts", () => {
+    const scienceSettings: SchoolSettings = {
+      ...settingsWithSba,
+      defaultSubjects: ["Science"],
+      subjectComponentMap: {
+        Science: [{ name: "CAT 1", maxScore: 15, category: "CAT" }],
+      },
+    };
+    const scienceStudents: StudentRecord[] = [
+      {
+        id: "sci-1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        gender: "Male",
+        subjects: [
+          {
+            id: "sub-sci-1",
+            name: "Science",
+            classScore: 40,
+            examScore: 0,
+            classScoreComponents: [
+              { id: "c1", name: "CAT 1", score: 12, maxScore: 15, category: "CAT" },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const parsed = parseSbaScoreImport({
+      rawText: "Name\tCAT 1 (/15)\tScience Project (/20)\nKwame Mensah\t15\t16",
+      subjectName: "Science",
+      existingStudents: scienceStudents,
+      settings: scienceSettings,
+      conflictPolicy: "KEEP_EXISTING",
+    });
+
+    expect(parsed.detectedNewColumns).toHaveLength(1);
+    expect(parsed.detectedNewColumns[0]).toMatchObject({
+      suggestedName: "Science Project",
+      suggestedMaxScore: 20,
+      suggestedCategory: "PROJECT",
+    });
+    expect(parsed.conflictCount).toBe(1);
+    expect(parsed.rows[0].componentScores[0]).toMatchObject({
+      name: "CAT 1",
+      existingScore: 12,
+      score: 15,
+      isConflict: true,
+    });
+    expect(parsed.rows[0].componentScores[1]).toMatchObject({
+      name: "Science Project",
+      score: 16,
+      maxScore: 20,
+      isNewTask: true,
+    });
+    // KEEP_EXISTING keeps CAT 1 at 12 + adds Science Project 16 => 28 / 35 * 50 = 40
+    expect(parsed.rows[0].computedClassScore).toBe(40);
+  });
 });

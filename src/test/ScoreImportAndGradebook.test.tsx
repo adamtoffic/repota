@@ -135,4 +135,106 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     expect(onUpdateStudent.mock.calls[0][0].subjects[0].examScore).toBe(40);
     expect(onUpdateStudent.mock.calls[1][0].subjects[0].examScore).toBe(45);
   });
+
+  it("creates a newly detected SBA component in Settings and preserves existing scores when Keep Existing is chosen", async () => {
+    const user = userEvent.setup();
+    const updateStudent = vi.fn();
+    const setSettings = vi.fn();
+    const showToast = vi.fn();
+
+    const scienceSettings: SchoolSettings = {
+      ...testSettings,
+      defaultSubjects: ["Science"],
+      componentLibrary: [{ name: "CAT 1", maxScore: 15, category: "CAT" }],
+      subjectComponentMap: {
+        Science: [{ name: "CAT 1", maxScore: 15, category: "CAT" }],
+      },
+    };
+
+    const existingKwame: ProcessedStudent = {
+      ...studentOne,
+      subjects: [
+        {
+          id: "sub-sci-1",
+          name: "Science",
+          classScore: 33,
+          examScore: 0,
+          totalScore: 33,
+          grade: 5,
+          remark: "Beginning",
+          classScoreComponents: [
+            { id: "c1", name: "CAT 1", score: 10, maxScore: 15, category: "CAT" },
+          ],
+        },
+      ],
+    };
+
+    const existingAma: ProcessedStudent = {
+      ...studentTwo,
+      subjects: [
+        {
+          id: "sub-sci-2",
+          name: "Science",
+          classScore: 0,
+          examScore: 0,
+          totalScore: 0,
+          grade: 5,
+          remark: "Beginning",
+          classScoreComponents: [
+            { id: "c2", name: "CAT 1", score: 0, maxScore: 15, category: "CAT" },
+          ],
+        },
+      ],
+    };
+
+    const ctx = {
+      students: [existingKwame, existingAma],
+      settings: scienceSettings,
+      updateStudent,
+      addStudent: vi.fn(),
+      setSettings,
+    } as unknown as SchoolContextType;
+
+    render(
+      <ToastContext.Provider value={{ showToast }}>
+        <SchoolContext.Provider value={ctx}>
+          <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Science" />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, {
+      target: {
+        value:
+          "Name\tCAT 1\tScience Project (/20)\nKwame Mensah\t14\t16\nAma Serwaa\t12\t18",
+      },
+    });
+
+    await user.click(screen.getByRole("button", { name: /preview & validate scores/i }));
+
+    expect(screen.getByText(/New SBA Component Detected for Science/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 existing score already recorded for Science/i)).toBeInTheDocument();
+
+    // Choose "Keep existing scores" so Kwame keeps CAT 1 = 10 while getting Science Project = 16
+    await user.click(screen.getByLabelText(/Keep existing scores/i));
+    await user.click(screen.getByRole("button", { name: /apply scores/i }));
+
+    expect(setSettings).toHaveBeenCalledTimes(1);
+    const savedSettings = setSettings.mock.calls[0][0];
+    expect(savedSettings.subjectComponentMap.Science.map((c: { name: string }) => c.name)).toEqual([
+      "CAT 1",
+      "Science Project",
+    ]);
+
+    expect(updateStudent).toHaveBeenCalledTimes(2);
+    const updatedKwame = updateStudent.mock.calls[0][0];
+    expect(updatedKwame.subjects[0].classScoreComponents).toHaveLength(2);
+    expect(updatedKwame.subjects[0].classScoreComponents[0].score).toBe(10); // kept!
+    expect(updatedKwame.subjects[0].classScoreComponents[1]).toMatchObject({
+      name: "Science Project",
+      score: 16,
+      maxScore: 20,
+    });
+  });
 });

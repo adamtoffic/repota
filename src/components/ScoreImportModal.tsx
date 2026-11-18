@@ -1,14 +1,31 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle, Download, FileSpreadsheet, Upload, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Download,
+  FileSpreadsheet,
+  PlusCircle,
+  ShieldAlert,
+  Upload,
+  X,
+} from "lucide-react";
 import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
-import type { ClassScoreComponent, SavedSubject, StudentRecord } from "../types";
+import type {
+  AssessmentCategory,
+  ClassScoreComponent,
+  ClassScoreComponentConfig,
+  SavedSubject,
+  StudentRecord,
+} from "../types";
 import {
   buildDefaultSubjectsForStudent,
   buildSbaScoreTemplateCsv,
   downloadCsvFile,
   parseSbaScoreImport,
   resolveSubjectSbaTasks,
+  type NewSbaColumnOverride,
+  type SbaConflictPolicy,
 } from "../utils/csvImport";
 import { updateComponentAndRecalculateClassScore } from "../utils/scoreConversion";
 import { Button } from "./ui/Button";
@@ -24,7 +41,7 @@ interface Props {
 export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
-  const { addStudent, updateStudent } = useSchoolActions();
+  const { addStudent, updateStudent, setSettings } = useSchoolActions();
   const { showToast } = useToast();
 
   const availableSubjects = useMemo(() => {
@@ -49,6 +66,10 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
   const [rawText, setRawText] = useState("");
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [createUnmatched, setCreateUnmatched] = useState(true);
+  const [conflictPolicy, setConflictPolicy] = useState<SbaConflictPolicy>("OVERWRITE");
+  const [newColumnOverrides, setNewColumnOverrides] = useState<
+    Record<number, NewSbaColumnOverride>
+  >({});
 
   const activeTasks = useMemo(
     () => (activeSubject ? resolveSubjectSbaTasks(activeSubject, students, settings) : []),
@@ -62,8 +83,10 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
       subjectName: activeSubject,
       existingStudents: students,
       settings,
+      customNewTasks: newColumnOverrides,
+      conflictPolicy,
     });
-  }, [isPreviewing, activeSubject, rawText, students, settings]);
+  }, [isPreviewing, activeSubject, rawText, students, settings, newColumnOverrides, conflictPolicy]);
 
   if (!isOpen) return null;
 
@@ -82,14 +105,36 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
     if (!file) return;
     const content = await file.text();
     setRawText(content);
+    setNewColumnOverrides({});
     setIsPreviewing(true);
     e.target.value = "";
+  };
+
+  const getOverrideForDetected = (
+    col: NonNullable<typeof parsedResult>["detectedNewColumns"][number],
+  ): NewSbaColumnOverride =>
+    newColumnOverrides[col.colIndex] ?? {
+      enabled: true,
+      name: col.suggestedName,
+      maxScore: col.suggestedMaxScore,
+      category: col.suggestedCategory,
+    };
+
+  const updateNewColOverride = (
+    col: NonNullable<typeof parsedResult>["detectedNewColumns"][number],
+    patch: Partial<NewSbaColumnOverride>,
+  ) => {
+    const current = getOverrideForDetected(col);
+    setNewColumnOverrides((prev) => ({
+      ...prev,
+      [col.colIndex]: { ...current, ...patch },
+    }));
   };
 
   const applyScoreRowToSubject = (
     existingSubject: SavedSubject | undefined,
     row: NonNullable<typeof parsedResult>["rows"][number],
-    tasks: NonNullable<typeof parsedResult>["tasks"],
+    tasks: ClassScoreComponentConfig[],
   ): SavedSubject => {
     const baseSubject: SavedSubject = existingSubject ?? {
       id: crypto.randomUUID(),
@@ -110,31 +155,62 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
           }))
         : undefined;
 
+    // Ensure all tasks (including newly created ones) exist on nextComponents
+    if (nextComponents) {
+      for (const task of tasks) {
+        if (!nextComponents.some((c) => c.name.toLowerCase() === task.name.toLowerCase())) {
+          nextComponents.push({
+            id: crypto.randomUUID(),
+            name: task.name,
+            score: 0,
+            maxScore: task.maxScore,
+            category: task.category,
+          });
+        }
+      }
+    }
+
     let nextClassScore = baseSubject.classScore;
 
     if (row.componentScores.length > 0 && nextComponents) {
       for (const compPatch of row.componentScores) {
-        let target = nextComponents.find((c) => c.name === compPatch.name);
+        let target = nextComponents.find(
+          (c) => c.name.toLowerCase() === compPatch.name.toLowerCase(),
+        );
         if (!target) {
           target = {
             id: crypto.randomUUID(),
             name: compPatch.name,
             score: 0,
             maxScore: compPatch.maxScore,
+            category: compPatch.category,
           };
           nextComponents.push(target);
         }
+
+        const shouldKeepExisting =
+          conflictPolicy === "KEEP_EXISTING" &&
+          compPatch.existingScore !== undefined &&
+          compPatch.existingScore > 0;
+        const scoreToApply = shouldKeepExisting ? compPatch.existingScore! : compPatch.score;
+
         const res = updateComponentAndRecalculateClassScore(
           nextComponents,
           target.id,
-          compPatch.score,
+          scoreToApply,
           settings.classScoreMax,
         );
         nextComponents = res.updatedComponents;
         nextClassScore = res.classScore;
       }
     } else if (row.directClassScore) {
-      nextClassScore = row.directClassScore.score;
+      const shouldKeepExisting =
+        conflictPolicy === "KEEP_EXISTING" &&
+        row.directClassScore.existingScore !== undefined &&
+        row.directClassScore.existingScore > 0;
+      nextClassScore = shouldKeepExisting
+        ? row.directClassScore.existingScore!
+        : row.directClassScore.score;
     }
 
     const nextExamScore =
@@ -151,7 +227,47 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
   const handleApplyScores = () => {
     if (!parsedResult || parsedResult.rows.length === 0) return;
 
-    const studentMap = new Map(students.map((s) => [s.id, s]));
+    // 1. Register any newly created SBA components in Settings library + subjectComponentMap
+    const enabledNewTasks: ClassScoreComponentConfig[] = parsedResult.detectedNewColumns
+      .map((col) => getOverrideForDetected(col))
+      .filter((ov) => ov.enabled && ov.name.trim().length > 0)
+      .map((ov) => ({
+        name: ov.name.trim(),
+        maxScore: Math.min(100, Math.max(1, ov.maxScore)),
+        category: ov.category,
+      }));
+
+    if (enabledNewTasks.length > 0 && typeof setSettings === "function") {
+      const currentLib = settings.componentLibrary ?? [];
+      const nextLib = [...currentLib];
+      for (const task of enabledNewTasks) {
+        if (!nextLib.some((t) => t.name.toLowerCase() === task.name.toLowerCase())) {
+          nextLib.push(task);
+        }
+      }
+
+      const currentMap = settings.subjectComponentMap ?? {};
+      const currentSubTasks = currentMap[activeSubject] ?? [];
+      const nextSubTasks = [...currentSubTasks];
+      for (const task of enabledNewTasks) {
+        if (!nextSubTasks.some((t) => t.name.toLowerCase() === task.name.toLowerCase())) {
+          nextSubTasks.push(task);
+        }
+      }
+
+      setSettings({
+        ...settings,
+        componentLibrary: nextLib,
+        subjectComponentMap: {
+          ...currentMap,
+          [activeSubject]: nextSubTasks,
+        },
+      });
+    }
+
+    // 2. Apply scores to matched students & create new students if enabled
+    const studentMap = new Map<string, StudentRecord>(students.map((s) => [s.id, s]));
+    const touchedStudentIds = new Set<string>();
     let updatedCount = 0;
     let createdCount = 0;
 
@@ -164,7 +280,10 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
           ? student.subjects.map((s) => (s.id === existingSub.id ? updatedSub : s))
           : [...student.subjects, updatedSub];
 
-        updateStudent({ ...student, subjects: nextSubjects }, true);
+        const nextRecord = { ...student, subjects: nextSubjects };
+        studentMap.set(student.id, nextRecord);
+        touchedStudentIds.add(student.id);
+        updateStudent(nextRecord, true);
         updatedCount++;
         return;
       }
@@ -190,9 +309,51 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
       }
     });
 
+    // 3. Keep remaining existing students synced with newly created SBA tasks (with score 0)
+    if (enabledNewTasks.length > 0) {
+      students.forEach((student) => {
+        if (touchedStudentIds.has(student.id)) return;
+        const existingSub = student.subjects.find((s) => s.name === activeSubject);
+        if (!existingSub) return;
+
+        const existingComps = existingSub.classScoreComponents ?? [];
+        const additions = enabledNewTasks
+          .filter((t) => !existingComps.some((c) => c.name.toLowerCase() === t.name.toLowerCase()))
+          .map((t) => ({
+            id: crypto.randomUUID(),
+            name: t.name,
+            score: 0,
+            maxScore: t.maxScore,
+            category: t.category,
+          }));
+        if (additions.length === 0) return;
+
+        const nextComps = [...existingComps, ...additions];
+        const totalActual = nextComps.reduce((sum, c) => sum + c.score, 0);
+        const totalMax = nextComps.reduce((sum, c) => sum + c.maxScore, 0);
+        const nextClassScore =
+          totalMax > 0 ? Math.round((totalActual / totalMax) * settings.classScoreMax) : 0;
+
+        updateStudent(
+          {
+            ...student,
+            subjects: student.subjects.map((s) =>
+              s.id === existingSub.id
+                ? { ...s, classScoreComponents: nextComps, classScore: nextClassScore }
+                : s,
+            ),
+          },
+          true,
+        );
+      });
+    }
+
     const summary: string[] = [];
     if (updatedCount > 0) summary.push(`${updatedCount} updated`);
     if (createdCount > 0) summary.push(`${createdCount} added`);
+    if (enabledNewTasks.length > 0) {
+      summary.push(`${enabledNewTasks.length} new SBA task${enabledNewTasks.length > 1 ? "s" : ""} created`);
+    }
     showToast(
       summary.length > 0
         ? `Imported ${activeSubject} scores (${summary.join(", ")})!`
@@ -201,12 +362,14 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
     );
 
     setRawText("");
+    setNewColumnOverrides({});
     setIsPreviewing(false);
     onClose();
   };
 
   const resetAndClose = () => {
     setRawText("");
+    setNewColumnOverrides({});
     setIsPreviewing(false);
     onClose();
   };
@@ -229,7 +392,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
           </button>
         </div>
 
-        <div className="space-y-4 p-5 sm:p-6">
+        <div className="max-h-[80vh] space-y-4 overflow-y-auto p-5 sm:p-6">
           {availableSubjects.length === 0 ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               Add at least one subject in Settings before importing scores.
@@ -250,6 +413,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                     value={activeSubject}
                     onChange={(e) => {
                       setSelectedSubject(e.target.value);
+                      setNewColumnOverrides({});
                       setIsPreviewing(false);
                     }}
                     className="w-full rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-bold text-gray-800 outline-none focus:border-purple-500"
@@ -261,7 +425,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                     ))}
                   </select>
                   <p className="mt-1.5 text-[11px] text-purple-800">
-                    Expected columns:{" "}
+                    Configured columns:{" "}
                     <strong>
                       Name
                       {settings.examType === "MOCK"
@@ -270,6 +434,12 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                           ? `, ${activeTasks.map((t) => `${t.name} (/${t.maxScore})`).join(", ")}, Exam (/100)`
                           : `, Class Score (/${settings.classScoreMax}), Exam (/100)`}
                     </strong>
+                    {settings.examType !== "MOCK" && (
+                      <span className="block text-[10px] text-purple-700">
+                        New SBA columns (e.g. <code>Science Project (/20)</code>) are automatically
+                        detected and created for you.
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -299,12 +469,12 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                 <div className="space-y-3">
                   <p className="text-xs text-gray-600">
                     Paste rows directly from Excel or Google Sheets (include the header row), or
-                    upload a completed CSV template above.
+                    upload a completed CSV template above. Blank cells leave existing scores intact.
                   </p>
                   <Textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder={`Name\t${activeTasks[0]?.name || "Class Score"}\tExam\nKwame Mensah\t12\t78\nAma Serwaa\t14\t85`}
+                    placeholder={`Name\t${activeTasks[0]?.name || "Science Project (/20)"}\tExam\nKwame Mensah\t16\t78\nAma Serwaa\t18\t85`}
                     className="h-52 font-mono text-xs"
                   />
                   <Button
@@ -319,7 +489,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {parsedResult && parsedResult.rows.length > 0 ? (
                     <>
                       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-900">
@@ -327,7 +497,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                           <CheckCircle className="h-4 w-4 shrink-0 text-green-600" />
                           <span>
                             Parsed <strong>{parsedResult.rows.length}</strong> row
-                            {parsedResult.rows.length === 1 ? "" : "s"} • Mapped:{" "}
+                            {parsedResult.rows.length === 1 ? "" : "s"} •{" "}
                             {parsedResult.matchedColumns.join(" | ")}
                           </span>
                         </div>
@@ -341,6 +511,144 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                           <span>Add unmatched students</span>
                         </label>
                       </div>
+
+                      {/* Newly Detected SBA Components Card */}
+                      {parsedResult.detectedNewColumns.length > 0 && (
+                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5">
+                          <div className="flex items-center gap-2 text-xs font-bold text-indigo-950">
+                            <PlusCircle className="h-4 w-4 text-indigo-600" />
+                            <span>
+                              New SBA Component{parsedResult.detectedNewColumns.length > 1 ? "s" : ""}{" "}
+                              Detected for {activeSubject}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-indigo-800">
+                            These columns aren&apos;t in {activeSubject}&apos;s SBA list yet. Checked
+                            items will be created in Settings and assigned to every student.
+                          </p>
+                          <div className="space-y-2">
+                            {parsedResult.detectedNewColumns.map((col) => {
+                              const ov = getOverrideForDetected(col);
+                              return (
+                                <div
+                                  key={col.colIndex}
+                                  className="grid grid-cols-1 gap-2 rounded-lg border border-indigo-200 bg-white p-2.5 sm:grid-cols-[auto_1.4fr_0.8fr_1fr] sm:items-center"
+                                >
+                                  <label className="inline-flex cursor-pointer items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      aria-label={`Create SBA component ${col.rawHeader}`}
+                                      checked={ov.enabled}
+                                      onChange={(e) =>
+                                        updateNewColOverride(col, { enabled: e.target.checked })
+                                      }
+                                      className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                                    />
+                                    <span className="text-xs font-bold sm:hidden">Create</span>
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    aria-label={`Task name for ${col.rawHeader}`}
+                                    value={ov.name}
+                                    disabled={!ov.enabled}
+                                    onChange={(e) =>
+                                      updateNewColOverride(col, { name: e.target.value })
+                                    }
+                                    className="rounded border border-gray-300 px-2 py-1 text-xs font-bold disabled:bg-gray-100"
+                                  />
+
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] font-bold text-gray-500">
+                                      Max /
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={100}
+                                      aria-label={`Max score for ${col.rawHeader}`}
+                                      value={ov.maxScore}
+                                      disabled={!ov.enabled}
+                                      onChange={(e) =>
+                                        updateNewColOverride(col, {
+                                          maxScore: Math.min(
+                                            100,
+                                            Math.max(1, Number(e.target.value) || 1),
+                                          ),
+                                        })
+                                      }
+                                      className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-xs font-bold disabled:bg-gray-100"
+                                    />
+                                  </div>
+
+                                  <select
+                                    aria-label={`Category for ${col.rawHeader}`}
+                                    value={ov.category}
+                                    disabled={!ov.enabled}
+                                    onChange={(e) =>
+                                      updateNewColOverride(col, {
+                                        category: e.target.value as AssessmentCategory,
+                                      })
+                                    }
+                                    className="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-semibold disabled:bg-gray-100"
+                                  >
+                                    <option value="CAT">CAT (Test)</option>
+                                    <option value="PROJECT">Project</option>
+                                    <option value="GROUP">Group Work</option>
+                                    <option value="HOMEWORK">Homework</option>
+                                  </select>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Existing Score Conflict Policy */}
+                      {parsedResult.conflictCount > 0 && (
+                        <div className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-950">
+                          <div className="flex items-center gap-2 font-bold">
+                            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
+                            <span>
+                              {parsedResult.conflictCount} existing score
+                              {parsedResult.conflictCount === 1 ? "" : "s"} already recorded for{" "}
+                              {activeSubject}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-4">
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 font-semibold">
+                              <input
+                                type="radio"
+                                name="conflictPolicy"
+                                checked={conflictPolicy === "OVERWRITE"}
+                                onChange={() => setConflictPolicy("OVERWRITE")}
+                                className="text-amber-600"
+                              />
+                              <span>Overwrite existing scores (show old → new)</span>
+                            </label>
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 font-semibold">
+                              <input
+                                type="radio"
+                                name="conflictPolicy"
+                                checked={conflictPolicy === "KEEP_EXISTING"}
+                                onChange={() => setConflictPolicy("KEEP_EXISTING")}
+                                className="text-amber-600"
+                              />
+                              <span>Keep existing scores (fill blank / 0 only)</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {parsedResult.duplicateRowCount > 0 && (
+                        <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-900">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600" />
+                          <span>
+                            Detected {parsedResult.duplicateRowCount} duplicate student row
+                            {parsedResult.duplicateRowCount > 1 ? "s" : ""} in your sheet.
+                          </span>
+                        </div>
+                      )}
 
                       {parsedResult.rows.some((r) => r.hasWarnings) && (
                         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
@@ -358,6 +666,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                             <tr>
                               <th className="px-3 py-2">Student</th>
                               <th className="px-3 py-2">Match</th>
+                              <th className="px-3 py-2">Details / Diff</th>
                               <th className="px-3 py-2 text-center">Class (/{settings.classScoreMax})</th>
                               <th className="px-3 py-2 text-center">Exam (/{settings.examScoreMax})</th>
                               <th className="px-3 py-2 text-center">Total</th>
@@ -371,6 +680,11 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                                 <tr key={idx}>
                                   <td className="px-3 py-2 font-bold text-gray-800">
                                     {row.studentName}
+                                    {row.isDuplicateInImport && (
+                                      <span className="ml-1.5 rounded bg-orange-100 px-1 py-0.5 text-[9px] font-bold text-orange-800">
+                                        Duplicate
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="px-3 py-2">
                                     {row.isNewStudent ? (
@@ -383,6 +697,25 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                                       </span>
                                     )}
                                   </td>
+                                  <td className="px-3 py-2 text-[11px] text-gray-600">
+                                    {row.componentScores.map((c) => (
+                                      <span key={c.name} className="mr-2 inline-block">
+                                        <strong>{c.name}:</strong>{" "}
+                                        {c.isConflict ? (
+                                          <span className="font-bold text-amber-700">
+                                            {conflictPolicy === "KEEP_EXISTING"
+                                              ? `${c.existingScore} (kept)`
+                                              : `${c.existingScore} → ${c.score}`}
+                                          </span>
+                                        ) : (
+                                          <span>
+                                            {c.score}/{c.maxScore}
+                                          </span>
+                                        )}
+                                      </span>
+                                    ))}
+                                    {row.componentScores.length === 0 && "—"}
+                                  </td>
                                   <td className="px-3 py-2 text-center font-mono font-bold">
                                     {row.computedClassScore}
                                     {row.hasWarnings && (
@@ -390,7 +723,12 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                                     )}
                                   </td>
                                   <td className="px-3 py-2 text-center font-mono font-bold">
-                                    {row.examRawScore ? `${examWeighted} (${row.examRawScore.raw}%)` : "—"}
+                                    {row.examRawScore
+                                      ? row.examRawScore.isConflict &&
+                                        conflictPolicy === "OVERWRITE"
+                                        ? `${row.examRawScore.existingRaw ?? "?"}% → ${row.examRawScore.raw}%`
+                                        : `${examWeighted} (${row.examRawScore.raw}%)`
+                                      : "—"}
                                   </td>
                                   <td className="text-primary px-3 py-2 text-center font-mono font-black">
                                     {total}
@@ -405,7 +743,7 @@ export function ScoreImportModal({ isOpen, onClose, initialSubject }: Props) {
                   ) : (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-800">
                       Could not find valid header + score rows. Ensure row 1 contains headers like{" "}
-                      <code>Name, Exam</code> or SBA task names.
+                      <code>Name, Science Project (/20), Exam</code>.
                     </div>
                   )}
 
