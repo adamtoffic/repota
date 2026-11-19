@@ -4,6 +4,11 @@
 // - Optimized for A4 printing
 
 import type { ProcessedStudent, SchoolSettings } from "../../types";
+import {
+  DEFAULT_PAYMENT_NOTE,
+  getActivePrivateFeeItems,
+  resolvePositionVisibility,
+} from "../../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../../utils/remarkGenerator";
 import { ReportHeader } from "./ReportHeader";
 import { StudentInfo } from "./StudentInfo";
@@ -17,6 +22,9 @@ export function PrivateSchoolReport({ student, settings }: Props) {
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
   const showAggregate = settings.level !== "KG" && student.aggregate !== null;
   const isMock = settings.examType === "MOCK";
+  const activeFees = getActivePrivateFeeItems(settings);
+  const { showSubjectPosition } = resolvePositionVisibility(settings);
+  const paymentNote = settings.feePaymentNote?.trim() || DEFAULT_PAYMENT_NOTE;
 
   // Private schools: max 12-13 subjects, use compact density
   const subjectCount = student.subjects.length;
@@ -83,11 +91,13 @@ export function PrivateSchoolReport({ student, settings }: Props) {
                     (100)
                   </th>
                 )}
-                <th
-                  className={`w-[8%] bg-slate-200 p-1 text-center font-black text-slate-800 uppercase print:bg-gray-300 ${density.headerSize}`}
-                >
-                  Pos.
-                </th>
+                {showSubjectPosition && (
+                  <th
+                    className={`w-[8%] bg-slate-200 p-1 text-center font-black text-slate-800 uppercase print:bg-gray-300 ${density.headerSize}`}
+                  >
+                    Pos.
+                  </th>
+                )}
                 <th
                   className={`w-[8%] p-1 text-center font-black text-slate-800 uppercase ${density.headerSize}`}
                 >
@@ -136,11 +146,13 @@ export function PrivateSchoolReport({ student, settings }: Props) {
                       {sub.totalScore}
                     </td>
                   )}
-                  <td
-                    className={`text-main bg-slate-100 text-center font-mono font-black print:bg-gray-100 ${density.textSize}`}
-                  >
-                    {sub.subjectPosition || "-"}
-                  </td>
+                  {showSubjectPosition && (
+                    <td
+                      className={`text-main bg-slate-100 text-center font-mono font-black print:bg-gray-100 ${density.textSize}`}
+                    >
+                      {sub.subjectPosition || "-"}
+                    </td>
+                  )}
                   <td
                     className={`text-center font-black ${density.textSize} ${
                       String(sub.grade).includes("9") || sub.grade === "F9"
@@ -164,7 +176,7 @@ export function PrivateSchoolReport({ student, settings }: Props) {
                   key={`empty-${i}`}
                   className={`divide-x-2 divide-blue-950 ${density.padding} ${(student.subjects.length + i) % 2 === 1 ? "print:bg-background bg-slate-50" : "bg-white"}`}
                 >
-                  <td colSpan={isMock ? 5 : 7}>&nbsp;</td>
+                  <td colSpan={(isMock ? 5 : 7) - (showSubjectPosition ? 0 : 1)}>&nbsp;</td>
                 </tr>
               ))}
             </tbody>
@@ -259,66 +271,38 @@ export function PrivateSchoolReport({ student, settings }: Props) {
           </div>
 
           {/* Fees Section - Smart Conditional Rendering */}
-          {(settings.schoolGift || settings.canteenFees || settings.firstAidFees) && (
+          {activeFees.length > 0 && (
             <div className="border-2 border-blue-950">
               <div className="border-b-2 border-blue-950 bg-slate-100 px-2 py-1 text-center print:bg-gray-200">
                 <span className="text-[9px] font-black text-slate-700 uppercase">Fee Schedule</span>
               </div>
 
-              {/* Fee Items Grid */}
+              {/* Fee Items Grid (Max 3 slots for single-A4 safety) */}
               <div className="divide-y-2 divide-blue-950">
-                {/* School Fees */}
-                {settings.schoolGift !== undefined && settings.schoolGift > 0 && (
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-1.5">
+                {activeFees.map((fee) => (
+                  <div
+                    key={fee.id}
+                    className="grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-1.5"
+                  >
                     <div>
                       <span className="text-main block text-[9px] leading-tight font-black uppercase">
-                        School Fees
+                        {fee.label}
                       </span>
-                      <span className="text-[7px] font-medium text-slate-600">Per Term</span>
+                      {fee.cycle && (
+                        <span className="text-[7px] font-semibold text-slate-600">{fee.cycle}</span>
+                      )}
                     </div>
                     <span className="text-main text-[12px] font-black">
-                      GH₵{settings.schoolGift.toFixed(2)}
+                      GH₵{fee.amount.toFixed(2)}
                     </span>
                   </div>
-                )}
-
-                {/* Canteen Fees - Daily */}
-                {settings.canteenFees !== undefined && settings.canteenFees > 0 && (
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-1.5">
-                    <div>
-                      <span className="text-main block text-[9px] leading-tight font-black uppercase">
-                        Canteen Fees
-                      </span>
-                      <span className="text-[7px] font-semibold text-blue-600">Daily</span>
-                    </div>
-                    <span className="text-main text-[12px] font-black">
-                      GH₵{settings.canteenFees.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-
-                {/* First Aid - Termly */}
-                {settings.firstAidFees !== undefined && settings.firstAidFees > 0 && (
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-1.5">
-                    <div>
-                      <span className="text-main block text-[9px] leading-tight font-black uppercase">
-                        First Aid Fees
-                      </span>
-                      <span className="text-[7px] font-semibold text-green-700">Per Term</span>
-                    </div>
-                    <span className="text-main text-[12px] font-black">
-                      GH₵{settings.firstAidFees.toFixed(2)}
-                    </span>
-                  </div>
-                )}
+                ))}
               </div>
 
               {/* Payment Instructions */}
               <div className="border-t-2 border-blue-950 bg-slate-50 px-2 py-1.5 print:bg-gray-50">
                 <p className="text-[8px] leading-relaxed font-medium text-slate-700">
-                  <strong className="font-black">PAYMENT INSTRUCTIONS:</strong> All fees must be
-                  paid on or before the beginning of the term. Please present this bill when making
-                  payment and demand an official receipt.
+                  <strong className="font-black">PAYMENT INSTRUCTIONS:</strong> {paymentNote}
                 </p>
               </div>
             </div>

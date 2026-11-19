@@ -39,6 +39,16 @@ export interface SavedSubject {
   classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score - subject-specific!
 }
 
+export type FeeStatus = "PAID" | "PART_PAID" | "OWING" | "SCHOLARSHIP";
+
+export interface PrivateFeeItem {
+  id: string;
+  label: string;
+  amount: number;
+  cycle: string; // e.g. "Per Term", "Daily", "Per Month"
+  enabled: boolean;
+}
+
 export interface StudentRecord {
   id: string;
   name: string;
@@ -51,6 +61,12 @@ export interface StudentRecord {
   interest?: string;
   pictureUrl?: string;
   promotionStatus?: string;
+
+  // Optional Private School / Admin Tracking Fields
+  admissionNumber?: string;
+  feeStatus?: FeeStatus;
+  feeArrears?: number;
+  guardianPhone?: string;
 
   subjects: SavedSubject[];
 }
@@ -87,12 +103,24 @@ export interface SchoolSettings {
   // Subject-component mapping - which components each subject uses
   subjectComponentMap?: Record<string, ClassScoreComponentConfig[]>;
 
-  // Private school fees
-  schoolGift?: number; // Daily school fees
+  // Private school fees (legacy fields kept for backward compatibility)
+  schoolGift?: number; // Termly school fees
   canteenFees?: number; // Daily canteen fees
   firstAidFees?: number; // Termly first aid fees
 
+  // Customizable 3-slot private school items & toggles
+  privateFeeItems?: PrivateFeeItem[];
+  showFeeSchedule?: boolean;
+  feePaymentNote?: string;
+  showStudentFeeArrearsOnReport?: boolean;
+
+  // Report Card Display & Brand Customization
   templateId?: string; // ID of the selected report template
+  showClassPosition?: boolean; // Toggle overall class rank on report cards (default: true)
+  showSubjectPosition?: boolean; // Toggle per-subject rank column on report cards (default: true)
+  useCustomTemplateColor?: boolean; // Apply school's custom colors to templates
+  primaryColor?: string; // Hex color e.g. #1e3a8a
+  accentColor?: string; // Hex accent color e.g. #fcd34d
 
   examType?: ExamType; // Whether this is a standard termly exam or a mock exam
 

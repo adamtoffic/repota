@@ -1,19 +1,35 @@
 import type { ReportTemplateProps } from "../types";
+import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
+import { getReportPalette } from "../utils/reportTheme";
 
 export function ClassicTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
   const isPrivate = settings.schoolType === "PRIVATE";
-  const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
+  const activeFees = getActivePrivateFeeItems(settings);
+  const hasAnyFee = activeFees.length > 0;
+  const showArrears =
+    isPrivate &&
+    Boolean(settings.showStudentFeeArrearsOnReport) &&
+    typeof student.feeArrears === "number" &&
+    student.feeArrears > 0;
+  const { showClassPositionHeader, showClassPositionSummary, showSubjectPosition } =
+    resolvePositionVisibility(settings);
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
 
   // ---------------------------------------------------------------------------
-  // 🎨 PRINT MODE LOGIC (Color vs B&W)
+  // 🎨 PRINT MODE & CUSTOM SCHOOL COLOR LOGIC
   // ---------------------------------------------------------------------------
   const isBW = printMode === "bw";
   const imgFilter = isBW ? "grayscale" : "";
+  const palette = getReportPalette({
+    settings,
+    printMode,
+    defaultPrimary: "#047857",
+  });
+  const useCustom = palette.isCustomActive && !isBW;
 
   // ── Brand Color Variables ──────────────────────────────────────────────────
   const borderColor = isBW ? "border-black" : "border-emerald-700";
@@ -29,6 +45,17 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
   const mottoColor = isBW ? "text-gray-700" : "text-emerald-800";
   const redText = isBW ? "text-black underline decoration-2 underline-offset-2" : "text-red-600";
 
+  const customBorder = useCustom ? { borderColor: palette.primary } : undefined;
+  const customInfoBorder = useCustom ? { borderColor: palette.primaryBorder } : undefined;
+  const customTitleBg = useCustom
+    ? { backgroundColor: palette.primary, color: palette.onPrimary }
+    : undefined;
+  const customSoftBg = useCustom ? { backgroundColor: palette.primarySoft } : undefined;
+  const customHeaderBg = useCustom
+    ? { backgroundColor: palette.primarySoft, color: palette.primaryDark }
+    : undefined;
+  const customText = useCustom ? { color: palette.primaryDark } : undefined;
+
   return (
     <div
       className={`relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] bg-white p-[10mm] font-sans text-gray-900 print:h-[297mm] print:overflow-hidden print:border-none`}
@@ -40,20 +67,16 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
       {/* ==========================================
           ROW 1: HEADER & STUDENT PROFILE
           ========================================== */}
-      <header className={`mb-1 border-b-2 ${borderColor} pb-1`}>
+      <header className={`mb-1 border-b-2 ${borderColor} pb-1`} style={customBorder}>
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex h-24 w-24 items-center justify-center">
+          <div className="flex h-24 w-24 items-center justify-center" aria-hidden={!settings.logoUrl}>
             {settings.logoUrl ? (
               <img
                 src={settings.logoUrl}
                 alt="Logo"
                 className={`max-h-full max-w-full object-contain ${imgFilter}`}
               />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-center text-xs text-gray-400">
-                No Logo
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex-1 px-4 text-center">
@@ -67,7 +90,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
               {settings.email && `Email: ${settings.email}`}
             </p>
             {settings.schoolMotto && (
-              <p className={`mt-1.5 text-sm font-bold italic ${mottoColor}`}>
+              <p className={`mt-1.5 text-sm font-bold italic ${mottoColor}`} style={customText}>
                 "{settings.schoolMotto}"
               </p>
             )}
@@ -79,6 +102,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
             <div className="mt-2">
               <span
                 className={`inline-block rounded-sm px-6 py-1.5 text-sm font-black tracking-widest uppercase shadow-sm ${titleBg}`}
+                style={customTitleBg}
               >
                 Terminal Report Card
               </span>
@@ -86,7 +110,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           </div>
 
           <div className="flex w-24 justify-end">
-            <div className={`h-28 w-24 border-2 ${borderColor} bg-gray-50 p-1`}>
+            <div className={`h-28 w-24 border-2 ${borderColor} bg-gray-50 p-1`} style={customBorder}>
               {student.pictureUrl ? (
                 <img
                   src={student.pictureUrl}
@@ -104,31 +128,37 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
 
         <div
           className={`grid grid-cols-2 gap-x-8 gap-y-2 rounded border-2 ${borderColor} ${summaryBg} p-3 text-sm`}
+          style={{ ...customBorder, ...customSoftBg }}
         >
-          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`}>
+          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`} style={customInfoBorder}>
             <span className="font-semibold text-gray-600">Name of Student:</span>
             <span className="font-bold uppercase">{student.name}</span>
           </div>
-          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`}>
+          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`} style={customInfoBorder}>
             <span className="font-semibold text-gray-600">Academic Year:</span>
             <span className="font-bold">{settings.academicYear}</span>
           </div>
-          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`}>
+          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`} style={customInfoBorder}>
             <span className="font-semibold text-gray-600">Class:</span>
             <span className="font-bold">{settings.className || student.className}</span>
           </div>
-          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`}>
+          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`} style={customInfoBorder}>
             <span className="font-semibold text-gray-600">Term:</span>
             <span className="font-bold">{settings.term}</span>
           </div>
-          <div className={`flex justify-between border-b ${infoRowBorder} pb-1`}>
+          <div
+            className={`flex justify-between ${showClassPositionHeader ? `border-b ${infoRowBorder} pb-1` : "col-span-2"}`}
+            style={showClassPositionHeader ? customInfoBorder : undefined}
+          >
             <span className="font-semibold text-gray-600">Number on Roll:</span>
             <span className="font-bold">{settings.classSize || "-"}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="font-semibold text-gray-600">Position in Class:</span>
-            <span className="font-bold">{student.classPosition || "-"}</span>
-          </div>
+          {showClassPositionHeader && (
+            <div className="flex justify-between">
+              <span className="font-semibold text-gray-600">Position in Class:</span>
+              <span className="font-bold">{student.classPosition || "-"}</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -136,72 +166,79 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           ROW 2: ACADEMIC TABLE
           ========================================== */}
       <main className="mb-1 min-h-0 overflow-hidden">
-        <table className={`w-full border-collapse border-2 ${borderColor} text-[13px]`}>
+        <table className={`w-full border-collapse border-2 ${borderColor} text-[13px]`} style={customBorder}>
           <thead>
-            <tr className={`border-b-2 ${borderColor} ${tableHeaderBg}`}>
-              <th className={`w-1/3 border ${borderColor} px-2 py-2 text-left`}>Subject</th>
+            <tr className={`border-b-2 ${borderColor} ${tableHeaderBg}`} style={{ ...customBorder, ...customHeaderBg }}>
+              <th className={`w-1/3 border ${borderColor} px-2 py-2 text-left`} style={customBorder}>Subject</th>
               {!isMock ? (
                 <>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
                     Class
                     <br />
                     <span className="text-[10px]">({settings.classScoreMax}%)</span>
                   </th>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
                     Exam
                     <br />
                     <span className="text-[10px]">({settings.examScoreMax}%)</span>
                   </th>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
                     Total
                     <br />
                     <span className="text-[10px]">(100%)</span>
                   </th>
                 </>
               ) : (
-                <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`}>
+                <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
                   Score
                   <br />
                   <span className="text-[10px]">(100%)</span>
                 </th>
               )}
-              <th className={`w-16 border ${borderColor} px-2 py-2 text-center`}>Grade</th>
-              {!isKG && <th className={`w-16 border ${borderColor} px-2 py-2 text-center`}>Pos</th>}
-              <th className={`border ${borderColor} px-2 py-2 text-left`}>Remarks</th>
+              <th className={`w-16 border ${borderColor} px-2 py-2 text-center`} style={customBorder}>Grade</th>
+              {showSubjectPosition && (
+                <th className={`w-16 border ${borderColor} px-2 py-2 text-center`} style={customBorder}>Pos</th>
+              )}
+              <th className={`border ${borderColor} px-2 py-2 text-left`} style={customBorder}>Remarks</th>
             </tr>
           </thead>
           <tbody className={`divide-y ${divideColor}`}>
             {student.subjects.map((sub, idx) => (
-              <tr key={sub.id} className={idx % 2 === 1 ? zebraBg : "bg-white"}>
-                <td className={`border ${borderColor} px-2 py-1.5 font-medium`}>{sub.name}</td>
+              <tr
+                key={sub.id}
+                className={idx % 2 === 1 ? zebraBg : "bg-white"}
+                style={idx % 2 === 1 && useCustom ? { backgroundColor: palette.zebraBg } : undefined}
+              >
+                <td className={`border ${borderColor} px-2 py-1.5 font-medium`} style={customBorder}>{sub.name}</td>
                 {!isMock ? (
                   <>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
+                    <td className={`border ${borderColor} px-2 py-1.5 text-center`} style={customBorder}>
                       {sub.classScore}
                     </td>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center`}>
+                    <td className={`border ${borderColor} px-2 py-1.5 text-center`} style={customBorder}>
                       {sub.examScore}
                     </td>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
+                    <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`} style={customBorder}>
                       {sub.totalScore}
                     </td>
                   </>
                 ) : (
-                  <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`}>
+                  <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`} style={customBorder}>
                     {sub.totalScore}
                   </td>
                 )}
                 <td
                   className={`border ${borderColor} px-2 py-1.5 text-center font-bold ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
+                  style={customBorder}
                 >
                   {sub.grade}
                 </td>
-                {!isKG && (
-                  <td className={`border ${borderColor} px-2 py-1.5 text-center text-xs`}>
+                {showSubjectPosition && (
+                  <td className={`border ${borderColor} px-2 py-1.5 text-center text-xs`} style={customBorder}>
                     {sub.subjectPosition || "-"}
                   </td>
                 )}
-                <td className={`border ${borderColor} px-2 py-1.5 text-left text-xs italic`}>
+                <td className={`border ${borderColor} px-2 py-1.5 text-left text-xs italic`} style={customBorder}>
                   {sub.remark}
                 </td>
               </tr>
@@ -211,23 +248,24 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
 
         <div
           className={`mt-1 flex justify-end gap-4 rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 text-sm`}
+          style={{ ...customBorder, ...customSoftBg }}
         >
           <div className="flex items-center gap-2">
             <span className="font-semibold text-gray-600">Total Score:</span>
-            <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`}>
+            <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`} style={{ ...customBorder, ...customSoftBg }}>
               {student.totalScore}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-gray-600">Average:</span>
-            <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`}>
+            <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`} style={{ ...customBorder, ...customSoftBg }}>
               {student.averageScore.toFixed(1)}
             </span>
           </div>
-          {!isKG && (
+          {showClassPositionSummary && (
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-600">Position:</span>
-              <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`}>
+              <span className={`rounded border-2 ${borderColor} ${summaryBg} px-1 py-1 font-black`} style={{ ...customBorder, ...customSoftBg }}>
                 {student.classPosition || "-"}
               </span>
             </div>
@@ -235,7 +273,7 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           {!isKG && student.aggregate !== null && (
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-600">Aggregate:</span>
-              <span className={`rounded ${titleBg} px-1 py-1 font-bold shadow-sm`}>
+              <span className={`rounded ${titleBg} px-1 py-1 font-bold shadow-sm`} style={customTitleBg}>
                 {student.aggregate}
               </span>
             </div>
@@ -248,19 +286,19 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           ========================================== */}
       <footer className="space-y-2 text-sm">
         <div className="flex flex-wrap gap-4">
-          <div className={`flex-1 rounded border ${borderColor} p-2`}>
+          <div className={`flex-1 rounded border ${borderColor} p-2`} style={customBorder}>
             <span className="block text-xs font-semibold text-gray-600 uppercase">Attendance</span>
             <div className="text-sm font-bold">
               {student.attendancePresent || 0} out of {settings.totalAttendanceDays || "-"} days
             </div>
           </div>
-          <div className={`flex-2 rounded border ${borderColor} p-2`}>
+          <div className={`flex-2 rounded border ${borderColor} p-2`} style={customBorder}>
             <span className="block text-xs font-semibold text-gray-600 uppercase">
               Conduct / Character
             </span>
             <div className="text-sm italic">{student.conduct || "Satisfactory"}</div>
           </div>
-          <div className={`flex-2 rounded border ${borderColor} p-2`}>
+          <div className={`flex-2 rounded border ${borderColor} p-2`} style={customBorder}>
             <span className="block text-xs font-semibold text-gray-600 uppercase">
               Interest / Talent
             </span>
@@ -269,9 +307,10 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className={`rounded border ${borderColor} ${remarkBg} p-3`}>
+          <div className={`rounded border ${borderColor} ${remarkBg} p-3`} style={{ ...customBorder, ...customSoftBg }}>
             <span
               className={`mb-1 block border-b ${borderColor} pb-1 text-xs font-semibold uppercase`}
+              style={customBorder}
             >
               Class Teacher's Remark
             </span>
@@ -279,9 +318,10 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
               {student.teacherRemark || "Good performance."}
             </p>
           </div>
-          <div className={`rounded border ${borderColor} ${remarkBg} p-3`}>
+          <div className={`rounded border ${borderColor} ${remarkBg} p-3`} style={{ ...customBorder, ...customSoftBg }}>
             <span
               className={`mb-1 block border-b ${borderColor} pb-1 text-xs font-semibold uppercase`}
+              style={customBorder}
             >
               Head Teacher's Remark
             </span>
@@ -289,36 +329,32 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
           </div>
         </div>
 
-        {(isThirdTerm || (isPrivate && hasAnyFee)) && (
-          <div className={`flex gap-2 rounded border ${borderColor} p-1`}>
+        {(isThirdTerm || (isPrivate && (hasAnyFee || showArrears))) && (
+          <div className={`flex gap-2 rounded border ${borderColor} p-1`} style={customBorder}>
             {isThirdTerm && (
-              <div className={`flex-1 border-r ${borderColor} pr-4`}>
+              <div className={`flex-1 ${isPrivate && (hasAnyFee || showArrears) ? `border-r ${borderColor}` : ""} pr-4`} style={customBorder}>
                 <span className="text-xs font-bold text-gray-600 uppercase">Promotion Status:</span>
-                <p className={`mt-1 font-black uppercase ${promoText}`}>
+                <p className={`mt-1 font-black uppercase ${promoText}`} style={customText}>
                   {student.promotionStatus || "Pending Decision"}
                 </p>
               </div>
             )}
-            {isPrivate && hasAnyFee && (
-              <div className="flex flex-2 justify-between px-2">
-                {settings.schoolGift && (
-                  <div className="text-center">
+            {isPrivate && (hasAnyFee || showArrears) && (
+              <div className="flex flex-2 flex-wrap justify-between gap-2 px-2">
+                {activeFees.map((fee) => (
+                  <div key={fee.id} className="text-center">
                     <span className="text-[10px] font-bold text-gray-500 uppercase">
-                      Next Term Fees
+                      {fee.label}
                     </span>
-                    <p className="text-sm font-bold">GH₵ {settings.schoolGift}</p>
+                    <p className="text-sm font-bold">GH₵ {fee.amount.toFixed(2)}</p>
                   </div>
-                )}
-                {settings.canteenFees && (
+                ))}
+                {showArrears && (
                   <div className="text-center">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Canteen</span>
-                    <p className="text-sm font-bold">GH₵ {settings.canteenFees}</p>
-                  </div>
-                )}
-                {settings.firstAidFees && (
-                  <div className="text-center">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">First Aid</span>
-                    <p className="text-sm font-bold">GH₵ {settings.firstAidFees}</p>
+                    <span className="text-[10px] font-bold text-red-600 uppercase">Arrears</span>
+                    <p className="text-sm font-bold text-red-700">
+                      GH₵ {student.feeArrears!.toFixed(2)}
+                    </p>
                   </div>
                 )}
               </div>
@@ -336,10 +372,10 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
                   className={`max-h-full max-w-full object-contain ${imgFilter}`}
                 />
               ) : (
-                <div className={`mb-2 w-full border-b-2 ${sigLine}`}></div>
+                <div className={`mb-2 w-full border-b-2 ${sigLine}`} style={customBorder}></div>
               )}
             </div>
-            <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`}>
+            <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`} style={customBorder}>
               {settings.classTeacherName || "Class Teacher"}
             </p>
           </div>
@@ -360,10 +396,10 @@ export function ClassicTemplate({ student, settings, printMode }: ReportTemplate
                   className={`max-h-full max-w-full object-contain ${imgFilter}`}
                 />
               ) : (
-                <div className={`mb-2 w-full border-b-2 ${sigLine}`}></div>
+                <div className={`mb-2 w-full border-b-2 ${sigLine}`} style={customBorder}></div>
               )}
             </div>
-            <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`}>
+            <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`} style={customBorder}>
               {settings.headTeacherName
                 ? `${settings.headTeacherName} (HEAD TEACHER)`
                 : "Head Teacher"}

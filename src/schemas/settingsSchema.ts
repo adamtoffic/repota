@@ -32,6 +32,16 @@ export const classScoreComponentConfigSchema = z.object({
   category: assessmentCategorySchema.optional(),
 });
 
+export const privateFeeItemSchema = z.object({
+  id: z.string().min(1).max(60),
+  label: z.string().max(40),
+  amount: z.number().min(0).max(100000),
+  cycle: z.string().max(30),
+  enabled: z.boolean(),
+});
+
+const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid hex color");
+
 export const schoolSettingsSchema = z
   .object({
     // School Identity
@@ -126,11 +136,20 @@ export const schoolSettingsSchema = z
     subjectComponentMap: z.record(z.string(), z.array(classScoreComponentConfigSchema)).optional(),
 
     // Private School Fees
-    schoolGift: z.number().min(0).max(10000).optional(), // Daily school fees
-    canteenFees: z.number().min(0).max(10000).optional(), // Daily canteen fees
-    firstAidFees: z.number().min(0).max(10000).optional(), // Termly first aid
+    schoolGift: z.number().min(0).max(100000).optional(), // Termly school fees
+    canteenFees: z.number().min(0).max(100000).optional(), // Daily canteen fees
+    firstAidFees: z.number().min(0).max(100000).optional(), // Termly first aid
+    privateFeeItems: z.array(privateFeeItemSchema).max(3, "Maximum 3 fee slots allowed").optional(),
+    showFeeSchedule: z.boolean().optional(),
+    feePaymentNote: z.string().max(240).optional(),
+    showStudentFeeArrearsOnReport: z.boolean().optional(),
 
     templateId: z.string().default("original_v1").optional(),
+    showClassPosition: z.boolean().optional(),
+    showSubjectPosition: z.boolean().optional(),
+    useCustomTemplateColor: z.boolean().optional(),
+    primaryColor: hexColorSchema.optional(),
+    accentColor: hexColorSchema.optional(),
 
     examType: examTypeSchema.default("TERMLY"),
 

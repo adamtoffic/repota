@@ -29,6 +29,10 @@ export function DetailsTab({ student, onUpdate }: Props) {
     teacherRemark: student.teacherRemark || "",
     promotionStatus: student.promotionStatus || "",
     pictureUrl: student.pictureUrl || "",
+    admissionNumber: student.admissionNumber || "",
+    feeStatus: student.feeStatus || "",
+    feeArrears: student.feeArrears ?? 0,
+    guardianPhone: student.guardianPhone || "",
   });
 
   const buildRecord = (data: typeof formData): StudentRecord => ({
@@ -44,7 +48,20 @@ export function DetailsTab({ student, onUpdate }: Props) {
     teacherRemark: data.teacherRemark,
     promotionStatus: data.promotionStatus,
     pictureUrl: data.pictureUrl,
+    admissionNumber: data.admissionNumber.trim() || undefined,
+    feeStatus: (data.feeStatus || undefined) as StudentRecord["feeStatus"],
+    feeArrears: data.feeArrears > 0 ? data.feeArrears : undefined,
+    guardianPhone: data.guardianPhone.trim() || undefined,
   });
+
+  const showPrivateAdminCard =
+    settings.schoolType === "PRIVATE" ||
+    Boolean(
+      student.admissionNumber ||
+        student.feeStatus ||
+        (student.feeArrears && student.feeArrears > 0) ||
+        student.guardianPhone,
+    );
 
   const handleImmediateSave = (updates: Partial<typeof formData>) => {
     const nextData = { ...formData, ...updates };
@@ -263,6 +280,73 @@ export function DetailsTab({ student, onUpdate }: Props) {
           </div>
         </div>
       </div>
+
+      {/* 4. PRIVATE SCHOOL ADMINISTRATION & FEE TRACKING */}
+      {showPrivateAdminCard && (
+        <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-4 shadow-sm sm:p-6">
+          <h3
+            className="mb-1 flex items-center gap-2 text-sm font-semibold text-purple-950"
+            data-record="true"
+          >
+            🏫 Private School Admin &amp; Fee Tracking
+          </h3>
+          <p className="text-muted mb-4 text-xs">
+            Track admission ID, guardian contact, and fee arrears for class &amp; bursar analytics.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Admission / ID Number"
+              type="text"
+              maxLength={40}
+              value={formData.admissionNumber}
+              onChange={(e) => handleImmediateSave({ admissionNumber: e.target.value })}
+              placeholder="e.g. RIS-2026-014"
+            />
+
+            <Input
+              label="Guardian Phone"
+              type="tel"
+              maxLength={30}
+              value={formData.guardianPhone}
+              onChange={(e) => handleImmediateSave({ guardianPhone: e.target.value })}
+              placeholder="e.g. 024 000 0000"
+            />
+
+            <div>
+              <label className="text-muted mb-1 block text-xs font-bold uppercase" data-record="true">
+                Fee Payment Status
+              </label>
+              <select
+                aria-label="Fee Payment Status"
+                value={formData.feeStatus}
+                onChange={(e) => handleImmediateSave({ feeStatus: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:p-2"
+              >
+                <option value="">-- Not Tracked --</option>
+                <option value="PAID">Paid in Full</option>
+                <option value="PART_PAID">Part-Paid</option>
+                <option value="OWING">Owing</option>
+                <option value="SCHOLARSHIP">Scholarship / Exempt</option>
+              </select>
+            </div>
+
+            <Input
+              label="Fee Arrears (GH₵)"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={formData.feeArrears === 0 ? "" : formData.feeArrears}
+              onChange={(e) =>
+                handleImmediateSave({
+                  feeArrears: e.target.value ? Math.max(0, parseFloat(e.target.value)) : 0,
+                })
+              }
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

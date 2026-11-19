@@ -164,4 +164,62 @@ describe("SBA workflow end-to-end", () => {
     expect(screen.getByTestId("student-components")).toHaveTextContent("Midterm Quiz");
     expect(capturedComponents.at(-1)).toEqual(["Midterm Quiz"]);
   });
+
+  it("flushes SBA assignments before opening ScoreImportModal and syncs newly imported tasks back to SbaPage", async () => {
+    render(
+      <SchoolProvider>
+        <LoadedSbaHarness onSubjects={() => {}} />
+      </SchoolProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Academy")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Import Scores \(CSV\)/i })).toBeInTheDocument();
+    });
+
+    // Assign a task WITHOUT waiting 500ms debounce, then immediately click Import Scores (CSV)
+    fireEvent.change(screen.getByPlaceholderText("e.g. Natural Science Project"), {
+      target: { value: "Quiz 1" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("15"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Add$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Assign All Tasks to All Subjects/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /Import Scores \(CSV\)/i }));
+
+    // Modal immediately sees flushed Mathematics SBA task from SbaPage
+    expect(
+      screen.getByText(
+        (_, node) =>
+          node?.tagName === "P" &&
+          Boolean(node.textContent?.includes("Mathematics SBA: 1 component")),
+      ),
+    ).toBeInTheDocument();
+
+    // Switch to Single SBA Task and create a brand-new SBA component "Essay Work"
+    fireEvent.click(screen.getByRole("tab", { name: /Single SBA Task/i }));
+    fireEvent.change(screen.getByLabelText("SBA Component"), {
+      target: { value: "__CREATE_NEW_TASK__" },
+    });
+    fireEvent.change(screen.getByLabelText("New SBA Task Name"), {
+      target: { value: "Essay Work" },
+    });
+    fireEvent.change(screen.getByLabelText("New SBA Max Score"), { target: { value: "20" } });
+
+    const textarea = screen
+      .getAllByRole("textbox")
+      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
+    fireEvent.change(textarea, {
+      target: { value: "Name\tEssay Work (/20)\nAma Mensah\t15" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Preview & Validate Scores/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Apply Scores/i }));
+
+    // Wait a tick for modal close & SbaPage re-render: SbaPage immediately shows "Essay Work"
+    expect(screen.getAllByText("Essay Work").length).toBeGreaterThan(0);
+
+    // Syncing tasks across students keeps both Quiz 1 and Essay Work cleanly without wiping
+    fireEvent.click(screen.getByRole("button", { name: /Sync Tasks to Students/i }));
+    expect(screen.getByTestId("student-components")).toHaveTextContent("Quiz 1,Essay Work");
+  });
 });

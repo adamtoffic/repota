@@ -37,16 +37,18 @@ export const Modal = ({
     }
   };
 
+  const hasMaxWidth = /\bmax-w-/.test(className);
+
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-md"
+      className="modal-backdrop fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-3 backdrop-blur-md sm:p-6"
       onClick={handleBackdropClick}
       style={{ position: "fixed" }}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className={`animate-sheet-up my-auto w-full max-w-md flex-shrink-0 rounded-lg bg-white shadow-xl ${className}`}
+        className={`animate-sheet-up my-auto w-full ${hasMaxWidth ? "" : "max-w-md"} flex-shrink-0 rounded-xl bg-white shadow-xl ${className}`}
       >
         {children}
       </div>

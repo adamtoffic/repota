@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
-import type { SavedSubject, SchoolSettings, StudentRecord } from "../types";
+import type { SchoolSettings, StudentRecord } from "../types";
+import { buildDefaultSubjectsForStudent } from "../utils/csvImport";
 import { Button, Input } from "./ui";
 
 interface AddStudentModalProps {
@@ -33,17 +33,7 @@ export function AddStudentModal({
     const trimmedName = newName.trim();
     if (!trimmedName) return;
 
-    const subjectNames =
-      settings.defaultSubjects && settings.defaultSubjects.length > 0
-        ? settings.defaultSubjects
-        : DEFAULT_SUBJECTS[settings.level] || [];
-
-    const startingSubjects: SavedSubject[] = subjectNames.map((subName) => ({
-      id: crypto.randomUUID(),
-      name: subName,
-      classScore: 0,
-      examScore: 0,
-    }));
+    const startingSubjects = buildDefaultSubjectsForStudent(settings);
 
     onAddStudent({
       id: crypto.randomUUID(),

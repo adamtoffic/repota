@@ -1,6 +1,11 @@
 import { useMemo, useRef, useState } from "react";
-import { BookOpen, ExternalLink, PlusCircle, TableProperties } from "lucide-react";
+import { BookOpen, Download, ExternalLink, PlusCircle, TableProperties, Upload } from "lucide-react";
 import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
+import {
+  buildSingleComponentExportCsv,
+  buildSubjectQuickExportCsv,
+  downloadCsvFile,
+} from "../utils/csvImport";
 import { calculateGrade } from "../utils/gradeCalculator";
 import {
   clampDirectClassScore,
@@ -14,6 +19,7 @@ interface QuickGradebookProps {
   settings: SchoolSettings;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
   onOpenStudent?: (student: ProcessedStudent) => void;
+  onOpenScoreImport?: (subject: string, taskName?: string) => void;
 }
 
 type FocusColumn = "CLASS_EXAM" | `COMP:${string}`;
@@ -23,6 +29,7 @@ export function QuickGradebook({
   settings,
   onUpdateStudent,
   onOpenStudent,
+  onOpenScoreImport,
 }: QuickGradebookProps) {
   const isMockExam = settings.examType === "MOCK";
   const maxClassScore = settings.classScoreMax;
@@ -79,23 +86,132 @@ export function QuickGradebook({
     ? activeFocusColumn.slice("COMP:".length)
     : null;
 
-  const scoredCount = useMemo(() => {
-    if (!activeSubject) return 0;
-    return students.filter((student) => {
-      const subject = student.subjects.find((sub) => sub.name === activeSubject);
-      if (!subject) return false;
-      if (isMockExam) return subject.examScore > 0;
-      return subject.classScore > 0 || subject.examScore > 0;
-    }).length;
-  }, [activeSubject, isMockExam, students]);
+  const activeTaskConfig = activeComponentName
+    ? sbaTaskOptions.find((t) => t.name === activeComponentName)
+    : undefined;
 
-  const focusNextStudentInput = (field: "class" | "exam" | "comp", currentIndex: number) => {
-    for (let nextIndex = currentIndex + 1; nextIndex < students.length; nextIndex++) {
+  const columnStats = useMemo(() => {
+    if (!activeSubject || students.length === 0) return { scored: 0, avgLabel: "" };
+    if (activeTaskConfig) {
+      const scores: number[] = [];
+      students.forEach((student) => {
+        const sub = student.subjects.find((s) => s.name === activeSubject);
+        const comp = sub?.classScoreComponents?.find((c) => c.name === activeTaskConfig.name);
+        if (comp && comp.score > 0) scores.push(comp.score);
+      });
+      const avg =
+        scores.length > 0
+          ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
+          : "0";
+      return {
+        scored: scores.length,
+        avgLabel: `Avg: ${avg}/${activeTaskConfig.maxScore}`,
+      };
+    }
+
+    const totals: number[] = [];
+    students.forEach((student) => {
+      const sub = student.subjects.find((s) => s.name === activeSubject);
+      if (!sub) return;
+      const hasAny = isMockExam ? sub.examScore > 0 : sub.classScore > 0 || sub.examScore > 0;
+      if (hasAny) totals.push((sub.classScore || 0) + (sub.examScore || 0));
+    });
+    const avg =
+      totals.length > 0
+        ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1)
+        : "0";
+    return { scored: totals.length, avgLabel: `Avg: ${avg}%` };
+  }, [activeSubject, activeTaskConfig, isMockExam, students]);
+
+  const handleExportCurrentView = () => {
+    if (!activeSubject || students.length === 0) return;
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const safeSub = activeSubject.replace(/\s+/g, "_");
+    if (activeTaskConfig) {
+      const csv = buildSingleComponentExportCsv(activeSubject, activeTaskConfig, students, settings);
+      downloadCsvFile(
+        csv,
+        `${safeSub}_${activeTaskConfig.name.replace(/\s+/g, "_")}_${dateStamp}.csv`,
+      );
+      return;
+    }
+    const csv = buildSubjectQuickExportCsv(activeSubject, students, settings);
+    downloadCsvFile(csv, `${safeSub}_Gradebook_${dateStamp}.csv`);
+  };
+
+  const scoredCount = columnStats.scored;
+
+  const focusAdjacentStudentInput = (
+    field: "class" | "exam" | "comp",
+    currentIndex: number,
+    direction: 1 | -1 = 1,
+  ) => {
+    for (
+      let nextIndex = currentIndex + direction;
+      nextIndex >= 0 && nextIndex < students.length;
+      nextIndex += direction
+    ) {
       const nextInput = inputRefs.current[`${field}:${students[nextIndex].id}`];
       if (nextInput && !nextInput.disabled) {
         nextInput.focus();
         nextInput.select();
         return;
+      }
+    }
+  };
+
+  /**
+   * Power-user clipboard paste: pasting a multi-line column of numbers copied from
+   * Excel or Google Sheets fills consecutive students downward from `startIndex`.
+   */
+  const handleColumnPaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    field: "class" | "exam" | "comp",
+    startIndex: number,
+  ) => {
+    const text = e.clipboardData.getData("text");
+    if (!text || !/[\r\n]/.test(text)) return;
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (lines.length <= 1) return;
+
+    e.preventDefault();
+    let lineOffset = 0;
+
+    for (let idx = startIndex; idx < students.length && lineOffset < lines.length; idx++) {
+      const targetStudent = students[idx];
+      const sub = targetStudent.subjects.find((s) => s.name === activeSubject);
+      if (!sub) continue;
+
+      const rawCell = lines[lineOffset].split(/\t|,/)[0].trim();
+      lineOffset++;
+      const numeric = Number(rawCell);
+      if (!Number.isFinite(numeric)) continue;
+
+      if (field === "comp" && activeComponentName) {
+        const comp = sub.classScoreComponents?.find((c) => c.name === activeComponentName);
+        if (!comp || !sub.classScoreComponents) continue;
+        const { updatedComponents, classScore } = updateComponentAndRecalculateClassScore(
+          sub.classScoreComponents,
+          comp.id,
+          numeric,
+          maxClassScore,
+        );
+        commitSubjectUpdate(targetStudent, {
+          ...sub,
+          classScoreComponents: updatedComponents,
+          classScore,
+        });
+      } else if (field === "class") {
+        if (!isMockExam && sub.classScoreComponents?.length) continue;
+        const { score } = clampDirectClassScore(numeric, maxClassScore);
+        commitSubjectUpdate(targetStudent, { ...sub, classScore: score });
+      } else if (field === "exam") {
+        const { weightedScore } = convertExamRawToWeighted(numeric, maxExamScore);
+        commitSubjectUpdate(targetStudent, { ...sub, examScore: weightedScore });
       }
     }
   };
@@ -153,9 +269,14 @@ export function QuickGradebook({
               <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
                 {scoredCount}/{students.length} scored
               </span>
+              {scoredCount > 0 && columnStats.avgLabel && (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                  {columnStats.avgLabel}
+                </span>
+              )}
             </div>
             <p className="text-muted mt-0.5 text-xs" data-record="true">
-              Enter scores subject-by-subject. Press Next or Enter to advance to the next student.
+              Enter scores subject-by-subject. Use Enter/Arrows to move or paste a column from Excel.
             </p>
           </div>
 
@@ -187,6 +308,35 @@ export function QuickGradebook({
                   </option>
                 ))}
               </select>
+            )}
+
+            {students.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExportCurrentView}
+                title={
+                  activeTaskConfig
+                    ? `Export ${activeTaskConfig.name} scores to CSV`
+                    : `Export ${activeSubject} scores to CSV`
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-xs transition-colors hover:bg-emerald-100"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>{activeTaskConfig ? "Export Task CSV" : "Export CSV"}</span>
+              </button>
+            )}
+
+            {onOpenScoreImport && (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenScoreImport(activeSubject, activeComponentName ?? undefined)
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-700 shadow-xs transition-colors hover:bg-purple-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Import</span>
+              </button>
             )}
           </div>
         </div>
@@ -314,10 +464,14 @@ export function QuickGradebook({
                             classScore,
                           });
                         }}
+                        onPaste={(e) => handleColumnPaste(e, "comp", index)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") {
+                          if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusNextStudentInput("comp", index);
+                            focusAdjacentStudentInput("comp", index, 1);
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            focusAdjacentStudentInput("comp", index, -1);
                           }
                         }}
                         className="w-24 rounded-lg border border-purple-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
@@ -361,10 +515,14 @@ export function QuickGradebook({
                             );
                             commitSubjectUpdate(student, { ...subject, classScore: score });
                           }}
+                          onPaste={(e) => handleColumnPaste(e, "class", index)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
+                            if (e.key === "Enter" || e.key === "ArrowDown") {
                               e.preventDefault();
-                              focusNextStudentInput("class", index);
+                              focusAdjacentStudentInput("class", index, 1);
+                            } else if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              focusAdjacentStudentInput("class", index, -1);
                             }
                           }}
                           className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -423,10 +581,14 @@ export function QuickGradebook({
                             return next;
                           });
                         }}
+                        onPaste={(e) => handleColumnPaste(e, "exam", index)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") {
+                          if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusNextStudentInput("exam", index);
+                            focusAdjacentStudentInput("exam", index, 1);
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            focusAdjacentStudentInput("exam", index, -1);
                           }
                         }}
                         className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"

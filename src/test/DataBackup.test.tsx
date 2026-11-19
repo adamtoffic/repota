@@ -870,4 +870,55 @@ describe("DataBackup", () => {
     );
     expect(screen.queryByRole("button", { name: "Yes, Load File" })).not.toBeInTheDocument();
   });
+
+  it("keeps accept='.json,.repota' on non-iOS devices", () => {
+    const view = renderBackup();
+    const fileInput = view.container.querySelector('input[type="file"]')!;
+    expect(fileInput).toHaveAttribute("accept", ".json,.repota");
+  });
+
+  it("omits the accept filter on iOS and loads renamed/untyped backups like .repota.dms", async () => {
+    const originalUa = navigator.userAgent;
+    const incoming = createBackupPayload(students, settings);
+    vi.mocked(isEncryptedFile).mockReturnValueOnce(true);
+    vi.mocked(requiresPassword).mockReturnValueOnce(false);
+    vi.mocked(decryptBackupFile).mockResolvedValueOnce(incoming);
+
+    Object.defineProperty(navigator, "userAgent", {
+      value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1",
+      configurable: true,
+    });
+
+    try {
+      const view = renderBackup();
+      const fileInput = view.container.querySelector('input[type="file"]')!;
+      expect(fileInput).not.toHaveAttribute("accept");
+
+      const file = new File(
+        [
+          `\uFEFF${JSON.stringify({
+            version: "v2",
+            encrypted: true,
+            mode: "app",
+            salt: "s",
+            iv: "i",
+            data: "d",
+          })}`,
+        ],
+        "School_Class_2026-11-19.repota.dms",
+        { type: "" },
+      );
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await vi.waitFor(() =>
+        expect(screen.getByText("Load New Class Data?")).toBeVisible(),
+      );
+      expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible();
+    } finally {
+      Object.defineProperty(navigator, "userAgent", {
+        value: originalUa,
+        configurable: true,
+      });
+    }
+  });
 });

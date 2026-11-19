@@ -46,6 +46,8 @@ export const studentNameSchema = z
  * 🛡️ STUDENT RECORD SCHEMA -
  * Full validation for student data before localStorage
  */
+export const feeStatusSchema = z.enum(["PAID", "PART_PAID", "OWING", "SCHOLARSHIP"]);
+
 export const studentRecordSchema = z.object({
   id: z.string().uuid("Invalid student ID"), // ✅ Restored strict UUID validation
   name: studentNameSchema,
@@ -63,6 +65,10 @@ export const studentRecordSchema = z.object({
   interest: z.string().max(100, "Interest too long").optional(),
   pictureUrl: z.string().optional(),
   promotionStatus: z.string().max(100).optional(),
+  admissionNumber: z.string().max(40).optional(),
+  feeStatus: feeStatusSchema.optional(),
+  feeArrears: z.number().min(0).max(1000000).optional(),
+  guardianPhone: z.string().max(30).optional(),
   remark: z.string().max(500, "Remark too long").optional(),
   attendanceTotal: z.number().min(0).max(365).optional(),
   promotedTo: z.string().max(50).optional(),

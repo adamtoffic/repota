@@ -1,20 +1,35 @@
+import { Fragment } from "react";
 import type { ReportTemplateProps } from "../types";
+import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
+import { getReportPalette } from "../utils/reportTheme";
 
 export function MinimalTemplate({ student, settings, printMode }: ReportTemplateProps) {
   const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
   const isPrivate = settings.schoolType === "PRIVATE";
-  const hasAnyFee = !!(settings.schoolGift || settings.canteenFees || settings.firstAidFees);
+  const activeFees = getActivePrivateFeeItems(settings);
+  const hasAnyFee = activeFees.length > 0;
+  const showArrears =
+    isPrivate &&
+    Boolean(settings.showStudentFeeArrearsOnReport) &&
+    typeof student.feeArrears === "number" &&
+    student.feeArrears > 0;
+  const { showClassPositionSummary, showSubjectPosition } = resolvePositionVisibility(settings);
   const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
 
   // ---------------------------------------------------------------------------
-  // 🎨 PRINT MODE LOGIC (Color vs B&W)
-  // The Minimal template is intentionally austere. Color mode adds navy accents.
+  // 🎨 PRINT MODE & CUSTOM SCHOOL COLOR LOGIC
   // ---------------------------------------------------------------------------
   const isBW = printMode === "bw";
   const imgFilter = isBW ? "grayscale" : "";
+  const palette = getReportPalette({
+    settings,
+    printMode,
+    defaultPrimary: "#292524",
+  });
+  const useCustom = palette.isCustomActive && !isBW;
 
   // ── Brand Color Variables ──────────────────────────────────────────────────
   const headerBorder = isBW ? "border-black" : "border-stone-800";
@@ -31,12 +46,22 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
     : "text-red-600 font-black";
   const summaryStrong = isBW ? "text-black font-black" : "text-stone-900 font-black";
 
+  const customBorder = useCustom ? { borderColor: palette.primaryDark } : undefined;
+  const customTitleColor = useCustom ? { color: palette.primaryDark } : undefined;
+  const customAggregateStyle = useCustom
+    ? {
+        borderColor: palette.primaryDark,
+        backgroundColor: palette.primarySoft,
+        color: palette.primaryDark,
+      }
+    : undefined;
+
   return (
     <div className="mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] bg-white p-[12mm] font-serif text-black print:h-[297mm] print:overflow-hidden print:border-none">
       {/* ==========================================
           HEADER: Centered, Formal, Academic
           ========================================== */}
-      <header className={`relative mb-6 border-b-2 ${headerBorder} pb-6 text-center`}>
+      <header className={`relative mb-6 border-b-2 ${headerBorder} pb-6 text-center`} style={customBorder}>
         {settings.logoUrl && (
           <div className="absolute top-0 left-0 h-20 w-20">
             <img
@@ -49,7 +74,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
 
         {/* GES Logo removed – student photo takes the top-right anchor */}
         {student.pictureUrl && (
-          <div className={`absolute top-0 right-0 h-20 w-20 border-2 ${headerBorder} p-0.5`}>
+          <div className={`absolute top-0 right-0 h-20 w-20 border-2 ${headerBorder} p-0.5`} style={customBorder}>
             <img
               src={student.pictureUrl}
               alt={student.name}
@@ -61,6 +86,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
         <div className="mx-auto max-w-[60%]">
           <h1
             className={`mb-2 text-3xl leading-tight font-bold tracking-widest uppercase ${titleColor}`}
+            style={customTitleColor}
           >
             {settings.schoolName}
           </h1>
@@ -78,6 +104,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
         <div className="mt-5">
           <h2
             className={`text-base font-black tracking-[0.2em] uppercase underline underline-offset-4 ${titleColor}`}
+            style={customTitleColor}
           >
             {" "}
             {isMock ? "Mock Examination Results" : "Official Academic Transcript"}
@@ -126,7 +153,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
               </span>{" "}
               <span>{settings.classSize || "-"}</span>
             </p>
-            {!isKG && (
+            {showClassPositionSummary && (
               <p>
                 <span className="mr-2 text-xs font-bold tracking-wider text-gray-500 uppercase">
                   Position:
@@ -139,7 +166,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
 
         <table className="mb-4 w-full border-collapse text-left font-sans text-[13px]">
           <thead>
-            <tr className={`border-y-2 ${tableBorder}`}>
+            <tr className={`border-y-2 ${tableBorder}`} style={customBorder}>
               <th className="px-1 py-2.5 font-bold">Course / Subject</th>
               {!isMock ? (
                 <>
@@ -155,7 +182,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
                 <th className="px-1 py-2.5 text-center font-bold">Score (100)</th>
               )}
               <th className="px-1 py-2.5 text-center font-bold">Grade</th>
-              {!isKG && <th className="px-1 py-2.5 text-center font-bold">Pos</th>}
+              {showSubjectPosition && <th className="px-1 py-2.5 text-center font-bold">Pos</th>}
               <th className="px-1 py-2.5 text-left font-bold">Remarks</th>
             </tr>
           </thead>
@@ -179,7 +206,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
                 >
                   {sub.grade}
                 </td>
-                {!isKG && (
+                {showSubjectPosition && (
                   <td className="px-1 py-2.5 text-center text-xs">{sub.subjectPosition || "-"}</td>
                 )}
                 <td className="px-1 py-2.5 text-left text-xs italic">{sub.remark}</td>
@@ -197,7 +224,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
             <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Average:</span>{" "}
             <strong className={summaryStrong}>{student.averageScore.toFixed(2)}</strong>
           </p>
-          {!isKG && (
+          {showClassPositionSummary && (
             <p>
               <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Position:</span>{" "}
               <strong className={summaryStrong}>{student.classPosition || "-"}</strong>
@@ -206,7 +233,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
           {!isKG && student.aggregate !== null && (
             <p>
               <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Aggregate:</span>{" "}
-              <strong className={aggregateBox}>{student.aggregate}</strong>
+              <strong className={aggregateBox} style={customAggregateStyle}>{student.aggregate}</strong>
             </p>
           )}
         </div>
@@ -216,7 +243,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
           FOOTER: Signatures & Inline Remarks
           ========================================== */}
       <footer className="mt-auto font-sans text-sm">
-        <div className={`mb-6 border-t-2 ${footerBorder} pt-4`}>
+        <div className={`mb-6 border-t-2 ${footerBorder} pt-4`} style={customBorder}>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             <p>
               <strong className="text-xs tracking-wider uppercase">Attendance:</strong>{" "}
@@ -258,16 +285,26 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
           </p>
         </div>
 
-        {isPrivate && hasAnyFee && (
-          <div className={`mb-4 border ${footerBorder} bg-gray-50 p-2 text-center text-xs`}>
+        {isPrivate && (hasAnyFee || showArrears) && (
+          <div
+            className={`mb-4 border ${footerBorder} bg-gray-50 p-2 text-center text-xs`}
+            style={customBorder}
+          >
             <strong className="mr-2 tracking-wider uppercase">Next Term Fees:</strong>
-            {settings.schoolGift && <>School: GH₵{settings.schoolGift}</>}
-            {settings.schoolGift && settings.canteenFees && <> &nbsp;|&nbsp; </>}
-            {settings.canteenFees && <>Canteen: GH₵{settings.canteenFees}</>}
-            {(settings.schoolGift || settings.canteenFees) && settings.firstAidFees && (
-              <> &nbsp;|&nbsp; </>
+            {activeFees.map((fee, idx) => (
+              <Fragment key={fee.id}>
+                {idx > 0 && <> &nbsp;|&nbsp; </>}
+                {fee.label}: GH₵{fee.amount.toFixed(2)}
+              </Fragment>
+            ))}
+            {showArrears && (
+              <>
+                {activeFees.length > 0 && <> &nbsp;|&nbsp; </>}
+                <strong className="text-red-700">
+                  Arrears: GH₵{student.feeArrears!.toFixed(2)}
+                </strong>
+              </>
             )}
-            {settings.firstAidFees && <>First Aid: GH₵{settings.firstAidFees}</>}
           </div>
         )}
 
@@ -282,7 +319,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
                 />
               )}
             </div>
-            <div className={`border-t-2 ${footerBorder} pt-1 text-center`}>
+            <div className={`border-t-2 ${footerBorder} pt-1 text-center`} style={customBorder}>
               <p className="text-xs font-black uppercase">
                 {settings.classTeacherName || "Class Teacher"}
               </p>
@@ -308,7 +345,7 @@ export function MinimalTemplate({ student, settings, printMode }: ReportTemplate
                 />
               )}
             </div>
-            <div className={`border-t-2 ${footerBorder} pt-1 text-center`}>
+            <div className={`border-t-2 ${footerBorder} pt-1 text-center`} style={customBorder}>
               <p className="text-xs font-black uppercase">
                 {settings.headTeacherName || "Headmaster"}
               </p>
