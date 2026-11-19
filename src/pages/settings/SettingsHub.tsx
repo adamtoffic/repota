@@ -13,7 +13,9 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
+import { getTimeSinceBackup } from "../../utils/dataProtection";
 import { isPinConfigured } from "../../utils/pinSecurity";
+import { resolvePositionVisibility } from "../../utils/privateSchoolFees";
 
 export function SettingsHub() {
   return (
@@ -30,6 +32,19 @@ function SettingsHubContent() {
     TEMPLATE_REGISTRY.find((t) => t.id === (formData.templateId || "original_v1"))?.name ||
     "Original";
   const pinActive = isPinConfigured();
+  const lastBackupLabel = typeof getTimeSinceBackup === "function" ? getTimeSinceBackup() : null;
+  const { showClassPositionHeader, showSubjectPosition } = resolvePositionVisibility(formData);
+  const positionsHidden = !showClassPositionHeader && !showSubjectPosition;
+  const reportStyleMeta = [
+    currentTemplateName,
+    formData.useCustomTemplateColor ? "Custom Colors" : null,
+    positionsHidden ? "Ranks Hidden" : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+  const securityMeta = `${pinActive ? "PIN On" : "PIN Off"} • ${
+    lastBackupLabel ? `Backed up ${lastBackupLabel}` : "No backup yet"
+  }`;
 
   const sections = [
     {
@@ -65,7 +80,7 @@ function SettingsHubContent() {
       description: "Choose the visual layout used when printing student report cards.",
       icon: LayoutTemplate,
       iconBg: "bg-indigo-100 text-indigo-600",
-      meta: currentTemplateName,
+      meta: reportStyleMeta,
     },
     {
       to: "/settings/security" as const,
@@ -73,7 +88,7 @@ function SettingsHubContent() {
       description: "PIN lock, device biometrics, storage usage, backups, and factory reset.",
       icon: ShieldCheck,
       iconBg: "bg-green-100 text-green-600",
-      meta: pinActive ? "PIN Enabled" : "PIN Off",
+      meta: securityMeta,
     },
   ];
 

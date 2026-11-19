@@ -31,6 +31,7 @@ vi.mock("../utils/dataProtection", () => ({
   createBackupHeartbeat: storage.createBackupHeartbeat,
   requestPersistentStorage: vi.fn(),
   detectDataLoss: vi.fn(() => false),
+  getTimeSinceBackup: vi.fn(() => null),
 }));
 
 import { SchoolProvider } from "../context/SchoolContext";
@@ -340,5 +341,38 @@ describe("Settings sub-routes shared state and invariants", () => {
     expect(savedSettings?.subjectComponentMap?.Mathematics).toEqual([
       { name: "Class Test", maxScore: 20, category: "CAT" },
     ]);
+  });
+
+  it("renders SettingsHub live style/backup metadata, mobile section pills, and template print shortcut", async () => {
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return { status: "found", value: seededStudents };
+      }
+      if (key === "ges_v1_settings") {
+        return {
+          status: "found",
+          value: { ...seededSettings, useCustomTemplateColor: true },
+        };
+      }
+      return { status: "empty" };
+    });
+
+    const { router } = renderSubRouteApp("/settings");
+    await flushHydrationAndImports();
+
+    expect(screen.getByText(/Original • Custom Colors/i)).toBeInTheDocument();
+    expect(screen.getByText(/PIN Off • No backup yet/i)).toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate({ to: "/settings/templates" });
+      await vi.dynamicImportSettled();
+      await Promise.resolve();
+    });
+
+    const nav = screen.getByRole("navigation", { name: "Settings sections" });
+    expect(nav).toBeInTheDocument();
+
+    const printLink = screen.getByRole("link", { name: /Preview & Print Report Cards/i });
+    expect(printLink).toHaveAttribute("href", "/print");
   });
 });

@@ -31,6 +31,7 @@ vi.mock("../utils/dataProtection", () => ({
   createBackupHeartbeat: storage.createBackupHeartbeat,
   requestPersistentStorage: vi.fn(),
   detectDataLoss: vi.fn(() => false),
+  getTimeSinceBackup: vi.fn(() => null),
 }));
 
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
