@@ -51,7 +51,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
     <>
       {/* OVER CAPACITY WARNING BANNER */}
       {stats.isOverCapacity && (
-        <div className="animate-in fade-in slide-in-from-top-2 mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm duration-300">
+        <div className="animate-slide-in-down mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm">
           <div className="rounded-full bg-red-100 p-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
           </div>

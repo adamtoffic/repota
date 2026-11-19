@@ -234,9 +234,20 @@ body.modal-open {
   }
 }
 
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Animation Classes - Lightweight & Fast */
 .animate-slide-in-up {
-  animation: slideUp 0.2s ease-out;
+  animation: slideUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-slide-in-down {
@@ -252,11 +263,11 @@ body.modal-open {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.16s ease-out both;
 }
 
 .animate-scale-in {
-  animation: fadeIn 0.2s ease-out;
+  animation: scaleIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-shimmer {
@@ -264,11 +275,11 @@ body.modal-open {
 }
 
 .animate-page-enter {
-  animation: pageEnter 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: pageEnter 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-sheet-up {
-  animation: sheetUp 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: sheetUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .spring-tab {
@@ -487,6 +498,15 @@ a[role="button"]:active {
   /* Ensure last report doesn't create blank page */
   .report-wrapper[data-is-last="true"] {
     page-break-after: auto !important;
+  }
+
+  .animate-page-enter,
+  .animate-fade-in,
+  .animate-sheet-up,
+  .animate-slide-in-up,
+  .animate-slide-in-down,
+  .animate-scale-in {
+    animation: none !important;
   }
 }
 

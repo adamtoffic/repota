@@ -128,7 +128,7 @@ export function PwaInstallPrompt() {
   // Different UI for iOS Safari (instructions instead of install button)
   if (isIOSDevice && isSafari()) {
     return (
-      <div className="animate-in slide-in-from-bottom bottom-safe-nav fixed right-4 left-4 z-50 duration-300 sm:left-auto sm:w-96 print:hidden">
+      <div className="animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 sm:left-auto sm:w-96 print:hidden">
         <div className="rounded-lg border border-blue-200 bg-white p-4 shadow-lg">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
@@ -181,7 +181,7 @@ export function PwaInstallPrompt() {
 
   // Default UI for Chrome/Edge (with install button)
   return (
-    <div className="animate-in slide-in-from-bottom bottom-safe-nav fixed right-4 left-4 z-50 duration-300 sm:left-auto sm:w-96 print:hidden">
+    <div className="animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 sm:left-auto sm:w-96 print:hidden">
       <div className="rounded-lg border border-blue-200 bg-white p-4 shadow-lg">
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100">

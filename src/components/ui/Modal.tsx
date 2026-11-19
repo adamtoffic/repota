@@ -43,7 +43,7 @@ export const Modal = ({
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-3 backdrop-blur-md sm:p-6"
+      className="modal-backdrop animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-3 backdrop-blur-md sm:p-6"
       onClick={handleBackdropClick}
       style={{ position: "fixed" }}
     >
