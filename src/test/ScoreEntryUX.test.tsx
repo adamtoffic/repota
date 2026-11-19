@@ -377,6 +377,37 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       expect(screen.getByText("Complete Student")).toBeInTheDocument();
       expect(screen.queryByText("Incomplete Student")).not.toBeInTheDocument();
     });
+
+    it("renders visible mobile labels, template style shortcut, and dismissible photo warning outside sticky toolbar", () => {
+      const student = makeStudent(
+        "s1",
+        "Student Photo Missing",
+        [{ id: "m1", name: "Mathematics", classScore: 35, examScore: 40 }],
+        75,
+      );
+
+      const ctx = makeSchoolContext([student]);
+      render(
+        <SchoolContext.Provider value={ctx}>
+          <PrintPreview />
+        </SchoolContext.Provider>,
+      );
+
+      expect(screen.getByText("Color")).not.toHaveClass("hidden");
+      expect(screen.getByText("B&W")).not.toHaveClass("hidden");
+      expect(screen.getByText("Print")).not.toHaveClass("hidden");
+      expect(screen.getByLabelText("Customize report style")).toHaveAttribute(
+        "to",
+        "/settings/templates",
+      );
+
+      const toolbar = screen.getByTestId("print-sticky-toolbar");
+      const warningText = screen.getByText(/1 student missing photo/i);
+      expect(toolbar).not.toContainElement(warningText);
+
+      fireEvent.click(screen.getByRole("button", { name: "Dismiss missing photo warning" }));
+      expect(screen.queryByText(/1 student missing photo/i)).not.toBeInTheDocument();
+    });
   });
 
   describe("DetailsTab immediate auto-save", () => {

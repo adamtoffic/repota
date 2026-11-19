@@ -1,5 +1,5 @@
 import { Link, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, Printer, AlertCircle, Image } from "lucide-react";
+import { ArrowLeft, Printer, AlertCircle, Image, Palette, X } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PdfExportModal } from "../components/PdfExportModal";
@@ -19,6 +19,7 @@ export function PrintPreview() {
 
   const [printMode, setPrintMode] = useState<PrintMode>("color");
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
+  const [photoWarningDismissed, setPhotoWarningDismissed] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
@@ -199,29 +200,55 @@ export function PrintPreview() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
-      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 p-3 backdrop-blur-md sm:p-4 print:hidden">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <div
+        data-testid="print-sticky-toolbar"
+        className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 p-3 backdrop-blur-md sm:p-4 print:hidden"
+      >
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           {/* LEFT: Back + Title */}
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             <Link
               to="/"
+              aria-label="Back to Dashboard"
               className="shrink-0 rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="min-w-0">
               <h1 className="text-main truncate text-base font-bold sm:text-lg">Print Preview</h1>
-              <p className="text-muted hidden text-xs sm:block">
+              <p className="text-muted truncate text-[11px] sm:text-xs">
                 {printableStudents.length} report card{printableStudents.length !== 1 ? "s" : ""}{" "}
                 &mdash; {settings.className || "Class"}
               </p>
             </div>
           </div>
 
-          {/* RIGHT: Ready filter + Mode toggle + Print button */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {/* RIGHT ACTIONS: Style shortcut + Print button */}
+          <div className="flex shrink-0 items-center gap-2 sm:order-3">
+            <Link
+              to="/settings/templates"
+              title="Customize report style & colors"
+              aria-label="Customize report style"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-700 shadow-2xs transition-colors hover:bg-gray-50 sm:px-3"
+            >
+              <Palette className="h-3.5 w-3.5 text-indigo-600" />
+              <span className="hidden md:inline">Style</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="bg-primary hover:bg-primary/90 flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold text-white shadow-sm transition-all active:scale-95 sm:gap-2 sm:px-5 sm:text-sm"
+            >
+              <Printer className="h-4 w-4 shrink-0" />
+              <span>Print</span>
+            </button>
+          </div>
+
+          {/* FILTER & INK MODE STRIP */}
+          <div className="flex w-full items-center justify-between gap-2 border-t border-gray-100 pt-2 sm:order-2 sm:w-auto sm:justify-start sm:gap-3 sm:border-t-0 sm:pt-0">
             {!id && students.length > 0 && (
-              <div className="flex flex-col items-center gap-0.5">
+              <div className="flex flex-col items-start gap-0.5 sm:items-center">
                 <p className="hidden text-[9px] font-black tracking-widest text-gray-400 uppercase sm:block">
                   Students
                 </p>
@@ -259,7 +286,7 @@ export function PrintPreview() {
             )}
 
             {/* ── INK MODE TOGGLE ───────────────────────────────────── */}
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex flex-col items-end gap-0.5 sm:items-center">
               <p className="hidden text-[9px] font-black tracking-widest text-gray-400 uppercase sm:block">
                 Ink Mode
               </p>
@@ -275,6 +302,7 @@ export function PrintPreview() {
 
                 {/* Color button */}
                 <button
+                  type="button"
                   onClick={() => setPrintMode("color")}
                   aria-pressed={printMode === "color"}
                   title="Full color print"
@@ -288,11 +316,12 @@ export function PrintPreview() {
                       printMode === "color" ? "opacity-100" : "opacity-40"
                     }`}
                   />
-                  <span className="hidden sm:inline">Color</span>
+                  <span>Color</span>
                 </button>
 
                 {/* B&W button */}
                 <button
+                  type="button"
                   onClick={() => setPrintMode("bw")}
                   aria-pressed={printMode === "bw"}
                   title="Black & white print"
@@ -306,54 +335,54 @@ export function PrintPreview() {
                       printMode === "bw" ? "opacity-100" : "opacity-40"
                     }`}
                   />
-                  <span className="hidden sm:inline">B&W</span>
+                  <span>B&W</span>
                 </button>
               </div>
             </div>
             {/* ──────────────────────────────────────────────────────── */}
+          </div>
+        </div>
+      </div>
 
+      {/* VALIDATION WARNING FOR MISSING PHOTOS (Outside sticky toolbar so it scrolls naturally) */}
+      {studentsWithMissingPhotos.length > 0 && !photoWarningDismissed && (
+        <div className="mx-auto max-w-5xl px-3 pt-3 sm:px-4 print:hidden">
+          <div className="flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3.5 shadow-xs sm:p-4">
+            <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-yellow-800">
+                ⚠️ {studentsWithMissingPhotos.length} student
+                {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
+                {studentsWithMissingPhotos.length === 1 ? "" : "s"}
+              </p>
+              <p className="text-muted mt-0.5 text-xs">
+                Reports will print without photos. Add student photos in the Dashboard for complete
+                report cards.
+              </p>
+            </div>
             <button
-              onClick={handlePrint}
-              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-sm transition-all active:scale-95 sm:px-6"
+              type="button"
+              onClick={() => setPhotoWarningDismissed(true)}
+              aria-label="Dismiss missing photo warning"
+              className="shrink-0 rounded-lg p-1 text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-950"
             >
-              <Printer className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Print</span>
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
-
-        {/* VALIDATION WARNING FOR MISSING PHOTOS */}
-        {studentsWithMissingPhotos.length > 0 && (
-          <div className="mx-auto mt-4 max-w-5xl rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm print:hidden">
-            <div className="flex items-start gap-3">
-              <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-yellow-800">
-                  ⚠️ {studentsWithMissingPhotos.length} student
-                  {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
-                  {studentsWithMissingPhotos.length === 1 ? "" : "s"}
-                </p>
-                <p className="text-muted mt-0.5 text-xs">
-                  Reports will print without photos. Add student photos in the Dashboard for
-                  complete report cards.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* 2. THE PREVIEW AREA - All rendered upfront for fast printing */}
       <div
         ref={printAreaRef}
-        className="overflow-hidden print:m-0 print:w-full print:overflow-visible print:p-0"
+        className="overflow-hidden py-4 print:m-0 print:w-full print:overflow-visible print:p-0"
       >
         {printableStudents.map((student) => (
           <div
             key={student.id}
-            className="report-wrapper ph-no-capture mb-4 flex h-[130mm] justify-center overflow-hidden sm:h-[230mm] lg:h-auto print:m-0 print:mb-0 print:block print:overflow-hidden print:p-0"
+            className="report-wrapper ph-no-capture mb-3 flex h-[126mm] justify-center overflow-hidden sm:mb-4 sm:h-[225mm] lg:mb-6 lg:h-auto print:m-0 print:mb-0 print:block print:overflow-hidden print:p-0"
           >
-            <div className="origin-top scale-[0.40] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
+            <div className="origin-top scale-[0.42] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
               <div
                 data-pdf-card="true"
                 className="bg-white shadow-2xl print:m-0 print:p-0 print:shadow-none"
