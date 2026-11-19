@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, Calculator, Download, RefreshCw, Upload } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSettingsForm } from "../hooks/useSettingsForm";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import { exportToCSV } from "../utils/export";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -29,13 +29,18 @@ function SbaPageContent() {
     flushPendingSave,
     syncCommittedSettings,
   } = useSettingsForm();
-  const { students, detectComponentMismatches, syncSubjectComponentsFromSettings } =
-    useSchoolData();
+  const students = useSchoolStudents();
+  const settings = useSchoolSettings();
+  const { detectComponentMismatches, syncSubjectComponentsFromSettings } = useSchoolActions();
   const { showToast } = useToast();
   const [showScoreImport, setShowScoreImport] = useState(false);
   const [scoreImportSubject, setScoreImportSubject] = useState<string | undefined>(undefined);
 
-  const mismatch = detectComponentMismatches();
+  const mismatch = useMemo(() => {
+    void students;
+    void settings.subjectComponentMap;
+    return detectComponentMismatches();
+  }, [detectComponentMismatches, students, settings.subjectComponentMap]);
   const hasMismatches = mismatch.hasOutdated || mismatch.hasMissing;
 
   const handleExportScores = () => {

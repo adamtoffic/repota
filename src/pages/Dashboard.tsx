@@ -86,11 +86,19 @@ export function Dashboard() {
   const isSearching = searchQuery !== "" && debounceSearch !== searchQuery;
 
   const filterCounts = useMemo(() => {
-    const noScores = students.filter(hasNoScoresEntered).length;
-    const partialScores = students.filter((s) => hasPartialScores(s, settings)).length;
-    const pending = students.filter((s) => isStudentPending(s, settings)).length;
-    const missingPhotos = students.filter(hasMissingPhoto).length;
-    const failing = students.filter((s) => isStudentFailing(s, settings)).length;
+    let noScores = 0;
+    let partialScores = 0;
+    let pending = 0;
+    let missingPhotos = 0;
+    let failing = 0;
+
+    for (const s of students) {
+      if (hasNoScoresEntered(s)) noScores += 1;
+      if (hasPartialScores(s, settings)) partialScores += 1;
+      if (isStudentPending(s, settings)) pending += 1;
+      if (hasMissingPhoto(s)) missingPhotos += 1;
+      if (isStudentFailing(s, settings)) failing += 1;
+    }
 
     return {
       all: students.length,

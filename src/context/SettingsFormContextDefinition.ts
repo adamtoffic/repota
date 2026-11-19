@@ -58,6 +58,7 @@ export interface SettingsFormContextType {
   biometricAvailable: boolean;
   biometricType: "face" | "fingerprint" | "other" | null;
   enrollingBiometric: boolean;
+  checkBiometric: (force?: boolean) => Promise<void>;
   handleEnrollBiometric: () => Promise<void>;
   handleDisableBiometric: () => void;
   setShowPinSetup: Dispatch<SetStateAction<boolean>>;

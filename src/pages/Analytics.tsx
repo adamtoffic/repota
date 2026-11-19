@@ -62,7 +62,10 @@ import {
   calculateCoreVsElectiveStats,
   calculatePrivateFeeSummary,
 } from "../utils/analyticsCalculator";
-import { generateClassStory } from "../utils/classStoryGenerator";
+import {
+  generateClassPulseHeadline,
+  generateClassStory,
+} from "../utils/classStoryGenerator";
 import { processStudent } from "../utils/gradeCalculator";
 import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
 import { buildAnalyticsPdfFilename, generateBlocksPdfFile } from "../utils/pdfPrint";
@@ -303,11 +306,16 @@ export const Analytics: React.FC = () => {
     [activeView, filteredStudents, settings.schoolType],
   );
 
-  const classStory = useMemo(
+  const classPulseHeadline = useMemo(
     () =>
-      activeView === "overview" || activeView === "insights"
-        ? generateClassStory(filteredStudents, settings)
+      activeView === "overview"
+        ? generateClassPulseHeadline(filteredStudents, settings, classMetrics)
         : null,
+    [activeView, filteredStudents, settings, classMetrics],
+  );
+
+  const classStory = useMemo(
+    () => (activeView === "insights" ? generateClassStory(filteredStudents, settings) : null),
     [activeView, filteredStudents, settings],
   );
 
@@ -440,7 +448,7 @@ export const Analytics: React.FC = () => {
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
       {/* NAV */}
-      <PageHeader schoolName={settings.schoolName} variant="transparent" />
+      <PageHeader schoolName={settings.schoolName} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* Header */}
@@ -583,7 +591,7 @@ export const Analytics: React.FC = () => {
             {activeView === "overview" && (
               <>
                 {/* Class Pulse Story Banner */}
-                {classStory && (
+                {classPulseHeadline && (
                   <div className="rounded-xl border border-indigo-200 bg-linear-to-r from-indigo-50 via-blue-50 to-purple-50 p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
@@ -595,7 +603,7 @@ export const Analytics: React.FC = () => {
                           Class Pulse Story
                         </p>
                         <p className="mt-1 text-sm leading-relaxed font-semibold text-gray-800">
-                          {classStory.headline}
+                          {classPulseHeadline}
                         </p>
                       </div>
                       <button

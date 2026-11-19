@@ -20,7 +20,12 @@ interface Props {
   onClose: () => void;
 }
 
-export function BulkImportModal({ isOpen, onClose }: Props) {
+export function BulkImportModal(props: Props) {
+  if (!props.isOpen) return null;
+  return <BulkImportModalContent {...props} />;
+}
+
+function BulkImportModalContent({ isOpen, onClose }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
   const { addStudent, updateStudent } = useSchoolActions();
@@ -29,8 +34,6 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   const [preview, setPreview] = useState<ParsedRosterRow[]>([]);
   const [hasMissingGender, setHasMissingGender] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
-
-  if (!isOpen) return null;
 
   const handlePreview = (inputText = text) => {
     if (!inputText.trim()) return;

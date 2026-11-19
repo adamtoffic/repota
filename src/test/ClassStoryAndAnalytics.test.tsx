@@ -6,7 +6,7 @@ import { SchoolContext, type SchoolContextType } from "../context/SchoolContextD
 import { ToastContext } from "../context/ToastContextDefinition";
 import { Analytics } from "../pages/Analytics";
 import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
-import { generateClassStory } from "../utils/classStoryGenerator";
+import { generateClassPulseHeadline, generateClassStory } from "../utils/classStoryGenerator";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
@@ -100,12 +100,14 @@ describe("classStoryGenerator & Analytics UI", () => {
     expect(story.watchouts.some((w) => w.includes("250.00"))).toBe(true);
     expect(story.actionPlan.length).toBeGreaterThanOrEqual(1);
     expect(story.plainTextBrief).toContain("NEXT-WEEK ACTION PLAN:");
+    expect(generateClassPulseHeadline(sampleStudents, settings)).toBe(story.headline);
   });
 
   it("handles empty or ungraded classes gracefully", () => {
     const emptyStory = generateClassStory([], settings);
     expect(emptyStory.gradedCount).toBe(0);
     expect(emptyStory.headline).toContain("no recorded scores yet");
+    expect(generateClassPulseHeadline([], settings)).toBe(emptyStory.headline);
   });
 
   it("renders Class Pulse, Private Fee Tracking, and full AI Insights narrative tab", async () => {

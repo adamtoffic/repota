@@ -50,7 +50,12 @@ interface Props {
 
 const CREATE_NEW_TASK_VALUE = "__CREATE_NEW_TASK__";
 
-export function ScoreImportModal({
+export function ScoreImportModal(props: Props) {
+  if (!props.isOpen) return null;
+  return <ScoreImportModalContent {...props} />;
+}
+
+function ScoreImportModalContent({
   isOpen,
   onClose,
   initialSubject,
@@ -171,8 +176,6 @@ export function ScoreImportModal({
     activeMode,
     activeSingleTask,
   ]);
-
-  if (!isOpen) return null;
 
   const handleDownloadTemplate = () => {
     if (!activeSubject) return;

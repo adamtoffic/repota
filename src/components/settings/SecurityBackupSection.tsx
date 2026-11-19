@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Fingerprint, Key, Lock, RotateCcw } from "lucide-react";
 import { DataBackup } from "../DataBackup";
 import { StorageMonitor } from "../StorageMonitor";
@@ -14,6 +15,7 @@ export function SecurityBackupSection() {
     biometricAvailable,
     biometricType,
     enrollingBiometric,
+    checkBiometric,
     handleEnrollBiometric,
     handleDisableBiometric,
     setShowPinSetup,
@@ -21,6 +23,10 @@ export function SecurityBackupSection() {
     setShowDisablePinModal,
     setShowFactoryResetModal,
   } = useSettingsForm();
+
+  useEffect(() => {
+    void checkBiometric();
+  }, [checkBiometric]);
 
   return (
     <>
