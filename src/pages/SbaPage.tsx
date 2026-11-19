@@ -33,6 +33,7 @@ function SbaPageContent() {
     useSchoolData();
   const { showToast } = useToast();
   const [showScoreImport, setShowScoreImport] = useState(false);
+  const [scoreImportSubject, setScoreImportSubject] = useState<string | undefined>(undefined);
 
   const mismatch = detectComponentMismatches();
   const hasMismatches = mismatch.hasOutdated || mismatch.hasMissing;
@@ -83,6 +84,7 @@ function SbaPageContent() {
                 disabled={isPersistenceSuspended}
                 onClick={() => {
                   flushPendingSave();
+                  setScoreImportSubject(undefined);
                   setShowScoreImport(true);
                 }}
                 className="gap-1.5"
@@ -116,7 +118,7 @@ function SbaPageContent() {
                     className="gap-1.5"
                   >
                     <Download className="h-4 w-4" />
-                    <span>Export Scores (CSV)</span>
+                    <span>Export Broadsheet (CSV)</span>
                   </Button>
                 </>
               )}
@@ -164,12 +166,23 @@ function SbaPageContent() {
           </div>
         )}
 
-        <SbaAssessmentSection />
+        <SbaAssessmentSection
+          onImportSubjectScores={(subject) => {
+            flushPendingSave();
+            setScoreImportSubject(subject);
+            setShowScoreImport(true);
+          }}
+        />
       </main>
 
       <ScoreImportModal
+        key={`${showScoreImport ? "open" : "closed"}:${scoreImportSubject ?? ""}`}
         isOpen={showScoreImport}
-        onClose={() => setShowScoreImport(false)}
+        onClose={() => {
+          setShowScoreImport(false);
+          setScoreImportSubject(undefined);
+        }}
+        initialSubject={scoreImportSubject}
         onSettingsUpdated={syncCommittedSettings}
       />
     </div>

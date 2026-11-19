@@ -222,4 +222,31 @@ describe("SBA workflow end-to-end", () => {
     fireEvent.click(screen.getByRole("button", { name: /Sync Tasks to Students/i }));
     expect(screen.getByTestId("student-components")).toHaveTextContent("Quiz 1,Essay Work");
   });
+
+  it("clarifies Export Broadsheet label, displays per-subject raw mark totals, and opens per-subject ScoreImportModal", async () => {
+    render(
+      <SchoolProvider>
+        <LoadedSbaHarness onSubjects={() => {}} />
+      </SchoolProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Academy")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Export Broadsheet \(CSV\)/i })).toBeInTheDocument();
+    });
+
+    // Add a task and assign it so both Mathematics and Science show their raw mark totals
+    fireEvent.change(screen.getByPlaceholderText("e.g. Natural Science Project"), {
+      target: { value: "Group Drill" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("15"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Add$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Assign All Tasks to All Subjects/i }));
+
+    expect(screen.getAllByText("1 task • /10 raw → 50% Class")).toHaveLength(2);
+
+    // Clicking Science's Import Scores shortcut opens ScoreImportModal pre-targeted to Science
+    fireEvent.click(screen.getByRole("button", { name: "Import scores for Science" }));
+    expect(screen.getByLabelText(/Target Subject/i)).toHaveValue("Science");
+  });
 });
