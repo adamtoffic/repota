@@ -11,6 +11,11 @@ interface Props {
 }
 
 export function BulkPromotionModal({ isOpen, onClose }: Props) {
+  if (!isOpen) return null;
+  return <BulkPromotionModalContent onClose={onClose} />;
+}
+
+function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
   const students = useSchoolStudents();
   const settings = useSchoolSettings();
   const { updateStudent } = useSchoolActions();
@@ -18,8 +23,6 @@ export function BulkPromotionModal({ isOpen, onClose }: Props) {
 
   const [threshold, setThreshold] = useState(50);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
-
-  if (!isOpen) return null;
 
   const getSuggestedStatus = (avgScore: number, className: string) =>
     avgScore >= threshold ? "Promoted to Next Class" : `Repeated ${className}`;
@@ -60,7 +63,7 @@ export function BulkPromotionModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-2xl">
+    <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-2xl">
       <div className="overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">

@@ -7,6 +7,7 @@ export interface ModalProps {
   children: ReactNode;
   className?: string;
   closeOnBackdrop?: boolean;
+  closeOnEscape?: boolean;
 }
 
 export const Modal = ({
@@ -15,9 +16,10 @@ export const Modal = ({
   children,
   className = "",
   closeOnBackdrop = true,
+  closeOnEscape = true,
 }: ModalProps) => {
   useEffect(() => {
-    if (!isOpen || !closeOnBackdrop) return;
+    if (!isOpen || !closeOnEscape) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -27,7 +29,7 @@ export const Modal = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, closeOnBackdrop, onClose]);
+  }, [isOpen, closeOnEscape, onClose]);
 
   if (!isOpen) return null;
 

@@ -1,8 +1,19 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
+import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
 import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
+import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { WelcomeTour } from "../components/WelcomeTour";
+import { Modal } from "../components/ui/Modal";
+import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
+import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
+import { ToastContext } from "../context/ToastContextDefinition";
+import type { ProcessedStudent } from "../types";
+
+vi.mock("posthog-js", () => ({
+  default: { capture: vi.fn() },
+}));
 
 describe("Modal and Overlay UX", () => {
   afterEach(() => {
@@ -79,5 +90,108 @@ describe("Modal and Overlay UX", () => {
     expect(screen.getByText("Install Repota")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dismiss install prompt" })).toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/\bdark:/);
+  });
+
+  it("Modal closes on Escape when closeOnBackdrop is false, and ScoreEntryModal closes on Escape", () => {
+    const onModalClose = vi.fn();
+    render(
+      <Modal isOpen={true} onClose={onModalClose} closeOnBackdrop={false}>
+        <div>Locked Backdrop Content</div>
+      </Modal>,
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onModalClose).toHaveBeenCalledTimes(1);
+
+    const onScoreClose = vi.fn();
+    const student: ProcessedStudent = {
+      id: "stu-1",
+      name: "Ama Mensah",
+      className: "Basic 5",
+      gender: "Female",
+      subjects: [],
+      totalScore: 0,
+      averageScore: 0,
+      classPosition: "Pending...",
+      aggregate: undefined,
+    };
+    const ctx = {
+      students: [student],
+      settings: DEFAULT_SETTINGS,
+      clearStudentScores: vi.fn(),
+      detectComponentMismatches: () => ({
+        hasOutdated: false,
+        hasMissing: false,
+        outdatedStudents: [],
+        missingStudents: [],
+      }),
+      syncSubjectComponentsFromSettings: vi.fn(),
+    } as unknown as SchoolContextType;
+
+    render(
+      <SchoolContext.Provider value={ctx}>
+        <ScoreEntryModal
+          student={student}
+          level="PRIMARY"
+          isOpen={true}
+          onClose={onScoreClose}
+          onUpdateStudent={vi.fn()}
+        />
+      </SchoolContext.Provider>,
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onScoreClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("BulkAttendanceModal initializes fresh student attendance whenever reopened", () => {
+    const studentOne: ProcessedStudent = {
+      id: "stu-1",
+      name: "Kofi Boateng",
+      className: "Basic 5",
+      attendancePresent: 40,
+      subjects: [],
+      totalScore: 0,
+      averageScore: 0,
+      classPosition: "Pending...",
+      aggregate: undefined,
+    };
+
+    const makeCtx = (attendance: number) =>
+      ({
+        students: [{ ...studentOne, attendancePresent: attendance }],
+        settings: DEFAULT_SETTINGS,
+        updateStudent: vi.fn(),
+      }) as unknown as SchoolContextType;
+
+    const { rerender } = render(
+      <ToastContext.Provider value={{ showToast: vi.fn() }}>
+        <SchoolContext.Provider value={makeCtx(40)}>
+          <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    expect(screen.getByLabelText("Kofi Boateng Attendance")).toHaveValue(40);
+
+    // Close modal while underlying student changes to 55 days
+    rerender(
+      <ToastContext.Provider value={{ showToast: vi.fn() }}>
+        <SchoolContext.Provider value={makeCtx(55)}>
+          <BulkAttendanceModal isOpen={false} onClose={vi.fn()} />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    // Reopen -> shows updated 55 rather than stale 40
+    rerender(
+      <ToastContext.Provider value={{ showToast: vi.fn() }}>
+        <SchoolContext.Provider value={makeCtx(55)}>
+          <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    expect(screen.getByLabelText("Kofi Boateng Attendance")).toHaveValue(55);
   });
 });
