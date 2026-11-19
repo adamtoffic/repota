@@ -1,17 +1,17 @@
 # PR #59 Branch Analysis & Post-Testing Fixes Report
 
 - **Branch:** `feat/class-tools-sba-analytics-templates`
-- **Target Base Branch:** `feat/navigation-shell` (`0` commits behind, `15` commits ahead at commit `a869d80`)
+- **Target Base Branch:** `feat/navigation-shell` (`0` commits behind, `17` commits ahead at commit `8568865`)
 - **Pull Request:** [PR #59](https://github.com/adamtoffic/repota/pull/59) (`OPEN`, `DRAFT`, GitHub status: `MERGEABLE`)
-- **Codebase Scope:** `45 files changed, 9,061 insertions(+), 514 deletions(-)` across Goals 1–5 + 6 rounds of post-testing fixes
+- **Codebase Scope:** `48 files changed, 9,252 insertions(+), 519 deletions(-)` across Goals 1–5 + 7 rounds of post-testing fixes
 
 ---
 
 ## 1. Executive Summary
 
-Branch `feat/class-tools-sba-analytics-templates` implements Goals 1–5 (Class Tools & bulk actions, Excel/CSV Roster & SBA/Exam import/export, Analytics enhancements with offline AI Class Story, Executive Crest template & school color theming, and Private School 3-slot fee schedule & optional position toggles) followed by 6 targeted fix commits driven by real browser testing (`b5094eb..a869d80`).
+Branch `feat/class-tools-sba-analytics-templates` implements Goals 1–5 (Class Tools & bulk actions, Excel/CSV Roster & SBA/Exam import/export, Analytics enhancements with offline AI Class Story, Executive Crest template & school color theming, and Private School 3-slot fee schedule & optional position toggles) followed by 7 targeted fix commits driven by real device and browser testing (`b5094eb..8568865`).
 
-All automated checks pass at `HEAD` (`a869d80`): ESLint reports `0` errors and `0` warnings, `tsc -b` exits `0`, `vitest run` passes **39 test files / 383 tests**, and `vite build` succeeds cleanly. There are no merge conflicts with `feat/navigation-shell` and zero `TODO`/`FIXME`/`console.log` additions in `src/`.
+All automated checks pass at `HEAD` (`8568865`): ESLint reports `0` errors and `0` warnings, `tsc -b` exits `0`, `vitest run` passes **39 test files / 385 tests**, and `vite build` succeeds cleanly. There are no merge conflicts with `feat/navigation-shell` and zero `TODO`/`FIXME`/`console.log` additions in `src/`.
 
 ---
 
@@ -30,7 +30,7 @@ A detailed commit-by-commit breakdown of the initial Goals 1–5 delivery is rec
 
 ---
 
-## 3. Detailed Analysis of Post-Testing Fixes & Refinements (`b5094eb`..`a869d80`)
+## 3. Detailed Analysis of Post-Testing Fixes & Refinements (`b5094eb`..`8568865`)
 
 ### 1. Blank Empty School Logo Slot (`b5094eb`)
 - **Files:** `src/components/reports/ReportHeader.tsx`, `src/templates/OriginalTemplate.tsx`, `src/templates/ClassicTemplate.tsx`, `src/templates/ModernTemplate.tsx`, `src/templates/ExecutiveTemplate.tsx`, `src/test/ReportTemplates.test.tsx`.
@@ -80,6 +80,15 @@ A detailed commit-by-commit breakdown of the initial Goals 1–5 delivery is rec
 - **Issue Found During Testing:** On narrow mobile screens, the 3 mode buttons (`Single SBA Task`, `Final Exam (/100)`, `Full Subject Sheet`) used `whitespace-nowrap` inside the Step 1 rounded card, overflowing past the right border of the container.
 - **Fix:** Updated the Step 1 grid to `md:grid-cols-[minmax(0,1fr)_auto]` with `min-w-0` on the subject wrapper, `w-full min-w-0` on `role="tablist"`, `whitespace-normal` (with `sm:whitespace-nowrap` on `sm+`) on each tab button, `overflow-x-hidden` on the modal body, and mobile padding adjustments (`p-4 sm:p-6`, `p-3 sm:p-4`). Added a layout class regression test in `ScoreImportAndGradebook.test.tsx`.
 
+### 7. iOS `.repota` Class Backup Picker & Download Fix (`8568865`)
+- **Files:** `src/components/DataBackup.tsx`, `src/test/DataBackup.test.tsx`.
+- **Issue Found During Real iOS Testing:** Saved `.repota` class files (`type: "application/octet-stream"`) could not be selected back inside **Load Class File** on iOS (Files.app tagged them as generic `public.data` / Document or `.repota.dms`), even though the exact same file exported from iOS loaded properly when sent to Android or PC.
+- **Root Cause:** iOS WebKit translates the file input `accept=".json,.repota"` attribute into Apple UTIs for `UIDocumentPickerViewController`; `.repota` has no registered OS UTI, so iOS greyed out `.repota` and renamed `public.data` files while only permitting `public.json`. In addition, synchronous `URL.revokeObjectURL(url)` right after anchor click can race with direct Safari/iOS WebKit blob downloads.
+- **Fix:**
+  - Imported [`isIOSDevice()`](../../src/utils/iosInteraction.ts) into `DataBackup.tsx` and omitted the `accept` attribute on iOS/iPadOS (`accept={isIOS ? undefined : ".json,.repota"}`) so Files.app lets users pick `.repota`, `public.data`, and `.repota.dms`/`.txt` backups while `handleFileSelect` continues JSON/AES-256-GCM content validation and rejection of invalid files.
+  - Deferred `URL.revokeObjectURL(url)` by `1000ms` on iOS in `triggerBlobDownload` and stripped leading UTF-8 BOM + surrounding whitespace before `JSON.parse` across `handleFileSelect`, `handleDecryptAndImport`, and `executeImport`.
+  - Added 2 regression tests in `src/test/DataBackup.test.tsx` verifying `accept` filtering on non-iOS and untyped `.repota.dms` import on mocked iPhone Safari UA (`28 tests` total).
+
 ---
 
 ## 4. Architecture & Merge-Readiness Assessment
@@ -90,25 +99,26 @@ A detailed commit-by-commit breakdown of the initial Goals 1–5 delivery is rec
   - Legacy fee fields (`schoolGift`, `canteenFees`, `firstAidFees`) migrate seamlessly into 3-slot private fee definitions via [`src/utils/privateSchoolFees.ts`](../../src/utils/privateSchoolFees.ts).
   - [`QuickGradebook`](../../src/components/QuickGradebook.tsx) remains free of context/toast hooks so all pure component tests stay decoupled.
 - **Non-Blocking Technical Notes:**
-  - Vite production build reports the pre-existing bundle chunk size notice (`dist/assets/index-*.js` at `1,008.22 kB` raw / `285.97 kB` gzip) because no route-level code splitting was altered in this branch.
+  - Vite production build reports the pre-existing bundle chunk size notice (`dist/assets/index-*.js` at `1,008.39 kB` raw / `286.04 kB` gzip) because no route-level code splitting was altered in this branch.
   - Per-subject integer weighted exam conversion (`Math.round((raw / 100) * examScoreMax)`) rounds values like `89/100` out of `/50` to `45` (which displays on the 100-point editor scale as `90` because `45/50 = 90%`); this follows existing [`scoreConversion.ts`](../../src/utils/scoreConversion.ts) behavior unchanged.
   - ESLint 9 (`eslint .`) runs cleanly with `0` errors and `0` warnings (`SettingsFormContext` uses explicit callbacks rather than `setState` in `useEffect`).
 
 ---
 
-## 5. Verified Automated Checks (`HEAD` = `a869d80`)
+## 5. Verified Automated Checks (`HEAD` = `8568865`)
 
 | Check | Command | Observed Result |
 |---|---|---|
 | **Linting** | `npm run lint` | **Passed** (`0` errors, `0` warnings) |
 | **Type Check** | `npx tsc -b` | **Passed** (exit code `0`) |
-| **Test Suite** | `npx vitest run` | **Passed** — **39 test files passed, 383 tests passed**, `0` failed, `0` skipped |
+| **Test Suite** | `npx vitest run` | **Passed** — **39 test files passed, 385 tests passed**, `0` failed, `0` skipped |
 | **Production Build** | `npm run build` (`tsc -b && vite build`) | **Passed** (`dist/` + PWA SW built, exit code `0`) |
 | **Working Tree / Hygiene** | `git status`, `git diff` scan for `TODO`/`FIXME`/`console.log` | Clean before doc commit; `0` debug/TODO markers added |
 | **PR #59 Merge Status** | `gh pr view 59` | `OPEN` (Draft), `MERGEABLE` into `feat/navigation-shell` (`0` commits behind) |
 
 **New & Expanded Test Suites on This Branch (all passing in the 39-file run):**
 - `src/test/ReportTemplates.test.tsx`: 30 tests
+- `src/test/DataBackup.test.tsx`: 28 tests (+2 iOS picker/BOM coverage tests)
 - `src/test/csvImport.test.ts`: 12 tests
 - `src/test/ScoreImportAndGradebook.test.tsx`: 11 tests
 - `src/test/reportThemeAndFees.test.ts`: 9 tests
@@ -121,8 +131,8 @@ A detailed commit-by-commit breakdown of the initial Goals 1–5 delivery is rec
 
 ## 6. Final Pre-Merge Sign-Off & Merge Plan
 
-1. **Quick Mobile Smoke Check (on PR #59 preview after `a869d80`):**
-   - Open `Import & Export Subject Scores` on a phone viewport and confirm `Single SBA Task`, `Final Exam (/100)`, and `Full Subject Sheet` fit cleanly inside the rounded white pill container.
-   - Verify a quick single-SBA CSV download -> upload -> `Apply Scores` cycle and confirm **Edit Student Scores** displays the imported component values immediately.
+1. **Quick Device Smoke Check (on PR #59 preview after `8568865`):**
+   - **iOS Save & Load Class File:** Save a `.repota` class backup on iPhone/iPad (Files or Share Sheet), tap **Load Class File**, select the saved `.repota` (or `.repota.dms`/Document) file, and confirm it decrypts and opens **Load New Class Data?** cleanly.
+   - **Mobile SBA Import Tabs:** Open `Import & Export Subject Scores` on a phone viewport and confirm `Single SBA Task`, `Final Exam (/100)`, and `Full Subject Sheet` fit cleanly inside the rounded white pill container.
 2. **Merge into `feat/navigation-shell` (once approved):**
    - Mark PR #59 ready for review and merge into `feat/navigation-shell` (or merge cleanly without force-push), preserving all feature & fix commits (or squash/merge commit per repo preference).
