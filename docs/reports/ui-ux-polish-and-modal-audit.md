@@ -3,18 +3,19 @@
 - **Branch:** `feat/ui-ux-polish`
 - **Target Base Branch:** `feat/navigation-shell` (branched from `13783ba`)
 - **Pull Request:** [PR #60](https://github.com/adamtoffic/repota/pull/60)
-- **Codebase Scope (at `ee2a7f7`, prior to this report commit):** `53 files changed, 1,726 insertions(+), 697 deletions(-)` across 13 commits (`5d4877b`..`ee2a7f7`)
+- **Codebase Scope (at `3e61ff7`, prior to this report update):** `62 files changed, 2,308 insertions(+), 916 deletions(-)` (`5d4877b`..`3e61ff7`)
 
 ---
 
 ## 1. Executive Summary
 
-Work on `feat/ui-ux-polish` proceeded in two logical stages:
+Work on `feat/ui-ux-polish` proceeded across three focused stages:
 
 1. **Cross-Page UI/UX Polish & `"Home"` Naming Standardization (`5d4877b`..`9916c60`):** Streamlined mobile Settings navigation and hub metadata, upgraded Home desktop/mobile density and quick gradebook filters, improved SBA totals and per-subject CSV import triggers, unified Analytics header/filter visibility, decoupled Print Preview banner layout, and standardized user-facing `"Home"` naming.
 2. **Full-App Modal, LockScreen, Overlay & Route Audit Fixes + Dead Code Cleanup (`46d1d2f`..`ee2a7f7`):** Fixed the `WelcomeTour` close-button text overlap, rebuilt LockScreen masked PIN entry, fixed Tailwind v3 backdrop opacity bugs and missing `Step X of 4` / `Skip` UX on PIN setup/recovery, scoped mobile `16px` input zoom rules, hardened `ScoreEntryModal` mobile ergonomics and `Escape` dismissal across modals, ensured bulk modals reset draft state on reopen, centered `DataGate` error recovery, added a proper router 404 screen, refined form alignment, and removed the unused `PwaUpdatePrompt` component and module shim.
+3. **LockScreen Vault Redesign, Lightweight Motion Cleanup & Tab-Switch Performance Fixes (`22399fd`..`3e61ff7`):** Added a built-in `0–9` tactile keypad and matte deep navy framing + crisp white card across `LockScreen` and `PinSetup`, kept `LockScreen` mounted behind `PinRecovery` for real backdrop blur, replaced dead `animate-in` utilities with GPU keyframes (while dropping the `AppShell` route-reflow wrapper that flickered sticky headers), and eliminated 4 main-thread mount bottlenecks across `Analytics`, `Settings`, `SBA`, and `Home`.
 
-All automated checks passed cleanly after the final code/cleanup commit (`ee2a7f7`): `eslint .` exited `0`, `tsc -b` exited `0`, Vitest passed **40 test files / 397 tests** (`26.06s`), and the Vite + PWA production build succeeded (`44` precache entries, `5395.50 KiB`).
+All automated checks passed cleanly after the final code commit (`3e61ff7`): `eslint .` exited `0`, `tsc -b` exited `0`, Vitest passed **40 test files / 398 tests** (`47.06s`), and the Vite + PWA production build succeeded (`25.62s`; `44` precache entries, `5397.60 KiB`).
 
 ---
 
@@ -39,7 +40,7 @@ All automated checks passed cleanly after the final code/cleanup commit (`ee2a7f
 
 ---
 
-## 3. Modal, LockScreen, Overlay & Route Audit Fixes (`46d1d2f`..`ee2a7f7`)
+## 3. Modal, LockScreen, Overlay, Motion & Tab-Switch Audit Fixes (`46d1d2f`..`3e61ff7`)
 
 ### 3.1 Security, LockScreen, PIN Setup/Recovery & CSS Input Clamping (`46d1d2f`)
 - **[src/index.css](../../src/index.css):** Scoped the mobile iOS zoom-prevention `font-size: 16px !important` rule strictly inside `@media (max-width: 767px)` with `:not([data-large-input="true"])` on `input`, preventing desktop `<select>` elements and intentionally oversized PIN/recovery fields from being clamped to `16px`.
@@ -82,32 +83,51 @@ All automated checks passed cleanly after the final code/cleanup commit (`ee2a7f
 - **Why it existed:** `src/components/PwaUpdatePrompt.tsx` (introduced in PR #10 / `645e338`) called `vite-plugin-pwa`'s `useRegisterSW()` (`needRefresh`) to show a manual `"Update"` / `"Later"` reload banner.
 - **Why it was removed:** [vite.config.ts](../../vite.config.ts#L31-L44) configures `VitePWA` with `registerType: "autoUpdate"`, `injectRegister: "auto"`, and `workbox: { skipWaiting: true, clientsClaim: true }`. Because new service workers activate automatically without holding in a `needRefresh` state and `PwaUpdatePrompt` was never imported anywhere in `src/`, the unused component (`src/components/PwaUpdatePrompt.tsx`), its unused `virtual:pwa-register/react` module declaration in [src/vite-env.d.ts](../../src/vite-env.d.ts), and its entry in [docs/codebase-inventory.md](../codebase-inventory.md) were removed.
 
+### 3.6 LockScreen & PinSetup Matte Navy Redesign, Tactile Keypad & Layered `PinRecovery` (`22399fd`, `3e61ff7`)
+- **[LockScreen.tsx](../../src/components/LockScreen.tsx):** Replaced the bright electric-blue gradient/pulsing blobs (and intermediate all-light canvas) with a matte deep institutional navy canvas (`linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)`) framing a crisp white `rounded-3xl` card with subtle `"REPOTA"` eyebrow and `bg-primary` lock emblem. Added a built-in tactile `0–9` numeric keypad with Backspace (`Delete digit`) and conditional biometric key, kept the accessible hidden `inputMode="none"` password input (suppressing mobile virtual keyboard jumps) alongside guarded desktop `window` `keydown` support, added `dotPop` dot fill micro-animation, and added a `paused` prop so focus/biometrics/keystrokes stay inactive when overlaid.
+- **[PinSetup.tsx](../../src/components/PinSetup.tsx):** Unified all 6 PIN setup steps onto the same matte deep navy canvas and elevated white `rounded-3xl` card framing with `bg-primary` CTA buttons.
+- **[PinRecovery.tsx](../../src/components/PinRecovery.tsx) & [App.tsx](../../src/App.tsx):** Added `animate-fade-in` / `animate-sheet-up` styling across all 3 recovery steps, and kept `<LockScreen paused={showRecovery} ... />` mounted behind `<PinRecovery />` in `App.tsx` so clicking **Forgot your PIN?** blurs smoothly over the LockScreen instead of an empty page.
+- **[pinSecurity.test.tsx](../../src/test/pinSecurity.test.tsx):** Added regression test verifying keypad digit unlock, Backspace (`Delete digit`), and ignored global `keydown` events while `paused={true}`.
+
+### 3.7 Lightweight CSS Motion Cleanup & Sticky Header Flicker Fix (`cb80585`, `bc5c557`)
+- **[src/index.css](../../src/index.css), [Modal.tsx](../../src/components/ui/Modal.tsx), [ScoreEntryModal.tsx](../../src/components/ScoreEntryModal.tsx), [AboutModal.tsx](../../src/components/AboutModal.tsx), [ConfirmModal.tsx](../../src/components/ConfirmModal.tsx), [DashboardStats.tsx](../../src/components/DashboardStats.tsx), [PwaInstallPrompt.tsx](../../src/components/PwaInstallPrompt.tsx), [SubjectRow.tsx](../../src/components/SubjectRow.tsx):** Added GPU keyframes (`scaleIn`, `slideDown`, `dotPop`, `shake`), wired `animate-fade-in` backdrop fades on `Modal` and `ScoreEntryModal`, replaced dead `animate-in` / `zoom-in-95` / `slide-in-from-*` classes across all 8 call sites (`0` remaining in `src/`), and disabled screen entrance animations inside `@media print`.
+- **[AppShell.tsx](../../src/components/navigation/AppShell.tsx) & [src/index.css](../../src/index.css) (`bc5c557`):** Removed the temporary `useEffect` forced-reflow (`void el.offsetWidth`) route wrapper around `{children}` and dropped `animation-fill-mode: both` from utility classes after device testing showed sticky `PageHeader` flicker and sluggish transitions when switching bottom tabs.
+
+### 3.8 Tab-Switch Mount Performance Fixes (`3578f59`)
+- **[SettingsFormContextDefinition.ts](../../src/context/SettingsFormContextDefinition.ts), [SettingsFormContext.tsx](../../src/context/SettingsFormContext.tsx) & [SecurityBackupSection.tsx](../../src/components/settings/SecurityBackupSection.tsx):** Eliminated 4× eager mount-time `JSON.stringify(settings)` calls via `Object.is` reference checks and lazy `getLastAutoSaveString()`, and moved `isBiometricAvailable()` probing into lazy `checkBiometric()` triggered only when `SecurityBackupSection` mounts (eliminating extra WebAuthn probes and second renders on `/sba` and `/settings`).
+- **[classStoryGenerator.ts](../../src/utils/classStoryGenerator.ts), [Analytics.tsx](../../src/pages/Analytics.tsx) & [ClassStoryAndAnalytics.test.tsx](../../src/test/ClassStoryAndAnalytics.test.tsx):** Extracted `generateClassPulseHeadline()` (2 calculators instead of all 12) reusing already-computed `classMetrics` on Overview, deferred full `generateClassStory()` strictly to the `insights` tab, and changed Analytics `<PageHeader>` from `variant="transparent"` (`backdrop-blur-sm`) to solid; added headline-equivalence assertions in `ClassStoryAndAnalytics.test.tsx`.
+- **[ScoreImportModal.tsx](../../src/components/ScoreImportModal.tsx), [BulkImportModal.tsx](../../src/components/BulkImportModal.tsx) & [SbaPage.tsx](../../src/pages/SbaPage.tsx):** Split both modals into zero-cost `if (!props.isOpen) return null;` guards + inner `*Content` components so closed modals run no hooks or student/subject scans on `Home` and `SBA` mounts; switched `SbaPage` to slice hooks (`useSchoolStudents`, `useSchoolSettings`, `useSchoolActions`) and memoized `detectComponentMismatches()` keyed on `[detectComponentMismatches, students, settings.subjectComponentMap]`.
+- **[Dashboard.tsx](../../src/pages/Dashboard.tsx) & [AppShell.tsx](../../src/components/navigation/AppShell.tsx):** Consolidated `filterCounts` from 5 separate `students.filter(...)` loops into a single pass over `students`, and tuned mobile bottom navigation blur from `bg-white/90 backdrop-blur-xl` to `bg-white/95 backdrop-blur-sm`.
+
 ---
 
-## 4. Verified Automated Checks (`HEAD` = `ee2a7f7`)
+## 4. Verified Automated Checks (`HEAD` = `3e61ff7`)
 
-All verification commands ran directly after the `PwaUpdatePrompt` cleanup (`ee2a7f7`); the subsequent commit only adds this markdown file under `docs/reports/`.
+All verification commands ran directly after the LockScreen & PinSetup matte navy update (`3e61ff7`); the subsequent commit only updates this markdown report under `docs/reports/`.
 
 | Check | Command | Observed Result |
 |---|---|---|
 | **Linting** | `npm run lint` (`eslint .`) | **Passed** (exit code `0`) |
 | **Type Check** | `npx tsc -b` | **Passed** (exit code `0`) |
-| **Test Suite** | `npx vitest run` | **Passed** — **40 test files passed, 397 tests passed**, `0` failed (`26.06s`) |
-| **Production Build** | `npm run build` (`tsc -b && vite build`) | **Passed** (`built in 28.29s`; `PWA v1.3.0`, `mode generateSW`, `44` precache entries / `5395.50 KiB`) |
+| **Test Suite** | `npx vitest run` | **Passed** — **40 test files passed, 398 tests passed**, `0` failed (`47.06s`) |
+| **Production Build** | `npm run build` (`tsc -b && vite build`) | **Passed** (`built in 25.62s`; `PWA v1.3.0`, `mode generateSW`, `44` precache entries / `5397.60 KiB`) |
 
 ---
 
 ## 5. Preview / Real-Device QA Checklist
 
 1. **LockScreen & PIN Flows (Mobile + Desktop):**
-   - Verify 4-digit masked PIN boxes align centered over input, tapping opens numeric keypad on mobile, and biometric prompt/error scrolling works cleanly on small viewports.
-   - Open Settings -> Security -> **Set Up PIN**, verify step labels (`Step 1..4 of 4`), close `X` controls, recovery code layout on narrow screens, and **Skip** on Security Questions.
-2. **Overlays (`WelcomeTour`, `PwaInstallPrompt`, Offline status):**
+   - Verify the matte deep navy backdrop frames the crisp white card cleanly, `0–9` keypad + Backspace work smoothly without popping the mobile virtual keyboard, biometric unlock appears on the bottom-left key when enrolled, and physical keyboard typing still works on desktop.
+   - Tap **Forgot your PIN?** on LockScreen and verify `PinRecovery` blurs cleanly over the paused LockScreen behind it.
+   - Open Settings -> Security -> **Set Up PIN**, verify matching matte navy framing, `Step 1..4 of 4` labels, close `X` controls, recovery code layout on narrow screens, and **Skip** on Security Questions.
+2. **Navigation Speed & Bottom Tabs:**
+   - Switch repeatedly between **Home**, **SBA**, **Analytics**, and **Settings** on mobile to confirm instant tab switching with zero top-bar flicker and smooth scrolling over the frosted bottom nav.
+3. **Overlays (`WelcomeTour`, `PwaInstallPrompt`, Offline status):**
    - Trigger Welcome Tour on Home and confirm progress bar + `X` sit cleanly above the heading without overlapping text, `Back` steps backward, and `Escape` dismisses.
    - Verify PWA install banners render without conflicting dark styling and offline indicator shows `"Offline · Saved locally"`.
-3. **Modals & Forms:**
+4. **Modals & Forms:**
    - Open `ScoreEntryModal` on mobile to verify top safe-area clearance, hidden duplicate top `Prev`/`Next` buttons, bounded student picker width, and `Escape` dismissal on desktop.
    - Open `BulkAttendanceModal` / `BulkPromotionModal`, edit values, close without saving, and reopen to verify clean draft reset.
    - Open Export/Import `.repota` password prompts in Backup settings and test password mismatch inline error message.
-4. **Routing Fallback:**
+5. **Routing Fallback:**
    - Visit `/unknown-page` and verify `"Page not found"` renders cleanly with a working **Back to Home** link.
