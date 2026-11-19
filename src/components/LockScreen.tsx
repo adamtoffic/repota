@@ -26,6 +26,7 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [biometricName, setBiometricName] = useState<string>("Biometric");
   const [showBiometricButton, setShowBiometricButton] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputReady, setInputReady] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(() =>
@@ -79,7 +80,6 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
     } catch (err) {
       console.error("Biometric error:", err);
       // Silent fail - user can use PIN
-      throw new Error("Failed to verify biometric.", { cause: err });
     }
   };
   // Auto-prompt biometric on mount - with iOS-safe delay
@@ -166,7 +166,7 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
       style={{
         background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
         minHeight: "-webkit-fill-available",
@@ -180,32 +180,32 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
       </div>
 
       <div
-        className={`relative w-full max-w-md transition-all duration-500 ${isUnlocking ? "scale-95 opacity-0" : "scale-100 opacity-100"}`}
+        className={`relative my-auto w-full max-w-md py-4 transition-all duration-500 ${isUnlocking ? "scale-95 opacity-0" : "scale-100 opacity-100"}`}
       >
         {/* Lock Icon with Ghana gold accent */}
-        <div className="mb-8 flex justify-center">
+        <div className="mb-5 flex justify-center sm:mb-6">
           <div className="relative">
             <div className="absolute inset-0 animate-pulse rounded-full bg-amber-400/20 blur-2xl" />
-            <div className="relative rounded-2xl border-2 border-amber-400/40 bg-linear-to-br from-amber-400 to-amber-500 p-6 shadow-2xl">
-              <Lock className="h-16 w-16 text-blue-900 drop-shadow-lg" strokeWidth={2} />
+            <div className="relative rounded-2xl border-2 border-amber-400/40 bg-linear-to-br from-amber-400 to-amber-500 p-4 shadow-2xl sm:p-5">
+              <Lock className="h-12 w-12 text-blue-900 drop-shadow-lg sm:h-14 sm:w-14" strokeWidth={2} />
             </div>
           </div>
         </div>
 
         {/* Title */}
-        <h1 className="mb-2 text-center text-4xl font-extrabold tracking-tight text-white drop-shadow-lg">
+        <h1 className="mb-2 text-center text-2xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-3xl">
           {isUnlocking ? "Unlocking..." : "Welcome Back"}
         </h1>
-        <p className="mb-10 text-center text-sm font-medium text-blue-100">
+        <p className="mb-6 text-center text-sm font-medium text-blue-100 sm:mb-8">
           Enter your 4-digit PIN to continue
         </p>
 
-        {/* PIN Input with enhanced styling and iOS fixes */}
+        {/* PIN Input: 4-slot masked visual boxes layered over a real password numeric input */}
         <div className={`mb-6 transition-transform duration-200 ${shake ? "animate-shake" : ""}`}>
-          <div className="relative">
+          <div className="relative mx-auto max-w-xs" onClick={handleInputClick}>
             <input
               ref={inputRef}
-              type="tel"
+              type="password"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={4}
@@ -213,27 +213,56 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
               onChange={(e) => handlePinChange(e.target.value)}
               onClick={handleInputClick}
               onFocus={() => {
+                setIsInputFocused(true);
                 if (cooldownSeconds <= 0) setError("");
               }}
+              onBlur={() => setIsInputFocused(false)}
               disabled={isVerifying || isUnlocking || cooldownSeconds > 0}
-              className="w-full rounded-2xl border-2 border-amber-400/50 bg-white/20 p-6 text-center text-5xl font-bold tracking-[0.5em] text-white placeholder-amber-100/40 shadow-2xl backdrop-blur-xl transition-all outline-none focus:border-amber-400 focus:bg-white/30 focus:ring-4 focus:ring-amber-400/30 disabled:opacity-60"
-              style={{
-                WebkitAppearance: "none",
-                letterSpacing: "0.5em",
-                fontSize: "3rem",
-              }}
+              aria-label="4-digit PIN"
+              data-large-input="true"
+              className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
               placeholder="••••"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
             />
-            <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
-              {isVerifying && (
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              )}
+
+            <div aria-hidden="true" className="grid grid-cols-4 gap-3">
+              {[0, 1, 2, 3].map((i) => {
+                const isFilled = pin.length > i;
+                const isActiveSlot =
+                  isInputFocused && cooldownSeconds <= 0 && !isVerifying && pin.length === i;
+                return (
+                  <div
+                    key={i}
+                    className={`flex h-16 items-center justify-center rounded-2xl border-2 backdrop-blur-xl transition-all duration-200 sm:h-18 ${
+                      isActiveSlot
+                        ? "border-amber-400 bg-white/30 ring-4 ring-amber-400/30"
+                        : isFilled
+                          ? "border-amber-300/80 bg-white/25"
+                          : "border-white/30 bg-white/15"
+                    } ${cooldownSeconds > 0 ? "opacity-60" : ""}`}
+                  >
+                    <div
+                      className={`rounded-full transition-all duration-200 ${
+                        isFilled
+                          ? "h-3.5 w-3.5 scale-110 bg-amber-400 shadow-lg shadow-amber-400/60"
+                          : "h-3 w-3 border-2 border-amber-200/50 bg-transparent"
+                      }`}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
+
+          {isVerifying && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-blue-100">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <span>Verifying...</span>
+            </div>
+          )}
 
           {/* Error / Cooldown Message with slide animation */}
           {(cooldownSeconds > 0 || error) && (
@@ -248,25 +277,11 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
           )}
         </div>
 
-        {/* PIN Dots Indicator with stagger animation */}
-        <div className="mb-10 flex justify-center gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`h-3 w-3 rounded-full transition-all duration-300 ${
-                pin.length > i
-                  ? "scale-125 bg-amber-400 shadow-lg shadow-amber-400/60"
-                  : "scale-100 border-2 border-amber-200/50 bg-transparent"
-              }`}
-              style={{ transitionDelay: `${i * 50}ms` }}
-            />
-          ))}
-        </div>
-
         {/* Biometric Button (if available) */}
         {showBiometricButton && (
-          <div className="mb-6 text-center">
+          <div className="mb-4 text-center sm:mb-6">
             <button
+              type="button"
               onClick={attemptBiometricUnlock}
               disabled={isUnlocking}
               className="group inline-flex items-center gap-2 rounded-xl border-2 border-amber-400/40 bg-amber-400/10 px-6 py-3 text-sm font-bold text-amber-100 shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:border-amber-400/60 hover:bg-amber-400/20 active:scale-95 disabled:opacity-50"
@@ -280,6 +295,7 @@ export function LockScreen({ onUnlock, onForgotPin }: Props) {
         {/* Forgot PIN Link with icon */}
         <div className="text-center">
           <button
+            type="button"
             onClick={onForgotPin}
             disabled={isUnlocking}
             className="group inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-blue-100 transition-all hover:bg-white/10 hover:text-amber-100 disabled:opacity-50"

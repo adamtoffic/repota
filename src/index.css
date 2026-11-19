@@ -45,11 +45,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fix iOS input zoom issue */
-input,
-textarea,
-select {
-  font-size: 16px !important; /* Prevents iOS zoom on focus */
+/* Fix iOS input zoom on mobile without crushing larger PIN/code inputs or desktop selects */
+@media (max-width: 767px) {
+  input:not([data-large-input="true"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* Prevent body scroll when modal is open */
