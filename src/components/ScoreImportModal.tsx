@@ -623,22 +623,25 @@ export function ScoreImportModal({
   return (
     <Modal isOpen={isOpen} onClose={resetAndClose} closeOnBackdrop={false} className="max-w-3xl">
       <div className="flex max-h-[90vh] flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
-            <Upload className="text-primary h-5 w-5" />
-            Import &amp; Export Subject Scores
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 py-3.5 sm:px-5 sm:py-4">
+          <h3
+            className="text-main flex min-w-0 items-center gap-2 text-base font-bold sm:text-lg"
+            data-record="true"
+          >
+            <Upload className="text-primary h-5 w-5 shrink-0" />
+            <span className="truncate">Import &amp; Export Subject Scores</span>
           </h3>
           <button
             type="button"
             onClick={resetAndClose}
             aria-label="Close modal"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="shrink-0 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
+        <div className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
           {availableSubjects.length === 0 ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               Add at least one subject in Settings before importing scores.
@@ -646,9 +649,9 @@ export function ScoreImportModal({
           ) : (
             <>
               {/* Step 1: Subject + Mode Tabs */}
-              <div className="space-y-3 rounded-xl border border-purple-200 bg-purple-50/70 p-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <div>
+              <div className="space-y-3 rounded-xl border border-purple-200 bg-purple-50/70 p-3 sm:p-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                  <div className="min-w-0">
                     <label
                       htmlFor="sba-import-subject"
                       className="mb-1 block text-xs font-bold tracking-wider text-purple-900 uppercase"
@@ -677,7 +680,9 @@ export function ScoreImportModal({
                   <div
                     role="tablist"
                     aria-label="Score import mode"
-                    className="grid grid-cols-3 gap-1 rounded-xl border border-purple-200 bg-white p-1"
+                    className={`grid w-full min-w-0 ${
+                      modeTabs.length === 1 ? "grid-cols-1" : "grid-cols-3"
+                    } gap-1 rounded-xl border border-purple-200 bg-white p-1`}
                   >
                     {modeTabs.map((tab) => (
                       <button
@@ -689,7 +694,7 @@ export function ScoreImportModal({
                           setModeState(tab.id);
                           setIsPreviewing(false);
                         }}
-                        className={`rounded-lg px-2.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
+                        className={`min-w-0 rounded-lg px-1.5 py-1.5 text-center text-[11px] leading-tight font-bold whitespace-normal transition-colors sm:px-2.5 sm:text-xs sm:whitespace-nowrap ${
                           activeMode === tab.id
                             ? "bg-purple-700 text-white shadow-xs"
                             : "text-gray-600 hover:bg-purple-50"

@@ -282,6 +282,14 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog.className).toContain("max-w-3xl");
     expect(dialog.className).not.toContain("max-w-md");
+
+    const tablist = screen.getByRole("tablist", { name: /score import mode/i });
+    expect(tablist.className).toContain("min-w-0");
+    expect(tablist.className).toContain("w-full");
+    for (const tab of screen.getAllByRole("tab")) {
+      expect(tab.className).toContain("whitespace-normal");
+      expect(tab.className).not.toMatch(/(?:^|\s)whitespace-nowrap(?:\s|$)/);
+    }
   });
 
   it("supports creating and importing a Single SBA Task and exporting an existing SBA component", async () => {
