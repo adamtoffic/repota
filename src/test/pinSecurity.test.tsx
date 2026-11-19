@@ -186,4 +186,33 @@ describe("pinSecurity", () => {
     expect(dialogBackdrop?.className).toContain("bg-black/50");
     expect(dialogBackdrop?.className).not.toContain("bg-opacity-50");
   });
+
+  it("unlocks via built-in keypad digits, supports Backspace, and ignores keydown when paused", async () => {
+    await setupPin("1357", "999888");
+    const user = userEvent.setup();
+    const onUnlock = vi.fn();
+
+    const { rerender } = render(
+      <LockScreen paused={true} onUnlock={onUnlock} onForgotPin={vi.fn()} />,
+    );
+
+    // Global keystrokes do not trigger digits while PinRecovery overlays LockScreen
+    fireEvent.keyDown(window, { key: "1" });
+    fireEvent.keyDown(window, { key: "3" });
+    fireEvent.keyDown(window, { key: "5" });
+    fireEvent.keyDown(window, { key: "7" });
+    const pinInput = screen.getByPlaceholderText("••••") as HTMLInputElement;
+    expect(pinInput.value).toBe("");
+
+    rerender(<LockScreen paused={false} onUnlock={onUnlock} onForgotPin={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "1" }));
+    await user.click(screen.getByRole("button", { name: "9" }));
+    await user.click(screen.getByRole("button", { name: "Delete digit" }));
+    await user.click(screen.getByRole("button", { name: "3" }));
+    await user.click(screen.getByRole("button", { name: "5" }));
+    await user.click(screen.getByRole("button", { name: "7" }));
+
+    await waitFor(() => expect(onUnlock).toHaveBeenCalledTimes(1));
+  });
 });

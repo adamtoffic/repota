@@ -170,12 +170,13 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
         }}
       >
-        <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -220,7 +221,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={() => setStep("create")}
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+            className="w-full rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Get Started
           </button>
@@ -234,12 +235,13 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
         }}
       >
-        <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -309,7 +311,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               type="button"
               onClick={handleCreatePin}
               disabled={pin.length !== 4}
-              className={`${isChangingPin ? "flex-1" : "w-full"} rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300`}
+              className={`${isChangingPin ? "flex-1" : "w-full"} rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300`}
             >
               Next
             </button>
@@ -324,12 +326,13 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
         }}
       >
-        <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -395,7 +398,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               type="button"
               onClick={handleConfirmPin}
               disabled={confirmPin.length !== 4}
-              className="flex-1 rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="flex-1 rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               Next
             </button>
@@ -411,12 +414,13 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
         }}
       >
-        <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -487,7 +491,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               setError("");
               setStep("questions");
             }}
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+            className="w-full rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Next: Set Security Questions
           </button>
@@ -507,12 +511,13 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
         }}
       >
-        <div className="relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -641,12 +646,13 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
         }}
       >
-        <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
           {onCancel && (
             <button
               type="button"

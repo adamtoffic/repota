@@ -130,26 +130,24 @@ function AppContent({
     }, 300);
   };
 
-  // Show recovery modal if user forgot PIN
-  if (showRecovery) {
-    return (
-      <ErrorBoundary>
-        <PinRecovery
-          onComplete={() => {
-            setShowRecovery(false);
-            handleUnlock();
-          }}
-          onCancel={() => setShowRecovery(false)}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  // Show lock screen if PIN is enabled and app is locked
+  // Show lock screen (kept mounted behind PinRecovery so backdrop blur layers cleanly)
   if (isLocked) {
     return (
       <ErrorBoundary>
-        <LockScreen onUnlock={handleUnlock} onForgotPin={() => setShowRecovery(true)} />
+        <LockScreen
+          paused={showRecovery}
+          onUnlock={handleUnlock}
+          onForgotPin={() => setShowRecovery(true)}
+        />
+        {showRecovery && (
+          <PinRecovery
+            onComplete={() => {
+              setShowRecovery(false);
+              handleUnlock();
+            }}
+            onCancel={() => setShowRecovery(false)}
+          />
+        )}
       </ErrorBoundary>
     );
   }

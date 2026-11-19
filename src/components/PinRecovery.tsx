@@ -109,9 +109,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
       >
-        <div className="relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
           <button
             type="button"
             onClick={onCancel}
@@ -259,9 +259,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
       >
-        <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
           <button
             type="button"
             onClick={onCancel}
@@ -318,9 +318,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      className="safe-y fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+      className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
     >
-      <div className="relative my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+      <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
         <button
           type="button"
           onClick={onCancel}
