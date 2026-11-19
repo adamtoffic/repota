@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, type ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -49,18 +49,6 @@ function ConnectedAutoSaveIndicator() {
 export function AppShell({ children }: AppShellProps) {
   const settings = useSchoolSettings();
   const pathname = useLocation({ select: (location) => location.pathname });
-  const contentRef = useRef<HTMLDivElement>(null);
-  const prevPathnameRef = useRef(pathname);
-
-  useEffect(() => {
-    if (prevPathnameRef.current === pathname) return;
-    prevPathnameRef.current = pathname;
-    const el = contentRef.current;
-    if (!el) return;
-    el.classList.remove("animate-page-enter");
-    void el.offsetWidth;
-    el.classList.add("animate-page-enter");
-  }, [pathname]);
 
   const isHomeActive = pathname === "/";
   const isSbaActive = pathname.startsWith("/sba");
@@ -167,9 +155,7 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content Viewport */}
       <div className="pb-safe-nav flex min-h-screen flex-col md:pl-64 print:pb-0 print:pl-0">
-        <div ref={contentRef} className="animate-page-enter flex flex-1 flex-col">
-          <Suspense fallback={<PageLoader />}>{children}</Suspense>
-        </div>
+        <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </div>
 
       {/* Persistent Auto-Save Indicator (isolated leaf so save ticks never re-render AppShell) */}

@@ -247,27 +247,27 @@ body.modal-open {
 
 /* Animation Classes - Lightweight & Fast */
 .animate-slide-in-up {
-  animation: slideUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: slideUp 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-slide-in-down {
-  animation: slideDown 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: slideDown 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-dot-pop {
-  animation: dotPop 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: dotPop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-shake {
-  animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.16s ease-out both;
+  animation: fadeIn 0.16s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: scaleIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-shimmer {
@@ -275,11 +275,11 @@ body.modal-open {
 }
 
 .animate-page-enter {
-  animation: pageEnter 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pageEnter 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-sheet-up {
-  animation: sheetUp 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: sheetUp 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .spring-tab {
