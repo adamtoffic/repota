@@ -14,7 +14,7 @@ export function EmptyState({ onAddStudent, onImport, onLoadDemo }: Props) {
       </div>
 
       <h2 className="text-main mb-2 text-xl font-bold tracking-tight sm:text-2xl" data-record="true">
-        Welcome to your new Class Dashboard!
+        Welcome to your new class!
       </h2>
 
       <p className="text-muted mb-6 max-w-md text-sm leading-relaxed sm:mb-8" data-record="true">

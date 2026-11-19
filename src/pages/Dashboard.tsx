@@ -291,7 +291,7 @@ export function Dashboard() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="text-main truncate text-2xl font-black tracking-tight" data-record="true">
-                    {settings.className || "Class Dashboard"}
+                    {settings.className || "My Class"}
                   </h1>
                   {settings.examType === "MOCK" ? (
                     <Link

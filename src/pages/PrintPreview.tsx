@@ -189,7 +189,7 @@ export function PrintPreview() {
               to="/"
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
             >
-              <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+              <ArrowLeft className="h-4 w-4" /> Back to Home
             </Link>
           </div>
         </div>
@@ -209,7 +209,7 @@ export function PrintPreview() {
           <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             <Link
               to="/"
-              aria-label="Back to Dashboard"
+              aria-label="Back to Home"
               className="shrink-0 rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -356,7 +356,7 @@ export function PrintPreview() {
                 {studentsWithMissingPhotos.length === 1 ? "" : "s"}
               </p>
               <p className="text-muted mt-0.5 text-xs">
-                Reports will print without photos. Add student photos in the Dashboard for complete
+                Reports will print without photos. Add student photos from Home for complete
                 report cards.
               </p>
             </div>

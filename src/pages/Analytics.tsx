@@ -429,7 +429,7 @@ export const Analytics: React.FC = () => {
               className="bg-primary hover:bg-primary/90 mt-5 inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
               data-record="true"
             >
-              Go to Dashboard
+              Go to Home
             </button>
           </Card>
         </main>
@@ -1627,7 +1627,7 @@ export const Analytics: React.FC = () => {
                         className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100"
                         data-record="true"
                       >
-                        Review Students on Dashboard
+                        Review Students
                       </button>
                     </div>
                     <p data-record="true" className="text-muted mb-4 text-sm">
