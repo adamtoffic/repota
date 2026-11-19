@@ -35,6 +35,7 @@ import {
   validateBackup,
 } from "../utils/backupValidation";
 import type { RecoveryAction } from "../context/SchoolContextDefinition";
+import { isIOSDevice } from "../utils/iosInteraction";
 
 export interface DataBackupProps {
   recoveryOnly?: boolean;
@@ -144,6 +145,7 @@ export function DataBackup({
   const [isDecrypting, setIsDecrypting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isIOS = isIOSDevice();
 
   const resetExportPasswordState = () => {
     setShowExportPasswordModal(false);
@@ -160,7 +162,12 @@ export function DataBackup({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    if (isIOS) {
+      // Defer revocation so iOS/Safari WebKit completes the download before the blob URL invalidates
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } else {
+      URL.revokeObjectURL(url);
+    }
   };
 
   // 1. EXPORT HANDLER - Opens password modal or exports directly
@@ -311,7 +318,7 @@ export function DataBackup({
       }
       if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
-        const content = e.target?.result as string;
+        const content = (e.target?.result as string).replace(/^\uFEFF/, "").trim();
         const data = JSON.parse(content);
 
         let rawBackup: unknown = data;
@@ -380,7 +387,7 @@ export function DataBackup({
       }
       if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
-        const content = e.target?.result as string;
+        const content = (e.target?.result as string).replace(/^\uFEFF/, "").trim();
         const encryptedData = JSON.parse(content);
 
         // Decrypt the file
@@ -452,7 +459,7 @@ export function DataBackup({
           reader.onerror = () => reject(new Error("Failed to read file"));
           reader.readAsText(pendingFile);
         });
-        backup = JSON.parse(content);
+        backup = JSON.parse(content.replace(/^\uFEFF/, "").trim());
       } else {
         throw new Error("No file to import");
       }
@@ -641,7 +648,7 @@ export function DataBackup({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json,.repota"
+            accept={isIOS ? undefined : ".json,.repota"}
             disabled={isImporting || isRecoveryBusy}
             onChange={handleFileSelect}
             className="hidden"
