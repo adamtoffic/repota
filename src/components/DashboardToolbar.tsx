@@ -95,7 +95,7 @@ export function DashboardToolbar({
   }, [showMenu]);
 
   return (
-    <div className="mb-6 flex flex-col gap-3">
+    <div className="mb-4 flex flex-col gap-3 sm:mb-5">
       {/* ROW 1: Search Bar & Sort */}
       <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">

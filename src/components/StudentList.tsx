@@ -62,7 +62,7 @@ function MobileStudentCard({
       data-testid="mobile-student-card"
       ref={measureRef}
       style={virtualStyle}
-      className="space-y-3 border-b border-gray-100 p-4"
+      className="space-y-2 border-b border-gray-100 p-3.5"
     >
       <button
         type="button"
@@ -77,16 +77,13 @@ function MobileStudentCard({
           </p>
         </div>
         {student.classPosition !== "Pending..." && (
-          <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700">
+          <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700">
             {student.classPosition}
           </span>
         )}
       </button>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-          {student.subjects.length} Subjects
-        </span>
+      <div className="flex flex-wrap items-center gap-1.5">
         <ScoreProgressBadge student={student} />
         {!student.pictureUrl && (
           <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
@@ -98,11 +95,11 @@ function MobileStudentCard({
         </span>
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => onEditStudent(student)}
-          className="bg-primary/10 text-primary hover:bg-primary/20 flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
+          className="bg-primary/10 text-primary hover:bg-primary/20 flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
         >
           <Edit2 className="h-3.5 w-3.5" />
           <span>Edit Scores</span>
@@ -113,7 +110,7 @@ function MobileStudentCard({
             to="/print"
             search={{ id: student.id }}
             aria-label={`Print report for ${student.name}`}
-            className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100"
+            className="flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100"
             title="Print Report"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -125,7 +122,7 @@ function MobileStudentCard({
           type="button"
           onClick={() => onDeleteRequest(student.id)}
           aria-label={`Delete ${student.name}`}
-          className="flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100"
+          className="flex min-h-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100"
           title="Delete Student"
         >
           <Trash2 className="h-4 w-4" />
@@ -198,10 +195,10 @@ export function StudentList({
   const mobileVirtualizer = useVirtualizer<HTMLDivElement, HTMLDivElement>({
     count: students.length,
     getScrollElement: () => mobileParentRef.current,
-    estimateSize: () => 176, // Estimated mobile card height in pixels
+    estimateSize: () => 148, // Estimated mobile card height in pixels
     measureElement: (element, entry, instance) => {
       const measured = defaultMeasureElement(element, entry, instance);
-      return measured > 0 ? measured : 176;
+      return measured > 0 ? measured : 148;
     },
     overscan: 4,
     initialRect: { width: 390, height: 800 },
