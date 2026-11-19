@@ -84,7 +84,7 @@ function SettingsHubContent() {
         actions={<SettingsHeaderActions showBack={false} />}
       />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
         <SettingsStatusBanners />
 
         <div>
@@ -97,14 +97,15 @@ function SettingsHubContent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          {sections.map((section) => {
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {sections.map((section, index) => {
             const Icon = section.icon;
+            const spanClass = index === sections.length - 1 ? "md:col-span-2" : "";
             return (
               <Link
                 key={section.to}
                 to={section.to}
-                className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-300 hover:shadow-md active:scale-[0.99] sm:p-5"
+                className={`group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-300 hover:shadow-md active:scale-[0.99] sm:p-5 ${spanClass}`}
               >
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${section.iconBg}`}
