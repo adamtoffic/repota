@@ -15,7 +15,12 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-main text-2xl font-bold">About Repota</h2>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close modal"
+            className="rounded-full p-2 hover:bg-gray-100"
+          >
             <X className="text-muted h-5 w-5" />
           </button>
         </div>

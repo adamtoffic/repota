@@ -17,7 +17,7 @@ export function StorageMonitor() {
   const studentsWithPhotos = students.filter((s) => s.pictureUrl).length;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-bold text-gray-800">Storage Information</h3>
         <Database className="h-5 w-5 text-blue-600" />

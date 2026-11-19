@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
@@ -9,6 +10,7 @@ import { Modal } from "../components/ui/Modal";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
 import { ToastContext } from "../context/ToastContextDefinition";
+import { createAppRouter } from "../router";
 import type { ProcessedStudent } from "../types";
 
 vi.mock("posthog-js", () => ({
@@ -193,5 +195,31 @@ describe("Modal and Overlay UX", () => {
     );
 
     expect(screen.getByLabelText("Kofi Boateng Attendance")).toHaveValue(55);
+  });
+
+  it("renders helpful Page not found fallback with Back to Home link on unknown routes", async () => {
+    const router = createAppRouter(createMemoryHistory({ initialEntries: ["/unknown-page"] }));
+    const ctx = {
+      isDataLoaded: true,
+      loadError: false,
+      isRollbackIncomplete: false,
+      isSaving: false,
+      lastSaved: null,
+      students: [],
+      settings: DEFAULT_SETTINGS,
+      retryLoad: vi.fn(),
+      startFresh: vi.fn(),
+      activeRecoveryAction: null,
+      setActiveRecoveryAction: vi.fn(),
+    } as unknown as SchoolContextType;
+
+    render(
+      <SchoolContext.Provider value={ctx}>
+        <RouterProvider router={router} />
+      </SchoolContext.Provider>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Back to Home/i })).toHaveAttribute("href", "/");
   });
 });

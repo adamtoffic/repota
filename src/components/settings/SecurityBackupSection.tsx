@@ -37,7 +37,10 @@ export function SecurityBackupSection() {
           </div>
 
           <div className="space-y-4">
-            <Alert variant="success" title="PIN Lock (Optional)">
+            <Alert
+              variant="success"
+              title={isPinConfigured() ? "PIN Lock Active" : "PIN Lock (Optional)"}
+            >
               <p className="mb-4">
                 Secure your student data with a 4-digit PIN. You'll need to enter it when opening
                 the app.
@@ -62,7 +65,9 @@ export function SecurityBackupSection() {
                   </>
                 }
               >
-                <p className="mb-3">You'll need your 6-digit recovery code to reset your PIN.</p>
+                <p className="mb-3">
+                  Reset your PIN using your 6-digit recovery code or security questions.
+                </p>
                 <Button
                   type="button"
                   onClick={() => setShowPinRecovery(true)}

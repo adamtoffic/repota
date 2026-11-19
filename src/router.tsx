@@ -5,10 +5,11 @@ import {
   createRouter,
   createRoute,
   createRootRoute,
+  Link,
   Outlet,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { AlertTriangle, RefreshCcw } from "lucide-react";
+import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { SbaPage } from "./pages/SbaPage";
 import { SettingsHub } from "./pages/settings/SettingsHub";
@@ -111,6 +112,29 @@ export function RouteErrorFallback({ error }: { error?: unknown }) {
           <RefreshCcw className="h-4 w-4" />
           Reload App
         </button>
+      </div>
+    </div>
+  );
+}
+
+export function RouteNotFound() {
+  return (
+    <div className="bg-background flex min-h-[60vh] items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-lg sm:p-8">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <Home className="h-7 w-7" />
+        </div>
+        <h2 className="text-main text-xl font-bold">Page not found</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          The page you requested doesn&apos;t exist or may have moved.
+        </p>
+        <Link
+          to="/"
+          className="bg-primary hover:bg-primary/90 mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold text-white shadow-sm transition active:scale-95"
+        >
+          <Home className="h-4 w-4" />
+          Back to Home
+        </Link>
       </div>
     </div>
   );
@@ -259,6 +283,7 @@ export function createAppRouter(history?: RouterHistory) {
     defaultPreload: "intent",
     scrollRestoration: true,
     defaultErrorComponent: RouteErrorFallback,
+    defaultNotFoundComponent: RouteNotFound,
   });
 }
 
