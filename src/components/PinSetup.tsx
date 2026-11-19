@@ -170,13 +170,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -235,13 +234,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -326,13 +324,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -414,13 +411,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -511,13 +507,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
+        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
               type="button"
@@ -646,13 +641,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-50 p-4"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] sm:p-8">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
               type="button"

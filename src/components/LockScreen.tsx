@@ -205,18 +205,17 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
   return (
     <div
       aria-hidden={paused || undefined}
-      className={`safe-y animate-fade-in fixed inset-0 z-90 flex items-center justify-center overflow-y-auto bg-slate-50 p-4 ${
+      className={`safe-y animate-fade-in fixed inset-0 z-90 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 ${
         paused ? "pointer-events-none" : ""
       }`}
       style={{
-        backgroundImage:
-          "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 138, 0.08), transparent 70%)",
+        backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         minHeight: "-webkit-fill-available",
         touchAction: "manipulation",
       }}
     >
       <div
-        className={`animate-sheet-up relative my-auto w-full max-w-sm rounded-3xl border border-slate-200/80 bg-white px-6 py-7 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.12)] transition-all duration-300 sm:px-8 sm:py-8 ${
+        className={`animate-sheet-up relative my-auto w-full max-w-sm rounded-3xl bg-white px-6 py-7 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 transition-all duration-300 sm:px-8 sm:py-8 ${
           isUnlocking ? "scale-[0.98] opacity-0" : "scale-100 opacity-100"
         }`}
       >
@@ -228,6 +227,9 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
         </div>
 
         {/* Title */}
+        <p className="mb-1 text-center text-[11px] font-bold tracking-[0.2em] text-slate-400 uppercase">
+          Repota
+        </p>
         <h1 className="text-center text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           {isUnlocking ? "Unlocking..." : "Welcome Back"}
         </h1>
