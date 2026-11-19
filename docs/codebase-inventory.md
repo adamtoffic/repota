@@ -90,11 +90,10 @@ Low-level, reusable components that compose higher-level features.
 - [**Card.tsx**](../src/components/ui/Card.tsx): Styled card container for content grouping
 
 ### **PWA & Platform Features**
-App installation, offline detection, service worker integration, update notifications.
+App installation, offline detection, and service worker integration.
 
 - [**PwaInstallPrompt.tsx**](../src/components/PwaInstallPrompt.tsx): "Install App" prompt for PWA installation
 - [**OfflineDetector.tsx**](../src/components/OfflineDetector.tsx): Displays offline status banner when disconnected
-- [**PwaUpdatePrompt.tsx**](../src/components/PwaUpdatePrompt.tsx): Prompts user to refresh when app updates are available
 
 ### **Forms & Modals**
 Reusable form components and modal dialogs for data entry workflows.
