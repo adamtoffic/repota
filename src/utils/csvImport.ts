@@ -198,11 +198,29 @@ function findMatchingStudent(
   return undefined;
 }
 
+export function normalizeComponentNameKey(name: string): string {
+  return cleanTaskNameFromHeader(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function normalizeHeader(header: string): string {
-  return header
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, "") // strip (/15), (/100)
-    .replace(/[^a-z0-9]/g, "");
+  return normalizeComponentNameKey(header);
+}
+
+const DERIVED_EXPORT_HEADERS = new Set([
+  "taskscore",
+  "subjectclassscore",
+  "weightedexam",
+  "total",
+  "totalscore",
+  "grade",
+  "position",
+  "remark",
+  "average",
+  "aggregate",
+]);
+
+function formatTemplateHeaderCell(header: string): string {
+  return /[,"\n\r]/.test(header) || /^[=+\-@\t\r]/.test(header) ? escapeCsvCell(header) : header;
 }
 
 function parseGenderValue(raw: string | undefined): {
@@ -449,7 +467,9 @@ export function buildRosterTemplateCsv(
           ],
         ];
 
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  return [headers.map(formatTemplateHeaderCell).join(","), ...rows.map((r) => r.join(","))].join(
+    "\n",
+  );
 }
 
 /**
@@ -649,7 +669,9 @@ export function buildSbaScoreTemplateCsv(
           if (!isMock) {
             if (tasks.length > 0) {
               tasks.forEach((task) => {
-                const comp = subject?.classScoreComponents?.find((c) => c.name === task.name);
+                const comp = subject?.classScoreComponents?.find(
+                  (c) => normalizeComponentNameKey(c.name) === normalizeComponentNameKey(task.name),
+                );
                 cells.push(escapeCsvCell(comp && comp.score > 0 ? comp.score : ""));
               });
             } else {
@@ -675,7 +697,9 @@ export function buildSbaScoreTemplateCsv(
           ],
         ];
 
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  return [headers.map(formatTemplateHeaderCell).join(","), ...rows.map((r) => r.join(","))].join(
+    "\n",
+  );
 }
 
 export interface DetectedNewSbaColumn {
@@ -729,6 +753,11 @@ export interface ParsedSbaScoreRow {
     isConflict: boolean;
   };
   computedClassScore: number;
+  sbaRawSum: number;
+  sbaMaxSum: number;
+  sbaTaskCount: number;
+  existingExamWeighted: number;
+  effectiveExamWeighted: number;
   hasWarnings: boolean;
   hasOverMaxError: boolean;
   hasConflicts: boolean;
@@ -745,6 +774,137 @@ export interface SbaImportParseResult {
   overMaxCount: number;
   matchedStudentCount: number;
   unmatchedStudentCount: number;
+  headerMismatchWarning?: string;
+}
+
+export interface UploadedScoreCsvInspection {
+  detectedSubject?: string;
+  suggestedMode?: SbaImportMode;
+  matchedTaskName?: string;
+  suggestedNewTask?: ClassScoreComponentConfig;
+}
+
+const GENERIC_SINGLE_TASK_HEADERS = new Set(["score", "marks", "mark", "sba", "points"]);
+const EXAM_COLUMN_HEADERS = new Set([
+  "exam",
+  "examscore",
+  "exams",
+  "terminalexam",
+  "finalexam",
+]);
+const DIRECT_CLASS_COLUMN_HEADERS = new Set([
+  "classscore",
+  "class",
+  "sba",
+  "sbatotal",
+  "continuousassessment",
+]);
+
+/**
+ * Inspects an uploaded CSV/TSV score file & filename to auto-detect target subject,
+ * mode (`SINGLE_COMPONENT`, `EXAM_ONLY`, or `FULL_SUBJECT`), and SBA task metadata.
+ */
+export function inspectUploadedScoreCsv(
+  rawText: string,
+  filename: string,
+  availableSubjects: string[],
+  existingTasksBySubject: Record<string, ClassScoreComponentConfig[]>,
+): UploadedScoreCsvInspection {
+  const fileBase = filename
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+  let detectedSubject: string | undefined;
+  if (fileBase) {
+    const sortedSubjects = [...availableSubjects].sort((a, b) => b.length - a.length);
+    for (const sub of sortedSubjects) {
+      const subNorm = sub.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+      if (subNorm && (fileBase === subNorm || fileBase.startsWith(`${subNorm} `))) {
+        detectedSubject = sub;
+        break;
+      }
+    }
+  }
+
+  const table = parseTabularText(rawText);
+  if (table.length === 0) {
+    return { detectedSubject };
+  }
+
+  const rawHeaders = table[0];
+  const normalizedHeaders = rawHeaders.map(normalizeHeader);
+  const nameColIdx = normalizedHeaders.findIndex((h) =>
+    ["name", "studentname", "fullname", "student"].includes(h),
+  );
+  const effectiveNameCol = nameColIdx >= 0 ? nameColIdx : 0;
+
+  const scoreCols = rawHeaders
+    .map((raw, idx) => ({ raw, norm: normalizedHeaders[idx], idx }))
+    .filter(
+      (col) =>
+        col.idx !== effectiveNameCol &&
+        col.norm.length > 0 &&
+        !DERIVED_EXPORT_HEADERS.has(col.norm),
+    );
+
+  if (scoreCols.length === 0) {
+    return { detectedSubject };
+  }
+
+  const targetSubject = detectedSubject ?? availableSubjects[0];
+  const existingTasks = targetSubject ? (existingTasksBySubject[targetSubject] ?? []) : [];
+
+  if (scoreCols.length === 1) {
+    const only = scoreCols[0];
+    const matchingTask = existingTasks.find(
+      (t) => normalizeComponentNameKey(t.name) === only.norm,
+    );
+    if (matchingTask) {
+      return {
+        detectedSubject,
+        suggestedMode: "SINGLE_COMPONENT",
+        matchedTaskName: matchingTask.name,
+      };
+    }
+
+    const headerMax = extractHeaderMaxScore(only.raw);
+    const isExamHeader =
+      EXAM_COLUMN_HEADERS.has(only.norm) ||
+      (only.norm === "score" && (headerMax === 100 || fileBase.includes("exam")));
+    if (isExamHeader) {
+      return {
+        detectedSubject,
+        suggestedMode: "EXAM_ONLY",
+      };
+    }
+
+    if (!DIRECT_CLASS_COLUMN_HEADERS.has(only.norm)) {
+      if (GENERIC_SINGLE_TASK_HEADERS.has(only.norm)) {
+        return {
+          detectedSubject,
+          suggestedMode: "SINGLE_COMPONENT",
+        };
+      }
+      const cleanedName = cleanTaskNameFromHeader(only.raw) || only.raw.trim();
+      return {
+        detectedSubject,
+        suggestedMode: "SINGLE_COMPONENT",
+        suggestedNewTask: {
+          name: cleanedName,
+          maxScore: headerMax ?? 15,
+          category: inferAssessmentCategory(cleanedName),
+        },
+      };
+    }
+  }
+
+  return {
+    detectedSubject,
+    suggestedMode: "FULL_SUBJECT",
+  };
 }
 
 export function extractHeaderMaxScore(header: string): number | undefined {
@@ -831,6 +991,7 @@ export function parseSbaScoreImport({
   const matchedColumns: string[] = [`Name -> col ${effectiveNameCol + 1}`];
   const unmatchedHeaders: string[] = [];
   const detectedNewColumns: DetectedNewSbaColumn[] = [];
+  let headerMismatchWarning: string | undefined;
   const dataRows = table.slice(1);
 
   if (importMode === "EXAM_ONLY") {
@@ -838,9 +999,13 @@ export function parseSbaScoreImport({
       if (idx === effectiveNameCol) return;
       const norm = normalizedHeaders[idx];
       if (!norm) return;
+      if (DERIVED_EXPORT_HEADERS.has(norm)) {
+        unmatchedHeaders.push(rawHeader);
+        return;
+      }
       if (
         examCol === -1 &&
-        ["exam", "examscore", "exams", "score", "marks", "terminalexam", "finalexam"].includes(norm)
+        [...EXAM_COLUMN_HEADERS, "score", "marks"].includes(norm)
       ) {
         examCol = idx;
         matchedColumns.push(`${rawHeader} -> Exam (/100)`);
@@ -848,11 +1013,14 @@ export function parseSbaScoreImport({
       }
       unmatchedHeaders.push(rawHeader);
     });
-    // Fallback for 2-column exam sheets with custom header
+    // Fallback for 2-column exam sheets with custom/blank header
     if (examCol === -1 && rawHeaders.length === 2) {
       const otherIdx = effectiveNameCol === 0 ? 1 : 0;
-      examCol = otherIdx;
-      matchedColumns.push(`${rawHeaders[otherIdx]} -> Exam (/100)`);
+      const otherNorm = normalizedHeaders[otherIdx];
+      if (!DERIVED_EXPORT_HEADERS.has(otherNorm)) {
+        examCol = otherIdx;
+        matchedColumns.push(`${rawHeaders[otherIdx]} -> Exam (/100)`);
+      }
     }
   } else if (importMode === "SINGLE_COMPONENT" && targetTask && !isMock) {
     const targetNorm = normalizeHeader(targetTask.name);
@@ -863,12 +1031,19 @@ export function parseSbaScoreImport({
     if (mappedIdx === -1) {
       mappedIdx = rawHeaders.findIndex(
         (_, idx) =>
-          idx !== effectiveNameCol &&
-          ["score", "marks", "mark", "sba", "points"].includes(normalizedHeaders[idx]),
+          idx !== effectiveNameCol && GENERIC_SINGLE_TASK_HEADERS.has(normalizedHeaders[idx]),
       );
     }
     if (mappedIdx === -1 && rawHeaders.length === 2) {
-      mappedIdx = effectiveNameCol === 0 ? 1 : 0;
+      const otherIdx = effectiveNameCol === 0 ? 1 : 0;
+      const otherHeader = rawHeaders[otherIdx] ?? "";
+      const otherNorm = normalizedHeaders[otherIdx] ?? "";
+      if (!otherNorm || GENERIC_SINGLE_TASK_HEADERS.has(otherNorm) || otherNorm === targetNorm) {
+        mappedIdx = otherIdx;
+      } else if (!DERIVED_EXPORT_HEADERS.has(otherNorm)) {
+        const cleanedOther = cleanTaskNameFromHeader(otherHeader) || otherHeader.trim();
+        headerMismatchWarning = `CSV column "${otherHeader}" does not match selected SBA component "${targetTask.name}". Switch to "${cleanedOther}" or create it instead.`;
+      }
     }
 
     if (mappedIdx >= 0) {
@@ -878,7 +1053,7 @@ export function parseSbaScoreImport({
       );
     }
     rawHeaders.forEach((h, idx) => {
-      if (idx !== effectiveNameCol && idx !== mappedIdx) unmatchedHeaders.push(h);
+      if (idx !== effectiveNameCol && idx !== mappedIdx && h.trim()) unmatchedHeaders.push(h);
     });
   } else {
     rawHeaders.forEach((rawHeader, idx) => {
@@ -893,16 +1068,24 @@ export function parseSbaScoreImport({
         return;
       }
 
-      if (
-        !isMock &&
-        ["classscore", "class", "sba", "sbatotal", "continuousassessment"].includes(norm)
-      ) {
-        directClassCol = idx;
-        matchedColumns.push(`${rawHeader} -> Class Score`);
+      if (DERIVED_EXPORT_HEADERS.has(norm)) {
+        unmatchedHeaders.push(rawHeader);
         return;
       }
 
-      if (["exam", "examscore", "exams", "score", "terminalexam", "finalexam"].includes(norm)) {
+      if (!isMock && DIRECT_CLASS_COLUMN_HEADERS.has(norm)) {
+        // When SBA components are configured for this subject, ignore derived Class Score columns
+        // so uploaded export sheets do not overwrite SBA-aggregated Class Score.
+        if (existingTasks.length === 0) {
+          directClassCol = idx;
+          matchedColumns.push(`${rawHeader} -> Class Score`);
+        } else {
+          unmatchedHeaders.push(rawHeader);
+        }
+        return;
+      }
+
+      if ([...EXAM_COLUMN_HEADERS, "score"].includes(norm)) {
         examCol = idx;
         matchedColumns.push(`${rawHeader} -> Exam (/100)`);
         return;
@@ -1000,7 +1183,7 @@ export function parseSbaScoreImport({
     let hasConflicts = false;
     const componentScores: ParsedSbaComponentPatch[] = [];
 
-    // Seed baseline components from existing subject or combined tasks
+    // Seed baseline components from existing subject + all configured/new SBA tasks
     let workingComponents: ClassScoreComponent[] = combinedTasks.map((t) => {
       const existingComp = existingSubject?.classScoreComponents?.find(
         (c) => normalizeHeader(c.name) === normalizeHeader(t.name),
@@ -1008,13 +1191,20 @@ export function parseSbaScoreImport({
       return {
         id: existingComp?.id || crypto.randomUUID(),
         name: t.name,
-        maxScore: existingComp?.maxScore ?? t.maxScore,
-        score: existingComp?.score ?? 0,
+        maxScore: t.maxScore,
+        score: Math.min(existingComp?.score ?? 0, t.maxScore),
         category: t.category ?? existingComp?.category,
       };
     });
 
-    let computedClassScore = existingSubject?.classScore ?? 0;
+    let computedClassScore =
+      !isMock && taskColMap.size > 0 && workingComponents.length > 0
+        ? (() => {
+            const totalActual = workingComponents.reduce((sum, c) => sum + c.score, 0);
+            const totalMax = workingComponents.reduce((sum, c) => sum + c.maxScore, 0);
+            return totalMax > 0 ? Math.round((totalActual / totalMax) * settings.classScoreMax) : 0;
+          })()
+        : (existingSubject?.classScore ?? 0);
 
     if (!isMock && taskColMap.size > 0) {
       taskColMap.forEach((task, colIdx) => {
@@ -1145,6 +1335,12 @@ export function parseSbaScoreImport({
       }
     }
 
+    const sbaRawSum = workingComponents.reduce((sum, c) => sum + c.score, 0);
+    const sbaMaxSum = workingComponents.reduce((sum, c) => sum + c.maxScore, 0);
+    const existingExamWeighted = existingSubject?.examScore ?? 0;
+    const effectiveExamWeighted =
+      examRawScore !== undefined ? examRawScore.weighted : existingExamWeighted;
+
     rows.push({
       studentName: matchedStudent ? matchedStudent.name : stripNameListPrefix(rawName),
       matchedStudentId: matchedStudent?.id,
@@ -1154,6 +1350,11 @@ export function parseSbaScoreImport({
       directClassScore,
       examRawScore,
       computedClassScore,
+      sbaRawSum,
+      sbaMaxSum,
+      sbaTaskCount: workingComponents.length,
+      existingExamWeighted,
+      effectiveExamWeighted,
       hasWarnings,
       hasOverMaxError,
       hasConflicts,
@@ -1171,6 +1372,7 @@ export function parseSbaScoreImport({
     overMaxCount,
     matchedStudentCount,
     unmatchedStudentCount,
+    ...(headerMismatchWarning ? { headerMismatchWarning } : {}),
   };
 }
 

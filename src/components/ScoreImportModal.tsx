@@ -16,6 +16,7 @@ import type {
   ClassScoreComponent,
   ClassScoreComponentConfig,
   SavedSubject,
+  SchoolSettings,
   StudentRecord,
 } from "../types";
 import {
@@ -25,6 +26,8 @@ import {
   buildSingleComponentExportCsv,
   buildSingleComponentTemplateCsv,
   downloadCsvFile,
+  inspectUploadedScoreCsv,
+  normalizeComponentNameKey,
   parseSbaScoreImport,
   resolveSubjectSbaTasks,
   type NewSbaColumnOverride,
@@ -42,6 +45,7 @@ interface Props {
   initialSubject?: string;
   initialMode?: SbaImportMode;
   initialTaskName?: string;
+  onSettingsUpdated?: (nextSettings: SchoolSettings) => void;
 }
 
 const CREATE_NEW_TASK_VALUE = "__CREATE_NEW_TASK__";
@@ -52,6 +56,7 @@ export function ScoreImportModal({
   initialSubject,
   initialMode,
   initialTaskName,
+  onSettingsUpdated,
 }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
@@ -219,9 +224,43 @@ export function ScoreImportModal({
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const content = await file.text();
+    const content =
+      typeof file.text === "function" ? await file.text() : await new Response(file).text();
+
+    const tasksBySubject: Record<string, ClassScoreComponentConfig[]> = {};
+    availableSubjects.forEach((sub) => {
+      tasksBySubject[sub] = resolveSubjectSbaTasks(sub, students, settings);
+    });
+
+    const inspection = inspectUploadedScoreCsv(
+      content,
+      file.name,
+      availableSubjects,
+      tasksBySubject,
+    );
+
+    if (inspection.detectedSubject && inspection.detectedSubject !== activeSubject) {
+      setSelectedSubject(inspection.detectedSubject);
+      showToast(`Selected ${inspection.detectedSubject} from CSV file.`, "info");
+    }
+
+    if (!isMock && inspection.suggestedMode) {
+      setModeState(inspection.suggestedMode);
+      if (inspection.suggestedMode === "SINGLE_COMPONENT") {
+        if (inspection.matchedTaskName) {
+          setSelectedTaskOption(inspection.matchedTaskName);
+        } else if (inspection.suggestedNewTask) {
+          setSelectedTaskOption(CREATE_NEW_TASK_VALUE);
+          setNewSingleTaskName(inspection.suggestedNewTask.name);
+          setNewSingleTaskMax(String(inspection.suggestedNewTask.maxScore));
+          setNewSingleTaskCategory(inspection.suggestedNewTask.category ?? "CAT");
+        }
+      }
+    }
+
     setRawText(content);
     setNewColumnOverrides({});
+    setAllowClampExceeding(false);
     setIsPreviewing(true);
     e.target.value = "";
   };
@@ -259,8 +298,35 @@ export function ScoreImportModal({
       examScore: 0,
     };
 
+    const nextExamScore =
+      row.examRawScore !== undefined ? row.examRawScore.weighted : baseSubject.examScore;
+
+    // Exam-only imports preserve existing SBA components & classScore untouched
+    if (
+      activeMode === "EXAM_ONLY" &&
+      row.componentScores.length === 0 &&
+      !row.directClassScore
+    ) {
+      return {
+        ...baseSubject,
+        examScore: nextExamScore,
+      };
+    }
+
     let nextComponents: ClassScoreComponent[] | undefined = baseSubject.classScoreComponents
-      ? baseSubject.classScoreComponents.map((c) => ({ ...c }))
+      ? baseSubject.classScoreComponents.map((c) => {
+          const matchingConfig = tasks.find(
+            (t) => normalizeComponentNameKey(t.name) === normalizeComponentNameKey(c.name),
+          );
+          return matchingConfig
+            ? {
+                ...c,
+                maxScore: matchingConfig.maxScore,
+                score: Math.min(c.score, matchingConfig.maxScore),
+                category: matchingConfig.category ?? c.category,
+              }
+            : { ...c };
+        })
       : tasks.length > 0
         ? tasks.map((t) => ({
             id: crypto.randomUUID(),
@@ -281,8 +347,8 @@ export function ScoreImportModal({
 
     if (nextComponents) {
       for (const task of tasks) {
-        const normalizedTaskName = task.name.trim().toLowerCase();
-        if (!nextComponents.some((c) => c.name.trim().toLowerCase() === normalizedTaskName)) {
+        const taskKey = normalizeComponentNameKey(task.name);
+        if (!nextComponents.some((c) => normalizeComponentNameKey(c.name) === taskKey)) {
           nextComponents.push({
             id: crypto.randomUUID(),
             name: task.name,
@@ -298,10 +364,8 @@ export function ScoreImportModal({
 
     if (row.componentScores.length > 0 && nextComponents) {
       for (const compPatch of row.componentScores) {
-        const normalizedPatchName = compPatch.name.trim().toLowerCase();
-        let target = nextComponents.find(
-          (c) => c.name.trim().toLowerCase() === normalizedPatchName,
-        );
+        const patchKey = normalizeComponentNameKey(compPatch.name);
+        let target = nextComponents.find((c) => normalizeComponentNameKey(c.name) === patchKey);
         if (!target) {
           target = {
             id: crypto.randomUUID(),
@@ -338,9 +402,6 @@ export function ScoreImportModal({
         : row.directClassScore.score;
     }
 
-    const nextExamScore =
-      row.examRawScore !== undefined ? row.examRawScore.weighted : baseSubject.examScore;
-
     return {
       ...baseSubject,
       classScore: nextClassScore,
@@ -365,23 +426,28 @@ export function ScoreImportModal({
     if (
       activeMode === "SINGLE_COMPONENT" &&
       activeSingleTask &&
-      !activeTasks.some((t) => t.name.toLowerCase() === activeSingleTask.name.toLowerCase())
+      !activeTasks.some(
+        (t) => normalizeComponentNameKey(t.name) === normalizeComponentNameKey(activeSingleTask.name),
+      )
     ) {
       enabledNewTasks.push(activeSingleTask);
     }
 
     const mergedTasksForCreation = [...activeTasks];
     for (const t of enabledNewTasks) {
-      if (!mergedTasksForCreation.some((e) => e.name.toLowerCase() === t.name.toLowerCase())) {
+      const tKey = normalizeComponentNameKey(t.name);
+      if (!mergedTasksForCreation.some((e) => normalizeComponentNameKey(e.name) === tKey)) {
         mergedTasksForCreation.push(t);
       }
     }
 
+    let effectiveSettings = settings;
     if (enabledNewTasks.length > 0 && typeof setSettings === "function") {
       const currentLib = settings.componentLibrary ?? [];
       const nextLib = [...currentLib];
       for (const task of enabledNewTasks) {
-        if (!nextLib.some((t) => t.name.toLowerCase() === task.name.toLowerCase())) {
+        const taskKey = normalizeComponentNameKey(task.name);
+        if (!nextLib.some((t) => normalizeComponentNameKey(t.name) === taskKey)) {
           nextLib.push(task);
         }
       }
@@ -389,20 +455,23 @@ export function ScoreImportModal({
       const currentMap = settings.subjectComponentMap ?? {};
       const currentSubTasks = currentMap[activeSubject] ?? [];
       const nextSubTasks = [...currentSubTasks];
-      for (const task of enabledNewTasks) {
-        if (!nextSubTasks.some((t) => t.name.toLowerCase() === task.name.toLowerCase())) {
+      for (const task of mergedTasksForCreation) {
+        const taskKey = normalizeComponentNameKey(task.name);
+        if (!nextSubTasks.some((t) => normalizeComponentNameKey(t.name) === taskKey)) {
           nextSubTasks.push(task);
         }
       }
 
-      setSettings({
+      effectiveSettings = {
         ...settings,
         componentLibrary: nextLib,
         subjectComponentMap: {
           ...currentMap,
           [activeSubject]: nextSubTasks,
         },
-      });
+      };
+      setSettings(effectiveSettings);
+      onSettingsUpdated?.(effectiveSettings);
     }
 
     // 2. Apply scores to matched students & create new students if enabled
@@ -433,8 +502,10 @@ export function ScoreImportModal({
       }
 
       if (createUnmatched && row.isNewStudent) {
-        const defaultSubs = buildDefaultSubjectsForStudent(settings);
-        const targetExisting = defaultSubs.find((s) => s.name === activeSubject);
+        const defaultSubs = buildDefaultSubjectsForStudent(effectiveSettings);
+        const targetExisting = defaultSubs.find(
+          (s) => s.name.trim().toLowerCase() === activeSubject.trim().toLowerCase(),
+        );
         const updatedSub = applyScoreRowToSubject(targetExisting, row, mergedTasksForCreation);
         const nextSubjects = targetExisting
           ? defaultSubs.map((s) => (s.id === targetExisting.id ? updatedSub : s))
@@ -444,7 +515,7 @@ export function ScoreImportModal({
           id: `${Date.now()}-${idx}`,
           name: row.studentName,
           gender: "Male",
-          className: settings.className || "Class",
+          className: effectiveSettings.className || "Class",
           subjects: nextSubjects,
           attendancePresent: 0,
         };
@@ -453,7 +524,7 @@ export function ScoreImportModal({
       }
     });
 
-    // 3. Keep remaining existing students synced with newly created SBA tasks (score: 0)
+    // 3. Keep remaining existing students synced with active + newly created SBA tasks (score: 0)
     if (enabledNewTasks.length > 0 && updatedCount + createdCount > 0) {
       students.forEach((student) => {
         if (touchedStudentIds.has(student.id)) return;
@@ -463,11 +534,11 @@ export function ScoreImportModal({
         if (!existingSub) return;
 
         const existingComps = existingSub.classScoreComponents ?? [];
-        const additions = enabledNewTasks
+        const additions = mergedTasksForCreation
           .filter(
             (t) =>
               !existingComps.some(
-                (c) => c.name.trim().toLowerCase() === t.name.trim().toLowerCase(),
+                (c) => normalizeComponentNameKey(c.name) === normalizeComponentNameKey(t.name),
               ),
           )
           .map((t) => ({
@@ -489,7 +560,7 @@ export function ScoreImportModal({
           {
             ...student,
             subjects: student.subjects.map((s) =>
-              s.id === existingSub.id
+              s === existingSub || (existingSub.id && s.id === existingSub.id)
                 ? { ...s, classScoreComponents: nextComps, classScore: nextClassScore }
                 : s,
             ),
@@ -629,6 +700,25 @@ export function ScoreImportModal({
                     ))}
                   </div>
                 </div>
+
+                {/* SBA Aggregation Formula / Status Strip */}
+                {!isMock && (
+                  activeTasks.length > 0 ? (
+                    <p className="rounded-lg border border-purple-200/80 bg-white/80 px-3 py-1.5 text-[11px] font-medium text-purple-900">
+                      <strong>{activeSubject} SBA:</strong> {activeTasks.length} component
+                      {activeTasks.length === 1 ? "" : "s"} (total /
+                      {activeTasks.reduce((sum, t) => sum + t.maxScore, 0)}) aggregate to{" "}
+                      <strong>Class Score (/{settings.classScoreMax})</strong> +{" "}
+                      <strong>Exam (/100 → /{settings.examScoreMax})</strong>
+                    </p>
+                  ) : (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900">
+                      No SBA components assigned to <strong>{activeSubject}</strong> yet. Add
+                      tasks on the SBA page or use <strong>Single SBA Task</strong> →{" "}
+                      <strong>+ Create New SBA Task...</strong> to import component scores.
+                    </p>
+                  )
+                )}
 
                 {/* Single SBA Component Picker / Creator */}
                 {activeMode === "SINGLE_COMPONENT" && (
@@ -985,6 +1075,16 @@ export function ScoreImportModal({
                         </div>
                       )}
 
+                      {parsedResult.headerMismatchWarning && (
+                        <div
+                          role="alert"
+                          className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-bold text-red-900"
+                        >
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                          <span>{parsedResult.headerMismatchWarning}</span>
+                        </div>
+                      )}
+
                       {parsedResult.overMaxCount > 0 && (
                         <div
                           role="alert"
@@ -1026,8 +1126,7 @@ export function ScoreImportModal({
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">
                             {parsedResult.rows.map((row, idx) => {
-                              const examWeighted = row.examRawScore?.weighted ?? 0;
-                              const total = row.computedClassScore + examWeighted;
+                              const total = row.computedClassScore + row.effectiveExamWeighted;
                               return (
                                 <tr
                                   key={idx}
@@ -1079,20 +1178,38 @@ export function ScoreImportModal({
                                     {row.componentScores.length === 0 && "—"}
                                   </td>
                                   <td className="px-3 py-2 text-center font-mono font-bold">
-                                    {row.computedClassScore}
-                                    {row.hasWarnings && (
-                                      <span className="ml-1 text-[10px] text-red-600">*</span>
+                                    <div>
+                                      {row.computedClassScore}
+                                      {row.hasWarnings && (
+                                        <span className="ml-1 text-[10px] text-red-600">*</span>
+                                      )}
+                                    </div>
+                                    {row.sbaTaskCount > 0 && (
+                                      <div className="text-[10px] font-normal text-gray-500">
+                                        {row.sbaRawSum}/{row.sbaMaxSum} ({row.sbaTaskCount} task
+                                        {row.sbaTaskCount === 1 ? "" : "s"})
+                                      </div>
                                     )}
                                   </td>
                                   <td className="px-3 py-2 text-center font-mono font-bold">
-                                    {row.examRawScore
-                                      ? row.examRawScore.clamped
-                                        ? `${row.examRawScore.enteredRaw}% > /100!`
-                                        : row.examRawScore.isConflict &&
-                                            conflictPolicy === "OVERWRITE"
-                                          ? `${row.examRawScore.existingRaw ?? "?"}% → ${row.examRawScore.raw}%`
-                                          : `${examWeighted} (${row.examRawScore.raw}%)`
-                                      : "—"}
+                                    {row.examRawScore ? (
+                                      row.examRawScore.clamped ? (
+                                        <span className="text-red-700">
+                                          {row.examRawScore.enteredRaw}% &gt; /100!
+                                        </span>
+                                      ) : row.examRawScore.isConflict &&
+                                        conflictPolicy === "OVERWRITE" ? (
+                                        `${row.examRawScore.existingRaw ?? "?"}% → ${row.examRawScore.raw}%`
+                                      ) : (
+                                        `${row.examRawScore.weighted} (${row.examRawScore.raw}%)`
+                                      )
+                                    ) : row.existingExamWeighted > 0 ? (
+                                      <span className="text-[11px] font-semibold text-gray-500">
+                                        {row.existingExamWeighted} (kept)
+                                      </span>
+                                    ) : (
+                                      "—"
+                                    )}
                                   </td>
                                   <td className="text-primary px-3 py-2 text-center font-mono font-black">
                                     {total}
@@ -1132,6 +1249,8 @@ export function ScoreImportModal({
                       disabled={
                         !parsedResult ||
                         parsedResult.rows.length === 0 ||
+                        Boolean(parsedResult.headerMismatchWarning) ||
+                        parsedResult.matchedColumns.length <= 1 ||
                         (parsedResult.overMaxCount > 0 && !allowClampExceeding) ||
                         (parsedResult.matchedStudentCount === 0 &&
                           (!createUnmatched || parsedResult.unmatchedStudentCount === 0))

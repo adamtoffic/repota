@@ -22,7 +22,13 @@ export function SbaPage() {
 }
 
 function SbaPageContent() {
-  const { formData, committedSchoolName, isPersistenceSuspended } = useSettingsForm();
+  const {
+    formData,
+    committedSchoolName,
+    isPersistenceSuspended,
+    flushPendingSave,
+    syncCommittedSettings,
+  } = useSettingsForm();
   const { students, detectComponentMismatches, syncSubjectComponentsFromSettings } =
     useSchoolData();
   const { showToast } = useToast();
@@ -75,7 +81,10 @@ function SbaPageContent() {
                 size="sm"
                 variant="secondary"
                 disabled={isPersistenceSuspended}
-                onClick={() => setShowScoreImport(true)}
+                onClick={() => {
+                  flushPendingSave();
+                  setShowScoreImport(true);
+                }}
                 className="gap-1.5"
               >
                 <Upload className="h-4 w-4" />
@@ -158,7 +167,11 @@ function SbaPageContent() {
         <SbaAssessmentSection />
       </main>
 
-      <ScoreImportModal isOpen={showScoreImport} onClose={() => setShowScoreImport(false)} />
+      <ScoreImportModal
+        isOpen={showScoreImport}
+        onClose={() => setShowScoreImport(false)}
+        onSettingsUpdated={syncCommittedSettings}
+      />
     </div>
   );
 }

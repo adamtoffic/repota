@@ -420,6 +420,36 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setShowClassUpdateModal(false);
   };
 
+  const flushPendingSave = useCallback(() => {
+    const classNameChanged = formData.className !== lastSavedSettings.className;
+    const isClassNameEmpty = !(formData.className ?? "").trim();
+    const toSave =
+      (classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty
+        ? { ...formData, className: lastSavedSettings.className }
+        : formData;
+
+    const toSaveString = JSON.stringify(toSave);
+    if (toSaveString === lastAutoSaveRef.current) return;
+
+    immediateSaveGenRef.current = formGenerationRef.current;
+    setSettings(toSave);
+    lastAutoSaveRef.current = toSaveString;
+    ++baselineSeqRef.current;
+    pendingSavedBaselineRef.current = null;
+    setLastSavedSettings(toSave);
+  }, [formData, lastSavedSettings.className, setSettings]);
+
+  const syncCommittedSettings = useCallback((nextSettings: SchoolSettings) => {
+    formGenerationRef.current += 1;
+    const nextGen = formGenerationRef.current;
+    immediateSaveGenRef.current = nextGen;
+    lastAutoSaveRef.current = JSON.stringify(nextSettings);
+    ++baselineSeqRef.current;
+    pendingSavedBaselineRef.current = null;
+    setFormPayload({ data: nextSettings, generation: nextGen });
+    setLastSavedSettings(nextSettings);
+  }, []);
+
   const openResetModal = useCallback(() => {
     resetBaselineRef.current = pendingSavedBaselineRef.current ?? lastSavedSettings;
     ++baselineSeqRef.current;
@@ -503,6 +533,8 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         handleClassNameBlur,
         handleKeepOldClassName,
         finalizeSave,
+        flushPendingSave,
+        syncCommittedSettings,
         handleLevelChange,
         applyLevelChange,
         openResetModal,

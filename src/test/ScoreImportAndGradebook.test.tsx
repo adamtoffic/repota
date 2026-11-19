@@ -1,13 +1,20 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { QuickGradebook } from "../components/QuickGradebook";
 import { ScoreImportModal } from "../components/ScoreImportModal";
+import { SubjectRow } from "../components/SubjectRow";
 import * as csvImportUtils from "../utils/csvImport";
+import { processStudent } from "../utils/gradeCalculator";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
 import { ToastContext } from "../context/ToastContextDefinition";
-import type { ProcessedStudent, SchoolSettings } from "../types";
+import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, ...props }: { children: React.ReactNode }) => <a {...props}>{children}</a>,
+}));
 
 vi.mock("posthog-js", () => ({
   default: { capture: vi.fn() },
@@ -502,5 +509,162 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     expect(screen.getByRole("button", { name: /apply scores/i })).toBeDisabled();
     expect(updateStudent).not.toHaveBeenCalled();
     expect(setSettings).not.toHaveBeenCalled();
+  });
+
+  it("uploads single-SBA CSVs across 5 components + final exam (89/100) into store and renders values in SubjectRow", async () => {
+    const user = userEvent.setup();
+    const englishTasks = [
+      { name: "CAT 1", maxScore: 10, category: "CAT" as const },
+      { name: "CAT 2", maxScore: 10, category: "CAT" as const },
+      { name: "Group Work", maxScore: 10, category: "GROUP" as const },
+      { name: "Homework", maxScore: 10, category: "HOMEWORK" as const },
+      { name: "Project", maxScore: 20, category: "PROJECT" as const },
+    ];
+    const initialSettings: SchoolSettings = {
+      ...DEFAULT_SETTINGS,
+      schoolName: "Test Academy",
+      className: "Basic 6",
+      level: "JHS",
+      classScoreMax: 50,
+      examScoreMax: 50,
+      defaultSubjects: ["Mathematics", "English"],
+      subjectComponentMap: {
+        English: englishTasks,
+        Mathematics: [{ name: "CAT 1", maxScore: 15, category: "CAT" }],
+      },
+    };
+    const initialStudents: StudentRecord[] = [
+      {
+        id: "stu-eng-1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        gender: "Male",
+        subjects: [
+          { id: "m1", name: "Mathematics", classScore: 0, examScore: 0 },
+          { id: "e1", name: "English", classScore: 0, examScore: 0 },
+        ],
+      },
+    ];
+
+    function StatefulHarness() {
+      const [settings, setSettings] = useState<SchoolSettings>(initialSettings);
+      const [rawStudents, setRawStudents] = useState<StudentRecord[]>(initialStudents);
+      const processed = rawStudents.map((s) => processStudent(s, settings.level));
+
+      const ctx = {
+        students: processed,
+        settings,
+        setSettings,
+        updateStudent: (updated: StudentRecord) => {
+          setRawStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+        },
+        addStudent: (added: StudentRecord) => {
+          setRawStudents((prev) => [...prev, added]);
+        },
+      } as unknown as SchoolContextType;
+
+      const engSubject = processed[0].subjects.find((s) => s.name === "English")!;
+
+      return (
+        <ToastContext.Provider value={{ showToast: vi.fn() }}>
+          <SchoolContext.Provider value={ctx}>
+            <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
+            <SubjectRow
+              key={engSubject.classScoreComponents?.length ?? 0}
+              subject={engSubject}
+              level={settings.level}
+              maxClassScore={settings.classScoreMax}
+              maxExamScore={settings.examScoreMax}
+              onChange={vi.fn()}
+            />
+          </SchoolContext.Provider>
+        </ToastContext.Provider>
+      );
+    }
+
+    const { container } = render(<StatefulHarness />);
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    // 1. Upload CSV for 1 SBA component ("Group Work (/10)") named English_Group_Work_Template.csv
+    const csv1 = new File(['"Name","Group Work (/10)"\n"Kwame Mensah","8"'], "English_Group_Work_Template.csv", {
+      type: "text/csv",
+    });
+    await user.upload(fileInput, csv1);
+
+    // Auto-selects English + Single SBA Task ("Group Work"), computes aggregate over all 5 tasks (8/60 * 50 = 7)
+    expect(screen.getByLabelText(/Target Subject/i)).toHaveValue("English");
+    expect(screen.getByLabelText("SBA Component")).toHaveValue("Group Work");
+    expect(screen.getByText(/8\/60 \(5 tasks\)/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /apply scores/i }));
+
+    // Edit Student Scores view (SubjectRow) shows the actual non-empty component value (8) and class score (7/50)
+    expect(screen.getByDisplayValue("8")).toBeInTheDocument();
+    expect(screen.getByText(/Class Score: 7\/50/i)).toBeInTheDocument();
+
+    // 2. Upload remaining 4 SBA components together: CAT 1=10, CAT 2=8, Homework=9, Project=16
+    // Sum = 10 + 8 + 8 + 9 + 16 = 51 / 60 => Math.round(51/60 * 50) = 43
+    const csv2 = new File(
+      [
+        "Name,CAT 1 (/10),CAT 2 (/10),Homework (/10),Project (/20)\nKwame Mensah,10,8,9,16",
+      ],
+      "English_Remaining_SBA.csv",
+      { type: "text/csv" },
+    );
+    await user.upload(fileInput, csv2);
+    expect(screen.getByText(/51\/60 \(5 tasks\)/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /apply scores/i }));
+    expect(screen.getByText(/Class Score: 43\/50/i)).toBeInTheDocument();
+
+    // 3. Upload Final Exam = 89 / 100 -> 45/50 weighted; Class 43 preserved -> Total = 88
+    const csvExam = new File(["Name,Exam (/100)\nKwame Mensah,89"], "English_Final_Exam.csv", {
+      type: "text/csv",
+    });
+    await user.upload(fileInput, csvExam);
+    expect(screen.getByText(/45 \(89%\)/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /apply scores/i }));
+
+    expect(screen.getByText(/Class Score: 43\/50/i)).toBeInTheDocument();
+    expect(screen.getByText(/= 45\/50/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("90")).toBeInTheDocument();
+    expect(screen.getByText("88")).toBeInTheDocument();
+  });
+
+  it("keeps Mathematics without classScoreComponents untouched during EXAM_ONLY import", async () => {
+    const user = userEvent.setup();
+    const { ctx, updateStudent, toastCtx } = createContexts([
+      {
+        ...studentOne,
+        subjects: [{ id: "sub-raw", name: "Mathematics", classScore: 30, examScore: 0, totalScore: 30, grade: 9, remark: "Lowest" }],
+      },
+    ]);
+
+    render(
+      <ToastContext.Provider value={toastCtx}>
+        <SchoolContext.Provider value={ctx}>
+          <ScoreImportModal
+            isOpen={true}
+            onClose={vi.fn()}
+            initialSubject="Mathematics"
+            initialMode="EXAM_ONLY"
+          />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    const textarea = screen
+      .getAllByRole("textbox")
+      .find((el) => el.tagName === "TEXTAREA") as HTMLTextAreaElement;
+    fireEvent.change(textarea, {
+      target: { value: "Name\tExam (/100)\nKwame Mensah\t89" },
+    });
+
+    await user.click(screen.getByRole("button", { name: /preview & validate scores/i }));
+    await user.click(screen.getByRole("button", { name: /apply scores/i }));
+
+    expect(updateStudent).toHaveBeenCalledTimes(1);
+    const updatedSub = updateStudent.mock.calls[0][0].subjects[0];
+    expect(updatedSub.classScore).toBe(30);
+    expect(updatedSub.examScore).toBe(45);
+    expect(updatedSub.classScoreComponents).toBeUndefined();
   });
 });

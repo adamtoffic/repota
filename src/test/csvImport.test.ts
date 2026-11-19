@@ -8,6 +8,8 @@ import {
   buildSbaScoreTemplateCsv,
   buildSingleComponentExportCsv,
   buildSingleComponentTemplateCsv,
+  inspectUploadedScoreCsv,
+  normalizeComponentNameKey,
   parseRosterImport,
   parseSbaScoreImport,
   parseTabularText,
@@ -330,5 +332,212 @@ describe("csvImport", () => {
     });
     expect(parsed.rows[1].matchedStudentId).toBe("stu-m2");
     expect(parsed.rows[2].isNewStudent).toBe(true);
+  });
+
+  it("distinguishes descriptive parenthetical task names and ignores exported summary columns", () => {
+    expect(normalizeComponentNameKey("Group Work (Oral) (/15)")).toBe("groupworkoral");
+    expect(normalizeComponentNameKey("Group Work (Written) (/15)")).toBe("groupworkwritten");
+    expect(normalizeComponentNameKey("Group Work (Oral) (/15)")).not.toBe(
+      normalizeComponentNameKey("Group Work (Written) (/15)"),
+    );
+
+    const engTask = { name: "Group Work (Oral)", maxScore: 15, category: "GROUP" as const };
+    const engSettings: SchoolSettings = {
+      ...settingsWithSba,
+      defaultSubjects: ["English"],
+      subjectComponentMap: {
+        English: [
+          engTask,
+          { name: "Group Work (Written)", maxScore: 15, category: "GROUP" },
+        ],
+      },
+    };
+    const engStudents: StudentRecord[] = [
+      {
+        id: "e1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        subjects: [
+          {
+            id: "sub-e1",
+            name: "English",
+            classScore: 25,
+            examScore: 45,
+            classScoreComponents: [
+              { id: "c1", name: "Group Work (Oral)", score: 12, maxScore: 15, category: "GROUP" },
+              {
+                id: "c2",
+                name: "Group Work (Written)",
+                score: 3,
+                maxScore: 15,
+                category: "GROUP",
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const exportedCsv = buildSingleComponentExportCsv("English", engTask, engStudents, {
+      classScoreMax: 50,
+    });
+    const reparsed = parseSbaScoreImport({
+      rawText: exportedCsv,
+      subjectName: "English",
+      existingStudents: engStudents,
+      settings: engSettings,
+    });
+
+    // Exported summary columns ("Task Score (%)", "Subject Class Score (/50)") must NOT become SBA tasks
+    expect(reparsed.detectedNewColumns).toHaveLength(0);
+    expect(reparsed.rows[0].componentScores).toHaveLength(1);
+    expect(reparsed.rows[0].componentScores[0].name).toBe("Group Work (Oral)");
+    expect(reparsed.rows[0].computedClassScore).toBe(25);
+    expect(reparsed.rows[0].effectiveExamWeighted).toBe(45);
+  });
+
+  it("aggregates 5 SBA components to classScoreMax (50) and computes weighted Exam from /100", () => {
+    const fiveTasks = [
+      { name: "CAT 1", maxScore: 10, category: "CAT" as const },
+      { name: "CAT 2", maxScore: 10, category: "CAT" as const },
+      { name: "Group Work", maxScore: 10, category: "GROUP" as const },
+      { name: "Homework", maxScore: 10, category: "HOMEWORK" as const },
+      { name: "Project", maxScore: 20, category: "PROJECT" as const },
+    ];
+    const fiveSettings: SchoolSettings = {
+      ...settingsWithSba,
+      classScoreMax: 50,
+      examScoreMax: 50,
+      defaultSubjects: ["English"],
+      subjectComponentMap: { English: fiveTasks },
+    };
+    const stu: StudentRecord[] = [
+      {
+        id: "k1",
+        name: "Kwame Mensah",
+        className: "Basic 6",
+        subjects: [
+          {
+            id: "sub-k1",
+            name: "English",
+            classScore: 30,
+            examScore: 0,
+            classScoreComponents: [
+              { id: "t1", name: "CAT 1", score: 8, maxScore: 10, category: "CAT" },
+              { id: "t2", name: "CAT 2", score: 9, maxScore: 10, category: "CAT" },
+              { id: "t3", name: "Group Work", score: 7, maxScore: 10, category: "GROUP" },
+              { id: "t4", name: "Homework", score: 6, maxScore: 10, category: "HOMEWORK" },
+              { id: "t5", name: "Project", score: 0, maxScore: 20, category: "PROJECT" },
+            ],
+          },
+        ],
+      },
+    ];
+
+    // Import only the 5th component (Project = 18 / 20)
+    // Total across 5 components = (8+9+7+6+18) / 60 = 48 / 60 * 50 = 40
+    const parsedSba = parseSbaScoreImport({
+      rawText: "Name,Project (/20)\nKwame Mensah,18",
+      subjectName: "English",
+      existingStudents: stu,
+      settings: fiveSettings,
+      importMode: "SINGLE_COMPONENT",
+      targetTask: fiveTasks[4],
+    });
+    expect(parsedSba.rows[0].sbaRawSum).toBe(48);
+    expect(parsedSba.rows[0].sbaMaxSum).toBe(60);
+    expect(parsedSba.rows[0].sbaTaskCount).toBe(5);
+    expect(parsedSba.rows[0].computedClassScore).toBe(40);
+
+    // Next, import Final Exam = 89 / 100 => round(0.89 * 50) = 45
+    const stuAfterSba: StudentRecord[] = [
+      {
+        ...stu[0],
+        subjects: [{ ...stu[0].subjects[0], classScore: 40 }],
+      },
+    ];
+    const parsedExam = parseSbaScoreImport({
+      rawText: "Name,Exam (/100)\nKwame Mensah,89",
+      subjectName: "English",
+      existingStudents: stuAfterSba,
+      settings: fiveSettings,
+      importMode: "EXAM_ONLY",
+    });
+    expect(parsedExam.rows[0].computedClassScore).toBe(40);
+    expect(parsedExam.rows[0].examRawScore?.weighted).toBe(45);
+    expect(parsedExam.rows[0].computedClassScore + parsedExam.rows[0].effectiveExamWeighted).toBe(85);
+  });
+
+  it("flags header mismatch in SINGLE_COMPONENT mode instead of mapping wrong SBA column and inspects uploaded CSV metadata", () => {
+    const mismatched = parseSbaScoreImport({
+      rawText: "Name,Group Work (/20)\nKwame Mensah,16",
+      subjectName: "Mathematics",
+      existingStudents,
+      settings: settingsWithSba,
+      importMode: "SINGLE_COMPONENT",
+      targetTask: { name: "CAT 1", maxScore: 15, category: "CAT" },
+    });
+    expect(mismatched.headerMismatchWarning).toContain("Group Work (/20)");
+    expect(mismatched.matchedColumns).toEqual(["Name -> col 1"]);
+
+    const tasksMap = {
+      Mathematics: settingsWithSba.subjectComponentMap!.Mathematics,
+      "English Language": [],
+    };
+    const subjects = ["Mathematics", "English", "English Language"];
+
+    expect(
+      inspectUploadedScoreCsv(
+        "Name,CAT 1 (/15)\nKwame Mensah,12",
+        "Mathematics_CAT_1_Template_2026-11-19.csv",
+        subjects,
+        tasksMap,
+      ),
+    ).toEqual({
+      detectedSubject: "Mathematics",
+      suggestedMode: "SINGLE_COMPONENT",
+      matchedTaskName: "CAT 1",
+    });
+
+    expect(
+      inspectUploadedScoreCsv(
+        "Name,Reading Quiz (/20)\nKwame Mensah,16",
+        "English_Language_Reading_Quiz.csv",
+        subjects,
+        tasksMap,
+      ),
+    ).toEqual({
+      detectedSubject: "English Language",
+      suggestedMode: "SINGLE_COMPONENT",
+      suggestedNewTask: {
+        name: "Reading Quiz",
+        maxScore: 20,
+        category: "CAT",
+      },
+    });
+
+    expect(
+      inspectUploadedScoreCsv(
+        "Name,Exam (/100)\nKwame Mensah,89",
+        "Mathematics_Final_Exam_Template.csv",
+        subjects,
+        tasksMap,
+      ),
+    ).toEqual({
+      detectedSubject: "Mathematics",
+      suggestedMode: "EXAM_ONLY",
+    });
+
+    expect(
+      inspectUploadedScoreCsv(
+        "Name,CAT 1 (/15),Exam (/100)\nKwame Mensah,12,80",
+        "Mathematics_Full_SBA_Template.csv",
+        subjects,
+        tasksMap,
+      ),
+    ).toEqual({
+      detectedSubject: "Mathematics",
+      suggestedMode: "FULL_SUBJECT",
+    });
   });
 });
