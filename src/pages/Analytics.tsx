@@ -2,7 +2,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   TrendingUp,
   Users,
   Award,
@@ -22,6 +21,7 @@ import {
   Check,
   Sparkles,
   Wallet,
+  X,
 } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { StatCard } from "../components/analytics/StatCard";
@@ -88,11 +88,22 @@ export const Analytics: React.FC = () => {
   const analyticsHeaderRef = useRef<HTMLDivElement>(null);
   const analyticsContentRef = useRef<HTMLDivElement>(null);
 
-  const hasActiveFilters =
-    filters.gender !== "All" ||
-    filters.performanceLevel !== "All" ||
-    filters.subjectFilter !== "All" ||
-    Boolean(filters.scoreRange && (filters.scoreRange.min > 0 || filters.scoreRange.max < 100));
+  const activeFilterCount = [
+    filters.gender !== "All",
+    filters.performanceLevel !== "All",
+    filters.subjectFilter !== "All",
+    Boolean(filters.scoreRange && (filters.scoreRange.min > 0 || filters.scoreRange.max < 100)),
+  ].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
+
+  const handleResetFilters = () => {
+    setFilters({
+      gender: "All",
+      performanceLevel: "All",
+      subjectFilter: "All",
+      scoreRange: { min: 0, max: 100 },
+    });
+  };
 
   // Filter students based on selected filters (reuse ProcessedStudent averageScore when available)
   const filteredStudents = useMemo(() => {
@@ -404,14 +415,6 @@ export const Analytics: React.FC = () => {
         <PageHeader schoolName={settings.schoolName} />
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-          <button
-            onClick={() => navigate({ to: "/" })}
-            className="text-muted hover:text-main mb-4 flex items-center gap-2 text-sm font-medium transition-colors sm:mb-6"
-            data-record="true"
-          >
-            <ArrowLeft size={18} />
-            Back to Dashboard
-          </button>
           <Card padding="lg" className="text-center">
             <BarChart3 size={48} className="mx-auto mb-4 text-gray-400" />
             <h3 data-record="true" className="text-main mb-2 text-lg font-bold sm:text-xl">
@@ -420,6 +423,14 @@ export const Analytics: React.FC = () => {
             <p data-record="true" className="text-muted text-sm sm:text-base">
               Add students and their scores to view advanced analytics
             </p>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/" })}
+              className="bg-primary hover:bg-primary/90 mt-5 inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+              data-record="true"
+            >
+              Go to Dashboard
+            </button>
           </Card>
         </main>
       </div>
@@ -435,37 +446,46 @@ export const Analytics: React.FC = () => {
         {/* Header */}
         <div ref={analyticsHeaderRef} className="mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1
-                data-record="true"
-                className="text-main text-2xl font-black tracking-tight sm:text-3xl"
-              >
-                📊 Advanced Analytics
-              </h1>
-              <p className="text-muted mt-1 text-sm">
-                Deep insights for {settings.className || "your class"} • {filteredStudents.length}{" "}
-                of {students.length} students
-              </p>
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-blue-100 p-2.5">
+                <BarChart3 className="text-primary h-5 w-5" />
+              </div>
+              <div>
+                <h1
+                  data-record="true"
+                  className="text-main text-2xl font-black tracking-tight sm:text-3xl"
+                >
+                  Advanced Analytics
+                </h1>
+                <p className="text-muted mt-0.5 text-sm">
+                  Deep insights for {settings.className || "your class"} • {filteredStudents.length}{" "}
+                  of {students.length} students
+                </p>
+              </div>
             </div>
 
             {/* Export Buttons */}
             <div className="flex items-center gap-2" data-no-print="true">
               <button
+                type="button"
                 onClick={handleExportData}
                 data-record="true"
-                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95 sm:gap-2 sm:text-sm sm:font-medium"
                 title="Export analytics data as CSV"
               >
                 <FileText size={16} />
+                <span className="sm:hidden">CSV</span>
                 <span className="hidden sm:inline">Export CSV</span>
               </button>
               <button
+                type="button"
                 onClick={handleExportPDF}
                 data-record="true"
-                className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
+                className="bg-primary hover:bg-primary/90 flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 sm:gap-2 sm:text-sm sm:font-medium"
                 title="Export analytics as PDF"
               >
                 <Download size={16} />
+                <span className="sm:hidden">PDF</span>
                 <span className="hidden sm:inline">Export PDF</span>
               </button>
             </div>
@@ -502,20 +522,39 @@ export const Analytics: React.FC = () => {
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowMobileFilters((prev) => !prev)}
-            aria-expanded={showMobileFilters}
-            className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all active:scale-95 lg:hidden ${
-              showMobileFilters || hasActiveFilters
-                ? "border-blue-300 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-            }`}
-            data-record="true"
-          >
-            <Filter className="h-4 w-4" />
-            <span>{showMobileFilters ? "Hide Filters" : "Filters"}</span>
-          </button>
+          <div className="flex items-center gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              aria-expanded={showMobileFilters}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all active:scale-95 ${
+                showMobileFilters || hasActiveFilters
+                  ? "border-blue-300 bg-blue-50 text-blue-700"
+                  : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+              data-record="true"
+            >
+              <Filter className="h-4 w-4" />
+              <span>{showMobileFilters ? "Hide Filters" : "Filters"}</span>
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[11px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                aria-label="Clear active filters"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-50"
+                data-record="true"
+              >
+                <X className="h-3.5 w-3.5" />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-4">
