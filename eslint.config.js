@@ -33,5 +33,14 @@ export default [
     },
   },
 
+  {
+    files: ["scripts/**/*.{js,mjs}"],
+    languageOptions: {
+      globals: globals.node,
+      ecmaVersion: "latest",
+      sourceType: "module",
+    },
+  },
+
   prettier,
 ];
