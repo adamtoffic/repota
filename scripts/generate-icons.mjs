@@ -225,6 +225,33 @@ function packIco(images) {
   return Buffer.concat([header, directory, ...images.map((item) => item.buffer)]);
 }
 
+function buildSquircleSvg(logoSvg) {
+  const defsStart = logoSvg.indexOf("<defs>");
+  const defsEnd = logoSvg.indexOf("</defs>");
+  const svgClose = logoSvg.lastIndexOf("</svg>");
+  if (
+    defsStart === -1 ||
+    defsEnd === -1 ||
+    svgClose === -1 ||
+    defsEnd <= defsStart ||
+    svgClose <= defsEnd
+  ) {
+    throw new Error("Expected <defs>...</defs> and </svg> in public/logo.svg");
+  }
+
+  const beforeDefs = logoSvg.slice(0, defsStart);
+  const defsBlock = logoSvg.slice(defsStart, defsEnd);
+  const bodyBlock = logoSvg.slice(defsEnd + "</defs>".length, svgClose);
+
+  return `${beforeDefs}${defsBlock}  <clipPath id="repota-squircle">
+      <rect width="512" height="512" rx="112" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#repota-squircle)">${bodyBlock}  </g>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="4" />
+</svg>\n`;
+}
+
 async function main() {
   const logoSvgPath = path.join(PUBLIC_DIR, "logo.svg");
   const faviconSvgPath = path.join(PUBLIC_DIR, "favicon.svg");
@@ -240,6 +267,7 @@ async function main() {
     maskableTarget,
     '<g id="repota-artwork" transform="translate(256 256) scale(0.86) translate(-256 -256)"',
   );
+  const squircleSvg = buildSquircleSvg(logoSvg);
 
   const browserPath = findBrowserExecutable();
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "repota-icons-"));
@@ -254,9 +282,9 @@ async function main() {
     const frameId = frameTree.frame.id;
 
     const pngTargets = [
-      { name: "pwa-64x64.png", size: 64, svg: logoSvg, transparent: false },
-      { name: "pwa-192x192.png", size: 192, svg: logoSvg, transparent: false },
-      { name: "pwa-512x512.png", size: 512, svg: logoSvg, transparent: false },
+      { name: "pwa-64x64.png", size: 64, svg: squircleSvg, transparent: true },
+      { name: "pwa-192x192.png", size: 192, svg: squircleSvg, transparent: true },
+      { name: "pwa-512x512.png", size: 512, svg: squircleSvg, transparent: true },
       { name: "maskable-icon-512x512.png", size: 512, svg: maskableSvg, transparent: false },
       { name: "apple-touch-icon.png", size: 180, svg: logoSvg, transparent: false },
       { name: "favicon-96x96.png", size: 96, svg: faviconSvg, transparent: true },

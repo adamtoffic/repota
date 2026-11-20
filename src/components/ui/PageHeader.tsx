@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RepotaLogo } from "./RepotaLogo";
 
 interface PageHeaderProps {
   schoolName?: string;
@@ -32,7 +33,7 @@ export function PageHeader({
           <div className="flex items-center gap-3 overflow-hidden md:hidden">
             {/* Repota Logo */}
             <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-sm">
-              <img src="/logo.svg" alt="Repota" className="h-full w-full" />
+              <RepotaLogo className="h-full w-full" />
             </div>
 
             {/* App Name + School Context */}

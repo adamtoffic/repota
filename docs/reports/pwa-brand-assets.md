@@ -25,26 +25,32 @@ Branch: `feat/pwa-brand-assets` (branched from `feat/navigation-shell` at `c9064
 
 ## What Was Verified
 
-- `npm run generate:icons`: exited `0`; generated `pwa-64x64.png` (4,001 B), `pwa-192x192.png` (23,653 B), `pwa-512x512.png` (141,368 B), `maskable-icon-512x512.png` (145,938 B), `apple-touch-icon.png` (21,233 B), `favicon-96x96.png` (7,275 B), and `favicon.ico` (5,105 B).
-- Visual PNG inspection via `read_file` on `public/pwa-512x512.png`, `public/maskable-icon-512x512.png`, `public/apple-touch-icon.png`, `public/favicon-96x96.png`, and `public/pwa-64x64.png` confirmed crisp gradients, safe-zone padding, and rounded transparent corners on the favicon PNG.
+- `npm run generate:icons`: exited `0`; generated `pwa-64x64.png` (4,765 B), `pwa-192x192.png` (28,112 B), `pwa-512x512.png` (164,343 B), `maskable-icon-512x512.png` (142,174 B), `apple-touch-icon.png` (19,704 B), `favicon-96x96.png` (7,275 B), and `favicon.ico` (5,105 B).
+- Visual PNG inspection via `read_file` on `public/pwa-512x512.png`, `public/pwa-192x192.png`, `public/maskable-icon-512x512.png`, `public/apple-touch-icon.png`, and `public/favicon-96x96.png` confirmed transparent-corner rounded squircles (`rx="112"`) for `"any"` desktop/browser icons and full-bleed opaque Royal Navy squares for Android maskable (`0.86×` centered artwork) and Apple touch icons.
 - Binary inspection of `public/favicon.ico` verified valid ICO header (`000001000300`, 3 entries at `16`, `32`, `48`).
-- `npx prettier --check scripts/generate-icons.mjs eslint.config.js src/components/ui/PageHeader.tsx`: exited `0`.
 - `npm run lint` (`eslint .`): exited `0`.
 - `npx tsc -b`: exited `0`.
 - `npm run build`: exited `0` (VitePWA precached 45 entries); `dist/manifest.webmanifest` verified with separated `any` and `maskable` icon entries, and `dist/site.webmanifest` plus `dist/web-app-manifest-*.png` confirmed absent.
 - `npm test -- --run`: exited `0` (`40` test files passed, `398` tests passed).
 
+## Preview Testing Fixes (Post-PR #61)
+
+- **Fixed blurry mobile top-nav logo & zoom rasterization (`public/logo.svg`, `public/favicon.svg`, `src/components/ui/RepotaLogo.tsx`, `AppShell.tsx`, `PageHeader.tsx`)**
+  - Replaced nested SVG `<filter>` (`feDropShadow`) shadows in `public/logo.svg` with pure-vector translucent offset shadow shapes and added explicit `width="512" height="512"` on both `public/logo.svg` and `public/favicon.svg`.
+  - Created inline `<RepotaLogo />` (`useId()`-prefixed gradient IDs) and replaced `<img src="/logo.svg">` in `AppShell.tsx` and `PageHeader.tsx` so mobile Retina devices and OS zoom render GPU-crisp vector shapes instead of low-res `40×40` offscreen filter bitmaps.
+- **Rounded desktop `"any"` PWA icons (`scripts/generate-icons.mjs`)**
+  - Updated `scripts/generate-icons.mjs` (`buildSquircleSvg`) to export `pwa-64x64.png`, `pwa-192x192.png`, and `pwa-512x512.png` as transparent-corner rounded squircles (`rx="112"` with a subtle `4px` inner white rim at `14%` opacity) so Windows/macOS desktop installs show rounded squircles instead of sharp square boxes, while keeping `maskable-icon-512x512.png` and `apple-touch-icon.png` full-bleed opaque.
+
 ## What Could Not Be Verified
 
-- Real device installation and icon cache updates on physical iOS Safari (`apple-touch-icon.png`) and Android launchers (`maskable-icon-512x512.png` adaptive circle/squircle masks).
+- Real device re-testing after the preview fixes on physical iOS Safari, Android launchers, and Windows/macOS desktop PWA install windows (waiting on PR #61 preview rebuild).
 - Live browser tab rendering of `favicon.svg` / `favicon.ico` across Safari, Chrome, and Firefox desktop windows.
 
 ## Summary for reviewer
 
-- Redesigned `public/logo.svg` and `public/favicon.svg` using the refined D3 Royal Navy folded-A4-stack mark with Ghana Gold backing.
-- Added zero-dependency `scripts/generate-icons.mjs` (`npm run generate:icons`) using headless Chromium CDP to export all PWA/Apple/favicon PNGs and 16/32/48 `favicon.ico`.
-- Added dedicated `public/maskable-icon-512x512.png` (`0.86×` centered foreground) and separated `any` vs `maskable` icon entries in `vite.config.ts`.
-- Deleted stale unused `public/site.webmanifest`, `public/web-app-manifest-192x192.png`, and `public/web-app-manifest-512x512.png`.
-- Removed `p-1` and added `overflow-hidden` on the `40×40` `/logo.svg` container in `AppShell.tsx` and `PageHeader.tsx`.
-- Verified `npm run generate:icons`, `npm run lint`, `npx tsc -b`, `npm run build`, `dist/manifest.webmanifest`, `favicon.ico`, PNG visuals, and `npm test -- --run` (40 files, 398 tests passed).
-- Physical iOS/Android Home Screen install rendering and desktop browser tab favicon inspection remain to be manually checked.
+- Redesigned `public/logo.svg` and `public/favicon.svg` using the refined D3 Royal Navy folded-A4-stack mark with pure-vector offset shadows (zero SVG `<filter>` rasterization).
+- Added inline `<RepotaLogo />` (`useId()`-scoped gradients) in `AppShell.tsx` and `PageHeader.tsx` for razor-sharp mobile Retina and zoomed top-nav/sidebar rendering.
+- Added zero-dependency `scripts/generate-icons.mjs` (`npm run generate:icons`) using headless Chromium CDP to export squircle `"any"` desktop PNGs, full-bleed Android maskable (`0.86×`) and Apple touch PNGs, and 16/32/48 `favicon.ico`.
+- Separated `any` vs `maskable` manifest icon entries in `vite.config.ts` and deleted stale `site.webmanifest` and `web-app-manifest-*.png`.
+- Verified `npm run generate:icons`, `npm run lint`, `npx tsc -b`, `npm run build`, regenerated PNG visuals, and `npm test -- --run` (40 files, 398 tests passed).
+- Physical iOS/Android/desktop PWA re-test on the updated PR #61 preview remains to be checked manually.
