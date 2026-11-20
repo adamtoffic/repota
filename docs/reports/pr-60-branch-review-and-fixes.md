@@ -1,9 +1,9 @@
 # PR #60 Branch Review & Post-Testing Fixes Report
 
 - **Branch:** `feat/ui-ux-polish`
-- **Target Base Branch:** `feat/navigation-shell` (`0` commits behind, `20` commits ahead at commit `2dbfd5c`)
-- **Pull Request:** [PR #60](https://github.com/adamtoffic/repota/pull/60) (`OPEN`, `DRAFT`, GitHub status: `MERGEABLE` / `CLEAN`, Vercel Preview: `SUCCESS`)
-- **Codebase Scope (at `2dbfd5c`, prior to this report commit):** `62 files changed, 2,328 insertions(+), 916 deletions(-)` across `20` commits (`5d4877b`..`2dbfd5c`)
+- **Target Base Branch:** `feat/navigation-shell` (`0` commits behind, `22` commits ahead at commit `4fa60c0`)
+- **Pull Request:** [PR #60](https://github.com/adamtoffic/repota/pull/60) (`OPEN`, `DRAFT`, GitHub status: `MERGEABLE` / `CLEAN`)
+- **Codebase Scope (at `4fa60c0`, prior to this report update):** `63 files changed, 2,465 insertions(+), 918 deletions(-)` across `22` commits (`5d4877b`..`4fa60c0`)
 
 ---
 
@@ -13,9 +13,9 @@ Branch `feat/ui-ux-polish` delivers three focused iterations on top of `feat/nav
 
 1. **Cross-Page UI/UX Polish & `"Home"` Naming Standardization (`5d4877b`..`9916c60`):** Streamlined mobile Settings navigation and hub metadata, upgraded Home desktop/mobile density and quick gradebook filters, improved SBA totals and per-subject CSV import triggers, unified Analytics header/filter visibility, decoupled Print Preview banner layout, and standardized user-facing `"Home"` naming.
 2. **Full-App Modal, LockScreen, Overlay & Route Audit Fixes + Dead Code Cleanup (`46d1d2f`..`ee2a7f7`):** Fixed the `WelcomeTour` close-button overlap, masked LockScreen PIN boxes, Tailwind v3 backdrop opacity bugs and missing `Step X of 4` / `Skip` UX on PIN setup/recovery, scoped mobile `16px` input zoom rules, hardened `ScoreEntryModal` mobile ergonomics and `Escape` dismissal across modals, ensured bulk modals reset draft state on reopen, centered `DataGate` error recovery, added a router 404 screen (`RouteNotFound`), refined form alignment, and removed unused `PwaUpdatePrompt` code.
-3. **Real-Device Post-Testing Fixes (`22399fd`..`3e61ff7`):** Refined `LockScreen` and `PinSetup` onto a matte deep navy canvas framing crisp elevated white cards with a built-in `0–9` tactile keypad, layered `LockScreen` behind `PinRecovery` for real backdrop blur, replaced dead `animate-in` utilities with GPU keyframes while removing the `AppShell` route-reflow wrapper that flickered sticky headers, and eliminated four main-thread mount bottlenecks across `Analytics`, `Settings`, `SBA`, and `Home`.
+3. **Real-Device Post-Testing Fixes (`22399fd`..`4fa60c0`):** Refined `LockScreen` and `PinSetup` onto a matte deep navy canvas framing crisp elevated white cards with a built-in `0–9` tactile keypad, layered `LockScreen` behind `PinRecovery` for real backdrop blur, replaced dead `animate-in` utilities with GPU keyframes while removing the `AppShell` route-reflow wrapper that flickered sticky headers, eliminated four main-thread mount bottlenecks across `Analytics`, `Settings`, `SBA`, and `Home`, and streamlined Settings mobile sub-page tabs with automatic horizontal centering on the active section.
 
-All automated checks pass at the latest code commit (`3e61ff7`; subsequent report commits touch only markdown under `docs/reports/`): `eslint .` exits `0`, `tsc -b` exits `0`, `vitest run` passes **40 test files / 398 tests** (`47.06s`), and `npm run build` succeeds (`25.62s`, `44` precache entries / `5397.60 KiB`). There are `0` added `TODO`/`FIXME`/`console.log`/`debugger` markers in `src/`, and PR #60 is `MERGEABLE` (`CLEAN`) with `0` commits behind `feat/navigation-shell`.
+All automated checks pass at the latest code commit (`4fa60c0`; this report commit touches only markdown under `docs/reports/`): `eslint .` exits `0`, `tsc -b` exits `0`, `vitest run` passes **40 test files / 398 tests** (`46.00s`), and `npm run build` succeeds (`29.42s`, `44` precache entries / `5397.86 KiB`). There are `0` added `TODO`/`FIXME`/`console.log`/`debugger` markers in `src/`, and PR #60 is `MERGEABLE` (`CLEAN`) with `0` commits behind `feat/navigation-shell`.
 
 ---
 
@@ -32,7 +32,7 @@ A detailed commit-by-commit breakdown of the first two phases is recorded in [`d
 
 ---
 
-## 3. Detailed Analysis of Post-Testing Fixes (`22399fd`..`3e61ff7`)
+## 3. Detailed Analysis of Post-Testing Fixes (`22399fd`..`4fa60c0`)
 
 ### 3.1 `LockScreen` & `PinSetup` Matte Navy Redesign, Tactile Keypad & Layered `PinRecovery` (`22399fd`, `3e61ff7`)
 - **Issues Found During Device Testing:**
@@ -65,32 +65,39 @@ A detailed commit-by-commit breakdown of the first two phases is recorded in [`d
   - Split [`ScoreImportModal.tsx`](../../src/components/ScoreImportModal.tsx) and [`BulkImportModal.tsx`](../../src/components/BulkImportModal.tsx) into zero-cost `if (!props.isOpen) return null;` outer wrappers + inner `*Content` components; switched `SbaPage.tsx` to slice hooks (`useSchoolStudents`, `useSchoolSettings`, `useSchoolActions`) and memoized `detectComponentMismatches()` keyed on `[detectComponentMismatches, students, settings.subjectComponentMap]`.
   - Consolidated `filterCounts` in `Dashboard.tsx` into a single `for` loop and tuned mobile bottom navigation blur in `AppShell.tsx` from `bg-white/90 backdrop-blur-xl` to `bg-white/95 backdrop-blur-sm`.
 
+### 3.4 Mobile Settings Quick-Tab Overflow Fix (`4fa60c0`)
+- **Issue Found During Mobile Testing:** On Settings sub-pages, `MOBILE_SETTINGS_TABS` previously rendered 5 horizontal scrollable pills (`School & Staff`, `Class & Subjects`, `SBA`, `Report Style`, `Security & Backup`) resetting to `scrollLeft = 0`, pushing `Security & Backup` off-screen unless swiped horizontally.
+- **Fixes Applied:**
+  - In [`SettingsSubPageLayout.tsx`](../../src/pages/settings/SettingsSubPageLayout.tsx), removed the redundant `SBA` pill (already present in the persistent bottom bar) and shortened pill labels (`School`, `Class`, `Report Style`, `Security`) so the 4 real Settings sections fit cleanly.
+  - Added a `useLayoutEffect` keyed on `[pathname]` using `navRef.current.scrollLeft` to horizontally center the active (`aria-current="page"`) pill before paint without triggering vertical iOS scroll jumps.
+  - Added sub-route quick-pill and `aria-current="page"` regression coverage across `/settings/templates` and `/settings/security` in [`src/test/SettingsSubRoutes.test.tsx`](../../src/test/SettingsSubRoutes.test.tsx).
+
 ---
 
 ## 4. Merge-Readiness & Hygiene Assessment
 
-- **Git & PR State:** Branch `feat/ui-ux-polish` is `0` commits behind `feat/navigation-shell`, `20` commits ahead (at `2dbfd5c`), with GitHub reporting PR #60 as `MERGEABLE` / `CLEAN` and Vercel Preview checks `SUCCESS`.
+- **Git & PR State:** Branch `feat/ui-ux-polish` is `0` commits behind `feat/navigation-shell`, `22` commits ahead (at `4fa60c0`), with GitHub reporting PR #60 as `MERGEABLE` / `CLEAN`.
 - **Code Hygiene:**
   - `0` added `TODO`, `FIXME`, `console.log`, or `debugger` markers across `src/` in `feat/navigation-shell..HEAD`.
   - `0` remaining dead `animate-in` / `zoom-in-95` / `slide-in-from-*` classes across `src/`.
   - Dead `PwaUpdatePrompt.tsx` component and unused `virtual:pwa-register/react` type shim removed cleanly.
 - **Data Safety & Compatibility:** Storage schemas, IndexedDB keys, `.repota` encryption/backup formats, and `SchoolContext` persistence logic remain intact; all storage, security, SBA, and template regression suites pass without modification or skipped cases.
-- **Non-Blocking Build Notes:** Vite production build reports the pre-existing bundle chunk size notice (`dist/assets/index-*.js` at `1,023.46 kB` raw / `289.17 kB` gzip) and Rollup `@__PURE__` comment notices inside `node_modules/zod`, unchanged from base.
+- **Non-Blocking Build Notes:** Vite production build reports the pre-existing bundle chunk size notice (`dist/assets/index-*.js` at `1,023.46 kB` raw / `289.16 kB` gzip) and Rollup `@__PURE__` comment notices inside `node_modules/zod`, unchanged from base.
 
 ---
 
-## 5. Verified Automated Checks (`HEAD` code = `3e61ff7`)
+## 5. Verified Automated Checks (`HEAD` code = `4fa60c0`)
 
-Checks ran directly after the final code commit (`3e61ff7`); commits `2dbfd5c` and this report only add/update markdown under `docs/reports/`.
+Checks ran directly after the final code commit (`4fa60c0`); this report update only modifies markdown under `docs/reports/`.
 
 | Check | Command | Observed Result |
 |---|---|---|
 | **Linting** | `npm run lint` (`eslint .`) | **Passed** (exit code `0`) |
 | **Type Check** | `npx tsc -b` | **Passed** (exit code `0`) |
-| **Test Suite** | `npx vitest run` | **Passed** — **40 test files passed, 398 tests passed**, `0` failed (`47.06s`) |
-| **Production Build** | `npm run build` (`tsc -b && vite build`) | **Passed** (`built in 25.62s`; `PWA v1.3.0`, `mode generateSW`, `44` precache entries / `5397.60 KiB`) |
+| **Test Suite** | `npx vitest run` | **Passed** — **40 test files passed, 398 tests passed**, `0` failed (`46.00s`) |
+| **Production Build** | `npm run build` (`tsc -b && vite build`) | **Passed** (`built in 29.42s`; `PWA v1.3.0`, `mode generateSW`, `44` precache entries / `5397.86 KiB`) |
 | **Hygiene Scan** | `git diff -U0 feat/navigation-shell..HEAD -- src/` scan for `TODO`/`FIXME`/`console.log`/`debugger` | **Clean** (`0` matches) |
-| **PR #60 Status** | `gh pr view 60` | `OPEN` (`DRAFT`), `MERGEABLE` / `CLEAN` into `feat/navigation-shell`, Vercel `SUCCESS` |
+| **PR #60 Status** | `gh pr view 60` | `OPEN` (`DRAFT`), `MERGEABLE` / `CLEAN` into `feat/navigation-shell` |
 
 **Test Files Added or Expanded on `feat/ui-ux-polish` (all passing in the 40-file / 398-test run):**
 - `src/test/ClassStoryAndAnalytics.test.tsx`
