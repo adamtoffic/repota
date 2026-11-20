@@ -38,7 +38,6 @@ export default defineConfig({
         "logo.svg",
         "apple-touch-icon.png",
         "maskable-icon-512x512.png",
-        "og-image.png",
       ],
 
       workbox: {
@@ -46,6 +45,7 @@ export default defineConfig({
         clientsClaim: true,
         // Precache essential files for offline functionality
         globPatterns: ["**/*.{html,js,css,ico,png,svg,woff,woff2}"],
+        globIgnores: ["og-image.png", "screenshot-*.png"],
         // Maximum cache size
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support
@@ -124,19 +124,19 @@ export default defineConfig({
 
         icons: [
           {
-            src: "pwa-64x64.png",
+            src: "pwa-any-64x64.png",
             sizes: "64x64",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "pwa-192x192.png",
+            src: "pwa-any-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "pwa-512x512.png",
+            src: "pwa-any-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
@@ -156,12 +156,28 @@ export default defineConfig({
             sizes: "750x1334",
             type: "image/png",
             form_factor: "narrow",
+            label: "Student Dashboard & Class Overview (Mobile)",
+          },
+          {
+            src: "screenshot-analytics-mobile.png",
+            sizes: "750x1334",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Class Performance Analytics & Insights (Mobile)",
           },
           {
             src: "screenshot-desktop.png",
             sizes: "1920x1080",
             type: "image/png",
             form_factor: "wide",
+            label: "Student Dashboard & Sidebar Navigation (Desktop)",
+          },
+          {
+            src: "screenshot-analytics-desktop.png",
+            sizes: "1920x1080",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Class Performance Analytics & Insights (Desktop)",
           },
         ],
       },
