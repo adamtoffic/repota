@@ -1,13 +1,6 @@
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  BookOpen,
-  Calculator,
-  LayoutTemplate,
-  School,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowLeft, BookOpen, LayoutTemplate, School, ShieldCheck } from "lucide-react";
 import { SettingsFormProvider } from "../../context/SettingsFormContext";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -15,11 +8,10 @@ import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderA
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 
 const MOBILE_SETTINGS_TABS = [
-  { to: "/settings/school" as const, label: "School & Staff", icon: School },
-  { to: "/settings/academic" as const, label: "Class & Subjects", icon: BookOpen },
-  { to: "/sba" as const, label: "SBA", icon: Calculator },
+  { to: "/settings/school" as const, label: "School", icon: School },
+  { to: "/settings/academic" as const, label: "Class", icon: BookOpen },
   { to: "/settings/templates" as const, label: "Report Style", icon: LayoutTemplate },
-  { to: "/settings/security" as const, label: "Security & Backup", icon: ShieldCheck },
+  { to: "/settings/security" as const, label: "Security", icon: ShieldCheck },
 ];
 
 interface SettingsSubPageLayoutProps {
@@ -41,6 +33,18 @@ export function SettingsSubPageLayout({ title, subtitle, children }: SettingsSub
 function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPageLayoutProps) {
   const { committedSchoolName, hasUnsavedChanges } = useSettingsForm();
   const pathname = useLocation({ select: (location) => location.pathname });
+  const navRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const activeTab = nav.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!activeTab) return;
+    const maxScroll = Math.max(0, nav.scrollWidth - nav.clientWidth);
+    const targetScrollLeft =
+      activeTab.offsetLeft - (nav.clientWidth - activeTab.clientWidth) / 2;
+    nav.scrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+  }, [pathname]);
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
@@ -65,6 +69,7 @@ function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPa
           <p className="text-muted mt-1 text-sm">{subtitle}</p>
 
           <nav
+            ref={navRef}
             aria-label="Settings sections"
             className="no-scrollbar -mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1 md:hidden"
           >
