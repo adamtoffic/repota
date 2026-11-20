@@ -27,27 +27,29 @@ export function DataGate({ children }: DataGateProps) {
 
   if (loadError || isRollbackIncomplete) {
     return (
-      <div className="p-6">
-        <Alert variant="error" title="Saved data could not be loaded">
-          Changes will not be saved while storage is unavailable. Try again, or restore a backup
-          from Settings &gt; Backup.
-          <div className="mt-3 flex gap-2">
-            <Button onClick={retryLoad} disabled={isRecoveryBusy} size="sm">
-              Try again
-            </Button>
-            <Button onClick={startFresh} disabled={isRecoveryBusy} size="sm" variant="secondary">
-              Start fresh
-            </Button>
-          </div>
-          <div className="mt-4">
-            <DataBackup
-              recoveryOnly
-              disabled={isRecoveryBusy}
-              activeRecoveryAction={activeRecoveryAction}
-              onRecoveryActionChange={setActiveRecoveryAction}
-            />
-          </div>
-        </Alert>
+      <div className="bg-background flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-xl">
+          <Alert variant="error" title="Saved data could not be loaded">
+            Changes will not be saved while storage is unavailable. Try again, or restore a backup
+            below.
+            <div className="mt-3 flex gap-2">
+              <Button onClick={retryLoad} disabled={isRecoveryBusy} size="sm">
+                Try again
+              </Button>
+              <Button onClick={startFresh} disabled={isRecoveryBusy} size="sm" variant="secondary">
+                Start fresh
+              </Button>
+            </div>
+            <div className="mt-4">
+              <DataBackup
+                recoveryOnly
+                disabled={isRecoveryBusy}
+                activeRecoveryAction={activeRecoveryAction}
+                onRecoveryActionChange={setActiveRecoveryAction}
+              />
+            </div>
+          </Alert>
+        </div>
       </div>
     );
   }

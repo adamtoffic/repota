@@ -146,24 +146,41 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     }
   };
 
-  const copyRecoveryCode = () => {
-    navigator.clipboard.writeText(recoveryCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleSkipSecurityQuestions = async () => {
+    setError("");
+    if (biometricAvailable) {
+      setStep("biometric");
+    } else {
+      await handleFinishSetup();
+    }
+  };
+
+  const copyRecoveryCode = async () => {
+    try {
+      await navigator.clipboard.writeText(recoveryCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Could not copy automatically — please write the code down.");
+    }
   };
 
   if (step === "intro") {
     return (
       <div
-        className="bg-opacity-95 fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
+              type="button"
               onClick={onCancel}
+              aria-label="Cancel PIN setup"
               className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
@@ -196,13 +213,14 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             </p>
             <p className="flex items-start gap-2">
               <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>You'll receive a recovery code in case you forget your PIN</span>
+              <span>You&apos;ll receive a recovery code in case you forget your PIN</span>
             </p>
           </div>
 
           <button
+            type="button"
             onClick={() => setStep("create")}
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+            className="w-full rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Get Started
           </button>
@@ -214,21 +232,28 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "create") {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
+              type="button"
               onClick={onCancel}
+              aria-label="Cancel PIN setup"
               className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
             </button>
           )}
 
+          <p className="mb-1 text-center text-xs font-bold tracking-wider text-blue-600 uppercase">
+            Step 1 of 4
+          </p>
           <h2 className="mb-2 text-center text-xl font-bold text-gray-900">
             {isChangingPin ? "Enter New PIN" : "Create Your PIN"}
           </h2>
@@ -246,10 +271,16 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               type="password"
               inputMode="numeric"
               maxLength={4}
+              data-large-input="true"
               value={pin}
               onChange={(e) => {
                 setPin(e.target.value.replace(/\D/g, ""));
                 setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && pin.length === 4) {
+                  void handleCreatePin();
+                }
               }}
               className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-2xl tracking-widest transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               placeholder="••••"
@@ -267,6 +298,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           <div className="flex gap-3">
             {isChangingPin && onCancel && (
               <button
+                type="button"
                 onClick={onCancel}
                 className="flex-1 rounded-lg border-2 border-gray-300 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
               >
@@ -274,9 +306,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               </button>
             )}
             <button
+              type="button"
               onClick={handleCreatePin}
               disabled={pin.length !== 4}
-              className={`${isChangingPin ? "flex-1" : "w-full"} rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300`}
+              className={`${isChangingPin ? "flex-1" : "w-full"} rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300`}
             >
               Next
             </button>
@@ -289,21 +322,28 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "confirm") {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
           {onCancel && (
             <button
+              type="button"
               onClick={onCancel}
+              aria-label="Cancel PIN setup"
               className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
             </button>
           )}
 
+          <p className="mb-1 text-center text-xs font-bold tracking-wider text-blue-600 uppercase">
+            Step 2 of 4
+          </p>
           <h2 className="mb-2 text-center text-xl font-bold text-gray-900">Confirm Your PIN</h2>
           <p className="mb-6 text-center text-sm text-gray-600">Re-enter your PIN to confirm</p>
 
@@ -315,10 +355,16 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               type="password"
               inputMode="numeric"
               maxLength={4}
+              data-large-input="true"
               value={confirmPin}
               onChange={(e) => {
                 setConfirmPin(e.target.value.replace(/\D/g, ""));
                 setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && confirmPin.length === 4) {
+                  handleConfirmPin();
+                }
               }}
               className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-2xl tracking-widest transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               placeholder="••••"
@@ -335,6 +381,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={() => {
                 setStep("create");
                 setConfirmPin("");
@@ -345,9 +392,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               Back
             </button>
             <button
+              type="button"
               onClick={handleConfirmPin}
               disabled={confirmPin.length !== 4}
-              className="flex-1 rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="flex-1 rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               Next
             </button>
@@ -361,55 +409,85 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "recovery") {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-          <div className="mb-6 flex justify-center">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Cancel PIN setup"
+              className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
+          <div className="mb-4 flex justify-center sm:mb-6">
             <div className="rounded-full bg-amber-100 p-4">
               <Key className="h-12 w-12 text-amber-600" />
             </div>
           </div>
 
-          <h2 className="mb-3 text-center text-xl font-bold text-gray-900">
+          <p className="mb-1 text-center text-xs font-bold tracking-wider text-amber-600 uppercase">
+            Step 3 of 4
+          </p>
+          <h2 className="mb-2 text-center text-xl font-bold text-gray-900">
             Save Your Recovery Code
           </h2>
           <p className="mb-6 text-center text-sm text-gray-600">
-            Write this down in a safe place. You'll need it if you forget your PIN.
+            Write this down in a safe place. You&apos;ll need it if you forget your PIN.
           </p>
 
-          <div className="mb-6 rounded-lg bg-amber-50 p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-4xl font-bold tracking-wider text-amber-900">
+          <div className="mb-5 rounded-lg bg-amber-50 p-4 sm:mb-6 sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="font-mono text-2xl font-bold tracking-wider text-amber-900 sm:text-4xl">
                 {recoveryCode}
               </span>
               <button
-                onClick={copyRecoveryCode}
-                className="rounded-lg bg-amber-200 p-2 text-amber-900 transition-colors hover:bg-amber-300"
+                type="button"
+                onClick={() => void copyRecoveryCode()}
+                className="shrink-0 rounded-lg bg-amber-200 p-2 text-amber-900 transition-colors hover:bg-amber-300"
                 title="Copy to clipboard"
+                aria-label="Copy recovery code"
               >
                 {copied ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
               </button>
             </div>
             <p className="text-xs text-amber-700">
-              {copied ? "✓ Copied to clipboard!" : "Click to copy"}
+              {copied ? "✓ Copied to clipboard!" : "Tap the button to copy"}
             </p>
           </div>
+
+          {error && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <div className="mb-6 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
             <p className="flex items-start gap-2 text-sm text-amber-900">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong>Important:</strong> Keep this code safe. You'll need it to reset your PIN.
+                <strong>Important:</strong> Keep this code safe. You&apos;ll need it to reset your
+                PIN.
               </span>
             </p>
           </div>
 
           <button
-            onClick={() => setStep("questions")}
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+            type="button"
+            onClick={() => {
+              setError("");
+              setStep("questions");
+            }}
+            className="w-full rounded-lg bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Next: Set Security Questions
           </button>
@@ -427,23 +505,39 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
-          <div className="mb-6 flex justify-center">
+        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Cancel PIN setup"
+              className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
+          <div className="mb-4 flex justify-center sm:mb-6">
             <div className="rounded-full bg-green-100 p-4">
               <HelpCircle className="h-12 w-12 text-green-600" />
             </div>
           </div>
 
-          <h2 className="mb-3 text-center text-xl font-bold text-gray-900">
+          <p className="mb-1 text-center text-xs font-bold tracking-wider text-green-600 uppercase">
+            Step 4 of 4
+          </p>
+          <h2 className="mb-2 text-center text-xl font-bold text-gray-900">
             Set Security Questions (Optional)
           </h2>
           <p className="mb-6 text-center text-sm text-gray-600">
-            Answer 3 questions to help you recover access if you forget your PIN.
+            Answer 3 questions to help recover access if you forget your PIN, or skip this step.
           </p>
 
           <div className="mb-6 space-y-4">
@@ -465,7 +559,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
                       setSelectedQuestions(newQuestions);
                       setError("");
                     }}
-                    className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                    className="mb-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
                   >
                     <option value="">-- Select a question --</option>
                     {getAvailableQuestions(index).map((q) => (
@@ -486,7 +580,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
                         setError("");
                       }}
                       placeholder={selectedQuestion.placeholder}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
                     />
                   )}
                 </div>
@@ -503,13 +597,14 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
           <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm text-blue-800">
-              <strong>Tip:</strong> Choose questions with answers you'll always remember. Answers
-              are case-insensitive.
+              <strong>Tip:</strong> Choose questions with answers you&apos;ll always remember.
+              Answers are case-insensitive.
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
+              type="button"
               onClick={() => {
                 setStep("recovery");
                 setError("");
@@ -519,8 +614,16 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               Back
             </button>
             <button
+              type="button"
+              onClick={() => void handleSkipSecurityQuestions()}
+              className="flex-1 rounded-lg border-2 border-gray-300 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Skip
+            </button>
+            <button
+              type="button"
               onClick={handleSaveSecurityQuestions}
-              className="flex-1 rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700"
+              className="flex-1 rounded-lg bg-green-600 px-3 py-3 font-semibold text-white transition-colors hover:bg-green-700"
             >
               {biometricAvailable ? "Next" : "Complete Setup"}
             </button>
@@ -536,12 +639,25 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
         style={{
-          background: "linear-gradient(135deg, #1E3A8A 0%, #1e40af 50%, #2563eb 100%)",
+          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
       >
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Cancel PIN setup"
+              className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+
           <div className="mb-6 flex justify-center">
             <div className="rounded-full bg-indigo-100 p-4">
               <Fingerprint className="h-12 w-12 text-indigo-600" />
@@ -579,6 +695,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={handleSkipBiometric}
               disabled={enrollingBiometric}
               className="flex-1 rounded-lg border-2 border-gray-300 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -586,6 +703,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               Skip for Now
             </button>
             <button
+              type="button"
               onClick={handleEnrollBiometric}
               disabled={enrollingBiometric}
               className="flex-1 rounded-lg bg-indigo-600 py-3 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"

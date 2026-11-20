@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { SchoolSettings, StudentRecord } from "../types";
 import { buildDefaultSubjectsForStudent } from "../utils/csvImport";
 import { Button, Input } from "./ui";
+import { Modal } from "./ui/Modal";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -19,8 +20,6 @@ export function AddStudentModal({
 }: AddStudentModalProps) {
   const [newName, setNewName] = useState("");
   const [newGender, setNewGender] = useState<"Male" | "Female">("Male");
-
-  if (!isOpen) return null;
 
   const handleClose = () => {
     setNewName("");
@@ -47,17 +46,8 @@ export function AddStudentModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="add-student-modal-title"
-      onClick={handleClose}
-    >
-      <div
-        className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal isOpen={isOpen} onClose={handleClose} className="max-w-sm">
+      <div className="space-y-4 p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <h3 id="add-student-modal-title" className="text-lg font-bold text-gray-800" data-record="true">
             Add New Student
@@ -125,8 +115,8 @@ export function AddStudentModal({
             >
               Class
             </label>
-            <p className="w-full rounded-lg border border-gray-300 p-2 outline-none">
-              {settings.className}
+            <p className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600">
+              {settings.className || "Not configured"}
             </p>
             <p className="mt-1 text-[10px] text-gray-400" data-record="true">
               Based on School Level: {settings.level}
@@ -138,6 +128,6 @@ export function AddStudentModal({
           </Button>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

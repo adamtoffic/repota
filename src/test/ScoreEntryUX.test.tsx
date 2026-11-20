@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { SubjectRow } from "../components/SubjectRow";
@@ -287,6 +288,61 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         true,
       );
     });
+
+    it("filters to unscored students without dropping a row mid-entry when 'Unscored only' is active", () => {
+      const initialStudents = [
+        makeStudent("s1", "Scored Student", [
+          { id: "m1", name: "Mathematics", classScore: 30, examScore: 40 },
+        ]),
+        makeStudent("s2", "Unscored Student", [
+          { id: "m2", name: "Mathematics", classScore: 0, examScore: 0 },
+        ]),
+      ];
+
+      function ControlledGradebook() {
+        const [rows, setRows] = useState<ProcessedStudent[]>(initialStudents);
+        return (
+          <QuickGradebook
+            students={rows}
+            settings={testSettings}
+            onUpdateStudent={(updated) => {
+              setRows((prev) =>
+                prev.map((row) =>
+                  row.id === updated.id ? { ...row, subjects: updated.subjects } : row,
+                ),
+              );
+            }}
+          />
+        );
+      }
+
+      render(<ControlledGradebook />);
+
+      expect(screen.getByText("Termly (50/50)")).toBeInTheDocument();
+      expect(screen.getByText(/1\. Scored Student/)).toBeInTheDocument();
+      expect(screen.getByText(/2\. Unscored Student/)).toBeInTheDocument();
+
+      const filterBtn = screen.getByRole("button", { name: /Unscored only/i });
+      fireEvent.click(filterBtn);
+      expect(filterBtn).toHaveAttribute("aria-pressed", "true");
+      expect(screen.queryByText(/Scored Student/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Unscored Student/)).toBeInTheDocument();
+
+      // Enter both Class & Exam scores: row stays mounted because it's pinned until toggle off
+      fireEvent.change(screen.getByLabelText("Unscored Student Class Score"), {
+        target: { value: "35" },
+      });
+      fireEvent.change(screen.getByLabelText("Unscored Student Exam Score"), {
+        target: { value: "80" },
+      });
+      expect(screen.getByText(/Unscored Student/)).toBeInTheDocument();
+
+      // Toggle off and back on: now both students are scored, showing completion state
+      fireEvent.click(filterBtn);
+      expect(screen.getByText(/1\. Scored Student/)).toBeInTheDocument();
+      fireEvent.click(filterBtn);
+      expect(screen.getByText(/All students have scores entered for this view/i)).toBeInTheDocument();
+    });
   });
 
   describe("PrintPreview Ready Students filter", () => {
@@ -320,6 +376,37 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       fireEvent.click(screen.getByRole("button", { name: "Ready (1)" }));
       expect(screen.getByText("Complete Student")).toBeInTheDocument();
       expect(screen.queryByText("Incomplete Student")).not.toBeInTheDocument();
+    });
+
+    it("renders visible mobile labels, template style shortcut, and dismissible photo warning outside sticky toolbar", () => {
+      const student = makeStudent(
+        "s1",
+        "Student Photo Missing",
+        [{ id: "m1", name: "Mathematics", classScore: 35, examScore: 40 }],
+        75,
+      );
+
+      const ctx = makeSchoolContext([student]);
+      render(
+        <SchoolContext.Provider value={ctx}>
+          <PrintPreview />
+        </SchoolContext.Provider>,
+      );
+
+      expect(screen.getByText("Color")).not.toHaveClass("hidden");
+      expect(screen.getByText("B&W")).not.toHaveClass("hidden");
+      expect(screen.getByText("Print")).not.toHaveClass("hidden");
+      expect(screen.getByLabelText("Customize report style")).toHaveAttribute(
+        "to",
+        "/settings/templates",
+      );
+
+      const toolbar = screen.getByTestId("print-sticky-toolbar");
+      const warningText = screen.getByText(/1 student missing photo/i);
+      expect(toolbar).not.toContainElement(warningText);
+
+      fireEvent.click(screen.getByRole("button", { name: "Dismiss missing photo warning" }));
+      expect(screen.queryByText(/1 student missing photo/i)).not.toBeInTheDocument();
     });
   });
 

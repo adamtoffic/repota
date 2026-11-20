@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, Calculator, Download, RefreshCw, Upload } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSettingsForm } from "../hooks/useSettingsForm";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import { exportToCSV } from "../utils/export";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -29,12 +29,18 @@ function SbaPageContent() {
     flushPendingSave,
     syncCommittedSettings,
   } = useSettingsForm();
-  const { students, detectComponentMismatches, syncSubjectComponentsFromSettings } =
-    useSchoolData();
+  const students = useSchoolStudents();
+  const settings = useSchoolSettings();
+  const { detectComponentMismatches, syncSubjectComponentsFromSettings } = useSchoolActions();
   const { showToast } = useToast();
   const [showScoreImport, setShowScoreImport] = useState(false);
+  const [scoreImportSubject, setScoreImportSubject] = useState<string | undefined>(undefined);
 
-  const mismatch = detectComponentMismatches();
+  const mismatch = useMemo(() => {
+    void students;
+    void settings.subjectComponentMap;
+    return detectComponentMismatches();
+  }, [detectComponentMismatches, students, settings.subjectComponentMap]);
   const hasMismatches = mismatch.hasOutdated || mismatch.hasMissing;
 
   const handleExportScores = () => {
@@ -57,7 +63,7 @@ function SbaPageContent() {
         actions={<SettingsHeaderActions showBack={false} />}
       />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
@@ -83,6 +89,7 @@ function SbaPageContent() {
                 disabled={isPersistenceSuspended}
                 onClick={() => {
                   flushPendingSave();
+                  setScoreImportSubject(undefined);
                   setShowScoreImport(true);
                 }}
                 className="gap-1.5"
@@ -116,7 +123,7 @@ function SbaPageContent() {
                     className="gap-1.5"
                   >
                     <Download className="h-4 w-4" />
-                    <span>Export Scores (CSV)</span>
+                    <span>Export Broadsheet (CSV)</span>
                   </Button>
                 </>
               )}
@@ -164,12 +171,23 @@ function SbaPageContent() {
           </div>
         )}
 
-        <SbaAssessmentSection />
+        <SbaAssessmentSection
+          onImportSubjectScores={(subject) => {
+            flushPendingSave();
+            setScoreImportSubject(subject);
+            setShowScoreImport(true);
+          }}
+        />
       </main>
 
       <ScoreImportModal
+        key={`${showScoreImport ? "open" : "closed"}:${scoreImportSubject ?? ""}`}
         isOpen={showScoreImport}
-        onClose={() => setShowScoreImport(false)}
+        onClose={() => {
+          setShowScoreImport(false);
+          setScoreImportSubject(undefined);
+        }}
+        initialSubject={scoreImportSubject}
         onSettingsUpdated={syncCommittedSettings}
       />
     </div>

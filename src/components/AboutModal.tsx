@@ -11,11 +11,16 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-h-[90vh] max-w-lg overflow-y-auto">
-      <div className="animate-in zoom-in-95 relative p-6 duration-200">
+      <div className="relative p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-main text-2xl font-bold">About Repota</h2>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close modal"
+            className="rounded-full p-2 hover:bg-gray-100"
+          >
             <X className="text-muted h-5 w-5" />
           </button>
         </div>

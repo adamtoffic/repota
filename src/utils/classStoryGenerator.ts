@@ -33,6 +33,49 @@ export interface ClassStory {
   ungradedCount: number;
 }
 
+function formatClassHeadline(
+  classLabel: string,
+  gradedCount: number,
+  metrics: ReturnType<typeof calculateClassMetrics>,
+  subjectInsights: ReturnType<typeof calculateSubjectInsights>,
+): string {
+  const healthLabel =
+    metrics.passRate >= 80 && metrics.averageScore >= 70
+      ? "is performing strongly"
+      : metrics.passRate >= 60
+        ? "shows steady overall progress"
+        : "needs targeted academic intervention";
+
+  const topWeakSubject = subjectInsights.needsAttention[0] ?? subjectInsights.weakest[0];
+  return `${classLabel} (${gradedCount} graded student${gradedCount === 1 ? "" : "s"}) ${healthLabel} with a ${metrics.averageScore}% class average and ${metrics.passRate}% pass rate${
+    topWeakSubject && topWeakSubject.averageScore < 60
+      ? `, led by challenges in ${topWeakSubject.subjectName} (${topWeakSubject.averageScore}% avg)`
+      : ""
+  }.`;
+}
+
+/**
+ * Computes only the concise Overview pulse headline (2 calculators instead of all 12),
+ * reusing already-computed class metrics when available.
+ */
+export function generateClassPulseHeadline(
+  students: StudentRecord[],
+  settings: SchoolSettings,
+  precomputedMetrics?: ReturnType<typeof calculateClassMetrics>,
+): string {
+  const { graded } = partitionGradedStudents(students);
+  const analysisPool = graded.length > 0 ? graded : students;
+  const classLabel = settings.className || "This class";
+
+  if (analysisPool.length === 0) {
+    return `${classLabel} has no recorded scores yet.`;
+  }
+
+  const metrics = precomputedMetrics ?? calculateClassMetrics(analysisPool, settings);
+  const subjectInsights = calculateSubjectInsights(analysisPool, settings);
+  return formatClassHeadline(classLabel, graded.length, metrics, subjectInsights);
+}
+
 /**
  * Generates an offline, teacher-ready narrative story and prioritized action plan
  * from class scores, SBA components, attendance, and demographics.
@@ -74,19 +117,7 @@ export function generateClassStory(
   const feeSummary = calculatePrivateFeeSummary(students);
 
   // 1. Headline
-  const healthLabel =
-    metrics.passRate >= 80 && metrics.averageScore >= 70
-      ? "is performing strongly"
-      : metrics.passRate >= 60
-        ? "shows steady overall progress"
-        : "needs targeted academic intervention";
-
-  const topWeakSubject = subjectInsights.needsAttention[0] ?? subjectInsights.weakest[0];
-  const headline = `${classLabel} (${graded.length} graded student${graded.length === 1 ? "" : "s"}) ${healthLabel} with a ${metrics.averageScore}% class average and ${metrics.passRate}% pass rate${
-    topWeakSubject && topWeakSubject.averageScore < 60
-      ? `, led by challenges in ${topWeakSubject.subjectName} (${topWeakSubject.averageScore}% avg)`
-      : ""
-  }.`;
+  const headline = formatClassHeadline(classLabel, graded.length, metrics, subjectInsights);
 
   // 2. Narrative Paragraphs
   const narrativeParagraphs: string[] = [];

@@ -11,6 +11,11 @@ interface Props {
 }
 
 export function BulkAttendanceModal({ isOpen, onClose }: Props) {
+  if (!isOpen) return null;
+  return <BulkAttendanceModalContent onClose={onClose} />;
+}
+
+function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
   const students = useSchoolStudents();
   const settings = useSchoolSettings();
   const { updateStudent } = useSchoolActions();
@@ -22,8 +27,6 @@ export function BulkAttendanceModal({ isOpen, onClose }: Props) {
   );
   const [fillValue, setFillValue] = useState(String(maxDays));
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  if (!isOpen) return null;
 
   const getValue = (id: string, fallback = 0) => drafts[id] ?? fallback;
 
@@ -59,7 +62,7 @@ export function BulkAttendanceModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-xl">
+    <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-xl">
       <div className="overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">

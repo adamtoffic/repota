@@ -1,5 +1,6 @@
 import posthog from "posthog-js";
-import { Award, LayoutTemplate, Palette, RotateCcw } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, Award, LayoutTemplate, Palette, Printer, RotateCcw } from "lucide-react";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { resolvePositionVisibility } from "../../utils/privateSchoolFees";
@@ -33,7 +34,8 @@ export function ReportTemplateSection() {
   });
 
   return (
-    <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
+    <div className="space-y-6">
+      <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 1: REPORT DESIGN TEMPLATE */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center gap-3">
@@ -354,6 +356,28 @@ export function ReportTemplateSection() {
           </label>
         </div>
       </div>
-    </fieldset>
+      </fieldset>
+
+      {/* PRINT PREVIEW SHORTCUT */}
+      <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div>
+          <p className="text-sm font-bold text-indigo-950" data-record="true">
+            Ready to see how your report cards look?
+          </p>
+          <p className="mt-0.5 text-xs text-indigo-800/80">
+            Preview your chosen template, colors, and ranking display on A4 sheets.
+          </p>
+        </div>
+        <Link
+          to="/print"
+          className="bg-primary hover:bg-primary/90 inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all active:scale-95 sm:text-sm"
+          data-record="true"
+        >
+          <Printer className="h-4 w-4 shrink-0" />
+          <span>Preview &amp; Print Report Cards</span>
+          <ArrowRight className="h-4 w-4 shrink-0" />
+        </Link>
+      </div>
+    </div>
   );
 }

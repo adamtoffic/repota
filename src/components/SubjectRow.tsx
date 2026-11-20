@@ -240,7 +240,7 @@ export function SubjectRow({
                     }
                   />
                   {showClassSaved && !hasComponents && (
-                    <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
+                    <div className="animate-scale-in absolute top-1/2 right-2 -translate-y-1/2">
                       <Check size={16} className="text-green-600" strokeWidth={3} />
                     </div>
                   )}
@@ -286,7 +286,7 @@ export function SubjectRow({
                   }
                 />
                 {showExamSaved && (
-                  <div className="animate-in fade-in zoom-in-95 absolute top-1/2 right-2 -translate-y-1/2 duration-200">
+                  <div className="animate-scale-in absolute top-1/2 right-2 -translate-y-1/2">
                     <Check size={16} className="text-green-600" strokeWidth={3} />
                   </div>
                 )}

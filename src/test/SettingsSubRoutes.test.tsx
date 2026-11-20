@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SchoolSettings, StudentRecord } from "../types";
@@ -31,6 +31,7 @@ vi.mock("../utils/dataProtection", () => ({
   createBackupHeartbeat: storage.createBackupHeartbeat,
   requestPersistentStorage: vi.fn(),
   detectDataLoss: vi.fn(() => false),
+  getTimeSinceBackup: vi.fn(() => null),
 }));
 
 import { SchoolProvider } from "../context/SchoolContext";
@@ -340,5 +341,58 @@ describe("Settings sub-routes shared state and invariants", () => {
     expect(savedSettings?.subjectComponentMap?.Mathematics).toEqual([
       { name: "Class Test", maxScore: 20, category: "CAT" },
     ]);
+  });
+
+  it("renders SettingsHub live style/backup metadata, mobile section pills, and template print shortcut", async () => {
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return { status: "found", value: seededStudents };
+      }
+      if (key === "ges_v1_settings") {
+        return {
+          status: "found",
+          value: { ...seededSettings, useCustomTemplateColor: true },
+        };
+      }
+      return { status: "empty" };
+    });
+
+    const { router } = renderSubRouteApp("/settings");
+    await flushHydrationAndImports();
+
+    expect(screen.getByText(/Original • Custom Colors/i)).toBeInTheDocument();
+    expect(screen.getByText(/PIN Off • No backup yet/i)).toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate({ to: "/settings/templates" });
+      await vi.dynamicImportSettled();
+      await Promise.resolve();
+    });
+
+    const nav = screen.getByRole("navigation", { name: "Settings sections" });
+    expect(nav).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "School" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Class" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Report Style" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(nav).getByRole("link", { name: "Security" })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "SBA" })).not.toBeInTheDocument();
+
+    const printLink = screen.getByRole("link", { name: /Preview & Print Report Cards/i });
+    expect(printLink).toHaveAttribute("href", "/print");
+
+    await act(async () => {
+      await router.navigate({ to: "/settings/security" });
+      await vi.dynamicImportSettled();
+      await Promise.resolve();
+    });
+
+    const securityNav = screen.getByRole("navigation", { name: "Settings sections" });
+    expect(within(securityNav).getByRole("link", { name: "Security" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 });

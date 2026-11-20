@@ -42,11 +42,19 @@ export function ScoreEntryModal({
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < totalStudents - 1;
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (Escape always closes; Cmd/Ctrl + Arrows navigate when multiple students)
   useEffect(() => {
-    if (!isOpen || !hasNavigation) return;
+    if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (!hasNavigation) return;
+
       // Cmd/Ctrl + Arrow keys for navigation
       if ((e.metaKey || e.ctrlKey) && e.key === "ArrowLeft" && hasPrevious) {
         e.preventDefault();
@@ -59,7 +67,7 @@ export function ScoreEntryModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, hasNavigation, hasPrevious, hasNext, currentIndex, allStudents, onNavigate]);
+  }, [isOpen, onClose, hasNavigation, hasPrevious, hasNext, currentIndex, allStudents, onNavigate]);
 
   // Swipe gestures scoped to the open modal sheet (disabled inside inputs)
   useSwipe({
@@ -81,7 +89,7 @@ export function ScoreEntryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-0 backdrop-blur-sm sm:p-4"
+      className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-0 backdrop-blur-sm sm:p-4"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
@@ -91,29 +99,32 @@ export function ScoreEntryModal({
         className="animate-sheet-up flex h-dvh max-h-dvh w-full max-w-4xl flex-col bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="safe-top bg-background shrink-0 sm:hidden" />
+
         {/* HEADER WITH NAVIGATION */}
-        <div className="bg-background flex items-center justify-between border-b border-gray-100 p-4 sm:rounded-t-xl sm:p-6">
-          {/* Left: Previous Button */}
+        <div className="bg-background flex items-center justify-between gap-2 border-b border-gray-100 p-4 sm:rounded-t-xl sm:p-6">
+          {/* Left: Previous Button (desktop/tablet — mobile uses thumb-zone footer) */}
           {hasNavigation && (
             <button
+              type="button"
               onClick={() => hasPrevious && onNavigate(allStudents[currentIndex - 1].id)}
               disabled={!hasPrevious}
-              className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
+              className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
               title="Previous student (Cmd/Ctrl + ←)"
               data-record="true"
             >
               <ChevronLeft size={16} />
-              <span className="hidden sm:inline">Prev</span>
+              <span>Prev</span>
             </button>
           )}
 
           {/* Center: Student Info with Picker */}
-          <div className="flex-1 text-center">
+          <div className="min-w-0 flex-1 text-center">
             {hasNavigation ? (
               <select
                 value={student.id}
                 onChange={(e) => onNavigate(e.target.value)}
-                className="mx-auto max-w-xs rounded-lg border-2 border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-800 transition-all hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-base"
+                className="mx-auto w-full max-w-xs rounded-lg border-2 border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-800 transition-all hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-base"
               >
                 {allStudents.map((s, idx) => (
                   <option key={s.id} value={s.id}>
@@ -122,7 +133,9 @@ export function ScoreEntryModal({
                 ))}
               </select>
             ) : (
-              <h2 className="text-base font-bold text-gray-800 sm:text-xl">{student.name}</h2>
+              <h2 className="truncate text-base font-bold text-gray-800 sm:text-xl">
+                {student.name}
+              </h2>
             )}
             <p className="text-muted mt-1 text-xs sm:text-sm">
               {level} • {student.className}
@@ -141,7 +154,7 @@ export function ScoreEntryModal({
                   onChange={(e) =>
                     setSelectedSubject(e.target.value === "all" ? null : e.target.value)
                   }
-                  className="mx-auto max-w-xs rounded-lg border border-purple-300 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition-all hover:border-purple-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none sm:text-sm"
+                  className="mx-auto w-full max-w-xs rounded-lg border border-purple-300 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition-all hover:border-purple-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none sm:text-sm"
                 >
                   <option value="all">📚 All Subjects</option>
                   {availableSubjects.map((subj) => (
@@ -158,20 +171,22 @@ export function ScoreEntryModal({
           </div>
 
           {/* Right: Next Button or Close */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {hasNavigation && (
               <button
+                type="button"
                 onClick={() => hasNext && onNavigate(allStudents[currentIndex + 1].id)}
                 disabled={!hasNext}
-                className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
+                className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
                 title="Next student (Cmd/Ctrl + →)"
                 data-record="true"
               >
-                <span className="hidden sm:inline">Next</span>
+                <span>Next</span>
                 <ChevronRight size={16} />
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
               aria-label="Close modal"
               className="rounded-full p-2 transition-colors hover:bg-gray-200"
@@ -183,7 +198,7 @@ export function ScoreEntryModal({
         </div>
 
         {/* TABS */}
-        <div role="tablist" className="flex flex-shrink-0 border-b border-gray-200 px-6">
+        <div role="tablist" className="flex flex-shrink-0 border-b border-gray-200 px-4 sm:px-6">
           <button
             type="button"
             role="tab"
@@ -215,7 +230,7 @@ export function ScoreEntryModal({
         </div>
 
         {/* CONTENT */}
-        <div className="bg-background/50 flex-1 overflow-y-auto p-6">
+        <div className="bg-background/50 flex-1 overflow-y-auto p-4 sm:p-6">
           {/* ✅ VITAL FIX: The 'key' prop.
             By passing student.id as a key, React completely destroys and recreates
             these components when you switch students. This ensures 'DetailsTab'

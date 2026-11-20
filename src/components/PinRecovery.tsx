@@ -106,10 +106,16 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
   if (step === "verify") {
     return (
-      <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
-        <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-8 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+      >
+        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
           <button
+            type="button"
             onClick={onCancel}
+            aria-label="Close PIN recovery"
             className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
@@ -138,6 +144,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           {hasSecurityQuestions && (
             <div className="mb-6 flex gap-2 rounded-lg bg-gray-100 p-1">
               <button
+                type="button"
                 onClick={() => {
                   setMethod("code");
                   setError("");
@@ -151,6 +158,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 Recovery Code
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setMethod("questions");
                   setError("");
@@ -173,6 +181,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
+                data-large-input="true"
                 value={recoveryCode}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, "");
@@ -212,7 +221,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                         setError("");
                       }}
                       placeholder={question.placeholder}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
                       autoFocus={index === 0}
                     />
                   </div>
@@ -229,6 +238,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           )}
 
           <button
+            type="button"
             onClick={method === "code" ? handleVerifyRecovery : handleVerifySecurityQuestions}
             className="w-full rounded-lg bg-yellow-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={
@@ -246,10 +256,16 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
   if (step === "newPin") {
     return (
-      <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
-        <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+      >
+        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
           <button
+            type="button"
             onClick={onCancel}
+            aria-label="Close PIN recovery"
             className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
@@ -263,6 +279,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
               type="password"
               inputMode="numeric"
               maxLength={4}
+              data-large-input="true"
               value={newPin}
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, "");
@@ -284,6 +301,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           </div>
 
           <button
+            type="button"
             onClick={handleNewPin}
             className="w-full rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={newPin.length !== 4}
@@ -297,10 +315,16 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
   // step === "confirm"
   return (
-    <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
-      <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+    >
+      <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
         <button
+          type="button"
           onClick={onCancel}
+          aria-label="Close PIN recovery"
           className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
         >
           <X className="h-5 w-5" />
@@ -314,6 +338,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             type="password"
             inputMode="numeric"
             maxLength={4}
+            data-large-input="true"
             value={confirmPin}
             onChange={(e) => {
               const value = e.target.value.replace(/\D/g, "");
@@ -336,6 +361,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={() => {
               setConfirmPin("");
               setStep("newPin");
@@ -345,6 +371,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             Back
           </button>
           <button
+            type="button"
             onClick={handleConfirmPin}
             className="flex-1 rounded-lg bg-green-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={confirmPin.length !== 4}

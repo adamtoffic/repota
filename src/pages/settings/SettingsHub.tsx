@@ -13,7 +13,9 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
+import { getTimeSinceBackup } from "../../utils/dataProtection";
 import { isPinConfigured } from "../../utils/pinSecurity";
+import { resolvePositionVisibility } from "../../utils/privateSchoolFees";
 
 export function SettingsHub() {
   return (
@@ -30,6 +32,19 @@ function SettingsHubContent() {
     TEMPLATE_REGISTRY.find((t) => t.id === (formData.templateId || "original_v1"))?.name ||
     "Original";
   const pinActive = isPinConfigured();
+  const lastBackupLabel = typeof getTimeSinceBackup === "function" ? getTimeSinceBackup() : null;
+  const { showClassPositionHeader, showSubjectPosition } = resolvePositionVisibility(formData);
+  const positionsHidden = !showClassPositionHeader && !showSubjectPosition;
+  const reportStyleMeta = [
+    currentTemplateName,
+    formData.useCustomTemplateColor ? "Custom Colors" : null,
+    positionsHidden ? "Ranks Hidden" : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+  const securityMeta = `${pinActive ? "PIN On" : "PIN Off"} • ${
+    lastBackupLabel ? `Backed up ${lastBackupLabel}` : "No backup yet"
+  }`;
 
   const sections = [
     {
@@ -65,7 +80,7 @@ function SettingsHubContent() {
       description: "Choose the visual layout used when printing student report cards.",
       icon: LayoutTemplate,
       iconBg: "bg-indigo-100 text-indigo-600",
-      meta: currentTemplateName,
+      meta: reportStyleMeta,
     },
     {
       to: "/settings/security" as const,
@@ -73,7 +88,7 @@ function SettingsHubContent() {
       description: "PIN lock, device biometrics, storage usage, backups, and factory reset.",
       icon: ShieldCheck,
       iconBg: "bg-green-100 text-green-600",
-      meta: pinActive ? "PIN Enabled" : "PIN Off",
+      meta: securityMeta,
     },
   ];
 
@@ -84,7 +99,7 @@ function SettingsHubContent() {
         actions={<SettingsHeaderActions showBack={false} />}
       />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
         <SettingsStatusBanners />
 
         <div>
@@ -97,14 +112,15 @@ function SettingsHubContent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          {sections.map((section) => {
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {sections.map((section, index) => {
             const Icon = section.icon;
+            const spanClass = index === sections.length - 1 ? "md:col-span-2" : "";
             return (
               <Link
                 key={section.to}
                 to={section.to}
-                className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-300 hover:shadow-md active:scale-[0.99] sm:p-5"
+                className={`group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-300 hover:shadow-md active:scale-[0.99] sm:p-5 ${spanClass}`}
               >
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${section.iconBg}`}

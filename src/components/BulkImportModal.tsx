@@ -20,7 +20,12 @@ interface Props {
   onClose: () => void;
 }
 
-export function BulkImportModal({ isOpen, onClose }: Props) {
+export function BulkImportModal(props: Props) {
+  if (!props.isOpen) return null;
+  return <BulkImportModalContent {...props} />;
+}
+
+function BulkImportModalContent({ isOpen, onClose }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
   const { addStudent, updateStudent } = useSchoolActions();
@@ -29,8 +34,6 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
   const [preview, setPreview] = useState<ParsedRosterRow[]>([]);
   const [hasMissingGender, setHasMissingGender] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
-
-  if (!isOpen) return null;
 
   const handlePreview = (inputText = text) => {
     if (!inputText.trim()) return;
@@ -130,15 +133,19 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
       });
     }
 
-    onClose();
+    handleClose();
+  };
+
+  const handleClose = () => {
     setText("");
     setIsPreviewing(false);
     setPreview([]);
     setHasMissingGender(false);
+    onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-2xl">
+    <Modal isOpen={isOpen} onClose={handleClose} closeOnBackdrop={false} className="max-w-2xl">
       <div className="overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
@@ -148,7 +155,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
           </h3>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close modal"
             className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
@@ -229,7 +236,7 @@ export function BulkImportModal({ isOpen, onClose }: Props) {
                 </div>
               )}
 
-              <div className="bg-background max-h-64 overflow-y-auto rounded-lg border border-gray-200">
+              <div className="bg-background max-h-64 overflow-x-auto overflow-y-auto rounded-lg border border-gray-200">
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 bg-gray-100 text-[10px] font-bold text-gray-600 uppercase">
                     <tr>

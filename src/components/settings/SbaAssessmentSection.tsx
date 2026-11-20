@@ -1,9 +1,13 @@
-import { AlertCircle, Calculator, Plus, X } from "lucide-react";
+import { AlertCircle, Calculator, Plus, Upload, X } from "lucide-react";
 import type { AssessmentCategory } from "../../types";
 import { Badge, Button, IconButton, Input } from "../ui";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 
-export function SbaAssessmentSection() {
+interface SbaAssessmentSectionProps {
+  onImportSubjectScores?: (subject: string) => void;
+}
+
+export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSectionProps = {}) {
   const {
     formData,
     setFormData,
@@ -259,16 +263,37 @@ export function SbaAssessmentSection() {
           <div className="space-y-4">
             {(formData.defaultSubjects || []).map((subject) => {
               const assignedComponents = formData.subjectComponentMap?.[subject] || [];
+              const totalRawMax = assignedComponents.reduce((sum, comp) => sum + comp.maxScore, 0);
               const availableComponents = (formData.componentLibrary || []).filter(
                 (lib) => !assignedComponents.some((assigned) => assigned.name === lib.name),
               );
 
               return (
                 <div key={subject} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-bold text-gray-900">{subject}</h3>
-                    {assignedComponents.length === 0 && (
-                      <span className="text-xs text-gray-400 italic">No tasks assigned</span>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-gray-900">{subject}</h3>
+                      {assignedComponents.length > 0 ? (
+                        <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold text-purple-800">
+                          {assignedComponents.length} task
+                          {assignedComponents.length === 1 ? "" : "s"} • /{totalRawMax} raw →{" "}
+                          {formData.classScoreMax || 0}% Class
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No tasks assigned</span>
+                      )}
+                    </div>
+
+                    {onImportSubjectScores && showSbaSetup && (
+                      <button
+                        type="button"
+                        onClick={() => onImportSubjectScores(subject)}
+                        aria-label={`Import scores for ${subject}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-white px-2.5 py-1.5 text-xs font-bold text-purple-700 shadow-2xs transition-colors hover:bg-purple-50"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Import Scores</span>
+                      </button>
                     )}
                   </div>
 

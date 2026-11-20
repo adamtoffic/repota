@@ -70,7 +70,14 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   }, []);
 
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
-  const lastAutoSaveRef = useRef<string>(JSON.stringify(settings));
+  const lastAutoSaveRef = useRef<string | null>(null);
+  const lastAutoSaveSettingsRef = useRef<SchoolSettings>(settings);
+  const getLastAutoSaveString = useCallback(() => {
+    if (lastAutoSaveRef.current === null) {
+      lastAutoSaveRef.current = JSON.stringify(lastAutoSaveSettingsRef.current);
+    }
+    return lastAutoSaveRef.current;
+  }, []);
   const suppressClassBlurRef = useRef(false);
   const resetModalOpenRef = useRef(false);
   const resetBaselineRef = useRef<SchoolSettings | null>(null);
@@ -102,23 +109,18 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   const debouncedPayload = useDebounce(formPayload, 500);
   const debouncedFormData = debouncedPayload.data;
 
-  // Biometric state
+  // Biometric state (probed lazily when Security settings mounts)
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<"face" | "fingerprint" | "other" | null>(null);
   const [enrollingBiometric, setEnrollingBiometric] = useState(false);
+  const biometricCheckedRef = useRef(false);
 
-  const checkBiometric = async () => {
+  const checkBiometric = useCallback(async (force = false) => {
+    if (!force && biometricCheckedRef.current) return;
+    biometricCheckedRef.current = true;
     const { available, type } = await isBiometricAvailable();
-    setBiometricAvailable(available);
-    setBiometricType(type);
-  };
-
-  useEffect(() => {
-    (async () => {
-      const { available, type } = await isBiometricAvailable();
-      setBiometricAvailable(available);
-      setBiometricType(type);
-    })();
+    setBiometricAvailable((prev) => (prev === available ? prev : available));
+    setBiometricType((prev) => (prev === type ? prev : type));
   }, []);
 
   const studentsCountRef = useRef(students.length);
@@ -126,10 +128,10 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     studentsCountRef.current = students.length;
   }, [students.length]);
 
-  const hasUnsavedChanges = useMemo(
-    () => JSON.stringify(formData) !== JSON.stringify(lastSavedSettings),
-    [formData, lastSavedSettings],
-  );
+  const hasUnsavedChanges = useMemo(() => {
+    if (Object.is(formData, lastSavedSettings)) return false;
+    return JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
+  }, [formData, lastSavedSettings]);
 
   useEffect(() => {
     setUnsavedChanges("settings-draft", hasUnsavedChanges);
@@ -139,8 +141,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (showResetModal || resetModalOpenRef.current) return;
     if (debouncedPayload.generation < immediateSaveGenRef.current) return;
+    if (Object.is(debouncedFormData, lastAutoSaveSettingsRef.current)) return;
     const debouncedString = JSON.stringify(debouncedFormData);
-    if (debouncedString === lastAutoSaveRef.current) return;
+    if (debouncedString === getLastAutoSaveString()) return;
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
     const isClassNameEmpty = !(debouncedFormData.className ?? "").trim();
     if ((classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty) {
@@ -149,8 +152,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         className: lastSavedSettings.className,
       };
       const savedString = JSON.stringify(savedFormData);
-      if (savedString === lastAutoSaveRef.current) return;
+      if (savedString === getLastAutoSaveString()) return;
       setSettings(savedFormData);
+      lastAutoSaveSettingsRef.current = savedFormData;
       lastAutoSaveRef.current = savedString;
 
       pendingSavedBaselineRef.current = savedFormData;
@@ -165,6 +169,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     }
 
     setSettings(debouncedFormData);
+    lastAutoSaveSettingsRef.current = debouncedFormData;
     lastAutoSaveRef.current = debouncedString;
 
     pendingSavedBaselineRef.current = debouncedFormData;
@@ -178,6 +183,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   }, [
     debouncedFormData,
     debouncedPayload.generation,
+    getLastAutoSaveString,
     lastSavedSettings.className,
     showResetModal,
     setSettings,
@@ -215,7 +221,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setEnrollingBiometric(false);
     if (success) {
       showToast(`${getBiometricName(biometricType)} enabled successfully!`, "success");
-      checkBiometric();
+      void checkBiometric(true);
     } else {
       showToast(error || "Failed to enable biometric", "error");
     }
@@ -224,7 +230,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   const handleDisableBiometric = () => {
     disableBiometric();
     showToast("Biometric authentication disabled", "info");
-    checkBiometric();
+    void checkBiometric(true);
   };
 
   const handleKeepOldClassName = () => {
@@ -411,6 +417,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     ++baselineSeqRef.current;
     pendingSavedBaselineRef.current = null;
     setLastSavedSettings(updated);
+    lastAutoSaveSettingsRef.current = updated;
     lastAutoSaveRef.current = JSON.stringify(updated);
 
     if (shouldUpdateStudents) {
@@ -428,21 +435,24 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         ? { ...formData, className: lastSavedSettings.className }
         : formData;
 
+    if (Object.is(toSave, lastAutoSaveSettingsRef.current)) return;
     const toSaveString = JSON.stringify(toSave);
-    if (toSaveString === lastAutoSaveRef.current) return;
+    if (toSaveString === getLastAutoSaveString()) return;
 
     immediateSaveGenRef.current = formGenerationRef.current;
     setSettings(toSave);
+    lastAutoSaveSettingsRef.current = toSave;
     lastAutoSaveRef.current = toSaveString;
     ++baselineSeqRef.current;
     pendingSavedBaselineRef.current = null;
     setLastSavedSettings(toSave);
-  }, [formData, lastSavedSettings.className, setSettings]);
+  }, [formData, getLastAutoSaveString, lastSavedSettings.className, setSettings]);
 
   const syncCommittedSettings = useCallback((nextSettings: SchoolSettings) => {
     formGenerationRef.current += 1;
     const nextGen = formGenerationRef.current;
     immediateSaveGenRef.current = nextGen;
+    lastAutoSaveSettingsRef.current = nextSettings;
     lastAutoSaveRef.current = JSON.stringify(nextSettings);
     ++baselineSeqRef.current;
     pendingSavedBaselineRef.current = null;
@@ -493,6 +503,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     ++baselineSeqRef.current;
     pendingSavedBaselineRef.current = null;
     setLastSavedSettings(baseline);
+    lastAutoSaveSettingsRef.current = baseline;
     lastAutoSaveRef.current = JSON.stringify(baseline);
     resetBaselineRef.current = null;
     suppressClassBlurRef.current = false;
@@ -544,6 +555,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         biometricAvailable,
         biometricType,
         enrollingBiometric,
+        checkBiometric,
         handleEnrollBiometric,
         handleDisableBiometric,
         setShowPinSetup,

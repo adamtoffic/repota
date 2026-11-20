@@ -51,7 +51,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
     <>
       {/* OVER CAPACITY WARNING BANNER */}
       {stats.isOverCapacity && (
-        <div className="animate-in fade-in slide-in-from-top-2 mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm duration-300">
+        <div className="animate-slide-in-down mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm">
           <div className="rounded-full bg-red-100 p-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
           </div>
@@ -70,7 +70,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
         </div>
       )}
 
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 md:grid-cols-4">
         {/* CARD 1: TOTAL STUDENTS (with Class Size Alert) */}
         <StatCard
           label="Total Students"
@@ -177,12 +177,12 @@ function StatCard({
   const colors = alertColors[alertColor];
   const content = (
     <>
-      <div className="flex-1">
-        <p className="text-muted text-xs font-bold tracking-wide uppercase" data-record="true">
+      <div className="min-w-0 flex-1">
+        <p className="text-muted text-[11px] font-bold tracking-wide uppercase sm:text-xs" data-record="true">
           {label}
         </p>
-        <div className="mt-1.5 flex items-center gap-2">
-          <h3 className="text-main text-2xl font-black">{value}</h3>
+        <div className="mt-1 flex items-center gap-2 sm:mt-1.5">
+          <h3 className="text-main text-xl font-black sm:text-2xl">{value}</h3>
           {alert && (
             <span className="relative flex h-2 w-2">
               <span
@@ -193,7 +193,7 @@ function StatCard({
           )}
         </div>
       </div>
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/50">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/50 sm:h-12 sm:w-12">
         {icon}
       </div>
     </>
@@ -209,7 +209,7 @@ function StatCard({
         type="button"
         onClick={onClick}
         aria-pressed={isActive}
-        className={`animate-fade-in flex w-full cursor-pointer items-center justify-between rounded-xl border p-4 text-left shadow-sm transition-all hover:ring-2 active:scale-[0.99] ${hoverRingClass} ${
+        className={`animate-fade-in flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left shadow-sm transition-all hover:ring-2 active:scale-[0.99] sm:p-4 ${hoverRingClass} ${
           isActive ? activeRingClass : ""
         } ${colorClass}`}
       >
@@ -220,7 +220,7 @@ function StatCard({
 
   return (
     <div
-      className={`animate-fade-in flex items-center justify-between rounded-xl border p-4 shadow-sm ${colorClass}`}
+      className={`animate-fade-in flex items-center justify-between rounded-xl border p-3 shadow-sm sm:p-4 ${colorClass}`}
     >
       {content}
     </div>

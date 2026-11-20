@@ -59,7 +59,7 @@ export function ConfirmModal({
       closeOnBackdrop={Boolean(onCancel)}
       className="max-w-sm"
     >
-      <div className="animate-in zoom-in-95 scale-100 p-6 duration-200">
+      <div className="p-6">
         {/* Header with Icon */}
         <div className="mb-4 flex items-start gap-4">
           <div

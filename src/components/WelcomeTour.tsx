@@ -1,6 +1,6 @@
 // src/components/WelcomeTour.tsx
-import { useState, useEffect } from "react";
-import { X, ArrowRight, Check } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, ArrowLeft, ArrowRight, Check } from "lucide-react";
 
 interface TourStep {
   title: string;
@@ -21,14 +21,37 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
+  const handleComplete = useCallback(() => {
+    localStorage.setItem(storageKey, "true");
+    setIsVisible(false);
+    onComplete();
+  }, [storageKey, onComplete]);
+
+  const handleSkip = useCallback(() => {
+    localStorage.setItem(storageKey, "true");
+    setIsVisible(false);
+  }, [storageKey]);
+
   useEffect(() => {
     // Check if user has completed tour before
     const hasCompletedTour = localStorage.getItem(storageKey);
     if (!hasCompletedTour) {
       // Small delay before showing tour for better UX
-      setTimeout(() => setIsVisible(true), 800);
+      const timer = window.setTimeout(() => setIsVisible(true), 800);
+      return () => window.clearTimeout(timer);
     }
   }, [storageKey]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleSkip();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isVisible, handleSkip]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -38,59 +61,57 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
     }
   };
 
-  const handleComplete = () => {
-    localStorage.setItem(storageKey, "true");
-    setIsVisible(false);
-    onComplete();
-  };
+  if (!isVisible || steps.length === 0) return null;
 
-  const handleSkip = () => {
-    localStorage.setItem(storageKey, "true");
-    setIsVisible(false);
-  };
-
-  if (!isVisible) return null;
-
-  const step = steps[currentStep];
+  const step = steps[currentStep] ?? steps[0];
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="animate-slide-in-up relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-        {/* Close button */}
-        <button
-          onClick={handleSkip}
-          className="absolute top-4 right-4 rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          aria-label="Skip tour"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        {/* Progress indicator */}
-        <div className="mb-6 flex gap-1.5">
-          {steps.map((_, index) => (
-            <div
-              key={index}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                index === currentStep
-                  ? "bg-blue-600"
-                  : index < currentStep
-                    ? "bg-blue-300"
-                    : "bg-gray-200"
-              }`}
-            />
-          ))}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-tour-title"
+      className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
+      <div className="animate-slide-in-up w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+        {/* Progress indicator + non-overlapping Close button */}
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex flex-1 gap-1.5">
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  index === currentStep
+                    ? "bg-blue-600"
+                    : index < currentStep
+                      ? "bg-blue-300"
+                      : "bg-gray-200"
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="shrink-0 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close tour"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Content */}
         <div className="mb-6">
-          <h2 className="mb-2 text-2xl font-bold text-gray-900">{step.title}</h2>
+          <h2 id="welcome-tour-title" className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl">
+            {step.title}
+          </h2>
           <p className="leading-relaxed text-gray-600">{step.description}</p>
         </div>
 
         {/* Step action if provided */}
         {step.action && (
           <button
+            type="button"
             onClick={step.action.onClick}
             className="mb-4 w-full rounded-lg border-2 border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
           >
@@ -101,28 +122,43 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
         {/* Navigation */}
         <div className="flex items-center justify-between gap-3">
           <button
+            type="button"
             onClick={handleSkip}
             className="text-sm font-medium text-gray-500 hover:text-gray-700"
           >
             Skip tour
           </button>
 
-          <button
-            onClick={handleNext}
-            className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-6 py-2.5 font-bold text-white shadow-sm transition-all active:scale-95"
-          >
-            {isLastStep ? (
-              <>
-                <Check className="h-4 w-4" />
-                Get Started
-              </>
-            ) : (
-              <>
-                Next
-                <ArrowRight className="h-4 w-4" />
-              </>
+          <div className="flex items-center gap-2">
+            {currentStep > 0 && (
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
             )}
-          </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-5 py-2.5 font-bold text-white shadow-sm transition-all active:scale-95 sm:px-6"
+            >
+              {isLastStep ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Get Started
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Step counter */}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { HelpCircle, X, Printer, Plus, List, TableProperties } from "lucide-react";
+import { HelpCircle, X, Printer, Plus, List, TableProperties, Upload } from "lucide-react";
 import {
   useSchoolActions,
   useSchoolSettings,
@@ -86,11 +86,19 @@ export function Dashboard() {
   const isSearching = searchQuery !== "" && debounceSearch !== searchQuery;
 
   const filterCounts = useMemo(() => {
-    const noScores = students.filter(hasNoScoresEntered).length;
-    const partialScores = students.filter((s) => hasPartialScores(s, settings)).length;
-    const pending = students.filter((s) => isStudentPending(s, settings)).length;
-    const missingPhotos = students.filter(hasMissingPhoto).length;
-    const failing = students.filter((s) => isStudentFailing(s, settings)).length;
+    let noScores = 0;
+    let partialScores = 0;
+    let pending = 0;
+    let missingPhotos = 0;
+    let failing = 0;
+
+    for (const s of students) {
+      if (hasNoScoresEntered(s)) noScores += 1;
+      if (hasPartialScores(s, settings)) partialScores += 1;
+      if (isStudentPending(s, settings)) pending += 1;
+      if (hasMissingPhoto(s)) missingPhotos += 1;
+      if (isStudentFailing(s, settings)) failing += 1;
+    }
 
     return {
       all: students.length,
@@ -248,40 +256,97 @@ export function Dashboard() {
         }
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {/* MAIN CONTENT AREA */}
-        {students.length === 0 && (
-          <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-                <HelpCircle className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-main font-bold" data-record="true">
-                  Need help getting started?
-                </h3>
-                <p className="text-muted mt-1 text-sm leading-relaxed" data-record="true">
-                  Add your first student or reach out on WhatsApp if you're stuck.
-                </p>
-                <div className="mt-3">
-                  <a
-                    href="https://wa.me/233248140806?text=Hi!%20I%20need%20help%20starting"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-success hover:text-success/80 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:underline"
-                    data-record="true"
-                  >
-                    💬 Ask for help on WhatsApp →
-                  </a>
+        {students.length === 0 ? (
+          <>
+            <EmptyState
+              onAddStudent={handleOpenAddStudent}
+              onImport={() => setShowImportModal(true)}
+              onLoadDemo={() => setShowDemoModal(true)}
+            />
+            <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                  <HelpCircle className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-main font-bold" data-record="true">
+                    Need help getting started?
+                  </h3>
+                  <p className="text-muted mt-1 text-sm leading-relaxed" data-record="true">
+                    Add your first student or reach out on WhatsApp if you&apos;re stuck.
+                  </p>
+                  <div className="mt-3">
+                    <a
+                      href="https://wa.me/233248140806?text=Hi!%20I%20need%20help%20starting"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-success hover:text-success/80 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:underline"
+                      data-record="true"
+                    >
+                      💬 Ask for help on WhatsApp →
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-        {students.length === 0 ? (
-          <EmptyState onAddStudent={handleOpenAddStudent} onLoadDemo={() => setShowDemoModal(true)} />
+          </>
         ) : (
           <>
+            {/* DESKTOP CONTEXT HEADER */}
+            <div className="mb-5 hidden items-center justify-between gap-4 md:flex">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-main truncate text-2xl font-black tracking-tight" data-record="true">
+                    {settings.className || "My Class"}
+                  </h1>
+                  {settings.examType === "MOCK" ? (
+                    <Link
+                      to="/settings/academic"
+                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                      title="Change exam mode in Settings"
+                    >
+                      Mock Exam (0/100)
+                    </Link>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                      Termly ({settings.classScoreMax}/{settings.examScoreMax})
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted mt-0.5 text-sm">
+                  {settings.term} &bull; {settings.academicYear} &bull;{" "}
+                  {(settings.defaultSubjects || []).length} subjects
+                </p>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScoreImportPreset({});
+                    setShowScoreImportModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 shadow-xs transition-colors hover:bg-gray-50 active:scale-95"
+                  data-record="true"
+                >
+                  <Upload className="h-4 w-4 text-purple-600" />
+                  <span>Import Scores</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenAddStudent}
+                  aria-label="Quick add student"
+                  className="bg-primary hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-sm transition-all active:scale-95"
+                  data-record="true"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Student</span>
+                </button>
+              </div>
+            </div>
+
             <DashboardStats
               students={students}
               settings={settings}

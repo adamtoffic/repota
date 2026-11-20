@@ -104,7 +104,7 @@ export function ValidationWarnings({
   };
 
   return (
-    <div className="mb-4 space-y-2">
+    <div className="mb-3 space-y-1.5 sm:mb-4 sm:space-y-2">
       {warnings.map((warning) => {
         const Icon = warning.icon;
         const isActive = activeFilter === warning.key;
@@ -155,18 +155,18 @@ export function ValidationWarnings({
               onClick={() => isInteractive && handleWarningClick(warning.key)}
               disabled={!isInteractive}
               aria-pressed={isActive}
-              className={`group flex flex-1 items-center justify-between gap-3 p-3.5 text-left transition-colors ${
+              className={`group flex flex-1 items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors sm:p-3.5 ${
                 isInteractive ? "cursor-pointer active:scale-[0.995]" : "cursor-default"
               }`}
             >
-              <div className="flex min-w-0 items-start gap-3">
-                <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${colorStyles.icon}`} />
+              <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
+                <Icon className={`mt-0.5 h-4 w-4 shrink-0 sm:h-5 sm:w-5 ${colorStyles.icon}`} />
                 <div className="min-w-0">
-                  <p className={`text-sm font-bold ${colorStyles.text}`}>
+                  <p className={`text-xs font-bold sm:text-sm ${colorStyles.text}`}>
                     ⚠️ {warning.message}
                   </p>
                   {warning.subtitle && (
-                    <p className="text-muted mt-0.5 text-xs" data-record="true">
+                    <p className="text-muted mt-0.5 hidden text-xs sm:block" data-record="true">
                       {warning.subtitle}
                     </p>
                   )}

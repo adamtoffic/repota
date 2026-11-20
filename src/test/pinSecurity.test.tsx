@@ -1,6 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LockScreen } from "../components/LockScreen";
+import { PinRecovery } from "../components/PinRecovery";
+import { PinSetup } from "../components/PinSetup";
 import {
   clearPinLockout,
   disablePinLock,
@@ -139,6 +142,7 @@ describe("pinSecurity", () => {
 
     // Enter 5 wrong attempts via input change + timer advance
     const input = screen.getByPlaceholderText("••••") as HTMLInputElement;
+    expect(input).toHaveAttribute("type", "password");
     for (let i = 0; i < 5; i++) {
       fireEvent.change(input, { target: { value: "0000" } });
       // Wait for auto-verify 100ms timeout + PBKDF2 verification
@@ -150,5 +154,65 @@ describe("pinSecurity", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /forgot your pin/i }));
     expect(onForgotPin).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets PinSetup complete setup when skipping optional security questions and uses bg-black/50 in PinRecovery", async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+
+    render(<PinSetup onComplete={onComplete} onCancel={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Get Started" }));
+    expect(screen.getByText("Step 1 of 4")).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText("••••"), "1357");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(screen.getByText("Step 2 of 4")).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("••••"), "1357");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(screen.getByText("Step 3 of 4")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Next: Set Security Questions/i }));
+
+    expect(screen.getByText("Step 4 of 4")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Skip" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(await verifyPin("1357")).toBe(true);
+
+    const { container } = render(<PinRecovery onComplete={vi.fn()} onCancel={vi.fn()} />);
+    const dialogBackdrop = container.querySelector('[role="dialog"]');
+    expect(dialogBackdrop?.className).toContain("bg-black/50");
+    expect(dialogBackdrop?.className).not.toContain("bg-opacity-50");
+  });
+
+  it("unlocks via built-in keypad digits, supports Backspace, and ignores keydown when paused", async () => {
+    await setupPin("1357", "999888");
+    const user = userEvent.setup();
+    const onUnlock = vi.fn();
+
+    const { rerender } = render(
+      <LockScreen paused={true} onUnlock={onUnlock} onForgotPin={vi.fn()} />,
+    );
+
+    // Global keystrokes do not trigger digits while PinRecovery overlays LockScreen
+    fireEvent.keyDown(window, { key: "1" });
+    fireEvent.keyDown(window, { key: "3" });
+    fireEvent.keyDown(window, { key: "5" });
+    fireEvent.keyDown(window, { key: "7" });
+    const pinInput = screen.getByPlaceholderText("••••") as HTMLInputElement;
+    expect(pinInput.value).toBe("");
+
+    rerender(<LockScreen paused={false} onUnlock={onUnlock} onForgotPin={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "1" }));
+    await user.click(screen.getByRole("button", { name: "9" }));
+    await user.click(screen.getByRole("button", { name: "Delete digit" }));
+    await user.click(screen.getByRole("button", { name: "3" }));
+    await user.click(screen.getByRole("button", { name: "5" }));
+    await user.click(screen.getByRole("button", { name: "7" }));
+
+    await waitFor(() => expect(onUnlock).toHaveBeenCalledTimes(1));
   });
 });

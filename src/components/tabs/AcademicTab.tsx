@@ -83,7 +83,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
     <div className="space-y-4">
       {/* ✅ MOBILE-FRIENDLY STICKY HEADER */}
       {student.subjects.length > 0 && (
-        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:static sm:-mx-6 sm:mx-0 sm:-mt-6 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:px-6 sm:shadow-none">
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           <div className="flex items-center justify-between gap-3">
             {/* Subject count & progress indicator */}
             <div className="flex items-center gap-3">

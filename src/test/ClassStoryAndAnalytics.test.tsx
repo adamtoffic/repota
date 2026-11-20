@@ -6,7 +6,7 @@ import { SchoolContext, type SchoolContextType } from "../context/SchoolContextD
 import { ToastContext } from "../context/ToastContextDefinition";
 import { Analytics } from "../pages/Analytics";
 import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
-import { generateClassStory } from "../utils/classStoryGenerator";
+import { generateClassPulseHeadline, generateClassStory } from "../utils/classStoryGenerator";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
@@ -100,12 +100,14 @@ describe("classStoryGenerator & Analytics UI", () => {
     expect(story.watchouts.some((w) => w.includes("250.00"))).toBe(true);
     expect(story.actionPlan.length).toBeGreaterThanOrEqual(1);
     expect(story.plainTextBrief).toContain("NEXT-WEEK ACTION PLAN:");
+    expect(generateClassPulseHeadline(sampleStudents, settings)).toBe(story.headline);
   });
 
   it("handles empty or ungraded classes gracefully", () => {
     const emptyStory = generateClassStory([], settings);
     expect(emptyStory.gradedCount).toBe(0);
     expect(emptyStory.headline).toContain("no recorded scores yet");
+    expect(generateClassPulseHeadline([], settings)).toBe(emptyStory.headline);
   });
 
   it("renders Class Pulse, Private Fee Tracking, and full AI Insights narrative tab", async () => {
@@ -148,5 +150,52 @@ describe("classStoryGenerator & Analytics UI", () => {
     expect(screen.getByText(/Borderline Cohort/i)).toBeInTheDocument();
     expect(screen.getByText(/SBA Classwork vs\. Exam Discrepancy Spotlight/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Copy Staff Brief/i })).toBeInTheDocument();
+  });
+
+  it("renders clean Analytics heading without emoji, visible CSV/PDF labels, and mobile active filter badge + clear button", async () => {
+    const user = userEvent.setup();
+    const processed = sampleStudents.map((s, idx) => ({
+      ...s,
+      age: 13,
+      totalScore: 120,
+      averageScore: idx === 0 ? 85 : idx === 1 ? 48 : 57.5,
+      classPosition: `${idx + 1}`,
+      aggregate: 12,
+      subjects: s.subjects.map((sub) => ({
+        ...sub,
+        totalScore: sub.classScore + sub.examScore,
+        grade: 2 as const,
+        remark: "Higher",
+      })),
+    })) as ProcessedStudent[];
+
+    const ctx = {
+      students: processed,
+      settings,
+    } as unknown as SchoolContextType;
+
+    render(
+      <ToastContext.Provider value={{ showToast: vi.fn() }}>
+        <SchoolContext.Provider value={ctx}>
+          <Analytics />
+        </SchoolContext.Provider>
+      </ToastContext.Provider>,
+    );
+
+    const heading = screen.getByRole("heading", { name: "Advanced Analytics" });
+    expect(heading.textContent).not.toContain("📊");
+    expect(screen.getByRole("button", { name: /CSV/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /PDF/i })).toBeInTheDocument();
+    expect(screen.getByText(/3 of 3 students/i)).toBeInTheDocument();
+
+    // Apply Female gender filter and check active count badge + Clear button
+    await user.selectOptions(screen.getByDisplayValue("All Students"), "Female");
+    expect(screen.getByText(/1 of 3 students/i)).toBeInTheDocument();
+
+    const filterBtn = screen.getByRole("button", { name: /^Filters/i });
+    expect(filterBtn.textContent).toContain("1");
+
+    await user.click(screen.getByRole("button", { name: "Clear active filters" }));
+    expect(screen.getByText(/3 of 3 students/i)).toBeInTheDocument();
   });
 });

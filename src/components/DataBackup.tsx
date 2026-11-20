@@ -8,9 +8,11 @@ import {
   Lock,
   Eye,
   EyeOff,
+  X,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "./ConfirmModal";
+import { Modal } from "./ui/Modal";
 import { recordBackup } from "../utils/dataProtection";
 import {
   loadFromStorageResult,
@@ -153,6 +155,27 @@ export function DataBackup({
     setConfirmPassword("");
     setPasswordHint("");
   };
+
+  const cancelImportPasswordModal = () => {
+    ++decryptAttemptRef.current;
+    if (activeReaderRef.current) {
+      try {
+        activeReaderRef.current.abort();
+      } catch {
+        // ignore
+      }
+      activeReaderRef.current = null;
+    }
+    setIsDecrypting(false);
+    setShowImportPasswordModal(false);
+    setDecryptedBackupData(null);
+    setImportPassword("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    releaseImportRecoveryOwnership();
+  };
+
+  const isExportPasswordMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
 
   const triggerBlobDownload = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
@@ -664,7 +687,7 @@ export function DataBackup({
             <p className="font-bold">Working with other teachers?</p>
             <p className="mt-1">
               Pass this file like a baton. Finish your part, save it, and send it to the next
-              teacher.
+              teacher.{" "}
               <strong>Do not work on the same file at the same time</strong>, or someone's work will
               be lost.
             </p>
@@ -708,175 +731,192 @@ export function DataBackup({
       />
 
       {/* Export Password Modal */}
-      {showExportPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
+      <Modal
+        isOpen={showExportPasswordModal}
+        onClose={resetExportPasswordState}
+        closeOnBackdrop={false}
+        className="max-w-md"
+      >
+        <div className="p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <div className="rounded-lg bg-amber-100 p-2">
                 <Lock className="h-6 w-6 text-amber-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Set Password</h3>
             </div>
+            <button
+              type="button"
+              onClick={resetExportPasswordState}
+              aria-label="Close modal"
+              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            <p className="mb-4 text-sm text-gray-600">
-              Create a password to encrypt this file. You'll need this password to open the file
-              later.
-            </p>
+          <p className="mb-4 text-sm text-gray-600">
+            Create a password to encrypt this file. You&apos;ll need this password to open the file
+            later.
+          </p>
 
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Password (min 4 characters)
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10 text-sm"
-                    placeholder="Enter password"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <Input
-                label="Confirm Password"
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="text-sm"
-                placeholder="Re-enter password"
-              />
-
-              <div>
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Password (min 4 characters)
+              </label>
+              <div className="relative">
                 <Input
-                  label="Password Hint (optional)"
-                  type="text"
-                  value={passwordHint}
-                  onChange={(e) => setPasswordHint(e.target.value)}
-                  className="text-sm"
-                  placeholder="e.g., 'My birth year'"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10 text-sm"
+                  placeholder="Enter password"
+                  autoFocus
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  This hint will be shown when someone tries to open the file
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => resetExportPasswordState()}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => void handleExport()}
-                disabled={!password || password.length < 4}
-                className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-bold text-white hover:bg-amber-700 disabled:opacity-50"
-              >
-                Encrypt & Save
-              </button>
+            <Input
+              label="Confirm Password"
+              type={showPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              error={isExportPasswordMismatch ? "Passwords do not match" : undefined}
+              className="text-sm"
+              placeholder="Re-enter password"
+            />
+
+            <div>
+              <Input
+                label="Password Hint (optional)"
+                type="text"
+                value={passwordHint}
+                onChange={(e) => setPasswordHint(e.target.value)}
+                className="text-sm"
+                placeholder="e.g., 'My birth year'"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This hint will be shown when someone tries to open the file
+              </p>
             </div>
           </div>
+
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={resetExportPasswordState}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleExport()}
+              disabled={!password || password.length < 4 || password !== confirmPassword}
+              className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              Encrypt &amp; Save
+            </button>
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Import Password Modal */}
-      {showImportPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
+      <Modal
+        isOpen={showImportPasswordModal}
+        onClose={cancelImportPasswordModal}
+        closeOnBackdrop={false}
+        className="max-w-md"
+      >
+        <div className="p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <div className="rounded-lg bg-blue-100 p-2">
                 <Lock className="h-6 w-6 text-blue-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Password Required</h3>
             </div>
+            <button
+              type="button"
+              onClick={cancelImportPasswordModal}
+              aria-label="Close modal"
+              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            <p className="mb-4 text-sm text-gray-600">
-              This file is password-protected. Enter the password to decrypt and load the data.
-            </p>
+          <p className="mb-4 text-sm text-gray-600">
+            This file is password-protected. Enter the password to decrypt and load the data.
+          </p>
 
-            {encryptionHint && (
-              <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-                <strong>💡 Hint:</strong> {encryptionHint}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-                <div className="relative">
-                  <Input
-                    type={showImportPassword ? "text" : "password"}
-                    value={importPassword}
-                    onChange={(e) => setImportPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && importPassword) {
-                        handleDecryptAndImport();
-                      }
-                    }}
-                    className="pr-10 text-sm"
-                    placeholder="Enter password"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowImportPassword(!showImportPassword)}
-                    className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showImportPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
+          {encryptionHint && (
+            <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+              <strong>💡 Hint:</strong> {encryptionHint}
             </div>
+          )}
 
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => {
-                  ++decryptAttemptRef.current;
-                  if (activeReaderRef.current) {
-                    try {
-                      activeReaderRef.current.abort();
-                    } catch {
-                      // ignore
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+              <div className="relative">
+                <Input
+                  type={showImportPassword ? "text" : "password"}
+                  value={importPassword}
+                  onChange={(e) => setImportPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && importPassword) {
+                      handleDecryptAndImport();
                     }
-                    activeReaderRef.current = null;
-                  }
-                  setIsDecrypting(false);
-                  setShowImportPasswordModal(false);
-                  setDecryptedBackupData(null);
-                  setImportPassword("");
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                  releaseImportRecoveryOwnership();
-                }}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDecryptAndImport}
-                disabled={!importPassword || isDecrypting}
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isDecrypting ? "Decrypting..." : "Unlock File"}
-              </button>
+                  }}
+                  className="pr-10 text-sm"
+                  placeholder="Enter password"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowImportPassword(!showImportPassword)}
+                  aria-label={showImportPassword ? "Hide password" : "Show password"}
+                  className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showImportPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
+
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={cancelImportPasswordModal}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDecryptAndImport}
+              disabled={!importPassword || isDecrypting}
+              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isDecrypting ? "Decrypting..." : "Unlock File"}
+            </button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

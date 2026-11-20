@@ -16,7 +16,7 @@ export const PageLoader = () => (
       </div>
       <div className="text-center">
         <p className="text-lg font-bold text-blue-900">Loading Repota...</p>
-        <p className="text-sm text-gray-600">Preparing your dashboard</p>
+        <p className="text-sm text-gray-600">Preparing your workspace</p>
       </div>
     </div>
   </div>

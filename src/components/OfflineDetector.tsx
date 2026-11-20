@@ -27,8 +27,11 @@ export const OfflineDetector = () => {
 
         if (granted) {
           showToast("✓ Storage protected - your data won't be auto-deleted", "success");
-        } else {
-          // Only show this once, on first load
+        } else if (
+          localStorage.getItem("repota_had_data") === "true" &&
+          sessionStorage.getItem("repota_backup_reminder_shown") !== "true"
+        ) {
+          sessionStorage.setItem("repota_backup_reminder_shown", "true");
           showToast("💾 Remember to backup your data regularly", "info");
         }
       }

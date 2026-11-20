@@ -199,7 +199,7 @@ describe("Settings cold start", () => {
     renderDashboard();
 
     expect(screen.getByText("Loading Repota...")).toBeInTheDocument();
-    expect(screen.queryByText("Welcome to your new Class Dashboard!")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome to your new class!")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add your first student" })).not.toBeInTheDocument();
 
     await act(async () => {

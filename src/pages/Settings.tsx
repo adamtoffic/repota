@@ -26,7 +26,7 @@ function SettingsContent() {
     <div className="bg-background flex min-h-screen flex-col font-sans">
       <PageHeader schoolName={committedSchoolName} actions={<SettingsHeaderActions />} />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
         <SettingsStatusBanners />
         <SchoolIdentitySection />
         <AcademicSessionSection />

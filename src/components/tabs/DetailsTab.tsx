@@ -143,7 +143,6 @@ export function DetailsTab({ student, onUpdate }: Props) {
                     👧 Female
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Auto-saved</p>
               </div>
             </div>
           </div>
@@ -176,7 +175,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 className="pr-16 font-mono font-bold sm:pr-16"
                 placeholder="0"
               />
-              <span className="pointer-events-none absolute top-2.5 right-3 text-xs text-gray-400">
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-gray-400">
                 / {settings.totalAttendanceDays || 60}
               </span>
             </div>

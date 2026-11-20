@@ -101,7 +101,7 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
           {error
             ? "Save failed"
             : !isOnline
-              ? "Offline - changes will sync"
+              ? "Offline · Saved locally"
               : isSaving
                 ? "Saving..."
                 : lastSaved
