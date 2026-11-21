@@ -24,6 +24,7 @@ Repota is a Ghana-focused, offline-first Progressive Web App (PWA) for generatin
 | **src/templates** | Report card and document templates (PDF generation, printing) | [OriginalTemplate.tsx](../src/templates/OriginalTemplate.tsx) |
 | **src/components/charts** | Recharts-based visualization components (BarChart, LineChart, PieChart for analytics) | [BarChart.tsx](../src/components/charts/BarChart.tsx), [LineChart.tsx](../src/components/charts/LineChart.tsx) |
 | **src/analytics** | Analytics processing and aggregation (gender analysis, top performers, score distributions) | [analyticsCalculator.ts](../src/utils/analyticsCalculator.ts) |
+| **scripts** | Zero-dependency headless Chromium CDP scripts for PWA/favicon icon packs, OG share cards, and store screenshots | [cdp-browser.mjs](../scripts/lib/cdp-browser.mjs), [generate-icons.mjs](../scripts/generate-icons.mjs), [generate-og.mjs](../scripts/generate-og.mjs), [generate-screenshots.mjs](../scripts/generate-screenshots.mjs) |
 | **docs** | Documentation and project notes | (to be created/updated) |
 
 ---
@@ -88,6 +89,7 @@ Low-level, reusable components that compose higher-level features.
 - [**ErrorBoundary.tsx**](../src/components/ErrorBoundary.tsx): React error boundary for graceful failure handling
 - [**Alert.tsx**](../src/components/ui/Alert.tsx): Dismissible alert/toast notifications
 - [**Card.tsx**](../src/components/ui/Card.tsx): Styled card container for content grouping
+- [**RepotaLogo.tsx**](../src/components/ui/RepotaLogo.tsx): Inline pure-vector brand mark (`useId()`-scoped gradients, paired optically with `public/logo.svg`) for crisp Retina & zoomed rendering
 
 ### **PWA & Platform Features**
 App installation, offline detection, and service worker integration.

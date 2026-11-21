@@ -72,7 +72,7 @@ The app is intentionally designed to continue functioning without a network conn
 - `src/api/config.ts:8-16` sets the default mode to `local` and explicitly describes the app as offline-first.
 - `src/api/client.ts:104-165` disables backend calls in local mode by throwing `LOCAL_MODE` before any network request is made.
 - `src/components/OfflineDetector.tsx:11-67` listens for `online` and `offline` browser events and shows status toasts, but the app does not block editing or report generation when the browser is offline.
-- `vite.config.ts:28-153` configures `vite-plugin-pwa` to precache assets and provide offline navigation fallback with a service worker, including `navigateFallback: "/index.html"` and runtime caching for JS/CSS/image assets.
+- `vite.config.ts:31-206` configures `vite-plugin-pwa` to precache essential app-shell assets, manifest icons, and printable GES report emblems (excluding social/store images `og-image.png` / `screenshot-*.png` and keeping bundle visualizer output outside `dist/` in `.cache/stats.html`), provide offline navigation fallback (`navigateFallback: "/index.html"`), and configure runtime caching (`NetworkFirst` for JS/CSS, `StaleWhileRevalidate` for images).
 
 The evidence therefore supports a local-first runtime: the browser can use cached resources and local data even when the network is absent.
 
@@ -197,7 +197,7 @@ The following are not explicitly stated as intentions in comments; they are infe
 
 3. INFERRED: debounced persistence is used to reduce storage churn and improve responsiveness; this is consistent with an interactive data-entry app where many changes occur quickly (`src/context/SchoolContext.tsx:63-67`, `src/context/SchoolContext.tsx:140-154`).
 
-4. INFERRED: the architecture assumes mobile/standalone usage as a primary context. The implementation includes PWA install prompts, offline listeners, app lock behavior, and persistent storage requests (`src/App.tsx:88-116`, `src/components/OfflineDetector.tsx:11-67`, `src/utils/dataProtection.ts:68-104`, `vite.config.ts:28-153`).
+4. INFERRED: the architecture assumes mobile/standalone usage as a primary context. The implementation includes PWA install prompts, offline listeners, app lock behavior, and persistent storage requests (`src/App.tsx:88-116`, `src/components/OfflineDetector.tsx:11-67`, `src/utils/dataProtection.ts:68-104`, `vite.config.ts:31-206`).
 
 5. INFERRED: the app separates business logic from presentation so that report card templates can vary without changing the data model. The grade logic is in `src/utils/gradeCalculator.ts`; the rendering logic is in `src/templates/*` and selected through `src/templates/registry.ts:8-40`.
 
