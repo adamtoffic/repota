@@ -92,6 +92,7 @@ async function main() {
       { name: "pwa-any-64x64.png", size: 64, svg: desktopSquircleSvg, transparent: true },
       { name: "pwa-any-192x192.png", size: 192, svg: desktopSquircleSvg, transparent: true },
       { name: "pwa-any-512x512.png", size: 512, svg: desktopSquircleSvg, transparent: true },
+      { name: "maskable-icon-192x192.png", size: 192, svg: maskableSvg, transparent: false },
       { name: "maskable-icon-512x512.png", size: 512, svg: maskableSvg, transparent: false },
       { name: "apple-touch-icon.png", size: 180, svg: logoSvg, transparent: false },
       { name: "favicon-96x96.png", size: 96, svg: faviconSvg, transparent: true },

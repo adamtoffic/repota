@@ -35,17 +35,16 @@ export default defineConfig({
         "favicon.svg",
         "favicon.ico",
         "favicon-96x96.png",
-        "logo.svg",
         "apple-touch-icon.png",
-        "maskable-icon-512x512.png",
+        "developer.jpg",
       ],
 
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
         // Precache essential files for offline functionality
-        globPatterns: ["**/*.{html,js,css,ico,png,svg,woff,woff2}"],
-        globIgnores: ["og-image.png", "screenshot-*.png"],
+        globPatterns: ["index.html", "**/*.{js,css,woff,woff2}", "assets/**/*.{png,svg}"],
+        globIgnores: ["og-image.png", "screenshot-*.png", "stats.html"],
         // Maximum cache size
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support
@@ -79,10 +78,10 @@ export default defineConfig({
               ],
             },
           },
-          // Cache images with CacheFirst strategy
+          // Cache images with StaleWhileRevalidate strategy
           {
             urlPattern: /^https?.*\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "images-cache",
               expiration: {
@@ -91,25 +90,11 @@ export default defineConfig({
               },
             },
           },
-          // Cache CDN resources
-          {
-            urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "cdn-cache",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
         ],
       },
 
       manifest: {
+        id: "/",
         name: "Repota - GES Report Generator",
         short_name: "Repota",
         description:
@@ -117,7 +102,6 @@ export default defineConfig({
         theme_color: "#1E3A8A",
         background_color: "#ffffff",
         display: "standalone",
-        orientation: "portrait",
         scope: "/",
         start_url: "/",
         categories: ["education", "productivity", "utilities"],
@@ -140,6 +124,12 @@ export default defineConfig({
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
+          },
+          {
+            src: "maskable-icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
           },
           {
             src: "maskable-icon-512x512.png",
@@ -215,7 +205,7 @@ export default defineConfig({
       },
     }),
     visualizer({
-      filename: "./dist/stats.html",
+      filename: "./.cache/stats.html",
       open: false, // Set to true to auto-open after build
       gzipSize: true,
       brotliSize: true,
