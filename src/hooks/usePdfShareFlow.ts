@@ -31,6 +31,7 @@ interface UsePdfShareFlowOptions {
     onProgress: (progress: PdfGenerationProgress) => void;
     signal: AbortSignal;
   }) => Promise<File>;
+  onPdfCompleted?: (method: "share" | "download") => void;
 }
 
 /**
@@ -42,6 +43,7 @@ export function usePdfShareFlow({
   totalCount,
   itemLabel,
   buildPdf,
+  onPdfCompleted,
 }: UsePdfShareFlowOptions) {
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -53,6 +55,11 @@ export function usePdfShareFlow({
   const cacheRef = useRef<{ key: string; file: File } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const watchdogCleanupRef = useRef<(() => void) | null>(null);
+  const onPdfCompletedRef = useRef(onPdfCompleted);
+
+  useEffect(() => {
+    onPdfCompletedRef.current = onPdfCompleted;
+  }, [onPdfCompleted]);
 
   useEffect(() => {
     cacheRef.current = null;
@@ -77,7 +84,13 @@ export function usePdfShareFlow({
   const triggerShare = useCallback(async (targetFile: File) => {
     try {
       const outcome = await sharePdfFile(targetFile);
-      if (outcome === "shared" || outcome === "aborted") {
+      if (outcome === "shared") {
+        onPdfCompletedRef.current?.("share");
+        setIsOpen(false);
+        setStatus("idle");
+        return;
+      }
+      if (outcome === "aborted") {
         setIsOpen(false);
         setStatus("idle");
         return;
@@ -203,9 +216,17 @@ export function usePdfShareFlow({
       if (file) void triggerShare(file);
     },
     onDownload: () => {
-      if (file) downloadPdfFile(file);
+      if (file) {
+        downloadPdfFile(file);
+        onPdfCompletedRef.current?.("download");
+      }
     },
   };
 
-  return { modalProps, startPdfFlow, runPrintOrPdfFallback };
+  return {
+    modalProps,
+    startPdfFlow,
+    runPrintOrPdfFallback,
+    isGenerating: status === "generating",
+  };
 }

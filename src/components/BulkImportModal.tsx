@@ -102,7 +102,10 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
       }
 
       const newStudent: StudentRecord = {
-        id: `${Date.now()}-${index}`,
+        id:
+          typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
         name: row.name,
         gender: row.gender,
         className: settings.className || "Class",
