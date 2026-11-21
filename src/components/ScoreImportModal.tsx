@@ -515,7 +515,10 @@ function ScoreImportModalContent({
           : [...defaultSubs, updatedSub];
 
         const newStudent: StudentRecord = {
-          id: `${Date.now()}-${idx}`,
+          id:
+            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+              ? crypto.randomUUID()
+              : `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 8)}`,
           name: row.studentName,
           gender: "Male",
           className: effectiveSettings.className || "Class",

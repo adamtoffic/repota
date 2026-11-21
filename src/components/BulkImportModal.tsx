@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle, Download, FileSpreadsheet, Upload, X } from
 import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import type { StudentRecord } from "../types";
-import posthog from "posthog-js";
+import { captureEvent } from "../utils/analytics";
 import {
   buildDefaultSubjectsForStudent,
   buildRosterTemplateCsv,
@@ -34,6 +34,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
   const [preview, setPreview] = useState<ParsedRosterRow[]>([]);
   const [hasMissingGender, setHasMissingGender] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [importSource, setImportSource] = useState<"paste" | "file">("paste");
 
   const handlePreview = (inputText = text) => {
     if (!inputText.trim()) return;
@@ -47,6 +48,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     const content = await file.text();
+    setImportSource("file");
     setText(content);
     handlePreview(content);
     e.target.value = "";
@@ -130,9 +132,13 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
       if (addedCount > 0) parts.push(`${addedCount} added`);
       if (updatedCount > 0) parts.push(`${updatedCount} updated`);
       showToast(`Successfully imported ${totalTouched} student${totalTouched > 1 ? "s" : ""} (${parts.join(", ")})!`, "success");
-      posthog.capture("Bulk_Import_Success", {
+      captureEvent("Bulk_Import_Success", {
         students_imported: addedCount,
         students_updated: updatedCount,
+        import_source: importSource,
+        school_level: settings.level || "unknown",
+        school_type: settings.schoolType || "unknown",
+        had_missing_gender: hasMissingGender,
       });
     }
 
@@ -144,6 +150,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
     setIsPreviewing(false);
     setPreview([]);
     setHasMissingGender(false);
+    setImportSource("paste");
     onClose();
   };
 
@@ -202,7 +209,10 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
 
               <Textarea
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setImportSource("paste");
+                  setText(e.target.value);
+                }}
                 placeholder={
                   "Kwame Mensah, Male, 2015-03-14, 65\nAma Serwaa, Female, 2015-07-22, 68\nAiman Adam"
                 }

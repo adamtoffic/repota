@@ -1,6 +1,6 @@
-import posthog from "posthog-js";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Award, LayoutTemplate, Palette, Printer, RotateCcw } from "lucide-react";
+import { captureEvent } from "../../utils/analytics";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { resolvePositionVisibility } from "../../utils/privateSchoolFees";
@@ -58,8 +58,16 @@ export function ReportTemplateSection() {
               key={template.id}
               type="button"
               onClick={() => {
+                const currentTemplateId = formData.templateId || "original_v1";
+                if (currentTemplateId === template.id) return;
                 setFormData({ ...formData, templateId: template.id });
-                posthog.capture("Template_Changed", { template_id: template.id });
+                captureEvent("Template_Changed", {
+                  template_id: template.id,
+                  previous_template_id: currentTemplateId,
+                  school_level: formData.level || "unknown",
+                  school_type: formData.schoolType || "unknown",
+                  uses_custom_color: Boolean(formData.useCustomTemplateColor),
+                });
               }}
               className={`relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all active:scale-95 ${
                 (formData.templateId || "original_v1") === template.id

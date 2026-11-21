@@ -1,5 +1,5 @@
-import posthog from "posthog-js";
 import type { PrintMode, SchoolSettings, StudentRecord } from "../types";
+import { captureEvent } from "./analytics";
 import { hasNoScoresEntered, isStudentPending } from "./studentValidation";
 
 export const REPORT_LEDGER_STORAGE_KEY = "repota_analytics_report_ledger_v1";
@@ -28,7 +28,8 @@ interface StoredReportLedger {
 export type ReportAnalyticsSettings = Pick<
   SchoolSettings,
   "academicYear" | "term" | "examType" | "level" | "schoolType" | "templateId" | "defaultSubjects"
->;
+> &
+  Partial<Pick<SchoolSettings, "useCustomTemplateColor" | "logoUrl" | "showFeeSchedule">>;
 
 export interface TrackReportPrintParams {
   students: readonly StudentRecord[];
@@ -396,45 +397,51 @@ export function trackReportPrint(params: TrackReportPrintParams): ReportPrintSum
   const schoolType = params.settings.schoolType || "unknown";
   const examType = (params.settings.examType || "TERMLY").trim().toUpperCase();
   const term = params.settings.term || "unknown";
+  const hasCustomColors = Boolean(params.settings.useCustomTemplateColor);
+  const hasSchoolLogo = Boolean(params.settings.logoUrl?.trim());
+  const hasFeeScheduleEnabled =
+    params.settings.schoolType === "PRIVATE" && params.settings.showFeeSchedule !== false;
 
-  try {
-    for (const item of pendingReportEvents) {
-      posthog.capture("Report_Card_Generated", {
-        report_key: item.report_key,
-        readiness: item.readiness,
-        is_readiness_upgrade: item.is_readiness_upgrade,
-        template_id: templateId,
-        print_mode: params.printMode,
-        print_scope: params.printScope,
-        print_channel: params.printChannel,
-        school_level: schoolLevel,
-        school_type: schoolType,
-        exam_type: examType,
-        term,
-      });
-    }
-
-    posthog.capture("Printed_Reports", {
-      students_count: uniqueStudents.length,
+  for (const item of pendingReportEvents) {
+    captureEvent("Report_Card_Generated", {
+      report_key: item.report_key,
+      readiness: item.readiness,
+      is_readiness_upgrade: item.is_readiness_upgrade,
       template_id: templateId,
       print_mode: params.printMode,
-      school_level: schoolLevel,
-      school_type: schoolType,
-      real_students_count: realStudentsCount,
-      ready_students_count: readyStudentsCount,
-      demo_students_count: demoStudents.length,
-      unscored_students_count: unscoredStudents.length,
-      new_unique_reports_count: newUniqueReportsCount,
-      new_unique_ready_reports_count: newUniqueReadyReportsCount,
-      is_reprint: isReprint,
-      is_demo: isDemo,
       print_scope: params.printScope,
       print_channel: params.printChannel,
+      school_level: schoolLevel,
+      school_type: schoolType,
       exam_type: examType,
+      term,
+      has_custom_colors: hasCustomColors,
+      has_school_logo: hasSchoolLogo,
+      has_fee_schedule_enabled: hasFeeScheduleEnabled,
     });
-  } catch {
-    // Analytics must never block printing
   }
+
+  captureEvent("Printed_Reports", {
+    students_count: uniqueStudents.length,
+    template_id: templateId,
+    print_mode: params.printMode,
+    school_level: schoolLevel,
+    school_type: schoolType,
+    real_students_count: realStudentsCount,
+    ready_students_count: readyStudentsCount,
+    demo_students_count: demoStudents.length,
+    unscored_students_count: unscoredStudents.length,
+    new_unique_reports_count: newUniqueReportsCount,
+    new_unique_ready_reports_count: newUniqueReadyReportsCount,
+    is_reprint: isReprint,
+    is_demo: isDemo,
+    print_scope: params.printScope,
+    print_channel: params.printChannel,
+    exam_type: examType,
+    has_custom_colors: hasCustomColors,
+    has_school_logo: hasSchoolLogo,
+    has_fee_schedule_enabled: hasFeeScheduleEnabled,
+  });
 
   return {
     studentsCount: uniqueStudents.length,

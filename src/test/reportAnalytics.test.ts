@@ -299,6 +299,36 @@ describe("reportAnalytics & analyticsEnv", () => {
     expect(getCapturedEvents("Printed_Reports")[0]).toMatchObject({
       unscored_students_count: 1,
       new_unique_reports_count: 1,
+      has_custom_colors: false,
+      has_school_logo: false,
+      has_fee_schedule_enabled: false,
+    });
+  });
+
+  it("includes branding and private fee schedule flags on generated and printed events", () => {
+    trackReportPrint({
+      students: [makeStudent("branded-1")],
+      settings: {
+        ...baseSettings,
+        schoolType: "PRIVATE",
+        useCustomTemplateColor: true,
+        logoUrl: "data:image/png;base64,crest",
+        showFeeSchedule: true,
+      },
+      printMode: "color",
+      printScope: "all",
+      printChannel: "native_print",
+    });
+
+    expect(getCapturedEvents("Report_Card_Generated")[0]).toMatchObject({
+      has_custom_colors: true,
+      has_school_logo: true,
+      has_fee_schedule_enabled: true,
+    });
+    expect(getCapturedEvents("Printed_Reports")[0]).toMatchObject({
+      has_custom_colors: true,
+      has_school_logo: true,
+      has_fee_schedule_enabled: true,
     });
   });
 
