@@ -19,6 +19,7 @@ import {
 import { triggerHaptic } from "../../utils/iosInteraction";
 import { AutoSaveIndicator } from "../AutoSaveIndicator";
 import { PageLoader } from "../PageLoader";
+import { RepotaLogo } from "../ui/RepotaLogo";
 
 interface AppShellProps {
   children: ReactNode;
@@ -71,8 +72,8 @@ export function AppShell({ children }: AppShellProps) {
       >
         <div className="border-b border-gray-100 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-sm">
-              <img src="/logo.svg" alt="Repota" className="h-full w-full p-1" />
+            <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-sm">
+              <RepotaLogo className="h-full w-full" />
             </div>
             <div className="min-w-0 flex-1">
               <span

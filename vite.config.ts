@@ -34,16 +34,17 @@ export default defineConfig({
       includeAssets: [
         "favicon.svg",
         "favicon.ico",
-        "logo.svg",
+        "favicon-96x96.png",
         "apple-touch-icon.png",
-        "og-image.png",
+        "developer.jpg",
       ],
 
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
         // Precache essential files for offline functionality
-        globPatterns: ["**/*.{html,js,css,ico,png,svg,woff,woff2}"],
+        globPatterns: ["index.html", "**/*.{js,css,woff,woff2}", "assets/**/*.{png,svg}"],
+        globIgnores: ["og-image.png", "screenshot-*.png", "stats.html"],
         // Maximum cache size
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support
@@ -77,10 +78,10 @@ export default defineConfig({
               ],
             },
           },
-          // Cache images with CacheFirst strategy
+          // Cache images with StaleWhileRevalidate strategy
           {
             urlPattern: /^https?.*\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "images-cache",
               expiration: {
@@ -89,25 +90,11 @@ export default defineConfig({
               },
             },
           },
-          // Cache CDN resources
-          {
-            urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "cdn-cache",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
         ],
       },
 
       manifest: {
+        id: "/",
         name: "Repota - GES Report Generator",
         short_name: "Repota",
         description:
@@ -115,32 +102,40 @@ export default defineConfig({
         theme_color: "#1E3A8A",
         background_color: "#ffffff",
         display: "standalone",
-        orientation: "portrait",
         scope: "/",
         start_url: "/",
         categories: ["education", "productivity", "utilities"],
 
         icons: [
           {
-            src: "pwa-64x64.png",
+            src: "pwa-any-64x64.png",
             sizes: "64x64",
             type: "image/png",
+            purpose: "any",
           },
           {
-            src: "pwa-192x192.png",
+            src: "pwa-any-192x192.png",
             sizes: "192x192",
             type: "image/png",
+            purpose: "any",
           },
           {
-            src: "pwa-512x512.png",
+            src: "pwa-any-512x512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any",
           },
           {
-            src: "pwa-512x512.png",
+            src: "maskable-icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "maskable-icon-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "maskable",
           },
         ],
 
@@ -148,15 +143,59 @@ export default defineConfig({
         screenshots: [
           {
             src: "screenshot-mobile.png",
-            sizes: "750x1334",
+            sizes: "780x1688",
             type: "image/png",
             form_factor: "narrow",
+            label: "Manage Your Class Offline — Dashboard (Mobile)",
+          },
+          {
+            src: "screenshot-report-mobile.png",
+            sizes: "780x1688",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Print-Ready A4 GES Report Cards (Mobile)",
+          },
+          {
+            src: "screenshot-gradebook-mobile.png",
+            sizes: "780x1688",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Fast Quick Gradebook & SBA Score Entry (Mobile)",
+          },
+          {
+            src: "screenshot-analytics-mobile.png",
+            sizes: "780x1688",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Instant Class Analytics & Charts (Mobile)",
           },
           {
             src: "screenshot-desktop.png",
-            sizes: "1920x1080",
+            sizes: "1280x720",
             type: "image/png",
             form_factor: "wide",
+            label: "Manage Your Class Offline — Dashboard (Desktop)",
+          },
+          {
+            src: "screenshot-report-desktop.png",
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Print-Ready A4 GES Report Cards (Desktop)",
+          },
+          {
+            src: "screenshot-gradebook-desktop.png",
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Fast Quick Gradebook & SBA Score Entry (Desktop)",
+          },
+          {
+            src: "screenshot-analytics-desktop.png",
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Instant Class Analytics & Charts (Desktop)",
           },
         ],
       },
@@ -166,7 +205,7 @@ export default defineConfig({
       },
     }),
     visualizer({
-      filename: "./dist/stats.html",
+      filename: "./.cache/stats.html",
       open: false, // Set to true to auto-open after build
       gzipSize: true,
       brotliSize: true,

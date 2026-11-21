@@ -32,6 +32,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write .",
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "generate:og": "node scripts/generate-og.mjs",
+    "generate:screenshots": "node scripts/generate-screenshots.mjs",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
