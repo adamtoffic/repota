@@ -27,26 +27,26 @@
 }
 
 :root.dark {
-  --brand-primary: #2563eb;
+  --brand-primary: #2f6feb;
   --brand-primary-foreground: #ffffff;
   --brand-primary-text: #60a5fa;
-  --brand-accent: #fbbf24;
-  --brand-accent-foreground: #0f172a;
+  --brand-accent: #f59e0b;
+  --brand-accent-foreground: #090c12;
   --status-danger: #ef4444;
   --status-danger-foreground: #ffffff;
   --status-success: #22c55e;
   --status-success-foreground: #ffffff;
-  --surface-canvas: #0b1220;
-  --surface-card: #111b2e;
-  --surface-subtle: #18243b;
-  --surface-elevated: #1e2d48;
-  --surface-input: #0f192c;
-  --border-default: #263550;
-  --border-subtle: #1e2c44;
-  --border-strong: #384b6e;
+  --surface-canvas: #090c12;
+  --surface-card: #111620;
+  --surface-subtle: #171e2b;
+  --surface-elevated: #1d2636;
+  --surface-input: #0c1018;
+  --border-default: #20293a;
+  --border-subtle: #18202e;
+  --border-strong: #2f3c54;
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-muted: #8b98b0;
 }
 
 @theme inline {
@@ -83,6 +83,30 @@
   body {
     background-color: var(--surface-canvas);
     color: var(--text-primary);
+  }
+
+  :root.dark {
+    scrollbar-color: #2f3c54 #090c12;
+  }
+
+  :root.dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  :root.dark ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :root.dark ::-webkit-scrollbar-thumb {
+    background-color: #273247;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  :root.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #3a4a68;
   }
 }
 

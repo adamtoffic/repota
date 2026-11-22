@@ -439,7 +439,7 @@ export function Dashboard() {
                   <div
                     role="group"
                     aria-label="Workspace entry view"
-                    className="border-border bg-surface inline-flex rounded-xl border p-1 shadow-sm"
+                    className="border-border bg-subtle inline-flex rounded-xl border p-1 shadow-xs"
                   >
                     <button
                       type="button"
@@ -447,12 +447,14 @@ export function Dashboard() {
                       aria-pressed={entryViewMode === "LIST"}
                       className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
                         entryViewMode === "LIST"
-                          ? "bg-primary text-white shadow-sm"
-                          : "text-secondary hover:bg-subtle hover:text-main"
+                          ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
+                          : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
                       }`}
                       data-record="true"
                     >
-                      <List className="h-3.5 w-3.5" />
+                      <List
+                        className={`h-3.5 w-3.5 ${entryViewMode === "LIST" ? "text-primary-text" : ""}`}
+                      />
                       <span>Student List</span>
                     </button>
                     <button
@@ -461,12 +463,14 @@ export function Dashboard() {
                       aria-pressed={entryViewMode === "GRADEBOOK"}
                       className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
                         entryViewMode === "GRADEBOOK"
-                          ? "bg-primary text-white shadow-sm"
-                          : "text-secondary hover:bg-subtle hover:text-main"
+                          ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
+                          : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
                       }`}
                       data-record="true"
                     >
-                      <TableProperties className="h-3.5 w-3.5" />
+                      <TableProperties
+                        className={`h-3.5 w-3.5 ${entryViewMode === "GRADEBOOK" ? "text-primary-text" : ""}`}
+                      />
                       <span>Quick Gradebook</span>
                     </button>
                   </div>

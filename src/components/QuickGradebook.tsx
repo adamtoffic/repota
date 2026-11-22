@@ -554,7 +554,7 @@ export function QuickGradebook({
                     {index + 1}. {student.name}
                   </p>
                   <div className="mt-0.5 flex items-center gap-2 text-xs">
-                    <span className="text-muted font-semibold">{total} total</span>
+                    <span className="text-muted font-semibold tabular-nums">{total} total</span>
                     <span
                       className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${
                         total < 50
@@ -565,7 +565,7 @@ export function QuickGradebook({
                       {grade}
                     </span>
                     {!isMockExam && hasComponents && (
-                      <span className="text-[11px] font-medium text-purple-700 dark:text-purple-400">
+                      <span className="text-[11px] font-medium text-purple-700 tabular-nums dark:text-purple-400">
                         Class: {subject.classScore}/{maxClassScore}
                       </span>
                     )}
@@ -631,7 +631,7 @@ export function QuickGradebook({
                             focusAdjacentStudentInput("comp", index, -1);
                           }
                         }}
-                        className="bg-input text-main placeholder:text-muted w-24 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
+                        className="bg-input text-main placeholder:text-muted w-24 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                       />
                     </label>
                   ) : (
@@ -682,7 +682,7 @@ export function QuickGradebook({
                               focusAdjacentStudentInput("class", index, -1);
                             }
                           }}
-                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                         />
                       </label>
                     )}

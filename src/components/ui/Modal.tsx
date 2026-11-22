@@ -50,7 +50,7 @@ export const Modal = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={`animate-sheet-up border-border bg-elevated text-main my-auto w-full border ${hasMaxWidth ? "" : "max-w-md"} flex-shrink-0 rounded-xl shadow-xl ${className}`}
+        className={`animate-sheet-up border-border bg-elevated text-main my-auto w-full border ${hasMaxWidth ? "" : "max-w-md"} flex-shrink-0 rounded-xl shadow-xl dark:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)] ${className}`}
       >
         {children}
       </div>

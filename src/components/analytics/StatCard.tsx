@@ -31,7 +31,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   };
 
   return (
-    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
+    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p
@@ -40,12 +40,12 @@ export const StatCard: React.FC<StatCardProps> = ({
           >
             {title}
           </p>
-          <p className="text-main mt-2 text-2xl font-black sm:text-3xl">{value}</p>
+          <p className="text-main mt-2 text-2xl font-black tabular-nums sm:text-3xl">{value}</p>
           {subtitle && <p className="text-muted mt-1 text-xs">{subtitle}</p>}
           {trend && (
             <div className="mt-2 flex items-center gap-1">
               <span
-                className={`text-xs font-bold ${
+                className={`text-xs font-bold tabular-nums ${
                   trend.isPositive
                     ? "text-green-600 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"

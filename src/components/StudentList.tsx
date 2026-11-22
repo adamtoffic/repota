@@ -77,7 +77,7 @@ function MobileStudentCard({
           </p>
         </div>
         {student.classPosition !== "Pending..." && (
-          <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
+          <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
             {student.classPosition}
           </span>
         )}
@@ -90,7 +90,7 @@ function MobileStudentCard({
             <CameraOff className="h-3 w-3" /> No Photo
           </span>
         )}
-        <span className="bg-subtle text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
+        <span className="bg-subtle text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums">
           Avg: {student.averageScore > 0 ? `${student.averageScore}%` : "Pending"}
         </span>
       </div>
@@ -361,18 +361,18 @@ export function StudentList({
                           <ScoreProgressBadge student={student} />
                         </div>
                       </td>
-                      <td className="text-main px-4 py-3 font-bold sm:px-6 sm:py-4">
+                      <td className="text-main px-4 py-3 font-bold tabular-nums sm:px-6 sm:py-4">
                         {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         {student.classPosition !== "Pending..." && (
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
                             {student.classPosition}
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
-                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-50 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                           <button
                             type="button"
                             onClick={(e) => {

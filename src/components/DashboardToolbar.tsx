@@ -459,16 +459,18 @@ function FilterButton({
   icon,
   isActive,
   onClick,
-  activeColor = "bg-primary",
+  activeColor,
   hoverColor = "hover:bg-subtle",
 }: FilterButtonProps) {
+  const activeStyle = activeColor
+    ? `${activeColor} border-transparent text-white shadow-md`
+    : "bg-slate-900 border-transparent text-white shadow-sm dark:bg-elevated dark:text-main dark:border-border-strong dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
-        isActive
-          ? `${activeColor} text-white shadow-md`
-          : `border-border bg-surface text-secondary border ${hoverColor}`
+      className={`flex items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
+        isActive ? activeStyle : `border-border bg-surface text-secondary ${hoverColor}`
       }`}
       data-record="true"
     >

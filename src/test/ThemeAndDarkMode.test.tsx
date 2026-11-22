@@ -392,18 +392,21 @@ describe("Theme system and Dark Mode invariants", () => {
     it("normalizes dark-mode chart SVG colors back to light ink for PNG/PDF exports", () => {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      gridLine.setAttribute("stroke", "#334155");
+      gridLine.setAttribute("stroke", "#20293a");
+      const legacyGrid = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      legacyGrid.setAttribute("stroke", "#334155");
       const axisText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      axisText.setAttribute("fill", "#94a3b8");
+      axisText.setAttribute("fill", "#8b98b0");
       const legendLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
       legendLabel.style.fill = "#e2e8f0";
       const dataBar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
       dataBar.setAttribute("fill", "#3b82f6");
 
-      svg.append(gridLine, axisText, legendLabel, dataBar);
+      svg.append(gridLine, legacyGrid, axisText, legendLabel, dataBar);
       normalizeChartSvgForLightExport(svg);
 
       expect(gridLine.getAttribute("stroke")).toBe("#e5e7eb");
+      expect(legacyGrid.getAttribute("stroke")).toBe("#e5e7eb");
       expect(axisText.getAttribute("fill")).toBe("#6b7280");
       expect(legendLabel.style.fill).toBe("#374151");
       expect(dataBar.getAttribute("fill")).toBe("#3b82f6");

@@ -116,12 +116,12 @@ export function AppShell({ children }: AppShellProps) {
                 aria-current={item.isActive ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                   item.isActive
-                    ? "bg-primary/10 text-primary-text dark:bg-primary/20 font-bold"
+                    ? "bg-primary/10 text-primary-text dark:bg-elevated dark:text-main font-bold dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
                     : "text-secondary hover:bg-subtle hover:text-main font-medium"
                 }`}
                 data-record="true"
               >
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon className={`h-5 w-5 shrink-0 ${item.isActive ? "text-primary-text" : ""}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -170,7 +170,7 @@ export function AppShell({ children }: AppShellProps) {
                   aria-label={`Use ${option.label.toLowerCase()} theme`}
                   className={`flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold transition-all ${
                     isSelected
-                      ? "bg-surface text-main shadow-xs"
+                      ? "bg-surface text-main dark:bg-elevated shadow-xs dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
                       : "text-muted hover:text-main"
                   }`}
                   data-record="true"
