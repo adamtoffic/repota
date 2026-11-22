@@ -75,7 +75,7 @@ describe("Modal and Overlay UX", () => {
     }
   });
 
-  it("PwaInstallPrompt renders light-mode card without dark: overrides", () => {
+  it("PwaInstallPrompt renders with semantic surface tokens matching the app theme", () => {
     const { container } = render(<PwaInstallPrompt />);
 
     const promptEvent = new Event("beforeinstallprompt") as Event & {
@@ -91,7 +91,9 @@ describe("Modal and Overlay UX", () => {
 
     expect(screen.getByText("Install Repota")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dismiss install prompt" })).toBeInTheDocument();
-    expect(container.innerHTML).not.toMatch(/\bdark:/);
+    expect(container.innerHTML).toContain("bg-elevated");
+    expect(container.innerHTML).toContain("text-main");
+    expect(container.innerHTML).not.toMatch(/\bbg-white\b|\bdark:bg-gray-900\b/);
   });
 
   it("Modal closes on Escape when closeOnBackdrop is false, and ScoreEntryModal closes on Escape", () => {
