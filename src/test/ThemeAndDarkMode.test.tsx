@@ -260,6 +260,9 @@ describe("Theme system and Dark Mode invariants", () => {
     });
 
     it("persists device-local repota_theme only and syncs document + theme-color meta", () => {
+      expect(LIGHT_THEME_COLOR).toBe("#FFFFFF");
+      expect(DARK_THEME_COLOR).toBe("#090C12");
+
       const meta = document.createElement("meta");
       meta.setAttribute("name", "theme-color");
       meta.setAttribute("content", LIGHT_THEME_COLOR);
@@ -272,13 +275,13 @@ describe("Theme system and Dark Mode invariants", () => {
       expect(document.documentElement.classList.contains("dark")).toBe(true);
       expect(document.documentElement.style.colorScheme).toBe("dark");
       expect(document.documentElement.dataset.theme).toBe("dark");
-      expect(meta.getAttribute("content")).toBe(DARK_THEME_COLOR);
+      expect(meta.getAttribute("content")).toBe("#090C12");
 
       applyThemeToDocument("light");
       expect(document.documentElement.classList.contains("dark")).toBe(false);
       expect(document.documentElement.style.colorScheme).toBe("light");
       expect(document.documentElement.dataset.theme).toBe("light");
-      expect(meta.getAttribute("content")).toBe(LIGHT_THEME_COLOR);
+      expect(meta.getAttribute("content")).toBe("#FFFFFF");
     });
   });
 

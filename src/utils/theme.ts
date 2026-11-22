@@ -10,7 +10,7 @@ export const THEME_STORAGE_KEY = "repota_theme";
 /** Window event emitted after `saveThemePreference` updates `localStorage` and DOM theme state. */
 export const THEME_CHANGE_EVENT = "repota:theme-change";
 
-export const LIGHT_THEME_COLOR = "#1E3A8A";
+export const LIGHT_THEME_COLOR = "#FFFFFF";
 export const DARK_THEME_COLOR = "#090C12";
 
 export interface ChartThemeColors {
