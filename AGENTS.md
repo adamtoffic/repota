@@ -8,6 +8,7 @@ Repota is an offline-first, privacy-first PWA for Ghanaian GES report cards buil
 - **Package manager:** Use `npm` and `npx` ONLY. Never use `pnpm`, `yarn`, or `bun`.
 - **Dependencies:** Do not add new dependencies unless the task explicitly asks for them.
 - **Privacy / Zero PII:** Never send student names, scores, photos, phone numbers, or school names in telemetry or logs. PostHog session replay (`src/main.tsx`) masks all text/inputs and blocks images by default; `data-record="true"` may only be placed on static UI chrome or labels, **never** on containers rendering student or school data.
+- **Analytics (`src/utils/analytics.ts`, `src/utils/analyticsEnv.ts`, `src/utils/reportAnalytics.ts`):** Emit PostHog events through `captureEvent` (never raw `posthog.capture`) so production host gating (`repota.app`, `www.repota.app`, `repota.vercel.app`) and safe error swallowing apply; preserve zero-PII SHA-256 report deduplication and update `docs/analytics-events.md` when adding or changing events.
 - **JSDoc:** Follow [docs/jsdoc-conventions.md](docs/jsdoc-conventions.md) — document non-obvious invariants, units, preconditions, `@throws`, and `@deprecated` fields on exported types, core utilities, context contracts, and boundary providers; never restate TypeScript types or add boilerplate on self-evident helpers or presentational UI.
 
 ## Architecture & Critical Invariants
