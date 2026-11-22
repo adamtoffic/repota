@@ -1,21 +1,14 @@
 import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
 
 export type DashboardFilter =
-  | "ALL"
-  | "PENDING"
-  | "NO_SCORES"
-  | "PARTIAL_SCORES"
-  | "MISSING_PHOTOS"
-  | "FAILING";
+  "ALL" | "PENDING" | "NO_SCORES" | "PARTIAL_SCORES" | "MISSING_PHOTOS" | "FAILING";
 
 export type StudentSortOption =
-  | "DEFAULT"
-  | "NAME_ASC"
-  | "NAME_DESC"
-  | "AVG_DESC"
-  | "AVG_ASC"
-  | "INCOMPLETE_FIRST";
+  "DEFAULT" | "NAME_ASC" | "NAME_DESC" | "AVG_DESC" | "AVG_ASC" | "INCOMPLETE_FIRST";
 
+/**
+ * Returns `true` when `subjects` is empty or every subject has `classScore <= 0` and `examScore <= 0`.
+ */
 export function hasNoScoresEntered(student: StudentRecord): boolean {
   return (
     student.subjects.length === 0 ||
@@ -23,6 +16,11 @@ export function hasNoScoresEntered(student: StudentRecord): boolean {
   );
 }
 
+/**
+ * Returns `true` when a student record is incomplete for report generation:
+ * has no subjects, has fewer subjects than `settings.defaultSubjects.length` (when provided),
+ * or has `classScore === 0 || examScore === 0` on any subject (`0` is treated as unentered).
+ */
 export function isStudentPending(
   student: StudentRecord,
   settings?: Pick<SchoolSettings, "defaultSubjects">,
@@ -33,6 +31,10 @@ export function isStudentPending(
   return student.subjects.some((sub) => sub.classScore === 0 || sub.examScore === 0);
 }
 
+/**
+ * Returns `true` when a student is still pending (`isStudentPending`) but already has at least
+ * one non-zero class or exam score entered (`!hasNoScoresEntered`).
+ */
 export function hasPartialScores(
   student: StudentRecord,
   settings?: Pick<SchoolSettings, "defaultSubjects">,
@@ -44,6 +46,10 @@ export function hasMissingPhoto(student: StudentRecord): boolean {
   return !student.pictureUrl;
 }
 
+/**
+ * Returns `true` only for completed (non-pending) students whose `averageScore < 50`.
+ * Excludes pending students so unscored records do not inflate failure counts.
+ */
 export function isStudentFailing(
   student: ProcessedStudent,
   settings?: Pick<SchoolSettings, "defaultSubjects">,
@@ -51,21 +57,29 @@ export function isStudentFailing(
   return !isStudentPending(student, settings) && student.averageScore < 50;
 }
 
+/**
+ * Summarizes subject score progress:
+ * - `scored`: subjects with `classScore > 0 || examScore > 0`
+ * - `completed`: subjects with both `classScore > 0 && examScore > 0`
+ * - `total`: total number of enrolled subjects on the record
+ */
 export function getScoredSubjectCounts(student: StudentRecord): {
   scored: number;
   completed: number;
   total: number;
 } {
   const total = student.subjects.length;
-  const scored = student.subjects.filter(
-    (sub) => sub.classScore > 0 || sub.examScore > 0,
-  ).length;
+  const scored = student.subjects.filter((sub) => sub.classScore > 0 || sub.examScore > 0).length;
   const completed = student.subjects.filter(
     (sub) => sub.classScore > 0 && sub.examScore > 0,
   ).length;
   return { scored, completed, total };
 }
 
+/**
+ * Returns the original `students` array reference when `sortBy === "DEFAULT"`;
+ * otherwise returns a newly sorted copy using alphabetical tie-breaking on `name`.
+ */
 export function sortStudents(
   students: ProcessedStudent[],
   sortBy: StudentSortOption,

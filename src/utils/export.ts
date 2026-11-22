@@ -1,6 +1,13 @@
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { downloadCsvFile, escapeCsvCell } from "./csvImport";
 
+/**
+ * Exports a summary broadsheet CSV spanning the union of all student subject names and
+ * triggers a browser file download. Neutralizes spreadsheet formula prefixes (`=`, `+`, `-`, `@`, `\t`, `\r`)
+ * on string cells before quoting.
+ *
+ * @throws {Error} When `students` is empty or `fileName` is blank.
+ */
 export function exportToCSV(students: ProcessedStudent[], fileName: string): boolean {
   try {
     // Validate inputs
@@ -79,6 +86,13 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
   }
 }
 
+/**
+ * Exports a full broadsheet CSV via `escapeCsvCell` and `downloadCsvFile`.
+ * Collapses subject columns to `(Total)` when `settings.examType === "MOCK"` (otherwise Class/Exam/Total),
+ * and appends admission/fee columns when `settings.schoolType === "PRIVATE"`.
+ *
+ * @throws {Error} When `students` is empty or `fileName` is blank.
+ */
 export function exportDetailedBroadsheetCSV(
   students: ProcessedStudent[],
   settings: Pick<SchoolSettings, "schoolType" | "totalAttendanceDays" | "examType">,
