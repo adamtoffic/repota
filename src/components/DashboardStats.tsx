@@ -51,15 +51,15 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
     <>
       {/* OVER CAPACITY WARNING BANNER */}
       {stats.isOverCapacity && (
-        <div className="animate-slide-in-down mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm">
-          <div className="rounded-full bg-red-100 p-2">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
+        <div className="animate-slide-in-down mb-4 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-800/70 dark:bg-red-950/50">
+          <div className="rounded-full bg-red-100 p-2 dark:bg-red-900/60">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-1 text-sm font-bold text-red-900">
+            <h3 className="mb-1 text-sm font-bold text-red-900 dark:text-red-200">
               <span data-record="true">Class Over Capacity</span> ({stats.total} / {stats.classSize})
             </h3>
-            <p className="text-xs leading-relaxed text-red-700">
+            <p className="text-xs leading-relaxed text-red-700 dark:text-red-300">
               You have {stats.total - stats.classSize} more student
               {stats.total - stats.classSize > 1 ? "s" : ""}{" "}
               <span data-record="true">
@@ -77,13 +77,17 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           value={stats.classSize > 0 ? `${stats.total} / ${stats.classSize}` : stats.total}
           icon={
             <Users
-              className={stats.isOverCapacity ? "h-5 w-5 text-red-600" : "text-primary h-5 w-5"}
+              className={
+                stats.isOverCapacity
+                  ? "h-5 w-5 text-red-600 dark:text-red-400"
+                  : "text-primary-text h-5 w-5"
+              }
             />
           }
           colorClass={
             stats.isOverCapacity
-              ? "bg-red-50/70 border-red-300 ring-1 ring-red-200"
-              : "bg-blue-50/50 border-blue-100"
+              ? "bg-red-50/70 border-red-300 ring-1 ring-red-200 dark:bg-red-950/45 dark:border-red-800/70 dark:ring-red-800/50"
+              : "bg-blue-50/50 border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60"
           }
           alert={stats.isOverCapacity}
           alertColor="red"
@@ -93,8 +97,8 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
         <StatCard
           label="Pending Entry"
           value={stats.pending}
-          icon={<Clock className="h-5 w-5 text-orange-600" />}
-          colorClass="bg-orange-50/50 border-orange-100"
+          icon={<Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
+          colorClass="bg-orange-50/50 border-orange-100 dark:bg-orange-950/40 dark:border-orange-800/60"
           alert={stats.pending > 0}
           alertColor="orange"
           isActive={activeFilter === "PENDING"}
@@ -109,8 +113,8 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
         <StatCard
           label="Class Average"
           value={`${stats.classAverage}%`}
-          icon={<BarChart3 className="h-5 w-5 text-purple-600" />}
-          colorClass="bg-purple-50/50 border-purple-100"
+          icon={<BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
+          colorClass="bg-purple-50/50 border-purple-100 dark:bg-purple-950/40 dark:border-purple-800/60"
         />
 
         {/* CARD 4: PASS RATE (Success Metric / Actionable Failing Filter) */}
@@ -125,7 +129,9 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
             )
           }
           colorClass={
-            stats.passRate >= 50 ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"
+            stats.passRate >= 50
+              ? "bg-green-50/50 border-green-100 dark:bg-emerald-950/40 dark:border-emerald-800/60"
+              : "bg-red-50/50 border-red-100 dark:bg-red-950/40 dark:border-red-800/60"
           }
           alert={stats.failing > 0}
           alertColor="red"
@@ -193,7 +199,7 @@ function StatCard({
           )}
         </div>
       </div>
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/50 sm:h-12 sm:w-12">
+      <div className="bg-surface/80 border-border/60 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border sm:h-12 sm:w-12">
         {icon}
       </div>
     </>

@@ -115,34 +115,34 @@ export function ValidationWarnings({
           warning.color === "red"
             ? {
                 card: isActive
-                  ? "border-red-400 bg-red-100/80 ring-2 ring-red-400/50"
-                  : "border-red-200 bg-red-50 hover:bg-red-100/60",
-                text: "text-red-800",
-                icon: "text-red-600",
+                  ? "border-red-400 bg-red-100/80 ring-2 ring-red-400/50 dark:border-red-600 dark:bg-red-950/80 dark:ring-red-700/60"
+                  : "border-red-200 bg-red-50 hover:bg-red-100/60 dark:border-red-800/70 dark:bg-red-950/45 dark:hover:bg-red-950/70",
+                text: "text-red-800 dark:text-red-200",
+                icon: "text-red-600 dark:text-red-400",
                 pill: isActive
                   ? "bg-red-700 text-white"
-                  : "bg-red-100 text-red-700 group-hover:bg-red-200",
+                  : "bg-red-100 text-red-700 group-hover:bg-red-200 dark:bg-red-900/70 dark:text-red-200 dark:group-hover:bg-red-900",
               }
             : warning.color === "yellow"
               ? {
                   card: isActive
-                    ? "border-yellow-400 bg-yellow-100/80 ring-2 ring-yellow-400/50"
-                    : "border-yellow-200 bg-yellow-50 hover:bg-yellow-100/60",
-                  text: "text-yellow-900",
-                  icon: "text-yellow-600",
+                    ? "border-yellow-400 bg-yellow-100/80 ring-2 ring-yellow-400/50 dark:border-amber-600 dark:bg-amber-950/80 dark:ring-amber-700/60"
+                    : "border-yellow-200 bg-yellow-50 hover:bg-yellow-100/60 dark:border-amber-800/70 dark:bg-amber-950/45 dark:hover:bg-amber-950/70",
+                  text: "text-yellow-900 dark:text-amber-200",
+                  icon: "text-yellow-600 dark:text-amber-400",
                   pill: isActive
                     ? "bg-yellow-700 text-white"
-                    : "bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200",
+                    : "bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200 dark:bg-amber-900/70 dark:text-amber-200 dark:group-hover:bg-amber-900",
                 }
               : {
                   card: isActive
-                    ? "border-orange-400 bg-orange-100/80 ring-2 ring-orange-400/50"
-                    : "border-orange-200 bg-orange-50 hover:bg-orange-100/60",
-                  text: "text-orange-800",
-                  icon: "text-orange-600",
+                    ? "border-orange-400 bg-orange-100/80 ring-2 ring-orange-400/50 dark:border-orange-600 dark:bg-orange-950/80 dark:ring-orange-700/60"
+                    : "border-orange-200 bg-orange-50 hover:bg-orange-100/60 dark:border-orange-800/70 dark:bg-orange-950/45 dark:hover:bg-orange-950/70",
+                  text: "text-orange-800 dark:text-orange-200",
+                  icon: "text-orange-600 dark:text-orange-400",
                   pill: isActive
                     ? "bg-orange-700 text-white"
-                    : "bg-orange-100 text-orange-700 group-hover:bg-orange-200",
+                    : "bg-orange-100 text-orange-700 group-hover:bg-orange-200 dark:bg-orange-900/70 dark:text-orange-200 dark:group-hover:bg-orange-900",
                 };
 
         return (
@@ -197,7 +197,7 @@ export function ValidationWarnings({
                 onClick={handleDismissPhotoWarning}
                 aria-label="Dismiss missing photos warning"
                 title="Dismiss for this session"
-                className="flex shrink-0 items-center justify-center border-l border-yellow-200/80 px-3 text-xs font-medium text-yellow-800/80 transition-colors hover:bg-yellow-200/50 hover:text-yellow-950"
+                className="flex shrink-0 items-center justify-center border-l border-yellow-200/80 px-3 text-xs font-medium text-yellow-800/80 transition-colors hover:bg-yellow-200/50 hover:text-yellow-950 dark:border-amber-800/70 dark:text-amber-300 dark:hover:bg-amber-900/60 dark:hover:text-amber-100"
                 data-record="true"
               >
                 <X className="h-4 w-4" />

@@ -73,7 +73,7 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
       aria-labelledby="welcome-tour-title"
       className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
     >
-      <div className="animate-slide-in-up w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+      <div className="animate-slide-in-up border-border bg-elevated w-full max-w-md rounded-2xl border p-5 shadow-2xl sm:p-6">
         {/* Progress indicator + non-overlapping Close button */}
         <div className="mb-5 flex items-center gap-3">
           <div className="flex flex-1 gap-1.5">
@@ -82,10 +82,10 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
                 key={index}
                 className={`h-1.5 flex-1 rounded-full transition-colors ${
                   index === currentStep
-                    ? "bg-blue-600"
+                    ? "bg-blue-600 dark:bg-blue-400"
                     : index < currentStep
-                      ? "bg-blue-300"
-                      : "bg-gray-200"
+                      ? "bg-blue-300 dark:bg-blue-700"
+                      : "bg-subtle"
                 }`}
               />
             ))}
@@ -93,7 +93,7 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
           <button
             type="button"
             onClick={handleSkip}
-            className="shrink-0 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main shrink-0 rounded-full p-1.5 transition-colors"
             aria-label="Close tour"
           >
             <X className="h-5 w-5" />
@@ -102,10 +102,10 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
 
         {/* Content */}
         <div className="mb-6">
-          <h2 id="welcome-tour-title" className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl">
+          <h2 id="welcome-tour-title" className="text-main mb-2 text-xl font-bold sm:text-2xl">
             {step.title}
           </h2>
-          <p className="leading-relaxed text-gray-600">{step.description}</p>
+          <p className="text-secondary leading-relaxed">{step.description}</p>
         </div>
 
         {/* Step action if provided */}
@@ -113,7 +113,7 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
           <button
             type="button"
             onClick={step.action.onClick}
-            className="mb-4 w-full rounded-lg border-2 border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
+            className="mb-4 w-full rounded-lg border-2 border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-950/80"
           >
             {step.action.text}
           </button>
@@ -124,7 +124,7 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
           <button
             type="button"
             onClick={handleSkip}
-            className="text-sm font-medium text-gray-500 hover:text-gray-700"
+            className="text-muted hover:text-main text-sm font-medium"
           >
             Skip tour
           </button>
@@ -134,7 +134,7 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
-                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                className="border-border bg-surface text-secondary hover:bg-subtle flex items-center gap-1 rounded-lg border px-3.5 py-2.5 text-sm font-semibold transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
@@ -162,7 +162,7 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
         </div>
 
         {/* Step counter */}
-        <p className="mt-4 text-center text-xs text-gray-400">
+        <p className="text-muted mt-4 text-center text-xs">
           Step {currentStep + 1} of {steps.length}
         </p>
       </div>

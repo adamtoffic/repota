@@ -36,7 +36,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-main flex items-center gap-2 text-base font-bold" data-record="true">
           <Filter className="h-4 w-4" />
@@ -45,7 +45,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="text-primary hover:text-primary/80 flex items-center gap-1 text-xs font-bold transition-colors sm:text-sm"
+            className="text-primary-text hover:text-primary-text/80 flex items-center gap-1 text-xs font-bold transition-colors sm:text-sm"
             data-record="true"
           >
             <X size={14} />
@@ -71,7 +71,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 gender: e.target.value as "Male" | "Female" | "All",
               })
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
           >
             <option value="All">All Students</option>
             <option value="Male">Male</option>
@@ -95,7 +95,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 performanceLevel: e.target.value as "All" | "Excellence" | "Pass" | "Fail",
               })
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
           >
             <option value="All">All Levels</option>
             <option value="Excellence">Excellence (80%+)</option>
@@ -120,7 +120,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 subjectFilter: e.target.value,
               })
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
           >
             <option value="All">All Subjects</option>
             {availableSubjects.map((subject) => (
@@ -155,10 +155,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     },
                   })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Min"
               />
-              <span className="text-gray-400">-</span>
+              <span className="text-muted">-</span>
               <input
                 type="number"
                 min="0"
@@ -173,11 +173,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     },
                   })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                 placeholder="Max"
               />
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-muted text-xs">
               Filter students by average score ({filters.scoreRange?.min ?? 0}% -{" "}
               {filters.scoreRange?.max ?? 100}%)
             </p>
@@ -186,8 +186,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {/* Active Filters Count */}
         {hasActiveFilters && (
-          <div className="rounded-lg bg-blue-50 p-3">
-            <p className="text-xs font-bold text-blue-900">
+          <div className="rounded-lg bg-blue-50 p-3 dark:border dark:border-blue-800/70 dark:bg-blue-950/50">
+            <p className="text-xs font-bold text-blue-900 dark:text-blue-200">
               {
                 [
                   filters.gender !== "All" && "Gender",

@@ -17,25 +17,25 @@ interface InsightCardProps {
 
 const variantStyles = {
   success: {
-    border: "border-green-200",
-    bg: "bg-green-50/50",
-    titleColor: "text-green-900",
-    itemColor: "text-green-800",
-    valueColor: "text-green-600",
+    border: "border-green-200 dark:border-emerald-800/70",
+    bg: "bg-green-50/50 dark:bg-emerald-950/40",
+    titleColor: "text-green-900 dark:text-emerald-200",
+    itemColor: "text-green-800 dark:text-emerald-300",
+    valueColor: "text-green-600 dark:text-emerald-400",
   },
   warning: {
-    border: "border-amber-200",
-    bg: "bg-amber-50/50",
-    titleColor: "text-amber-900",
-    itemColor: "text-amber-800",
-    valueColor: "text-amber-600",
+    border: "border-amber-200 dark:border-amber-800/70",
+    bg: "bg-amber-50/50 dark:bg-amber-950/40",
+    titleColor: "text-amber-900 dark:text-amber-200",
+    itemColor: "text-amber-800 dark:text-amber-300",
+    valueColor: "text-amber-600 dark:text-amber-400",
   },
   danger: {
-    border: "border-red-200",
-    bg: "bg-red-50/50",
-    titleColor: "text-red-900",
-    itemColor: "text-red-800",
-    valueColor: "text-red-600",
+    border: "border-red-200 dark:border-red-800/70",
+    bg: "bg-red-50/50 dark:bg-red-950/40",
+    titleColor: "text-red-900 dark:text-red-200",
+    itemColor: "text-red-800 dark:text-red-300",
+    valueColor: "text-red-600 dark:text-red-400",
   },
 };
 

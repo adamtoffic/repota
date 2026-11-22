@@ -6,16 +6,20 @@ import {
   Calculator,
   Home,
   LayoutTemplate,
+  Monitor,
+  Moon,
   Printer,
   School,
   Settings,
   ShieldCheck,
+  Sun,
 } from "lucide-react";
 import {
   useSchoolLifecycle,
   useSchoolSettings,
   useSchoolStudents,
 } from "../../hooks/useSchoolData";
+import { useTheme } from "../../hooks/useTheme";
 import { triggerHaptic } from "../../utils/iosInteraction";
 import { AutoSaveIndicator } from "../AutoSaveIndicator";
 import { PageLoader } from "../PageLoader";
@@ -47,8 +51,15 @@ function ConnectedAutoSaveIndicator() {
   return <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />;
 }
 
+const THEME_OPTIONS = [
+  { value: "system" as const, label: "System", icon: Monitor },
+  { value: "light" as const, label: "Light", icon: Sun },
+  { value: "dark" as const, label: "Dark", icon: Moon },
+];
+
 export function AppShell({ children }: AppShellProps) {
   const settings = useSchoolSettings();
+  const { preference, setTheme } = useTheme();
   const pathname = useLocation({ select: (location) => location.pathname });
 
   const isHomeActive = pathname === "/";
@@ -68,9 +79,9 @@ export function AppShell({ children }: AppShellProps) {
       {/* Desktop Persistent Sidebar */}
       <aside
         aria-label="Sidebar navigation"
-        className="hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-64 md:flex-col md:border-r md:border-gray-200 md:bg-white print:hidden"
+        className="md:border-border md:bg-surface hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-64 md:flex-col md:border-r print:hidden"
       >
-        <div className="border-b border-gray-100 px-4 py-4">
+        <div className="border-border-subtle border-b px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-sm">
               <RepotaLogo className="h-full w-full" />
@@ -88,7 +99,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
           {settings.className && (
-            <div className="mt-3 inline-flex max-w-full items-center rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+            <div className="mt-3 inline-flex max-w-full items-center rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300">
               <span className="truncate">{settings.className}</span>
             </div>
           )}
@@ -105,8 +116,8 @@ export function AppShell({ children }: AppShellProps) {
                 aria-current={item.isActive ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                   item.isActive
-                    ? "bg-primary/10 text-primary font-bold"
-                    : "font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    ? "bg-primary/10 text-primary-text dark:bg-primary/20 font-bold"
+                    : "text-secondary hover:bg-subtle hover:text-main font-medium"
                 }`}
                 data-record="true"
               >
@@ -117,7 +128,7 @@ export function AppShell({ children }: AppShellProps) {
           })}
 
           {/* Settings Quick-Jump Sub-Links */}
-          <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-3">
+          <div className="border-border mt-1 ml-4 space-y-1 border-l pl-3">
             {SETTINGS_QUICK_LINKS.map((sub) => {
               const SubIcon = sub.icon;
               const isSubActive = pathname === sub.to;
@@ -128,8 +139,8 @@ export function AppShell({ children }: AppShellProps) {
                   aria-current={isSubActive ? "page" : undefined}
                   className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors ${
                     isSubActive
-                      ? "bg-blue-50 font-bold text-blue-700"
-                      : "font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                      ? "bg-blue-50 font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                      : "text-muted hover:bg-subtle hover:text-main font-medium"
                   }`}
                   data-record="true"
                 >
@@ -141,7 +152,36 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </nav>
 
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-border space-y-3 border-t p-4">
+          <div
+            role="group"
+            aria-label="Theme preference"
+            className="bg-subtle border-border grid grid-cols-3 gap-1 rounded-xl border p-1"
+          >
+            {THEME_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              const isSelected = preference === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setTheme(option.value)}
+                  aria-pressed={isSelected}
+                  aria-label={`Use ${option.label.toLowerCase()} theme`}
+                  className={`flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold transition-all ${
+                    isSelected
+                      ? "bg-surface text-main shadow-xs"
+                      : "text-muted hover:text-main"
+                  }`}
+                  data-record="true"
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <Link
             to="/print"
             className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
@@ -165,7 +205,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Bottom Navigation Bar */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="safe-bottom fixed inset-x-0 bottom-0 z-40 transform-gpu rounded-t-3xl border-t border-gray-200/80 bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden print:hidden"
+        className="safe-bottom border-border/80 bg-surface/95 fixed inset-x-0 bottom-0 z-40 transform-gpu rounded-t-3xl border-t shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden dark:shadow-[0_-8px_30px_rgba(0,0,0,0.45)] print:hidden"
       >
         <div className="mx-auto grid h-16 max-w-md grid-cols-4 px-2">
           {primaryItems.map((item) => {
@@ -178,13 +218,15 @@ export function AppShell({ children }: AppShellProps) {
                 aria-current={item.isActive ? "page" : undefined}
                 onClick={() => triggerHaptic("light")}
                 className={`group flex touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl py-1 text-[11px] select-none ${
-                  item.isActive ? "text-primary font-bold" : "font-medium text-gray-500"
+                  item.isActive ? "text-primary-text font-bold" : "text-muted font-medium"
                 }`}
                 data-record="true"
               >
                 <span
                   className={`spring-tab pointer-events-none flex h-7 w-12 items-center justify-center rounded-full group-active:scale-95 ${
-                    item.isActive ? "text-primary -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs" : ""
+                    item.isActive
+                      ? "text-primary-text -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs dark:bg-blue-950/70"
+                      : ""
                   }`}
                 >
                   <Icon

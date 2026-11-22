@@ -19,7 +19,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="rounded-full p-2 hover:bg-gray-100"
+            className="hover:bg-subtle rounded-full p-2 transition-colors"
           >
             <X className="text-muted h-5 w-5" />
           </button>
@@ -28,8 +28,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <div className="space-y-6">
           {/* Mission */}
           <div className="flex gap-4">
-            <div className="h-fit rounded-full bg-blue-50 p-3">
-              <Heart className="text-primary h-6 w-6" />
+            <div className="h-fit rounded-full bg-blue-50 p-3 dark:bg-blue-950/50">
+              <Heart className="text-primary-text h-6 w-6" />
             </div>
             <div>
               <h3 className="text-main font-bold">Built for Teachers</h3>
@@ -42,7 +42,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
           {/* Privacy */}
           <div className="flex gap-4">
-            <div className="h-fit rounded-full bg-green-50 p-3">
+            <div className="h-fit rounded-full bg-green-50 p-3 dark:bg-green-950/50">
               <Shield className="text-success h-6 w-6" />
             </div>
             <div>
@@ -60,12 +60,12 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               src="/developer.jpg"
               alt="Developer Profile"
               loading="lazy" // Lazy load for performance
-              className="h-14 w-14 rounded-full border-2 border-purple-100 bg-gray-200 object-cover shadow-sm"
+              className="bg-subtle h-14 w-14 rounded-full border-2 border-purple-100 object-cover shadow-sm dark:border-purple-900/60"
             />
             <div>
               <h3 className="text-main font-bold">Questions or Feedback?</h3>
               <p className="text-muted mt-1 text-sm">
-                Hi, I'm <span className="font-semibold text-gray-900">Adam Toffic</span>. I build
+                Hi, I'm <span className="text-main font-semibold">Adam Toffic</span>. I build
                 software for Ghanaian schools and businesses. Need help or have suggestions? Reach
                 out!
               </p>
@@ -82,7 +82,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 <a
                   /* 🔴 EDIT THIS */
                   href="mailto:repota.team@proton.me"
-                  className="text-primary inline-flex items-center gap-1.5 text-sm font-bold hover:underline"
+                  className="text-primary-text inline-flex items-center gap-1.5 text-sm font-bold hover:underline"
                 >
                   📧 Email
                 </a>
@@ -92,7 +92,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
           {/* Open Source */}
           <div className="flex gap-4">
-            <div className="h-fit rounded-full bg-gray-50 p-3">
+            <div className="bg-subtle h-fit rounded-full p-3">
               <Code className="text-muted h-6 w-6" />
             </div>
             <div>
@@ -106,7 +106,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 href="https://github.com/adamtoffic/repota"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary mt-2 inline-block text-sm font-bold hover:underline"
+                className="text-primary-text mt-2 inline-block text-sm font-bold hover:underline"
               >
                 View on GitHub →
               </a>
@@ -117,7 +117,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="bg-main hover:bg-main/90 mt-8 w-full rounded-lg py-3 font-bold text-white transition-colors"
+          className="mt-8 w-full rounded-lg bg-slate-900 py-3 font-bold text-white transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
         >
           Close
         </button>

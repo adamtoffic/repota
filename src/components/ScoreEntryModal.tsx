@@ -90,27 +90,27 @@ export function ScoreEntryModal({
 
   return (
     <div
-      className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-0 backdrop-blur-sm sm:p-4"
+      className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-0 backdrop-blur-sm sm:p-4 dark:bg-black/70"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
         ref={modalContentRef}
-        className="animate-sheet-up flex h-dvh max-h-dvh w-full max-w-4xl flex-col bg-white shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
+        className="animate-sheet-up bg-elevated sm:border-border flex h-dvh max-h-dvh w-full max-w-4xl flex-col shadow-xl sm:h-auto sm:max-h-[90vh] sm:rounded-xl sm:border"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="safe-top bg-background shrink-0 sm:hidden" />
 
         {/* HEADER WITH NAVIGATION */}
-        <div className="bg-background flex items-center justify-between gap-2 border-b border-gray-100 p-4 sm:rounded-t-xl sm:p-6">
+        <div className="bg-background border-border flex items-center justify-between gap-2 border-b p-4 sm:rounded-t-xl sm:p-6">
           {/* Left: Previous Button (desktop/tablet — mobile uses thumb-zone footer) */}
           {hasNavigation && (
             <button
               type="button"
               onClick={() => hasPrevious && onNavigate(allStudents[currentIndex - 1].id)}
               disabled={!hasPrevious}
-              className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+              className="border-border-strong bg-surface text-secondary hover:bg-subtle hidden items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
               title="Previous student (Cmd/Ctrl + ←)"
               data-record="true"
             >
@@ -125,7 +125,7 @@ export function ScoreEntryModal({
               <select
                 value={student.id}
                 onChange={(e) => onNavigate(e.target.value)}
-                className="mx-auto w-full max-w-xs rounded-lg border-2 border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-800 transition-all hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-base"
+                className="bg-input text-main mx-auto w-full max-w-xs rounded-lg border-2 border-blue-200 px-3 py-1.5 text-sm font-semibold transition-all hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none sm:text-base dark:border-blue-800/70 dark:hover:border-blue-600"
               >
                 {allStudents.map((s, idx) => (
                   <option key={s.id} value={s.id}>
@@ -134,14 +134,14 @@ export function ScoreEntryModal({
                 ))}
               </select>
             ) : (
-              <h2 className="truncate text-base font-bold text-gray-800 sm:text-xl">
+              <h2 className="text-main truncate text-base font-bold sm:text-xl">
                 {student.name}
               </h2>
             )}
             <p className="text-muted mt-1 text-xs sm:text-sm">
               {level} • {student.className}
               {hasNavigation && (
-                <span className="ml-2 text-blue-600">
+                <span className="ml-2 text-blue-600 dark:text-blue-400">
                   ({currentIndex + 1} of {totalStudents})
                 </span>
               )}
@@ -155,7 +155,7 @@ export function ScoreEntryModal({
                   onChange={(e) =>
                     setSelectedSubject(e.target.value === "all" ? null : e.target.value)
                   }
-                  className="mx-auto w-full max-w-xs rounded-lg border border-purple-300 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition-all hover:border-purple-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none sm:text-sm"
+                  className="mx-auto w-full max-w-xs rounded-lg border border-purple-300 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 transition-all hover:border-purple-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 focus:outline-none sm:text-sm dark:border-purple-700/70 dark:bg-purple-950/60 dark:text-purple-200"
                 >
                   <option value="all">📚 All Subjects</option>
                   {availableSubjects.map((subj) => (
@@ -165,7 +165,9 @@ export function ScoreEntryModal({
                   ))}
                 </select>
                 {selectedSubject && (
-                  <p className="mt-1 text-xs text-purple-600">Focus Mode: {selectedSubject}</p>
+                  <p className="mt-1 text-xs text-purple-600 dark:text-purple-400">
+                    Focus Mode: {selectedSubject}
+                  </p>
                 )}
               </div>
             )}
@@ -178,7 +180,7 @@ export function ScoreEntryModal({
                 type="button"
                 onClick={() => hasNext && onNavigate(allStudents[currentIndex + 1].id)}
                 disabled={!hasNext}
-                className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
+                className="border-border-strong bg-surface text-secondary hover:bg-subtle hidden items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 sm:flex"
                 title="Next student (Cmd/Ctrl + →)"
                 data-record="true"
               >
@@ -190,7 +192,7 @@ export function ScoreEntryModal({
               type="button"
               onClick={onClose}
               aria-label="Close modal"
-              className="rounded-full p-2 transition-colors hover:bg-gray-200"
+              className="text-muted hover:bg-subtle hover:text-main rounded-full p-2 transition-colors"
               title="Close (Esc)"
             >
               <X className="h-5 w-5" />
@@ -199,7 +201,7 @@ export function ScoreEntryModal({
         </div>
 
         {/* TABS */}
-        <div role="tablist" className="flex flex-shrink-0 border-b border-gray-200 px-4 sm:px-6">
+        <div role="tablist" className="border-border flex flex-shrink-0 border-b px-4 sm:px-6">
           <button
             type="button"
             role="tab"
@@ -207,8 +209,8 @@ export function ScoreEntryModal({
             onClick={() => setActiveTab("ACADEMIC")}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
               activeTab === "ACADEMIC"
-                ? "border-blue-600 text-blue-600"
-                : "text-muted border-transparent hover:text-gray-700"
+                ? "border-primary-text text-primary-text"
+                : "text-muted hover:text-main border-transparent"
             }`}
             data-record="true"
           >
@@ -221,8 +223,8 @@ export function ScoreEntryModal({
             onClick={() => setActiveTab("DETAILS")}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${
               activeTab === "DETAILS"
-                ? "border-blue-600 text-blue-600"
-                : "text-muted border-transparent hover:text-gray-700"
+                ? "border-primary-text text-primary-text"
+                : "text-muted hover:text-main border-transparent"
             }`}
             data-record="true"
           >
@@ -264,7 +266,7 @@ export function ScoreEntryModal({
         {/* MOBILE THUMB-ZONE FOOTER */}
         <div
           data-testid="mobile-modal-footer"
-          className="safe-bottom flex shrink-0 items-center justify-between gap-2 border-t border-gray-200 bg-white px-4 py-3 sm:hidden"
+          className="safe-bottom border-border bg-surface flex shrink-0 items-center justify-between gap-2 border-t px-4 py-3 sm:hidden"
         >
           {hasNavigation ? (
             <button
@@ -272,7 +274,7 @@ export function ScoreEntryModal({
               onClick={() => hasPrevious && onNavigate(allStudents[currentIndex - 1].id)}
               disabled={!hasPrevious}
               aria-label="Previous student"
-              className="flex min-h-11 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 text-sm font-bold text-gray-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="border-border-strong bg-surface text-secondary flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
               data-record="true"
             >
               <ChevronLeft size={16} />
@@ -297,7 +299,7 @@ export function ScoreEntryModal({
               onClick={() => hasNext && onNavigate(allStudents[currentIndex + 1].id)}
               disabled={!hasNext}
               aria-label="Next student"
-              className="flex min-h-11 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3.5 text-sm font-bold text-gray-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="border-border-strong bg-surface text-secondary flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
               data-record="true"
             >
               <span>Next</span>

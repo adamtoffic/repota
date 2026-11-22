@@ -62,7 +62,7 @@ function MobileStudentCard({
       data-testid="mobile-student-card"
       ref={measureRef}
       style={virtualStyle}
-      className="space-y-2 border-b border-gray-100 p-3.5"
+      className="border-border-subtle space-y-2 border-b p-3.5"
     >
       <button
         type="button"
@@ -77,7 +77,7 @@ function MobileStudentCard({
           </p>
         </div>
         {student.classPosition !== "Pending..." && (
-          <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700">
+          <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
             {student.classPosition}
           </span>
         )}
@@ -86,11 +86,11 @@ function MobileStudentCard({
       <div className="flex flex-wrap items-center gap-1.5">
         <ScoreProgressBadge student={student} />
         {!student.pictureUrl && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
             <CameraOff className="h-3 w-3" /> No Photo
           </span>
         )}
-        <span className="bg-background text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
+        <span className="bg-subtle text-main inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold">
           Avg: {student.averageScore > 0 ? `${student.averageScore}%` : "Pending"}
         </span>
       </div>
@@ -99,7 +99,7 @@ function MobileStudentCard({
         <button
           type="button"
           onClick={() => onEditStudent(student)}
-          className="bg-primary/10 text-primary hover:bg-primary/20 flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
+          className="bg-primary/10 text-primary-text hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
         >
           <Edit2 className="h-3.5 w-3.5" />
           <span>Edit Scores</span>
@@ -110,7 +110,7 @@ function MobileStudentCard({
             to="/print"
             search={{ id: student.id }}
             aria-label={`Print report for ${student.name}`}
-            className="flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100"
+            className="flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
             title="Print Report"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -122,7 +122,7 @@ function MobileStudentCard({
           type="button"
           onClick={() => onDeleteRequest(student.id)}
           aria-label={`Delete ${student.name}`}
-          className="flex min-h-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100"
+          className="flex min-h-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/80"
           title="Delete Student"
         >
           <Trash2 className="h-4 w-4" />
@@ -136,10 +136,10 @@ function ScoreProgressBadge({ student }: { student: ProcessedStudent }) {
   const { scored, completed, total } = getScoredSubjectCounts(student);
   const toneClass =
     completed === total && total > 0
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300"
       : scored === 0
-        ? "border-red-200 bg-red-50 text-red-700"
-        : "border-amber-200 bg-amber-50 text-amber-800";
+        ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+        : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-300";
 
   return (
     <span
@@ -212,10 +212,10 @@ export function StudentList({
 
   return (
     // Removed 'overflow-hidden' to prevent any CSS clipping issues with modals
-    <div className="relative rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="border-border bg-surface relative rounded-xl border shadow-sm">
       {/* HEADER */}
-      <div className="bg-background flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <h2 className="text-lg font-bold text-gray-800" data-record="true">
+      <div className="bg-background border-border flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <h2 className="text-main text-lg font-bold" data-record="true">
           Student Records
         </h2>
 
@@ -245,7 +245,7 @@ export function StudentList({
 
       {/* MOBILE CARDS (Virtualized for large classes) */}
       {students.length === 0 ? (
-        <div className="px-4 py-10 text-center text-sm text-gray-400 md:hidden" data-record="true">
+        <div className="text-muted px-4 py-10 text-center text-sm md:hidden" data-record="true">
           No students found. Click "Add Student" to start.
         </div>
       ) : !shouldVirtualizeMobile ? (
@@ -296,7 +296,7 @@ export function StudentList({
         }}
       >
         <table className="w-full min-w-176 text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold text-gray-600 uppercase shadow-sm">
+          <thead className="bg-subtle text-secondary sticky top-0 z-10 text-xs font-bold uppercase shadow-sm">
             <tr>
               <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Name
@@ -318,12 +318,12 @@ export function StudentList({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-border-subtle divide-y">
             {students.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-10 text-center text-gray-400 sm:px-6"
+                  className="text-muted px-4 py-10 text-center sm:px-6"
                   data-record="true"
                 >
                   No students found. Click "Add Student" to start.
@@ -343,30 +343,30 @@ export function StudentList({
                     <tr
                       key={student.id}
                       onClick={() => onEditStudent(student)}
-                      className="group cursor-pointer transition-colors hover:bg-blue-50/50"
+                      className="group cursor-pointer transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/35"
                       data-index={virtualRow.index}
                       ref={rowVirtualizer.measureElement}
                     >
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <p className="text-main font-bold">{student.name}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 sm:px-6 sm:py-4">
+                      <td className="text-secondary px-4 py-3 sm:px-6 sm:py-4">
                         {student.className}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
                             {student.subjects.length} Subjects
                           </span>
                           <ScoreProgressBadge student={student} />
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-bold text-gray-800 sm:px-6 sm:py-4">
+                      <td className="text-main px-4 py-3 font-bold sm:px-6 sm:py-4">
                         {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         {student.classPosition !== "Pending..." && (
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
                             {student.classPosition}
                           </span>
                         )}
@@ -379,7 +379,7 @@ export function StudentList({
                               e.stopPropagation();
                               onEditStudent(student);
                             }}
-                            className="rounded-lg p-2 text-blue-600 hover:bg-blue-100"
+                            className="rounded-lg p-2 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950/60"
                             title="Edit Student"
                           >
                             <Edit2 className="h-4 w-4" />
@@ -390,7 +390,7 @@ export function StudentList({
                               to="/print"
                               search={{ id: student.id }}
                               onClick={(e) => e.stopPropagation()}
-                              className="rounded-lg p-2 text-purple-600 hover:bg-purple-100"
+                              className="rounded-lg p-2 text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-950/60"
                               title="Print Report"
                             >
                               <Printer className="h-4 w-4" />
@@ -403,7 +403,7 @@ export function StudentList({
                               e.stopPropagation();
                               setStudentToDelete(student.id);
                             }}
-                            className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
+                            className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/60 dark:hover:text-red-300"
                             title="Delete Student"
                           >
                             <Trash2 className="h-4 w-4" />

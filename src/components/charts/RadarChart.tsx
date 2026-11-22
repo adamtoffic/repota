@@ -10,6 +10,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useTheme } from "../../hooks/useTheme";
+import { getChartThemeColors } from "../../utils/theme";
 
 interface TooltipPayload {
   payload: {
@@ -37,8 +39,8 @@ const RadarChartTooltip: React.FC<{
 }> = ({ active, payload, color }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-        <p className="text-sm font-bold text-gray-900">{payload[0].payload.subject}</p>
+      <div className="border-border bg-elevated rounded-lg border p-3 shadow-lg">
+        <p className="text-main text-sm font-bold">{payload[0].payload.subject}</p>
         <p className="text-lg font-black" style={{ color }}>
           {payload[0].value}%
         </p>
@@ -54,6 +56,9 @@ export const RadarChart: React.FC<RadarChartProps> = ({
   color = "#3b82f6",
   showLegend = false,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const chartColors = getChartThemeColors(resolvedTheme);
+
   const chartData = data.map((item) => ({
     subject: item.subject.length > 15 ? item.subject.substring(0, 13) + "..." : item.subject,
     score: item.score,
@@ -63,9 +68,13 @@ export const RadarChart: React.FC<RadarChartProps> = ({
   return (
     <ResponsiveContainer width="100%" height={height} debounce={50} className="chart-gpu-radar">
       <RechartsRadarChart data={chartData}>
-        <PolarGrid stroke="#e5e7eb" />
-        <PolarAngleAxis dataKey="subject" tick={{ fill: "#6b7280", fontSize: 11 }} />
-        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#6b7280", fontSize: 10 }} />
+        <PolarGrid stroke={chartColors.grid} />
+        <PolarAngleAxis dataKey="subject" tick={{ fill: chartColors.axis, fontSize: 11 }} />
+        <PolarRadiusAxis
+          angle={90}
+          domain={[0, 100]}
+          tick={{ fill: chartColors.axis, fontSize: 10 }}
+        />
         <Radar
           name="Performance"
           dataKey="score"

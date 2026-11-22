@@ -37,13 +37,13 @@ export function ReportTemplateSection() {
     <div className="space-y-6">
       <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 1: REPORT DESIGN TEMPLATE */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-lg bg-indigo-100 p-2.5">
-            <LayoutTemplate className="h-5 w-5 text-indigo-600" />
+          <div className="rounded-lg bg-indigo-100 p-2.5 dark:bg-indigo-950/60">
+            <LayoutTemplate className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+            <h2 className="text-main text-lg font-bold" data-record="true">
               Report Card Design
             </h2>
             <p className="text-muted text-xs">
@@ -71,12 +71,12 @@ export function ReportTemplateSection() {
               }}
               className={`relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all active:scale-95 ${
                 (formData.templateId || "original_v1") === template.id
-                  ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
-                  : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50"
+                  ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
+                  : "border-border bg-surface hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30"
               }`}
             >
-              <span className="mb-1 pr-6 font-bold text-gray-900">{template.name}</span>
-              <span className="text-xs leading-relaxed text-gray-600">{template.description}</span>
+              <span className="text-main mb-1 pr-6 font-bold">{template.name}</span>
+              <span className="text-muted text-xs leading-relaxed">{template.description}</span>
 
               {/* Active Checkmark */}
               {(formData.templateId || "original_v1") === template.id && (
@@ -90,14 +90,14 @@ export function ReportTemplateSection() {
       </div>
 
       {/* CARD 2: SCHOOL BRAND COLORS */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-pink-100 p-2.5">
-              <Palette className="h-5 w-5 text-pink-600" />
+            <div className="rounded-lg bg-pink-100 p-2.5 dark:bg-pink-950/60">
+              <Palette className="h-5 w-5 text-pink-600 dark:text-pink-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-800" data-record="true">
+              <h2 className="text-main text-lg font-bold" data-record="true">
                 School Brand Color
               </h2>
               <p className="text-muted text-xs">
@@ -106,7 +106,7 @@ export function ReportTemplateSection() {
             </div>
           </div>
 
-          <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+          <label className="border-border bg-subtle inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2">
             <input
               type="checkbox"
               checked={useCustomColor}
@@ -118,9 +118,9 @@ export function ReportTemplateSection() {
                   accentColor: activeAccent,
                 })
               }
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="border-border-strong h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
             />
-            <span className="text-xs font-bold text-gray-800" data-record="true">
+            <span className="text-main text-xs font-bold" data-record="true">
               Use School Custom Colors
             </span>
           </label>
@@ -150,15 +150,15 @@ export function ReportTemplateSection() {
                     }
                     className={`flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 text-left text-xs font-bold transition-all active:scale-95 ${
                       isSelected
-                        ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
-                        : "border-gray-200 bg-white hover:border-gray-300"
+                        ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
+                        : "border-border bg-surface hover:border-border-strong"
                     }`}
                   >
                     <span
-                      className="h-4 w-4 shrink-0 rounded-full border border-black/10"
+                      className="h-4 w-4 shrink-0 rounded-full border border-black/10 dark:border-white/20"
                       style={{ backgroundColor: preset.primary }}
                     />
-                    <span className="truncate text-gray-800">{preset.name}</span>
+                    <span className="text-main truncate">{preset.name}</span>
                   </button>
                 );
               })}
@@ -166,7 +166,7 @@ export function ReportTemplateSection() {
           </div>
 
           {/* Custom Color Pickers + Mini Live Preview */}
-          <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
+          <div className="border-border bg-subtle grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2">
             <div className="space-y-3">
               <div>
                 <label
@@ -187,7 +187,7 @@ export function ReportTemplateSection() {
                         primaryColor: e.target.value,
                       })
                     }
-                    className="h-10 w-12 cursor-pointer rounded border border-gray-300 bg-white p-1"
+                    className="border-border-strong bg-input h-10 w-12 cursor-pointer rounded border p-1"
                   />
                   <input
                     type="text"
@@ -203,7 +203,7 @@ export function ReportTemplateSection() {
                         });
                       }
                     }}
-                    className="w-28 rounded-lg border border-gray-300 bg-white px-2.5 py-2 font-mono text-xs font-bold uppercase"
+                    className="border-border-strong bg-input text-main w-28 rounded-lg border px-2.5 py-2 font-mono text-xs font-bold uppercase"
                     maxLength={7}
                   />
                 </div>
@@ -228,7 +228,7 @@ export function ReportTemplateSection() {
                         accentColor: e.target.value,
                       })
                     }
-                    className="h-10 w-12 cursor-pointer rounded border border-gray-300 bg-white p-1"
+                    className="border-border-strong bg-input h-10 w-12 cursor-pointer rounded border p-1"
                   />
                   <input
                     type="text"
@@ -244,7 +244,7 @@ export function ReportTemplateSection() {
                         });
                       }
                     }}
-                    className="w-28 rounded-lg border border-gray-300 bg-white px-2.5 py-2 font-mono text-xs font-bold uppercase"
+                    className="border-border-strong bg-input text-main w-28 rounded-lg border px-2.5 py-2 font-mono text-xs font-bold uppercase"
                     maxLength={7}
                   />
                 </div>
@@ -259,7 +259,7 @@ export function ReportTemplateSection() {
                       useCustomTemplateColor: false,
                     })
                   }
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 hover:underline"
+                  className="text-muted hover:text-main inline-flex items-center gap-1.5 text-xs font-bold hover:underline"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Use Template Default Colors
@@ -267,12 +267,13 @@ export function ReportTemplateSection() {
               )}
             </div>
 
-            {/* Live Header Preview */}
+            {/* Live Header Preview (kept on paper-light surface matching printed reports) */}
             <div className="flex flex-col justify-center">
               <p className="text-muted mb-1.5 text-[10px] font-bold tracking-wider uppercase">
                 Report Header Preview {useCustomColor ? "(Custom Active)" : "(Preview Only)"}
               </p>
               <div
+                data-paper-surface="true"
                 className="overflow-hidden rounded-lg border-2 bg-white shadow-xs"
                 style={{ borderColor: previewPalette.primaryDark }}
               >
@@ -305,13 +306,13 @@ export function ReportTemplateSection() {
       </div>
 
       {/* CARD 3: RANKING & POSITION VISIBILITY */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-lg bg-amber-100 p-2.5">
-            <Award className="h-5 w-5 text-amber-700" />
+          <div className="rounded-lg bg-amber-100 p-2.5 dark:bg-amber-950/60">
+            <Award className="h-5 w-5 text-amber-700 dark:text-amber-400" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+            <h2 className="text-main text-lg font-bold" data-record="true">
               Position &amp; Ranking Display
             </h2>
             <p className="text-muted text-xs">
@@ -321,9 +322,9 @@ export function ReportTemplateSection() {
         </div>
 
         <div className="space-y-3">
-          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-gray-200 p-3.5 hover:bg-gray-50">
+          <label className="border-border hover:bg-subtle flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-3.5">
             <div>
-              <p className="text-sm font-bold text-gray-800" data-record="true">
+              <p className="text-main text-sm font-bold" data-record="true">
                 Show Overall Class Position
               </p>
               <p className="text-muted text-xs">
@@ -338,13 +339,13 @@ export function ReportTemplateSection() {
               onChange={(e) =>
                 setFormData({ ...formData, showClassPosition: e.target.checked })
               }
-              className="h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="border-border-strong h-5 w-5 shrink-0 rounded text-indigo-600 focus:ring-indigo-500"
             />
           </label>
 
-          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-gray-200 p-3.5 hover:bg-gray-50">
+          <label className="border-border hover:bg-subtle flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-3.5">
             <div>
-              <p className="text-sm font-bold text-gray-800" data-record="true">
+              <p className="text-main text-sm font-bold" data-record="true">
                 Show Subject Positions (Pos. Column)
               </p>
               <p className="text-muted text-xs">
@@ -359,7 +360,7 @@ export function ReportTemplateSection() {
               onChange={(e) =>
                 setFormData({ ...formData, showSubjectPosition: e.target.checked })
               }
-              className="h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="border-border-strong h-5 w-5 shrink-0 rounded text-indigo-600 focus:ring-indigo-500"
             />
           </label>
         </div>
@@ -367,12 +368,12 @@ export function ReportTemplateSection() {
       </fieldset>
 
       {/* PRINT PREVIEW SHORTCUT */}
-      <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 dark:border-indigo-800/70 dark:bg-indigo-950/45">
         <div>
-          <p className="text-sm font-bold text-indigo-950" data-record="true">
+          <p className="text-sm font-bold text-indigo-950 dark:text-indigo-200" data-record="true">
             Ready to see how your report cards look?
           </p>
-          <p className="mt-0.5 text-xs text-indigo-800/80">
+          <p className="mt-0.5 text-xs text-indigo-800/80 dark:text-indigo-300/80">
             Preview your chosen template, colors, and ranking display on A4 sheets.
           </p>
         </div>

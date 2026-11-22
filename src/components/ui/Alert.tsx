@@ -18,23 +18,27 @@ export interface AlertProps {
 
 const variantStyles = {
   info: {
-    container: "bg-blue-50 border-blue-200 text-blue-800",
-    icon: "text-blue-600",
+    container:
+      "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/50 dark:border-blue-800/70 dark:text-blue-200",
+    icon: "text-blue-600 dark:text-blue-400",
     IconComponent: Info,
   },
   success: {
-    container: "bg-green-50 border-green-200 text-green-800",
-    icon: "text-green-600",
+    container:
+      "bg-green-50 border-green-200 text-green-800 dark:bg-emerald-950/50 dark:border-emerald-800/70 dark:text-emerald-200",
+    icon: "text-green-600 dark:text-emerald-400",
     IconComponent: CheckCircle,
   },
   warning: {
-    container: "bg-yellow-50 border-yellow-200 text-yellow-800",
-    icon: "text-yellow-600",
+    container:
+      "bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-amber-950/50 dark:border-amber-800/70 dark:text-amber-200",
+    icon: "text-yellow-600 dark:text-amber-400",
     IconComponent: AlertTriangle,
   },
   error: {
-    container: "bg-red-50 border-red-200 text-red-800",
-    icon: "text-red-600",
+    container:
+      "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/50 dark:border-red-800/70 dark:text-red-200",
+    icon: "text-red-600 dark:text-red-400",
     IconComponent: AlertCircle,
   },
 } as const;
@@ -68,7 +72,7 @@ export function Alert({
       {onClose && (
         <button
           onClick={onClose}
-          className="shrink-0 rounded p-1 transition-colors hover:bg-black/10"
+          className="shrink-0 rounded p-1 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
           aria-label="Close alert"
         >
           <X className="h-4 w-4" />

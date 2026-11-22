@@ -158,16 +158,16 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
     <Modal isOpen={isOpen} onClose={handleClose} closeOnBackdrop={false} className="max-w-2xl">
       <div className="overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 p-4">
+        <div className="border-border-subtle flex items-center justify-between border-b p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
-            <Upload className="text-primary h-5 w-5" />
+            <Upload className="text-primary-text h-5 w-5" />
             Bulk Import &amp; Setup Students
           </h3>
           <button
             type="button"
             onClick={handleClose}
             aria-label="Close modal"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
           >
             <X className="h-5 w-5" />
           </button>
@@ -177,10 +177,10 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
         <div className="p-5 sm:p-6">
           {!isPreviewing ? (
             <div className="space-y-4">
-              <div className="flex flex-col gap-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-xs text-blue-900">
+              <div className="flex flex-col gap-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-800/60 dark:bg-blue-950/35">
+                <div className="text-xs text-blue-900 dark:text-blue-200">
                   <p className="font-bold">Power-user tip: Paste from Excel/Sheets or upload CSV</p>
-                  <p className="mt-0.5 text-blue-700">
+                  <p className="mt-0.5 text-blue-700 dark:text-blue-300">
                     Supports plain names or columns:{" "}
                     <code className="font-mono">Name, Gender, DateOfBirth, AttendancePresent</code>
                   </p>
@@ -189,7 +189,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
                   <button
                     type="button"
                     onClick={handleDownloadTemplate}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50"
+                    className="bg-surface inline-flex items-center gap-1.5 rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-950/50"
                   >
                     <Download className="h-3.5 w-3.5" />
                     Template (CSV)
@@ -231,7 +231,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800">
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:border dark:border-green-800/60 dark:bg-green-950/40 dark:text-green-200">
                 <CheckCircle className="h-5 w-5 shrink-0" />
                 <span>
                   Ready to import <strong>{preview.length}</strong> student
@@ -240,8 +240,8 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
               </div>
 
               {hasMissingGender && (
-                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   <p>
                     Some rows didn&apos;t specify gender and defaulted to <strong>Male</strong>. Tap
                     any gender badge below to flip it so Gender Analytics stay accurate!
@@ -249,9 +249,9 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
                 </div>
               )}
 
-              <div className="bg-background max-h-64 overflow-x-auto overflow-y-auto rounded-lg border border-gray-200">
+              <div className="bg-background border-border max-h-64 overflow-x-auto overflow-y-auto rounded-lg border">
                 <table className="w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-gray-100 text-[10px] font-bold text-gray-600 uppercase">
+                  <thead className="bg-subtle text-secondary sticky top-0 text-[10px] font-bold uppercase">
                     <tr>
                       <th className="px-3 py-2">#</th>
                       <th className="px-3 py-2">Name</th>
@@ -260,11 +260,11 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
                       <th className="px-3 py-2">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
+                  <tbody className="divide-border bg-surface divide-y">
                     {preview.map((row, i) => (
                       <tr key={i}>
-                        <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                        <td className="px-3 py-2 font-bold text-gray-800">{row.name}</td>
+                        <td className="text-muted px-3 py-2">{i + 1}</td>
+                        <td className="text-main px-3 py-2 font-bold">{row.name}</td>
                         <td className="px-3 py-2">
                           <button
                             type="button"
@@ -272,28 +272,28 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
                             title="Click to toggle Male / Female"
                             className={`rounded-full px-2 py-0.5 text-[11px] font-bold transition-colors ${
                               row.gender === "Female"
-                                ? "bg-pink-100 text-pink-700 hover:bg-pink-200"
+                                ? "bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-950/60 dark:text-pink-300 dark:hover:bg-pink-900/60"
                                 : row.genderExplicit
-                                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                                  : "border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:hover:bg-blue-900/60"
+                                  : "border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-900/60"
                             }`}
                           >
                             {row.gender}
                             {!row.genderExplicit ? " *" : ""}
                           </button>
                         </td>
-                        <td className="px-3 py-2 text-gray-600">
+                        <td className="text-secondary px-3 py-2">
                           {[row.dateOfBirth, row.attendancePresent !== undefined && `${row.attendancePresent}d`]
                             .filter(Boolean)
                             .join(" • ") || "—"}
                         </td>
                         <td className="px-3 py-2">
                           {row.matchedExistingId ? (
-                            <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+                            <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
                               Update existing
                             </span>
                           ) : (
-                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                               New
                             </span>
                           )}

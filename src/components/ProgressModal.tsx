@@ -29,13 +29,13 @@ export function ProgressModal({
       aria-labelledby="progress-title"
       aria-describedby="progress-message"
     >
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+      <div className="bg-surface border-border w-full max-w-md rounded-xl border p-6 shadow-2xl">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden="true" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/60">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" aria-hidden="true" />
           </div>
 
-          <h3 id="progress-title" className="mb-2 text-lg font-bold text-gray-900">
+          <h3 id="progress-title" className="text-main mb-2 text-lg font-bold">
             {title}
           </h3>
           <p id="progress-message" className="text-muted mb-4 text-sm">
@@ -45,14 +45,14 @@ export function ProgressModal({
           {/* Progress Bar */}
           {displayProgress > 0 && (
             <div className="space-y-2">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div className="bg-subtle h-2 w-full overflow-hidden rounded-full">
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-all duration-300"
+                  className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
                   style={{ width: `${displayProgress}%` }}
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs font-bold text-gray-600">
+              <div className="text-secondary flex items-center justify-between text-xs font-bold">
                 {total && current !== undefined ? (
                   <>
                     <span>

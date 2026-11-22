@@ -28,14 +28,16 @@ export function Toast({ toast, onClose }: Props) {
   }, [toast.id, onClose]);
 
   const styles = {
-    success: "bg-green-50 text-green-800 border-green-200",
-    error: "bg-red-50 text-red-800 border-red-200",
-    info: "bg-slate-800 text-white border-slate-700", // Dark mode style for Info/Undo
+    success:
+      "bg-green-50 text-green-800 border-green-200 dark:bg-emerald-950/95 dark:text-emerald-200 dark:border-emerald-800",
+    error:
+      "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/95 dark:text-red-200 dark:border-red-800",
+    info: "bg-slate-800 text-white border-slate-700 dark:bg-elevated dark:border-border",
   };
 
   const icons = {
-    success: <CheckCircle className="h-5 w-5 text-green-600" />,
-    error: <AlertCircle className="h-5 w-5 text-red-600" />,
+    success: <CheckCircle className="h-5 w-5 text-green-600 dark:text-emerald-400" />,
+    error: <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />,
     info: <Info className="h-5 w-5 text-blue-400" />,
   };
 

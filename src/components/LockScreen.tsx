@@ -215,7 +215,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
       }}
     >
       <div
-        className={`animate-sheet-up relative my-auto w-full max-w-sm rounded-3xl bg-white px-6 py-7 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 transition-all duration-300 sm:px-8 sm:py-8 ${
+        className={`animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-sm rounded-3xl px-6 py-7 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 transition-all duration-300 sm:px-8 sm:py-8 dark:border ${
           isUnlocking ? "scale-[0.98] opacity-0" : "scale-100 opacity-100"
         }`}
       >
@@ -227,13 +227,13 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
         </div>
 
         {/* Title */}
-        <p className="mb-1 text-center text-[11px] font-bold tracking-[0.2em] text-slate-400 uppercase">
+        <p className="text-muted mb-1 text-center text-[11px] font-bold tracking-[0.2em] uppercase">
           Repota
         </p>
-        <h1 className="text-center text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+        <h1 className="text-main text-center text-xl font-bold tracking-tight sm:text-2xl">
           {isUnlocking ? "Unlocking..." : "Welcome Back"}
         </h1>
-        <p className="mt-1 mb-6 text-center text-sm text-slate-500">
+        <p className="text-muted mt-1 mb-6 text-center text-sm">
           Enter your 4-digit PIN to continue
         </p>
 
@@ -276,19 +276,19 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
                     key={i}
                     className={`flex h-13 items-center justify-center rounded-2xl border-2 transition-all duration-150 ${
                       isActiveSlot
-                        ? "border-primary bg-primary/[0.03] ring-primary/10 ring-4"
+                        ? "border-primary bg-primary/[0.04] ring-primary/15 dark:bg-primary/10 ring-4"
                         : isFilled
-                          ? "border-slate-300 bg-slate-50/80"
+                          ? "border-border-strong bg-subtle"
                           : error
-                            ? "border-red-300 bg-red-50/40"
-                            : "border-slate-200 bg-white"
+                            ? "border-red-300 bg-red-50/40 dark:border-red-700/70 dark:bg-red-950/30"
+                            : "border-border bg-input"
                     } ${cooldownSeconds > 0 ? "opacity-60" : ""}`}
                   >
                     <div
                       className={`rounded-full transition-all duration-150 ${
                         isFilled
                           ? "animate-dot-pop bg-primary h-3 w-3"
-                          : "h-2 w-2 bg-slate-200"
+                          : "bg-border-strong h-2 w-2"
                       }`}
                     />
                   </div>
@@ -298,7 +298,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
           </div>
 
           {isVerifying && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-slate-500">
+            <div className="text-muted mt-3 flex items-center justify-center gap-2 text-xs font-medium">
               <div className="border-primary/25 border-t-primary h-3.5 w-3.5 animate-spin rounded-full border-2" />
               <span>Verifying...</span>
             </div>
@@ -306,7 +306,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
 
           {/* Error / Cooldown Banner */}
           {(cooldownSeconds > 0 || error) && (
-            <div className="animate-slide-in-down mt-3 flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-700">
+            <div className="animate-slide-in-down mt-3 flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>
                 {cooldownSeconds > 0
@@ -330,7 +330,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
               onClick={() => handlePinChange(pin + digit)}
               disabled={isDisabled || paused || pin.length >= 4}
               tabIndex={paused ? -1 : undefined}
-              className="flex h-13 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50/80 text-xl font-semibold text-slate-900 transition-all duration-100 hover:bg-slate-100 active:scale-95 active:bg-slate-200/80 disabled:cursor-not-allowed disabled:opacity-45"
+              className="border-border bg-subtle text-main hover:bg-elevated active:bg-border flex h-13 items-center justify-center rounded-2xl border text-xl font-semibold transition-all duration-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
             >
               {digit}
             </button>
@@ -345,7 +345,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
               tabIndex={paused ? -1 : undefined}
               aria-label={`Use ${biometricName}`}
               title={`Use ${biometricName}`}
-              className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 flex h-13 items-center justify-center rounded-2xl border transition-all duration-100 active:scale-95 disabled:opacity-45"
+              className="border-primary/30 bg-primary/10 text-primary-text hover:bg-primary/15 flex h-13 items-center justify-center rounded-2xl border transition-all duration-100 active:scale-95 disabled:opacity-45"
             >
               <Fingerprint className="h-5 w-5" />
             </button>
@@ -358,7 +358,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
             onClick={() => handlePinChange(pin + "0")}
             disabled={isDisabled || paused || pin.length >= 4}
             tabIndex={paused ? -1 : undefined}
-            className="flex h-13 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50/80 text-xl font-semibold text-slate-900 transition-all duration-100 hover:bg-slate-100 active:scale-95 active:bg-slate-200/80 disabled:cursor-not-allowed disabled:opacity-45"
+            className="border-border bg-subtle text-main hover:bg-elevated active:bg-border flex h-13 items-center justify-center rounded-2xl border text-xl font-semibold transition-all duration-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
           >
             0
           </button>
@@ -369,7 +369,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
             disabled={isDisabled || paused || pin.length === 0}
             tabIndex={paused ? -1 : undefined}
             aria-label="Delete digit"
-            className="flex h-13 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50/80 text-slate-600 transition-all duration-100 hover:bg-slate-100 hover:text-slate-900 active:scale-95 active:bg-slate-200/80 disabled:cursor-not-allowed disabled:opacity-40"
+            className="border-border bg-subtle text-secondary hover:bg-elevated hover:text-main active:bg-border flex h-13 items-center justify-center rounded-2xl border transition-all duration-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Delete className="h-5 w-5" />
           </button>
@@ -382,7 +382,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
             onClick={onForgotPin}
             disabled={isUnlocking || paused}
             tabIndex={paused ? -1 : undefined}
-            className="group hover:text-primary inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100/80 disabled:opacity-50"
+            className="group hover:text-primary-text text-muted hover:bg-subtle inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <KeyRound className="h-4 w-4 transition-transform group-hover:rotate-12" />
             <span>Forgot your PIN?</span>

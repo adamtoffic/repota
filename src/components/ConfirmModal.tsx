@@ -63,10 +63,10 @@ export function ConfirmModal({
         {/* Header with Icon */}
         <div className="mb-4 flex items-start gap-4">
           <div
-            className={`shrink-0 rounded-full p-3 ${isDangerous ? "bg-red-100" : "bg-blue-100"}`}
+            className={`shrink-0 rounded-full p-3 ${isDangerous ? "bg-red-100 dark:bg-red-950/60" : "bg-blue-100 dark:bg-blue-950/60"}`}
           >
             <AlertTriangle
-              className={`h-6 w-6 ${isDangerous ? "text-red-600" : "text-blue-600"}`}
+              className={`h-6 w-6 ${isDangerous ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}
             />
           </div>
           <div>
@@ -82,7 +82,7 @@ export function ConfirmModal({
           <button
             ref={cancelButtonRef}
             onClick={handleCancel}
-            className="hover:bg-background rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors"
+            className="hover:bg-subtle border-border-strong bg-surface text-secondary rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
             data-record="true"
           >
             {cancelText}

@@ -43,7 +43,7 @@ export function ScrollButton() {
   return (
     <button
       onClick={isAtBottom ? scrollToTop : scrollToBottom}
-      className="bottom-safe-nav fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full border-2 border-white bg-blue-900 text-white shadow-2xl transition-all hover:scale-110 active:scale-95 sm:h-12 sm:w-12 md:right-6 print:hidden"
+      className="bottom-safe-nav border-surface/80 bg-primary fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full border-2 text-white shadow-2xl transition-all hover:scale-110 active:scale-95 sm:h-12 sm:w-12 md:right-6 print:hidden"
       style={{ boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)" }}
       aria-label={isAtBottom ? "Scroll to top" : "Scroll to bottom"}
       title={isAtBottom ? "Back to top" : "Jump to bottom"}

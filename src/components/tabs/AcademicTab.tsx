@@ -83,15 +83,15 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
     <div className="space-y-4">
       {/* ✅ MOBILE-FRIENDLY STICKY HEADER */}
       {student.subjects.length > 0 && (
-        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="border-border bg-surface sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b px-4 py-3 shadow-sm sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           <div className="flex items-center justify-between gap-3">
             {/* Subject count & progress indicator */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-700">
+                <span className="text-secondary text-sm font-bold">
                   {student.subjects.length} Subject{student.subjects.length !== 1 ? "s" : ""}
                 </span>
-                <span className="flex items-center gap-1 text-xs text-blue-600">
+                <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                   <span className="hidden sm:inline">•</span>
                   <span data-record="true">Changes auto-save</span>
                 </span>
@@ -101,7 +101,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
             {/* Clear button - more prominent on mobile */}
             <button
               onClick={() => setShowClearScoresModal(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-orange-700 transition-all hover:border-orange-300 hover:bg-orange-50 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+              className="bg-surface flex items-center gap-1.5 rounded-lg border border-orange-200 px-3 py-1.5 text-xs font-bold text-orange-700 transition-all hover:border-orange-300 hover:bg-orange-50 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm dark:border-orange-800/70 dark:text-orange-300 dark:hover:border-orange-700 dark:hover:bg-orange-950/50"
               data-record="true"
             >
               <Eraser size={14} className="sm:h-4 sm:w-4" />
@@ -114,11 +114,11 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
       {/* Component Sync Alert */}
       {showComponentSyncAlert && (
-        <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-blue-800/70 dark:bg-blue-950/45">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600" />
+            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <div>
-              <p className="text-sm font-semibold text-blue-900" data-record="true">
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-200" data-record="true">
                 {hasMissing && hasOutdated
                   ? "Components need updating"
                   : hasMissing
@@ -139,11 +139,11 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
       {/* Missing Subjects Alert */}
       {missingSubjects.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-blue-800/70 dark:bg-blue-950/45">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600" />
+            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <div>
-              <p className="text-sm font-semibold text-blue-900">
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
                 <span data-record="true">Missing</span> {missingSubjects.length} <span data-record="true">subject</span>{missingSubjects.length > 1 ? "s" : ""}
               </p>
             </div>
@@ -160,16 +160,16 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
       {/* OBSOLETE SUBJECTS ALERT */}
       {obsoleteSubjects.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-orange-800/70 dark:bg-orange-950/45">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-orange-100 p-2">
-              <AlertTriangle className="h-5 w-5 text-orange-600" />
+            <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900/60">
+              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-orange-900" data-record="true">
+              <p className="text-sm font-bold text-orange-900 dark:text-orange-200" data-record="true">
                 Cleanup Old Subjects
               </p>
-              <p className="text-xs text-orange-700">
+              <p className="text-xs text-orange-700 dark:text-orange-300">
                 Found <strong>{obsoleteSubjects.length}</strong> subjects that are no longer in
                 Settings.
               </p>
@@ -190,9 +190,11 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
       <div className="space-y-4">
         {/* Subject Filter Info */}
         {filterSubject && (
-          <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-center">
-            <p className="text-sm font-semibold text-purple-800">🎯 Focused on: {filterSubject}</p>
-            <p className="text-xs text-purple-600">
+          <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-center dark:border-purple-800/70 dark:bg-purple-950/45">
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+              🎯 Focused on: {filterSubject}
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-300">
               Navigate students while staying on this subject. Select "All Subjects" to see
               everything.
             </p>
@@ -201,7 +203,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
 
         {/* Mobile tip - only show when NOT in focus mode and there are subjects */}
         {!filterSubject && displayedSubjects.length > 0 && (
-          <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700 sm:hidden">
+          <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700 sm:hidden dark:border dark:border-blue-800/70 dark:bg-blue-950/45 dark:text-blue-200">
             <p className="font-medium">
               💡 Tip: Tap "Next" on your keyboard to jump between fields quickly!
             </p>
@@ -209,7 +211,7 @@ export function AcademicTab({ student, level, onUpdate, filterSubject }: Props) 
         )}
 
         {displayedSubjects.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-12 text-center text-gray-400">
+          <div className="border-border bg-subtle/60 text-muted rounded-xl border-2 border-dashed py-12 text-center">
             {filterSubject
               ? `This student doesn't have "${filterSubject}".`
               : "No subjects found. Use the alerts above to sync with Settings."}

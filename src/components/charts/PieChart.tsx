@@ -1,6 +1,8 @@
 // src/components/charts/PieChart.tsx
 import React from "react";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useTheme } from "../../hooks/useTheme";
+import { getChartThemeColors } from "../../utils/theme";
 
 interface PieChartProps {
   data: {
@@ -13,6 +15,9 @@ interface PieChartProps {
 }
 
 export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend = true }) => {
+  const { resolvedTheme } = useTheme();
+  const chartColors = getChartThemeColors(resolvedTheme);
+
   const getColor = (index: number, customColor?: string) => {
     if (customColor) return customColor;
     const colors = [
@@ -61,12 +66,14 @@ export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
+              backgroundColor: chartColors.tooltipBg,
+              border: `1px solid ${chartColors.tooltipBorder}`,
               borderRadius: "8px",
               padding: "8px 12px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              color: chartColors.tooltipText,
             }}
+            itemStyle={{ color: chartColors.tooltipText }}
           />
         </RechartsPieChart>
       </ResponsiveContainer>
@@ -79,8 +86,8 @@ export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend
                 className="h-3 w-3 shrink-0 rounded-sm"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="truncate text-gray-700">{item.name}</span>
-              <span className="ml-auto text-gray-500">({item.value})</span>
+              <span className="text-secondary truncate">{item.name}</span>
+              <span className="text-muted ml-auto">({item.value})</span>
             </div>
           ))}
         </div>

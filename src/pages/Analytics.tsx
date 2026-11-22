@@ -441,7 +441,7 @@ export const Analytics: React.FC = () => {
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <Card padding="lg" className="text-center">
-            <BarChart3 size={48} className="mx-auto mb-4 text-gray-400" />
+            <BarChart3 size={48} className="text-muted mx-auto mb-4" />
             <h3 data-record="true" className="text-main mb-2 text-lg font-bold sm:text-xl">
               No Data Available
             </h3>
@@ -472,8 +472,8 @@ export const Analytics: React.FC = () => {
         <div ref={analyticsHeaderRef} className="mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-blue-100 p-2.5">
-                <BarChart3 className="text-primary h-5 w-5" />
+              <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-950/60">
+                <BarChart3 className="text-primary-text h-5 w-5" />
               </div>
               <div>
                 <h1
@@ -495,7 +495,7 @@ export const Analytics: React.FC = () => {
                 type="button"
                 onClick={handleExportData}
                 data-record="true"
-                className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95 sm:gap-2 sm:text-sm sm:font-medium"
+                className="border-border-strong bg-surface text-secondary hover:bg-subtle flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all active:scale-95 sm:gap-2 sm:text-sm sm:font-medium"
                 title="Export analytics data as CSV"
               >
                 <FileText size={16} />
@@ -537,7 +537,7 @@ export const Analytics: React.FC = () => {
                   className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${
                     activeView === view.id
                       ? "bg-primary text-white shadow-md"
-                      : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      : "border-border bg-surface text-secondary hover:bg-subtle border"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -554,8 +554,8 @@ export const Analytics: React.FC = () => {
               aria-expanded={showMobileFilters}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all active:scale-95 ${
                 showMobileFilters || hasActiveFilters
-                  ? "border-blue-300 bg-blue-50 text-blue-700"
-                  : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                  : "border-border bg-surface text-secondary hover:bg-subtle"
               }`}
               data-record="true"
             >
@@ -572,7 +572,7 @@ export const Analytics: React.FC = () => {
                 type="button"
                 onClick={handleResetFilters}
                 aria-label="Clear active filters"
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-50"
+                className="border-border bg-surface text-secondary hover:bg-subtle inline-flex shrink-0 items-center gap-1 rounded-lg border px-3 py-2.5 text-xs font-bold transition-colors"
                 data-record="true"
               >
                 <X className="h-3.5 w-3.5" />
@@ -595,7 +595,7 @@ export const Analytics: React.FC = () => {
           {/* Main Content */}
           <div ref={analyticsContentRef} className="space-y-4 sm:space-y-6 lg:col-span-3">
             {ungradedStudents.length > 0 && gradedStudents.length > 0 && (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
                 <span>
                   Analyzing <strong>{gradedStudents.length}</strong> graded student
                   {gradedStudents.length === 1 ? "" : "s"} ({ungradedStudents.length} ungraded
@@ -609,17 +609,17 @@ export const Analytics: React.FC = () => {
               <>
                 {/* Class Pulse Story Banner */}
                 {classPulseHeadline && (
-                  <div className="rounded-xl border border-indigo-200 bg-linear-to-r from-indigo-50 via-blue-50 to-purple-50 p-4 shadow-sm sm:p-5">
+                  <div className="rounded-xl border border-indigo-200 bg-linear-to-r from-indigo-50 via-blue-50 to-purple-50 p-4 shadow-sm sm:p-5 dark:border-indigo-800/70 dark:from-indigo-950/60 dark:via-blue-950/50 dark:to-purple-950/50">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <p
                           data-record="true"
-                          className="flex items-center gap-1.5 text-xs font-black tracking-wider text-indigo-700 uppercase"
+                          className="flex items-center gap-1.5 text-xs font-black tracking-wider text-indigo-700 uppercase dark:text-indigo-300"
                         >
                           <Sparkles className="h-3.5 w-3.5" />
                           Class Pulse Story
                         </p>
-                        <p className="mt-1 text-sm leading-relaxed font-semibold text-gray-800">
+                        <p className="text-main mt-1 text-sm leading-relaxed font-semibold">
                           {classPulseHeadline}
                         </p>
                       </div>
@@ -722,12 +722,12 @@ export const Analytics: React.FC = () => {
                           size={200}
                           showLegend={true}
                         />
-                        <div className="mt-4 text-center text-xs text-gray-500">
+                        <div className="text-muted mt-4 text-center text-xs">
                           Total: {gradeDistribution.reduce((sum, g) => sum + g.count, 0)} students
                         </div>
                       </>
                     ) : (
-                      <div className="flex h-50 items-center justify-center text-sm text-gray-400">
+                      <div className="text-muted flex h-50 items-center justify-center text-sm">
                         No grade data available
                       </div>
                     )}
@@ -756,30 +756,30 @@ export const Analytics: React.FC = () => {
                           size={180}
                           showLegend={true}
                         />
-                        <div className="mt-4 space-y-2 border-t pt-4">
+                        <div className="border-border mt-4 space-y-2 border-t pt-4">
                           {genderAnalysis.maleCount > 0 && (
                             <div className="flex justify-between text-sm">
-                              <span data-record="true" className="text-gray-600">
+                              <span data-record="true" className="text-secondary">
                                 Male Average:
                               </span>
-                              <span className="font-semibold text-blue-600">
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">
                                 {genderAnalysis.maleAverage}%
                               </span>
                             </div>
                           )}
                           {genderAnalysis.femaleCount > 0 && (
                             <div className="flex justify-between text-sm">
-                              <span data-record="true" className="text-gray-600">
+                              <span data-record="true" className="text-secondary">
                                 Female Average:
                               </span>
-                              <span className="font-semibold text-pink-600">
+                              <span className="font-semibold text-pink-600 dark:text-pink-400">
                                 {genderAnalysis.femaleAverage}%
                               </span>
                             </div>
                           )}
                           {genderAnalysis.maleCount > 0 && genderAnalysis.femaleCount > 0 && (
                             <div className="flex justify-between text-sm font-bold">
-                              <span data-record="true" className="text-gray-700">
+                              <span data-record="true" className="text-main">
                                 Performance Gap:
                               </span>
                               <span
@@ -787,8 +787,8 @@ export const Analytics: React.FC = () => {
                                   Math.abs(
                                     genderAnalysis.maleAverage - genderAnalysis.femaleAverage,
                                   ) > 5
-                                    ? "text-amber-600"
-                                    : "text-green-600"
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-green-600 dark:text-emerald-400"
                                 }
                               >
                                 {Math.abs(
@@ -801,7 +801,7 @@ export const Analytics: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      <div className="flex h-45 items-center justify-center text-sm text-gray-400">
+                      <div className="text-muted flex h-45 items-center justify-center text-sm">
                         No gender data available
                       </div>
                     )}
@@ -813,7 +813,7 @@ export const Analytics: React.FC = () => {
                       {topPerformers.slice(0, 5).map((student, index) => (
                         <div
                           key={student.id}
-                          className="flex items-center gap-2 rounded-lg bg-linear-to-r from-gray-50 to-white p-2 sm:gap-3 sm:p-3"
+                          className="from-subtle to-surface border-border-subtle flex items-center gap-2 rounded-lg border bg-linear-to-r p-2 sm:gap-3 sm:p-3"
                         >
                           <div
                             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white sm:h-8 sm:w-8 ${
@@ -835,7 +835,7 @@ export const Analytics: React.FC = () => {
                             <p className="text-muted text-xs">{student.gender || "N/A"}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-primary text-sm font-black sm:text-base">
+                            <p className="text-primary-text text-sm font-black sm:text-base">
                               {student.averageScore}%
                             </p>
                           </div>
@@ -853,29 +853,35 @@ export const Analytics: React.FC = () => {
                         data-record="true"
                         className="text-main mb-3 flex items-center gap-2 text-base font-bold"
                       >
-                        <Target className="h-4 w-4 text-blue-600" />
+                        <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         Core vs. Elective Health
                       </h3>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3">
-                          <p className="text-[11px] font-bold text-blue-700 uppercase" data-record="true">
+                        <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3 dark:border-blue-800/70 dark:bg-blue-950/50">
+                          <p
+                            className="text-[11px] font-bold text-blue-700 uppercase dark:text-blue-300"
+                            data-record="true"
+                          >
                             Core Subjects
                           </p>
-                          <p className="mt-1 text-2xl font-black text-blue-950">
+                          <p className="mt-1 text-2xl font-black text-blue-950 dark:text-blue-100">
                             {coreVsElective.coreAverage}%
                           </p>
-                          <p className="text-xs font-semibold text-blue-700">
+                          <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
                             {coreVsElective.corePassRate}% pass rate
                           </p>
                         </div>
-                        <div className="rounded-lg border border-purple-100 bg-purple-50/70 p-3">
-                          <p className="text-[11px] font-bold text-purple-700 uppercase" data-record="true">
+                        <div className="rounded-lg border border-purple-100 bg-purple-50/70 p-3 dark:border-purple-800/70 dark:bg-purple-950/50">
+                          <p
+                            className="text-[11px] font-bold text-purple-700 uppercase dark:text-purple-300"
+                            data-record="true"
+                          >
                             Electives
                           </p>
-                          <p className="mt-1 text-2xl font-black text-purple-950">
+                          <p className="mt-1 text-2xl font-black text-purple-950 dark:text-purple-100">
                             {coreVsElective.electiveAverage}%
                           </p>
-                          <p className="text-xs font-semibold text-purple-700">
+                          <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
                             {coreVsElective.electivePassRate}% pass rate
                           </p>
                         </div>
@@ -888,16 +894,16 @@ export const Analytics: React.FC = () => {
                           data-record="true"
                           className="text-main mb-3 flex items-center gap-2 text-base font-bold"
                         >
-                          <Award className="h-4 w-4 text-amber-600" />
+                          <Award className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                           Aggregate Distribution Bands
                         </h3>
                         <div className="space-y-2">
                           {coreVsElective.aggregateBands.map((band) => (
                             <div key={band.band} className="flex items-center justify-between text-xs">
-                              <span className="font-semibold text-gray-700">{band.band}</span>
+                              <span className="text-secondary font-semibold">{band.band}</span>
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-gray-900">{band.count} students</span>
-                                <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">
+                                <span className="text-main font-bold">{band.count} students</span>
+                                <span className="bg-subtle text-secondary rounded px-1.5 py-0.5 font-mono text-[11px]">
                                   {band.percentage}%
                                 </span>
                               </div>
@@ -918,37 +924,43 @@ export const Analytics: React.FC = () => {
                           data-record="true"
                           className="text-main flex items-center gap-2 text-base font-bold"
                         >
-                          <Wallet className="h-4 w-4 text-purple-600" />
+                          <Wallet className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                           Private School Fee Tracking
                         </h3>
-                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">
+                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800 dark:bg-red-950/60 dark:text-red-300">
                           Total Arrears: GH₵{privateFeeSummary.totalArrears.toFixed(2)}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <div className="rounded-lg bg-emerald-50 p-3 text-center">
-                          <p className="text-[10px] font-bold text-emerald-700 uppercase">Paid</p>
-                          <p className="text-xl font-black text-emerald-900">
+                        <div className="rounded-lg bg-emerald-50 p-3 text-center dark:border dark:border-emerald-800/70 dark:bg-emerald-950/50">
+                          <p className="text-[10px] font-bold text-emerald-700 uppercase dark:text-emerald-300">
+                            Paid
+                          </p>
+                          <p className="text-xl font-black text-emerald-900 dark:text-emerald-200">
                             {privateFeeSummary.paidCount}
                           </p>
                         </div>
-                        <div className="rounded-lg bg-amber-50 p-3 text-center">
-                          <p className="text-[10px] font-bold text-amber-700 uppercase">Part-Paid</p>
-                          <p className="text-xl font-black text-amber-900">
+                        <div className="rounded-lg bg-amber-50 p-3 text-center dark:border dark:border-amber-800/70 dark:bg-amber-950/50">
+                          <p className="text-[10px] font-bold text-amber-700 uppercase dark:text-amber-300">
+                            Part-Paid
+                          </p>
+                          <p className="text-xl font-black text-amber-900 dark:text-amber-200">
                             {privateFeeSummary.partPaidCount}
                           </p>
                         </div>
-                        <div className="rounded-lg bg-red-50 p-3 text-center">
-                          <p className="text-[10px] font-bold text-red-700 uppercase">Owing</p>
-                          <p className="text-xl font-black text-red-900">
+                        <div className="rounded-lg bg-red-50 p-3 text-center dark:border dark:border-red-800/70 dark:bg-red-950/50">
+                          <p className="text-[10px] font-bold text-red-700 uppercase dark:text-red-300">
+                            Owing
+                          </p>
+                          <p className="text-xl font-black text-red-900 dark:text-red-200">
                             {privateFeeSummary.owingCount}
                           </p>
                         </div>
-                        <div className="rounded-lg bg-blue-50 p-3 text-center">
-                          <p className="text-[10px] font-bold text-blue-700 uppercase">
+                        <div className="rounded-lg bg-blue-50 p-3 text-center dark:border dark:border-blue-800/70 dark:bg-blue-950/50">
+                          <p className="text-[10px] font-bold text-blue-700 uppercase dark:text-blue-300">
                             Scholarship
                           </p>
-                          <p className="text-xl font-black text-blue-900">
+                          <p className="text-xl font-black text-blue-900 dark:text-blue-200">
                             {privateFeeSummary.scholarshipCount}
                           </p>
                         </div>
@@ -1089,8 +1101,8 @@ export const Analytics: React.FC = () => {
                     </p>
                     <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
                       <table className="w-full min-w-150">
-                        <thead className="bg-gray-50">
-                          <tr className="border-b">
+                        <thead className="bg-subtle">
+                          <tr className="border-border border-b">
                             <th
                               data-record="true"
                               className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
@@ -1119,7 +1131,10 @@ export const Analytics: React.FC = () => {
                         </thead>
                         <tbody>
                           {subjectVariance.map((item, index) => (
-                            <tr key={index} className="border-b transition-colors hover:bg-gray-50">
+                            <tr
+                              key={index}
+                              className="border-border hover:bg-subtle/60 border-b transition-colors"
+                            >
                               <td className="text-main px-4 py-2 text-sm font-bold sm:py-3">
                                 {item.subject}
                               </td>
@@ -1130,10 +1145,10 @@ export const Analytics: React.FC = () => {
                                 <span
                                   className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
                                     item.consistency === "High"
-                                      ? "bg-green-100 text-green-700"
+                                      ? "bg-green-100 text-green-700 dark:bg-emerald-950/60 dark:text-emerald-300"
                                       : item.consistency === "Medium"
-                                        ? "bg-yellow-100 text-yellow-700"
-                                        : "bg-red-100 text-red-700"
+                                        ? "bg-yellow-100 text-yellow-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                        : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                   }`}
                                 >
                                   {item.consistency}
@@ -1164,8 +1179,8 @@ export const Analytics: React.FC = () => {
                   </h3>
                   <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
                     <table className="w-full min-w-150">
-                      <thead className="bg-gray-50">
-                        <tr className="border-b">
+                      <thead className="bg-subtle">
+                        <tr className="border-border border-b">
                           <th
                             data-record="true"
                             className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
@@ -1206,29 +1221,32 @@ export const Analytics: React.FC = () => {
                       </thead>
                       <tbody>
                         {subjectPerformance.map((subject, index) => (
-                          <tr key={index} className="border-b transition-colors hover:bg-gray-50">
+                          <tr
+                            key={index}
+                            className="border-border hover:bg-subtle/60 border-b transition-colors"
+                          >
                             <td className="text-main px-4 py-2 text-sm font-bold sm:py-3">
                               {subject.subjectName}
                             </td>
                             <td className="px-4 py-2 text-center sm:py-3">
-                              <span className="text-primary text-sm font-bold">
+                              <span className="text-primary-text text-sm font-bold">
                                 {subject.averageScore}%
                               </span>
                             </td>
-                            <td className="px-4 py-2 text-center text-sm text-green-600 sm:py-3">
+                            <td className="px-4 py-2 text-center text-sm text-green-600 sm:py-3 dark:text-emerald-400">
                               {subject.highestScore}
                             </td>
-                            <td className="px-4 py-2 text-center text-sm text-red-600 sm:py-3">
+                            <td className="px-4 py-2 text-center text-sm text-red-600 sm:py-3 dark:text-red-400">
                               {subject.lowestScore}
                             </td>
                             <td className="px-4 py-2 text-center sm:py-3">
                               <span
                                 className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
                                   subject.passRate >= 70
-                                    ? "bg-green-100 text-green-700"
+                                    ? "bg-green-100 text-green-700 dark:bg-emerald-950/60 dark:text-emerald-300"
                                     : subject.passRate >= 50
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-red-100 text-red-700"
+                                      ? "bg-yellow-100 text-yellow-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                      : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                 }`}
                               >
                                 {subject.passRate}%
@@ -1290,20 +1308,20 @@ export const Analytics: React.FC = () => {
                         ]}
                         height={280}
                       />
-                      <div className="mt-4 flex justify-around border-t pt-4">
+                      <div className="border-border mt-4 flex justify-around border-t pt-4">
                         <div className="text-center">
-                          <p data-record="true" className="text-xs text-gray-600">
+                          <p data-record="true" className="text-muted text-xs">
                             Male Avg Rate
                           </p>
-                          <p className="text-lg font-black text-blue-600">
+                          <p className="text-lg font-black text-blue-600 dark:text-blue-400">
                             {attendanceByGender.maleAttendanceRate}%
                           </p>
                         </div>
                         <div className="text-center">
-                          <p data-record="true" className="text-xs text-gray-600">
+                          <p data-record="true" className="text-muted text-xs">
                             Female Avg Rate
                           </p>
-                          <p className="text-lg font-black text-pink-600">
+                          <p className="text-lg font-black text-pink-600 dark:text-pink-400">
                             {attendanceByGender.femaleAttendanceRate}%
                           </p>
                         </div>
@@ -1322,8 +1340,8 @@ export const Analytics: React.FC = () => {
                           showValues={true}
                           gradient={true}
                         />
-                        <div className="mt-4 border-t pt-3">
-                          <p className="text-center text-xs text-gray-600">
+                        <div className="border-border mt-4 border-t pt-3">
+                          <p className="text-muted text-center text-xs">
                             Age groups with sample sizes from{" "}
                             {Math.min(...performanceByAge.map((a) => a.count))} to{" "}
                             {Math.max(...performanceByAge.map((a) => a.count))} students
@@ -1360,8 +1378,8 @@ export const Analytics: React.FC = () => {
                     </h3>
                     <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
                       <table className="w-full min-w-100">
-                        <thead className="bg-gray-50">
-                          <tr className="border-b">
+                        <thead className="bg-subtle">
+                          <tr className="border-border border-b">
                             <th
                               data-record="true"
                               className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
@@ -1390,14 +1408,17 @@ export const Analytics: React.FC = () => {
                         </thead>
                         <tbody>
                           {ageDistribution.map((item, index) => (
-                            <tr key={index} className="border-b transition-colors hover:bg-gray-50">
+                            <tr
+                              key={index}
+                              className="border-border hover:bg-subtle/60 border-b transition-colors"
+                            >
                               <td className="text-main px-4 py-2 text-sm font-bold sm:py-3">
                                 {item.category}
                               </td>
-                              <td className="px-4 py-2 text-center text-sm text-blue-600 sm:py-3">
+                              <td className="px-4 py-2 text-center text-sm text-blue-600 sm:py-3 dark:text-blue-400">
                                 {item.male}
                               </td>
-                              <td className="px-4 py-2 text-center text-sm text-pink-600 sm:py-3">
+                              <td className="px-4 py-2 text-center text-sm text-pink-600 sm:py-3 dark:text-pink-400">
                                 {item.female}
                               </td>
                               <td className="px-4 py-2 text-center text-sm font-bold sm:py-3">
@@ -1418,24 +1439,24 @@ export const Analytics: React.FC = () => {
               <>
                 {/* Class Story Hero Card */}
                 {classStory && (
-                  <div className="rounded-xl border border-indigo-200 bg-linear-to-br from-indigo-50 via-white to-purple-50 p-5 shadow-sm sm:p-6">
+                  <div className="rounded-xl border border-indigo-200 bg-linear-to-br from-indigo-50 via-white to-purple-50 p-5 shadow-sm sm:p-6 dark:border-indigo-800/70 dark:from-indigo-950/60 dark:via-slate-900 dark:to-purple-950/50">
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <h3
                           data-record="true"
                           className="text-main flex items-center gap-2 text-lg font-black"
                         >
-                          <Sparkles className="h-5 w-5 text-indigo-600" />
+                          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                           AI Class Story &amp; Intervention Brief
                         </h3>
-                        <p className="mt-1 text-sm font-bold text-indigo-950">
+                        <p className="mt-1 text-sm font-bold text-indigo-950 dark:text-indigo-200">
                           {classStory.headline}
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={handleCopyStaffBrief}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-50"
+                        className="dark:bg-elevated inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-50 dark:border-indigo-700/70 dark:text-indigo-300 dark:hover:bg-indigo-950/60"
                         data-record="true"
                       >
                         {copiedBrief ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -1443,21 +1464,21 @@ export const Analytics: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="space-y-2 text-sm leading-relaxed text-gray-700">
+                    <div className="text-secondary space-y-2 text-sm leading-relaxed">
                       {classStory.narrativeParagraphs.map((para, idx) => (
                         <p key={idx}>{para}</p>
                       ))}
                     </div>
 
                     <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800/70 dark:bg-emerald-950/40">
                         <h4
                           data-record="true"
-                          className="mb-2 text-xs font-black tracking-wider text-emerald-900 uppercase"
+                          className="mb-2 text-xs font-black tracking-wider text-emerald-900 uppercase dark:text-emerald-200"
                         >
                           What&apos;s Working
                         </h4>
-                        <ul className="space-y-1.5 text-xs text-emerald-950">
+                        <ul className="space-y-1.5 text-xs text-emerald-950 dark:text-emerald-200/90">
                           {classStory.strengths.map((item, idx) => (
                             <li key={idx} className="flex items-start gap-1.5">
                               <span>•</span>
@@ -1467,15 +1488,15 @@ export const Analytics: React.FC = () => {
                         </ul>
                       </div>
 
-                      <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4">
+                      <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-800/70 dark:bg-amber-950/40">
                         <h4
                           data-record="true"
-                          className="mb-2 text-xs font-black tracking-wider text-amber-900 uppercase"
+                          className="mb-2 text-xs font-black tracking-wider text-amber-900 uppercase dark:text-amber-200"
                         >
                           Watchouts
                         </h4>
                         {classStory.watchouts.length > 0 ? (
-                          <ul className="space-y-1.5 text-xs text-amber-950">
+                          <ul className="space-y-1.5 text-xs text-amber-950 dark:text-amber-200/90">
                             {classStory.watchouts.map((item, idx) => (
                               <li key={idx} className="flex items-start gap-1.5">
                                 <span>•</span>
@@ -1484,7 +1505,9 @@ export const Analytics: React.FC = () => {
                             ))}
                           </ul>
                         ) : (
-                          <p className="text-xs text-amber-900">No major warning signals detected.</p>
+                          <p className="text-xs text-amber-900 dark:text-amber-200">
+                            No major warning signals detected.
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1493,31 +1516,31 @@ export const Analytics: React.FC = () => {
                     <div className="mt-5 space-y-2.5">
                       <h4
                         data-record="true"
-                        className="text-xs font-black tracking-wider text-gray-600 uppercase"
+                        className="text-muted text-xs font-black tracking-wider uppercase"
                       >
                         Prioritized Teacher Action Plan
                       </h4>
                       {classStory.actionPlan.map((step, idx) => (
                         <div
                           key={idx}
-                          className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3.5 shadow-xs sm:flex-row sm:items-center sm:justify-between"
+                          className="border-border bg-surface flex flex-col gap-2 rounded-lg border p-3.5 shadow-xs sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div>
                             <div className="flex items-center gap-2">
                               <span
                                 className={`rounded px-1.5 py-0.5 text-[10px] font-black uppercase ${
                                   step.priority === "HIGH"
-                                    ? "bg-red-100 text-red-700"
+                                    ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                     : step.priority === "MEDIUM"
-                                      ? "bg-amber-100 text-amber-800"
-                                      : "bg-blue-100 text-blue-700"
+                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                      : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
                                 }`}
                               >
                                 {step.priority}
                               </span>
-                              <p className="text-sm font-bold text-gray-900">{step.title}</p>
+                              <p className="text-main text-sm font-bold">{step.title}</p>
                             </div>
-                            <p className="mt-1 text-xs text-gray-600">{step.detail}</p>
+                            <p className="text-muted mt-1 text-xs">{step.detail}</p>
                           </div>
                           {step.targetSubject && (
                             <button
@@ -1526,7 +1549,7 @@ export const Analytics: React.FC = () => {
                                 setFilters((prev) => ({ ...prev, subjectFilter: step.targetSubject }));
                                 setActiveView("subjects");
                               }}
-                              className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                              className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700/70 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-950/90"
                             >
                               Inspect Subject →
                             </button>
@@ -1544,7 +1567,7 @@ export const Analytics: React.FC = () => {
                       data-record="true"
                       className="text-main mb-2 flex items-center gap-2 text-base font-bold sm:text-lg"
                     >
-                      <Target className="h-5 w-5 text-amber-600" />
+                      <Target className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                       Borderline Cohort (42%–54%): Highest Coaching ROI
                     </h3>
                     <p className="text-muted mb-4 text-xs">
@@ -1554,18 +1577,18 @@ export const Analytics: React.FC = () => {
                       {borderlineStudents.slice(0, 6).map((stu) => (
                         <div
                           key={stu.id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3"
+                          className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-800/70 dark:bg-amber-950/40"
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-gray-900">{stu.name}</p>
-                            <p className="truncate text-xs text-gray-600">
+                            <p className="text-main truncate text-sm font-bold">{stu.name}</p>
+                            <p className="text-muted truncate text-xs">
                               Focus:{" "}
                               {stu.weakestSubjects
                                 .map((w) => `${w.name} (${w.score})`)
                                 .join(", ")}
                             </p>
                           </div>
-                          <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-900">
+                          <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-900 dark:bg-amber-950/80 dark:text-amber-300">
                             {stu.averageScore}%
                           </span>
                         </div>
@@ -1583,7 +1606,7 @@ export const Analytics: React.FC = () => {
                         data-record="true"
                         className="text-main mb-2 flex items-center gap-2 text-base font-bold sm:text-lg"
                       >
-                        <Activity className="h-5 w-5 text-purple-600" />
+                        <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                         SBA Classwork vs. Exam Discrepancy Spotlight
                       </h3>
                       <p className="text-muted mb-4 text-xs">
@@ -1592,18 +1615,18 @@ export const Analytics: React.FC = () => {
                       </p>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         {sbaVsExam.examUnderperformers.length > 0 && (
-                          <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3.5">
-                            <p className="mb-2 text-xs font-bold text-purple-900 uppercase">
+                          <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3.5 dark:border-purple-800/70 dark:bg-purple-950/40">
+                            <p className="mb-2 text-xs font-bold text-purple-900 uppercase dark:text-purple-200">
                               Strong SBA, Low Exam (Exam Technique / Anxiety)
                             </p>
                             <div className="space-y-2">
                               {sbaVsExam.examUnderperformers.slice(0, 5).map((item) => (
                                 <div
                                   key={item.id}
-                                  className="flex items-center justify-between rounded bg-white px-2.5 py-1.5 text-xs"
+                                  className="bg-surface flex items-center justify-between rounded px-2.5 py-1.5 text-xs"
                                 >
-                                  <span className="font-bold text-gray-800">{item.name}</span>
-                                  <span className="font-mono text-purple-700">
+                                  <span className="text-main font-bold">{item.name}</span>
+                                  <span className="font-mono text-purple-700 dark:text-purple-300">
                                     SBA {item.sbaPercent}% vs Exam {item.examPercent}%
                                   </span>
                                 </div>
@@ -1612,18 +1635,18 @@ export const Analytics: React.FC = () => {
                           </div>
                         )}
                         {sbaVsExam.lowClassworkStudents.length > 0 && (
-                          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3.5">
-                            <p className="mb-2 text-xs font-bold text-blue-900 uppercase">
+                          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3.5 dark:border-blue-800/70 dark:bg-blue-950/40">
+                            <p className="mb-2 text-xs font-bold text-blue-900 uppercase dark:text-blue-200">
                               Low SBA, Strong Exam (Missing Classwork)
                             </p>
                             <div className="space-y-2">
                               {sbaVsExam.lowClassworkStudents.slice(0, 5).map((item) => (
                                 <div
                                   key={item.id}
-                                  className="flex items-center justify-between rounded bg-white px-2.5 py-1.5 text-xs"
+                                  className="bg-surface flex items-center justify-between rounded px-2.5 py-1.5 text-xs"
                                 >
-                                  <span className="font-bold text-gray-800">{item.name}</span>
-                                  <span className="font-mono text-blue-700">
+                                  <span className="text-main font-bold">{item.name}</span>
+                                  <span className="font-mono text-blue-700 dark:text-blue-300">
                                     SBA {item.sbaPercent}% vs Exam {item.examPercent}%
                                   </span>
                                 </div>
@@ -1643,13 +1666,13 @@ export const Analytics: React.FC = () => {
                         data-record="true"
                         className="text-main flex items-center gap-2 text-base font-bold sm:text-lg"
                       >
-                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                         Students Requiring Immediate Attention
                       </h3>
                       <button
                         type="button"
                         onClick={() => navigate({ to: "/" })}
-                        className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100"
+                        className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300 dark:hover:bg-red-950/80"
                         data-record="true"
                       >
                         Review Students
@@ -1663,16 +1686,16 @@ export const Analytics: React.FC = () => {
                       {atRiskStudents.slice(0, 10).map((student) => (
                         <div
                           key={student.id}
-                          className="rounded-lg border-l-4 border-red-500 bg-red-50/50 p-4 transition-all hover:bg-red-50"
+                          className="rounded-lg border-l-4 border-red-500 bg-red-50/50 p-4 transition-all hover:bg-red-50 dark:bg-red-950/35 dark:hover:bg-red-950/55"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-bold text-gray-900">{student.name}</p>
+                              <p className="text-main text-sm font-bold">{student.name}</p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {student.riskFactors.map((factor, idx) => (
                                   <span
                                     key={idx}
-                                    className="inline-block rounded-full bg-red-200 px-2.5 py-0.5 text-xs font-medium text-red-800"
+                                    className="inline-block rounded-full bg-red-200 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/70 dark:text-red-200"
                                   >
                                     {factor}
                                   </span>
@@ -1680,11 +1703,11 @@ export const Analytics: React.FC = () => {
                               </div>
                             </div>
                             <div className="ml-4 text-right">
-                              <p className="text-xs text-gray-600">Average</p>
-                              <p className="text-lg font-black text-red-600">
+                              <p className="text-muted text-xs">Average</p>
+                              <p className="text-lg font-black text-red-600 dark:text-red-400">
                                 {student.averageScore}%
                               </p>
-                              <p className="text-xs text-gray-600">
+                              <p className="text-muted text-xs">
                                 {student.attendanceRecorded
                                   ? `${student.attendanceRate}% attendance`
                                   : "Attendance N/A"}
@@ -1712,35 +1735,47 @@ export const Analytics: React.FC = () => {
                     Performance Distribution Analysis
                   </h3>
                   <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <div className="rounded-lg bg-green-50 p-4 text-center">
-                      <p data-record="true" className="text-xs font-bold text-green-700 uppercase">
+                    <div className="rounded-lg bg-green-50 p-4 text-center dark:border dark:border-emerald-800/70 dark:bg-emerald-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-green-700 uppercase dark:text-emerald-300"
+                      >
                         Top 25%
                       </p>
-                      <p className="mt-2 text-2xl font-black text-green-900">
+                      <p className="mt-2 text-2xl font-black text-green-900 dark:text-emerald-200">
                         {performanceQuartiles.q3}%+
                       </p>
                     </div>
-                    <div className="rounded-lg bg-blue-50 p-4 text-center">
-                      <p data-record="true" className="text-xs font-bold text-blue-700 uppercase">
+                    <div className="rounded-lg bg-blue-50 p-4 text-center dark:border dark:border-blue-800/70 dark:bg-blue-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-blue-700 uppercase dark:text-blue-300"
+                      >
                         Median
                       </p>
-                      <p className="mt-2 text-2xl font-black text-blue-900">
+                      <p className="mt-2 text-2xl font-black text-blue-900 dark:text-blue-200">
                         {performanceQuartiles.q2}%
                       </p>
                     </div>
-                    <div className="rounded-lg bg-amber-50 p-4 text-center">
-                      <p data-record="true" className="text-xs font-bold text-amber-700 uppercase">
+                    <div className="rounded-lg bg-amber-50 p-4 text-center dark:border dark:border-amber-800/70 dark:bg-amber-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-amber-700 uppercase dark:text-amber-300"
+                      >
                         Bottom 25%
                       </p>
-                      <p className="mt-2 text-2xl font-black text-amber-900">
+                      <p className="mt-2 text-2xl font-black text-amber-900 dark:text-amber-200">
                         {performanceQuartiles.q1}%
                       </p>
                     </div>
-                    <div className="rounded-lg bg-purple-50 p-4 text-center">
-                      <p data-record="true" className="text-xs font-bold text-purple-700 uppercase">
+                    <div className="rounded-lg bg-purple-50 p-4 text-center dark:border dark:border-purple-800/70 dark:bg-purple-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-purple-700 uppercase dark:text-purple-300"
+                      >
                         Top Quartile
                       </p>
-                      <p className="mt-2 text-2xl font-black text-purple-900">
+                      <p className="mt-2 text-2xl font-black text-purple-900 dark:text-purple-200">
                         {performanceQuartiles.q4Count}
                       </p>
                     </div>
@@ -1748,10 +1783,10 @@ export const Analytics: React.FC = () => {
 
                   {/* Struggling Students */}
                   {performanceQuartiles.strugglingStudents.length > 0 && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800/70 dark:bg-amber-950/35">
                       <h4
                         data-record="true"
-                        className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900"
+                        className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-200"
                       >
                         <AlertTriangle className="h-4 w-4" />
                         Students Needing Support
@@ -1760,13 +1795,13 @@ export const Analytics: React.FC = () => {
                         {performanceQuartiles.strugglingStudents.map((student) => (
                           <div
                             key={student.id}
-                            className="flex items-center justify-between rounded-lg bg-white p-2"
+                            className="bg-surface flex items-center justify-between rounded-lg p-2"
                           >
                             <div>
-                              <p className="text-sm font-bold text-gray-900">{student.name}</p>
-                              <p className="text-xs text-gray-600">{student.gender || "N/A"}</p>
+                              <p className="text-main text-sm font-bold">{student.name}</p>
+                              <p className="text-muted text-xs">{student.gender || "N/A"}</p>
                             </div>
-                            <span className="rounded-full bg-amber-200 px-3 py-1 text-sm font-bold text-amber-900">
+                            <span className="rounded-full bg-amber-200 px-3 py-1 text-sm font-bold text-amber-900 dark:bg-amber-900/70 dark:text-amber-200">
                               {student.averageScore}%
                             </span>
                           </div>
@@ -1786,47 +1821,59 @@ export const Analytics: React.FC = () => {
                     Attendance & Performance Correlation
                   </h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="rounded-lg bg-green-50 p-4">
-                      <p data-record="true" className="text-xs font-bold text-green-700 uppercase">
+                    <div className="rounded-lg bg-green-50 p-4 dark:border dark:border-emerald-800/70 dark:bg-emerald-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-green-700 uppercase dark:text-emerald-300"
+                      >
                         Perfect Attendance
                       </p>
-                      <p className="mt-2 text-2xl font-black text-green-900">
+                      <p className="mt-2 text-2xl font-black text-green-900 dark:text-emerald-200">
                         {attendanceInsights.perfectAttendance}
                       </p>
-                      <p data-record="true" className="mt-1 text-xs text-green-600">
+                      <p
+                        data-record="true"
+                        className="mt-1 text-xs text-green-600 dark:text-emerald-400"
+                      >
                         students
                       </p>
                     </div>
-                    <div className="rounded-lg bg-red-50 p-4">
-                      <p data-record="true" className="text-xs font-bold text-red-700 uppercase">
+                    <div className="rounded-lg bg-red-50 p-4 dark:border dark:border-red-800/70 dark:bg-red-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-red-700 uppercase dark:text-red-300"
+                      >
                         Poor Attendance
                       </p>
-                      <p className="mt-2 text-2xl font-black text-red-900">
+                      <p className="mt-2 text-2xl font-black text-red-900 dark:text-red-200">
                         {attendanceInsights.poorAttendance}
                       </p>
-                      <p data-record="true" className="mt-1 text-xs text-red-600">
+                      <p data-record="true" className="mt-1 text-xs text-red-600 dark:text-red-400">
                         students &lt;70%
                       </p>
                     </div>
-                    <div className="rounded-lg bg-blue-50 p-4">
-                      <p data-record="true" className="text-xs font-bold text-blue-700 uppercase">
+                    <div className="rounded-lg bg-blue-50 p-4 dark:border dark:border-blue-800/70 dark:bg-blue-950/50">
+                      <p
+                        data-record="true"
+                        className="text-xs font-bold text-blue-700 uppercase dark:text-blue-300"
+                      >
                         Correlation
                       </p>
-                      <p className="mt-2 text-2xl font-black text-blue-900">
+                      <p className="mt-2 text-2xl font-black text-blue-900 dark:text-blue-200">
                         {attendanceInsights.correlationWithPerformance === "positive"
                           ? "Positive ↑"
                           : attendanceInsights.correlationWithPerformance === "negative"
                             ? "Negative ↓"
                             : "Neutral →"}
                       </p>
-                      <p data-record="true" className="mt-1 text-xs text-blue-600">
+                      <p data-record="true" className="mt-1 text-xs text-blue-600 dark:text-blue-400">
                         Pearson r = {attendanceInsights.correlationCoefficient}
                       </p>
                     </div>
                   </div>
                   {attendanceInsights.correlationWithPerformance === "positive" && (
-                    <div className="mt-4 rounded-lg bg-blue-50 p-3">
-                      <p className="text-xs text-blue-800">
+                    <div className="mt-4 rounded-lg bg-blue-50 p-3 dark:border dark:border-blue-800/70 dark:bg-blue-950/50">
+                      <p className="text-xs text-blue-800 dark:text-blue-200">
                         <strong>Insight:</strong> Better attendance correlates with higher scores.
                         Encourage regular attendance for improved performance.
                       </p>
@@ -1835,30 +1882,32 @@ export const Analytics: React.FC = () => {
                 </Card>
 
                 {/* Key Recommendations */}
-                <div className="rounded-xl border border-blue-200 bg-linear-to-br from-blue-50 to-purple-50 p-6 shadow-sm">
+                <div className="rounded-xl border border-blue-200 bg-linear-to-br from-blue-50 to-purple-50 p-6 shadow-sm dark:border-blue-800/70 dark:from-blue-950/50 dark:to-purple-950/50">
                   <h3
                     data-record="true"
                     className="text-main mb-4 flex items-center gap-2 text-lg font-bold"
                   >
-                    <Brain className="h-6 w-6 text-blue-600" />
+                    <Brain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                     AI-Powered Recommendations
                   </h3>
                   <div className="space-y-3">
                     {classMetrics.passRate < 70 && (
-                      <div className="rounded-lg bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-sm font-bold text-red-600">⚠️ Low Pass Rate</p>
-                        <p className="text-sm text-gray-700">
+                      <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                        <p className="mb-1 text-sm font-bold text-red-600 dark:text-red-400">
+                          ⚠️ Low Pass Rate
+                        </p>
+                        <p className="text-secondary text-sm">
                           Only {classMetrics.passRate}% of students are passing. Consider additional
                           tutoring sessions and remedial classes.
                         </p>
                       </div>
                     )}
                     {subjectInsights.needsAttention.length > 0 && (
-                      <div className="rounded-lg bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-sm font-bold text-amber-600">
+                      <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                        <p className="mb-1 text-sm font-bold text-amber-600 dark:text-amber-400">
                           📚 Subjects Need Attention
                         </p>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-secondary text-sm">
                           Focus on{" "}
                           {subjectInsights.needsAttention.map((s) => s.subjectName).join(", ")} -
                           these subjects have pass rates below 60%.
@@ -1866,11 +1915,11 @@ export const Analytics: React.FC = () => {
                       </div>
                     )}
                     {genderAnalysis.maleAverage > genderAnalysis.femaleAverage + 5 && (
-                      <div className="rounded-lg bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-sm font-bold text-purple-600">
+                      <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                        <p className="mb-1 text-sm font-bold text-purple-600 dark:text-purple-400">
                           ⚖️ Gender Performance Gap
                         </p>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-secondary text-sm">
                           Male students are outperforming female students by{" "}
                           {(genderAnalysis.maleAverage - genderAnalysis.femaleAverage).toFixed(1)}%.
                           Consider targeted support for female students.
@@ -1878,11 +1927,11 @@ export const Analytics: React.FC = () => {
                       </div>
                     )}
                     {genderAnalysis.femaleAverage > genderAnalysis.maleAverage + 5 && (
-                      <div className="rounded-lg bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-sm font-bold text-purple-600">
+                      <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                        <p className="mb-1 text-sm font-bold text-purple-600 dark:text-purple-400">
                           ⚖️ Gender Performance Gap
                         </p>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-secondary text-sm">
                           Female students are outperforming male students by{" "}
                           {(genderAnalysis.femaleAverage - genderAnalysis.maleAverage).toFixed(1)}%.
                           Consider targeted support for male students.
@@ -1890,20 +1939,22 @@ export const Analytics: React.FC = () => {
                       </div>
                     )}
                     {classMetrics.excellenceRate > 30 && (
-                      <div className="rounded-lg bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-sm font-bold text-green-600">🌟 Excellence Rate</p>
-                        <p className="text-sm text-gray-700">
+                      <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                        <p className="mb-1 text-sm font-bold text-green-600 dark:text-emerald-400">
+                          🌟 Excellence Rate
+                        </p>
+                        <p className="text-secondary text-sm">
                           Excellent work! {classMetrics.excellenceRate}% of students are scoring
                           80%+. Continue current teaching strategies.
                         </p>
                       </div>
                     )}
                     {performanceQuartiles.strugglingStudents.length > 5 && (
-                      <div className="rounded-lg bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-sm font-bold text-red-600">
+                      <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                        <p className="mb-1 text-sm font-bold text-red-600 dark:text-red-400">
                           👥 Struggling Students
                         </p>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-secondary text-sm">
                           {performanceQuartiles.strugglingStudents.length} students are in the
                           bottom quartile. Implement one-on-one interventions.
                         </p>

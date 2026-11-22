@@ -582,15 +582,15 @@ export function DataBackup({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="border-border bg-surface rounded-xl border p-6 shadow-sm">
       {showReloadOverlay && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6">
-          <div className="rounded-xl bg-white p-6 text-center shadow-2xl">
-            <h2 className="text-lg font-bold text-gray-900">Backup loaded. Reloading...</h2>
+          <div className="border-border bg-elevated rounded-xl border p-6 text-center shadow-2xl">
+            <h2 className="text-main text-lg font-bold">Backup loaded. Reloading...</h2>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-bold text-white"
+              className="bg-primary hover:bg-primary/90 mt-4 rounded-lg px-4 py-2 font-bold text-white"
             >
               Reload now
             </button>
@@ -598,12 +598,14 @@ export function DataBackup({
         </div>
       )}
       {isRollbackIncomplete && (
-        <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800">
+        <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-200">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
             <div className="flex-1">
-              <h3 className="font-bold text-red-900">Incomplete Restore / Storage Inconsistency</h3>
-              <p className="mt-1 text-sm text-red-700">
+              <h3 className="font-bold text-red-900 dark:text-red-200">
+                Incomplete Restore / Storage Inconsistency
+              </h3>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-300">
                 A previous backup import encountered a storage error and could not be fully rolled back.
                 Persistence has been suspended to prevent data corruption. Please choose a valid backup file below to restore.
               </p>
@@ -612,15 +614,15 @@ export function DataBackup({
         </div>
       )}
       <div className="mb-4 flex items-center gap-2">
-        <div className="rounded-lg bg-blue-50 p-2">
-          <Share2 className="h-5 w-5 text-blue-600" />
+        <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-950/60">
+          <Share2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
-        <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase">
+        <h2 className="text-main text-base font-bold tracking-wide uppercase">
           Share & Transfer Data
         </h2>
       </div>
 
-      {!recoveryOnly && <p className="mb-6 text-sm leading-relaxed text-gray-600">
+      {!recoveryOnly && <p className="text-secondary mb-6 text-sm leading-relaxed">
         Need to switch from your phone to a laptop? Or send this class to another teacher?
         <br />
         Save this file and send it via <strong>WhatsApp (Document)</strong> or Bluetooth.
@@ -630,7 +632,9 @@ export function DataBackup({
       {status !== "idle" && (
         <div
           className={`mb-4 flex items-center gap-2 rounded-lg p-3 ${
-            status === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+            status === "success"
+              ? "bg-green-50 text-green-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+              : "bg-red-50 text-red-800 dark:bg-red-950/50 dark:text-red-200"
           }`}
         >
           {status === "success" ? (
@@ -643,7 +647,7 @@ export function DataBackup({
       )}
 
       {!recoveryOnly && (
-      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/45">
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
@@ -653,10 +657,12 @@ export function DataBackup({
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-amber-600" />
-              <span className="font-bold text-amber-900">Password protect this file</span>
+              <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <span className="font-bold text-amber-900 dark:text-amber-200">
+                Password protect this file
+              </span>
             </div>
-            <p className="mt-1 text-xs text-amber-700">
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
               Every saved .repota file is encrypted so WhatsApp and file apps cannot preview student
               records. Turn this on to add a password so only people with that password can open
               it.
@@ -678,10 +684,10 @@ export function DataBackup({
         </button>}
 
         <label
-          className={`bg-background flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 font-bold text-gray-700 transition-colors ${
+          className={`bg-background border-border-strong text-secondary flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-3 font-bold transition-colors ${
             isImporting || isRecoveryBusy
               ? "pointer-events-none opacity-50 cursor-not-allowed"
-              : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95"
+              : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95 dark:hover:border-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-300"
           }`}
           onClick={(e) => {
             if (isImporting || isRecoveryBusy) {
@@ -703,10 +709,10 @@ export function DataBackup({
       </div>
 
       {/* Warning Notice */}
-      <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3">
+      <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-800/70 dark:bg-blue-950/45">
         <div className="flex gap-2">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-blue-600" />
-          <div className="text-xs text-blue-800">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+          <div className="text-xs text-blue-800 dark:text-blue-200">
             <p className="font-bold">Working with other teachers?</p>
             <p className="mt-1">
               Pass this file like a baton. Finish your part, save it, and send it to the next
@@ -763,29 +769,29 @@ export function DataBackup({
         <div className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-100 p-2">
-                <Lock className="h-6 w-6 text-amber-600" />
+              <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-950/60">
+                <Lock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Set Password</h3>
+              <h3 className="text-main text-lg font-bold">Set Password</h3>
             </div>
             <button
               type="button"
               onClick={resetExportPasswordState}
               aria-label="Close modal"
-              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <p className="mb-4 text-sm text-gray-600">
+          <p className="text-secondary mb-4 text-sm">
             Create a password to encrypt this file. You&apos;ll need this password to open the file
             later.
           </p>
 
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="text-secondary mb-1 block text-sm font-medium">
                 Password (min 4 characters)
               </label>
               <div className="relative">
@@ -801,7 +807,7 @@ export function DataBackup({
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -827,7 +833,7 @@ export function DataBackup({
                 className="text-sm"
                 placeholder="e.g., 'My birth year'"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="text-muted mt-1 text-xs">
                 This hint will be shown when someone tries to open the file
               </p>
             </div>
@@ -837,7 +843,7 @@ export function DataBackup({
             <button
               type="button"
               onClick={resetExportPasswordState}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
+              className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border px-4 py-2.5 font-medium"
             >
               Cancel
             </button>
@@ -863,34 +869,34 @@ export function DataBackup({
         <div className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2">
-                <Lock className="h-6 w-6 text-blue-600" />
+              <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-950/60">
+                <Lock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Password Required</h3>
+              <h3 className="text-main text-lg font-bold">Password Required</h3>
             </div>
             <button
               type="button"
               onClick={cancelImportPasswordModal}
               aria-label="Close modal"
-              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <p className="mb-4 text-sm text-gray-600">
+          <p className="text-secondary mb-4 text-sm">
             This file is password-protected. Enter the password to decrypt and load the data.
           </p>
 
           {encryptionHint && (
-            <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:border dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
               <strong>💡 Hint:</strong> {encryptionHint}
             </div>
           )}
 
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+              <label className="text-secondary mb-1 block text-sm font-medium">Password</label>
               <div className="relative">
                 <Input
                   type={showImportPassword ? "text" : "password"}
@@ -909,7 +915,7 @@ export function DataBackup({
                   type="button"
                   onClick={() => setShowImportPassword(!showImportPassword)}
                   aria-label={showImportPassword ? "Hide password" : "Show password"}
-                  className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2"
                 >
                   {showImportPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -925,7 +931,7 @@ export function DataBackup({
             <button
               type="button"
               onClick={cancelImportPasswordModal}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
+              className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border px-4 py-2.5 font-medium"
             >
               Cancel
             </button>

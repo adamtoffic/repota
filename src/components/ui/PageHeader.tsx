@@ -18,12 +18,12 @@ export function PageHeader({
   variant = "solid",
   hideOnDesktop = false,
 }: PageHeaderProps) {
-  const bgClass = variant === "transparent" ? "bg-white/95 backdrop-blur-sm" : "bg-white";
-  const safeAreaBg = variant === "transparent" ? "bg-white/95" : "bg-white";
+  const bgClass = variant === "transparent" ? "bg-surface/95 backdrop-blur-sm" : "bg-surface";
+  const safeAreaBg = variant === "transparent" ? "bg-surface/95" : "bg-surface";
 
   return (
     <nav
-      className={`sticky top-0 z-30 border-b border-gray-200 shadow-sm ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
+      className={`border-border sticky top-0 z-30 border-b shadow-sm ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
     >
       {/* Safe area spacer for notch/dynamic island */}
       <div className={`safe-top ${safeAreaBg}`} />

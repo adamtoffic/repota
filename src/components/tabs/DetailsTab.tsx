@@ -77,7 +77,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       {/* 1. IDENTITY CARD (Photo + Basic Info Combined) */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-6 sm:flex-row">
           {/* PHOTO COLUMN (Left on Desktop, Top on Mobile) */}
           <div className="flex flex-col items-center gap-2 sm:w-1/3">
@@ -112,7 +112,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
               <div>
                 <label
-                  className="mb-1 block text-xs font-bold text-gray-700 uppercase"
+                  className="text-secondary mb-1 block text-xs font-bold uppercase"
                   data-record="true"
                 >
                   Gender
@@ -123,8 +123,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
                     onClick={() => handleGenderChange("Male")}
                     className={`flex-1 rounded-lg border-2 px-2 py-2 text-xs font-semibold transition-all sm:px-3 sm:py-2.5 sm:text-sm ${
                       formData.gender === "Male"
-                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
-                        : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
+                        ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:ring-blue-800/60"
+                        : "border-border-strong bg-surface text-secondary hover:border-blue-300 dark:hover:border-blue-600"
                     }`}
                     data-record="true"
                   >
@@ -135,8 +135,8 @@ export function DetailsTab({ student, onUpdate }: Props) {
                     onClick={() => handleGenderChange("Female")}
                     className={`flex-1 rounded-lg border-2 px-2 py-2 text-xs font-semibold transition-all sm:px-3 sm:py-2.5 sm:text-sm ${
                       formData.gender === "Female"
-                        ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
-                        : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
+                        ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200 dark:bg-pink-950/60 dark:text-pink-300 dark:ring-pink-800/60"
+                        : "border-border-strong bg-surface text-secondary hover:border-pink-300 dark:hover:border-pink-600"
                     }`}
                     data-record="true"
                   >
@@ -150,9 +150,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
       </div>
 
       {/* 2. ACADEMIC STATUS */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
         <h3
-          className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800"
+          className="text-main mb-4 flex items-center gap-2 text-sm font-semibold"
           data-record="true"
         >
           📚 Academic Status
@@ -175,7 +175,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 className="pr-16 font-mono font-bold sm:pr-16"
                 placeholder="0"
               />
-              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-gray-400">
+              <span className="text-muted pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs">
                 / {settings.totalAttendanceDays || 60}
               </span>
             </div>
@@ -187,7 +187,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
             <select
               value={formData.promotionStatus}
               onChange={(e) => handleImmediateSave({ promotionStatus: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 bg-white p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:p-2"
+              className="border-border-strong bg-input text-main w-full rounded-lg border p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:p-2"
             >
               <option value="">-- Select Status --</option>
               <option value="Promoted to Next Class">Promoted</option>
@@ -200,9 +200,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
       </div>
 
       {/* 3. QUALITATIVE ASSESSMENT (Remarks) */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
         <h3
-          className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-800"
+          className="text-main mb-4 flex items-center gap-2 text-sm font-semibold"
           data-record="true"
         >
           💬 Qualitative Assessment
@@ -216,7 +216,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 <button
                   type="button"
                   onClick={() => handleImmediateSave({ conduct: getRandomConductTrait() })}
-                  className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
+                  className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline dark:text-blue-400 dark:hover:bg-blue-950/50"
                 >
                   <RefreshCw className="h-3 w-3" /> Shuffle
                 </button>
@@ -236,7 +236,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 <button
                   type="button"
                   onClick={() => handleImmediateSave({ interest: getRandomInterest() })}
-                  className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
+                  className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline dark:text-blue-400 dark:hover:bg-blue-950/50"
                 >
                   <RefreshCw className="h-3 w-3" /> Shuffle
                 </button>
@@ -264,7 +264,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                     ),
                   })
                 }
-                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-purple-600 hover:bg-purple-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline"
+                className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-purple-600 hover:bg-purple-50 active:scale-95 sm:px-0 sm:py-0 sm:hover:bg-transparent sm:hover:underline dark:text-purple-400 dark:hover:bg-purple-950/50"
               >
                 <Wand2 className="h-3 w-3" /> Smart Generate
               </button>
@@ -274,7 +274,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               placeholder="Write a custom remark..."
               value={formData.teacherRemark}
               onChange={(e) => handleImmediateSave({ teacherRemark: e.target.value })}
-              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="border-border-strong bg-input text-main placeholder:text-muted w-full resize-none rounded-lg border px-4 py-2.5 text-sm transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
             />
           </div>
         </div>
@@ -282,9 +282,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
 
       {/* 4. PRIVATE SCHOOL ADMINISTRATION & FEE TRACKING */}
       {showPrivateAdminCard && (
-        <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-4 shadow-sm sm:p-6">
+        <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-4 shadow-sm sm:p-6 dark:border-purple-800/70 dark:bg-purple-950/35">
           <h3
-            className="mb-1 flex items-center gap-2 text-sm font-semibold text-purple-950"
+            className="mb-1 flex items-center gap-2 text-sm font-semibold text-purple-950 dark:text-purple-200"
             data-record="true"
           >
             🏫 Private School Admin &amp; Fee Tracking
@@ -319,7 +319,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 aria-label="Fee Payment Status"
                 value={formData.feeStatus}
                 onChange={(e) => handleImmediateSave({ feeStatus: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:p-2"
+                className="border-border-strong bg-input text-main w-full rounded-lg border p-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 sm:p-2"
               >
                 <option value="">-- Not Tracked --</option>
                 <option value="PAID">Paid in Full</option>

@@ -84,7 +84,7 @@ function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPa
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                     isActive
                       ? "bg-primary text-white shadow-xs"
-                      : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                      : "border-border bg-surface text-secondary hover:bg-subtle border"
                   }`}
                   data-record="true"
                 >
