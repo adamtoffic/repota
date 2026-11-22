@@ -79,9 +79,6 @@ function arrayToBase64(array: Uint8Array): string {
   return btoa(chunks.join(""));
 }
 
-/**
- * Convert Base64 string to Uint8Array
- */
 function base64ToArray(base64: string): Uint8Array {
   const binary = atob(base64);
   const array = new Uint8Array(binary.length);

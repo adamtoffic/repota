@@ -28,7 +28,9 @@ import { SettingsFormContext } from "./SettingsFormContextDefinition";
 /**
  * Provides shared settings draft state, 500ms debounced auto-save, baseline tracking,
  * read-only suspension locks, and confirmation modals across Settings sections/routes.
- * Nesting is idempotent: an inner provider reuses the outer provider without duplicating timers.
+ *
+ * Mount order: must be mounted inside `DataGate` because inner state snapshots `SchoolContext.settings`
+ * on initial mount. Nesting is idempotent: an inner provider reuses the outer provider without duplicating timers.
  */
 export function SettingsFormProvider({ children }: { children: ReactNode }) {
   const existing = useContext(SettingsFormContext);

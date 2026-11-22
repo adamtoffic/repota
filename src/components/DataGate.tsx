@@ -8,6 +8,11 @@ interface DataGateProps {
   children: ReactNode;
 }
 
+/**
+ * Blocks child rendering until `SchoolProvider` completes initial storage load and renders the
+ * recovery UI on `loadError` or `isRollbackIncomplete`. Must wrap consumers that initialize
+ * local draft state from loaded settings on mount (such as `SettingsFormProvider`).
+ */
 export function DataGate({ children }: DataGateProps) {
   const {
     isDataLoaded,
