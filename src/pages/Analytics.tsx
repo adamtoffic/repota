@@ -69,6 +69,7 @@ import {
 import { processStudent } from "../utils/gradeCalculator";
 import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
 import { buildAnalyticsPdfFilename, generateBlocksPdfFile } from "../utils/pdfPrint";
+import { captureEvent } from "../utils/analytics";
 import { markPrintStarted } from "../utils/printHandler";
 import { useToast } from "../hooks/useToast";
 
@@ -325,6 +326,11 @@ export const Analytics: React.FC = () => {
       await navigator.clipboard.writeText(classStory.plainTextBrief);
       setCopiedBrief(true);
       showToast("Staff meeting brief copied to clipboard!", "success");
+      captureEvent("Class_Tool_Used", {
+        tool: "class_story_copied",
+        students_count: filteredStudents.length,
+        school_level: settings.level || "unknown",
+      });
       setTimeout(() => setCopiedBrief(false), 2000);
     } catch {
       showToast("Could not copy automatically. Please select and copy the text.", "info");
@@ -381,6 +387,11 @@ export const Analytics: React.FC = () => {
         exportAnalyticsAsPDF();
         showToast("Analytics exported as PDF", "success");
       });
+      captureEvent("Class_Tool_Used", {
+        tool: "analytics_pdf_export",
+        students_count: filteredStudents.length,
+        school_level: settings.level || "unknown",
+      });
     } catch (err) {
       console.error("Export PDF failed:", err);
       showToast("Failed to export PDF", "error");
@@ -404,6 +415,11 @@ export const Analytics: React.FC = () => {
       const filename = `Analytics_${settings.className || "Class"}_${new Date().toISOString().split("T")[0]}.csv`;
       exportAnalyticsData(exportData, filename);
       showToast(`Exported data for ${exportData.length} students`, "success");
+      captureEvent("Class_Tool_Used", {
+        tool: "analytics_csv_export",
+        students_count: exportData.length,
+        school_level: settings.level || "unknown",
+      });
     } catch (err) {
       console.error("Export data failed:", err);
       showToast("Failed to export data", "error");

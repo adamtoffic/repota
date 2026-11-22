@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Download, X, Share } from "lucide-react";
+import { captureEvent } from "../utils/analytics";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -106,11 +107,10 @@ export function PwaInstallPrompt() {
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
 
-    if (outcome === "accepted") {
-      console.log("User accepted the install prompt");
-    } else {
-      console.log("User dismissed the install prompt");
-    }
+    captureEvent("Pwa_Install_Prompt_Action", {
+      outcome,
+      platform: "chromium",
+    });
 
     // Clear the deferredPrompt
     setDeferredPrompt(null);
@@ -121,6 +121,10 @@ export function PwaInstallPrompt() {
     setShowPrompt(false);
     // Store dismissal in localStorage to not show again for a while
     localStorage.setItem("pwa-install-dismissed", Date.now().toString());
+    captureEvent("Pwa_Install_Prompt_Action", {
+      outcome: "dismissed",
+      platform: isIOSDevice && isSafari() ? "ios_instructions" : "chromium",
+    });
   };
 
   if (!showPrompt) return null;

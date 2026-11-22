@@ -21,7 +21,7 @@ import {
   formatExamWeightedAsRaw,
   updateComponentAndRecalculateClassScore,
 } from "../utils/scoreConversion";
-import { trackScoreEntrySessionOnce } from "../utils/analytics";
+import { captureEvent, trackScoreEntrySessionOnce } from "../utils/analytics";
 
 interface QuickGradebookProps {
   students: ProcessedStudent[];
@@ -178,10 +178,15 @@ export function QuickGradebook({
         csv,
         `${safeSub}_${activeTaskConfig.name.replace(/\s+/g, "_")}_${dateStamp}.csv`,
       );
-      return;
+    } else {
+      const csv = buildSubjectQuickExportCsv(activeSubject, students, settings);
+      downloadCsvFile(csv, `${safeSub}_Gradebook_${dateStamp}.csv`);
     }
-    const csv = buildSubjectQuickExportCsv(activeSubject, students, settings);
-    downloadCsvFile(csv, `${safeSub}_Gradebook_${dateStamp}.csv`);
+    captureEvent("Class_Tool_Used", {
+      tool: "gradebook_csv_export",
+      students_count: students.length,
+      school_level: settings.level || "unknown",
+    });
   };
 
   const scoredCount = columnStats.scored;
