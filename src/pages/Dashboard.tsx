@@ -401,14 +401,16 @@ export function Dashboard() {
               onFilterChange={setActiveFilter}
             />
 
-            {/* VALIDATION WARNINGS */}
-            <ValidationWarnings
-              students={students}
-              settings={settings}
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-              onReviewPending={() => setActiveFilter("PENDING")}
-            />
+            {/* VALIDATION WARNINGS (suppressed in Quick Gradebook to prevent above-table layout shifts mid-entry) */}
+            {entryViewMode !== "GRADEBOOK" && (
+              <ValidationWarnings
+                students={students}
+                settings={settings}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                onReviewPending={() => setActiveFilter("PENDING")}
+              />
+            )}
 
             <DashboardToolbar
               searchQuery={searchQuery}

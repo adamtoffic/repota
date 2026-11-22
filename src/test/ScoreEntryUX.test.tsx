@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { SubjectRow } from "../components/SubjectRow";
 import { AcademicTab } from "../components/tabs/AcademicTab";
 import { DetailsTab } from "../components/tabs/DetailsTab";
@@ -639,9 +639,178 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
 
       expect(screen.getByTestId("summary").textContent).toBe("sA:20/30|sB:45/40|sC:10/45");
     });
+
+    it("supports single-column EXAM_ONLY and CLASS_ONLY focus modes with per-column Unscored filtering", () => {
+      const initialRecords: StudentRecord[] = [
+        {
+          id: "sA",
+          name: "Student A",
+          className: "Basic 6",
+          subjects: [{ id: "mA", name: "Mathematics", classScore: 30, examScore: 0 }],
+        },
+        {
+          id: "sB",
+          name: "Student B",
+          className: "Basic 6",
+          subjects: [{ id: "mB", name: "Mathematics", classScore: 0, examScore: 40 }],
+        },
+      ];
+
+      function ColumnModeHarness() {
+        const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+        const processed = useMemo(
+          () =>
+            assignPositions(
+              assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+            ),
+          [records],
+        );
+
+        return (
+          <QuickGradebook
+            students={processed}
+            allStudents={processed}
+            sessionKey="|ALL|DEFAULT"
+            settings={testSettings}
+            onUpdateStudent={(updated) =>
+              setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+            }
+          />
+        );
+      }
+
+      render(<ColumnModeHarness />);
+
+      const columnSelect = screen.getByLabelText("Gradebook score column") as HTMLSelectElement;
+
+      // Default CLASS_EXAM shows both inputs per row
+      expect(screen.getByLabelText("Student A Class Score")).toBeInTheDocument();
+      expect(screen.getByLabelText("Student A Exam Score")).toBeInTheDocument();
+
+      // Switch to EXAM_ONLY: only Exam inputs exist in DOM (so iOS ▼ steps 1 row per tap)
+      fireEvent.change(columnSelect, { target: { value: "EXAM_ONLY" } });
+      expect(screen.queryByLabelText("Student A Class Score")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Student B Class Score")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Student A Exam Score")).toBeInTheDocument();
+      expect(screen.getByLabelText("Student B Exam Score")).toBeInTheDocument();
+      expect(screen.getByText("Avg: 80.0/100")).toBeInTheDocument();
+
+      // Unscored only in EXAM_ONLY shows only Student A (examScore === 0)
+      fireEvent.click(screen.getByRole("button", { name: /Unscored only/i }));
+      expect(screen.getByText(/Student A/)).toBeInTheDocument();
+      expect(screen.queryByText(/Student B/)).not.toBeInTheDocument();
+
+      // Switch to CLASS_ONLY: only Class inputs exist, and Unscored shows only Student B
+      fireEvent.change(columnSelect, { target: { value: "CLASS_ONLY" } });
+      expect(screen.queryByLabelText("Student B Exam Score")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Student B Class Score")).toBeInTheDocument();
+      expect(screen.queryByText(/Student A/)).not.toBeInTheDocument();
+      expect(screen.getByText("Avg: 30.0/50")).toBeInTheDocument();
+    });
+
+    it("renders iOS-safe text numeric inputs and defers Exam draft normalization until after blur", () => {
+      vi.useFakeTimers();
+      try {
+        const initialRecords: StudentRecord[] = [
+          {
+            id: "sA",
+            name: "Student A",
+            className: "Basic 6",
+            subjects: [{ id: "mA", name: "Mathematics", classScore: 20, examScore: 0 }],
+          },
+          {
+            id: "sB",
+            name: "Student B",
+            className: "Basic 6",
+            subjects: [{ id: "mB", name: "Mathematics", classScore: 25, examScore: 0 }],
+          },
+        ];
+
+        function BlurDraftHarness() {
+          const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+          const processed = useMemo(
+            () =>
+              assignPositions(
+                assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+              ),
+            [records],
+          );
+          return (
+            <QuickGradebook
+              students={processed}
+              allStudents={processed}
+              sessionKey="|ALL|DEFAULT"
+              settings={testSettings}
+              onUpdateStudent={(updated) =>
+                setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
+            />
+          );
+        }
+
+        render(<BlurDraftHarness />);
+
+        const sAClass = screen.getByLabelText("Student A Class Score") as HTMLInputElement;
+        const sAExam = screen.getByLabelText("Student A Exam Score") as HTMLInputElement;
+
+        expect(sAClass).toHaveAttribute("type", "text");
+        expect(sAClass).toHaveAttribute("inputmode", "numeric");
+        expect(sAClass).toHaveAttribute("pattern", "[0-9]*");
+        expect(sAExam).toHaveAttribute("type", "text");
+        expect(sAExam).toHaveAttribute("inputmode", "numeric");
+        expect(sAExam).toHaveAttribute("pattern", "[0-9]*");
+
+        // Non-numeric text is ignored without wiping the current value
+        fireEvent.change(sAClass, { target: { value: "20abc" } });
+        expect(sAClass.value).toBe("20");
+
+        // 89/100 converts to 45/50 (which formats back as 90); blur must NOT mutate synchronously
+        fireEvent.change(sAExam, { target: { value: "89" } });
+        expect(sAExam.value).toBe("89");
+
+        fireEvent.blur(sAExam);
+        expect(sAExam.value).toBe("89");
+
+        act(() => {
+          vi.runAllTimers();
+        });
+        expect(sAExam.value).toBe("90");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe("Dashboard stable entry & modal navigation", () => {
+    it("suppresses ValidationWarnings banners in Quick Gradebook mode to prevent above-table layout shifts", () => {
+      localStorage.setItem("repota_welcome_tour_v2", "true");
+      try {
+        const records: StudentRecord[] = [
+          {
+            id: "sA",
+            name: "Student A",
+            className: "Basic 6",
+            subjects: [{ id: "mA", name: "Mathematics", classScore: 0, examScore: 0 }],
+          },
+        ];
+        const processed = assignPositions(
+          assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+        );
+        const ctx = makeSchoolContext(processed, testSettings);
+
+        render(
+          <SchoolContext.Provider value={ctx}>
+            <Dashboard />
+          </SchoolContext.Provider>,
+        );
+
+        expect(screen.getByText(/1 student has no scores entered/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
+        expect(screen.queryByText(/1 student has no scores entered/i)).not.toBeInTheDocument();
+      } finally {
+        localStorage.removeItem("repota_welcome_tour_v2");
+      }
+    });
     it("keeps ScoreEntryModal Next/Prev and QuickGradebook navigation stable when scores change rank under AVG_DESC", () => {
       localStorage.setItem("repota_welcome_tour_v2", "true");
       try {
