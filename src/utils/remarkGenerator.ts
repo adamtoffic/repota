@@ -22,6 +22,11 @@ const getSmartRandom = (pool: string[], excludeList: string[] = []): string => {
 };
 
 // 1. TEACHER REMARK
+/**
+ * Selects a remark matching the student's score/attendance tier from `REMARK_BANK`.
+ * `EXCELLENT` requires `averageScore >= 80` and attendance `>= 90%` (`attendanceTotal <= 0` defaults to `100%`).
+ * Unknown `level` values fall back to `"PRIMARY"`; avoids entries in `excludeList` until the tier pool is exhausted.
+ */
 export const generateTeacherRemark = (
   student: ProcessedStudent,
   attendancePresent: number,
@@ -46,6 +51,11 @@ export const generateTeacherRemark = (
 };
 
 // 2. HEADMASTER REMARK
+/**
+ * Selects a headteacher remark using promotional pools when `term` contains `"third"` or `"3rd"`.
+ * Students below passing (`< 50` in promotional terms, `< 45` in normal terms) receive encouraging remarks
+ * rather than promotion wording; avoids `excludeList` until the pool is exhausted.
+ */
 export const generateHeadmasterRemark = (
   averageScore: number,
   term: AcademicPeriod,
@@ -74,6 +84,10 @@ export const generateHeadmasterRemark = (
 };
 
 // 3. ATTENDANCE RATING (For the "Attendance" box on the report)
+/**
+ * Maps attendance percentage to report labels:
+ * `>= 95` `"Exemplary"`, `>= 80` `"Satisfactory"`, `>= 70` `"Fair"`, `< 70` `"Irregular"`.
+ */
 export const generateAttendanceRating = (attendancePercentage: number): string => {
   if (attendancePercentage >= 95) return "Exemplary";
   if (attendancePercentage >= 80) return "Satisfactory";

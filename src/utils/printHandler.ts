@@ -3,8 +3,13 @@
 
 import { triggerHaptic } from "./iosInteraction";
 
+/** Custom window event read by `AppContent` (`src/App.tsx`) to suppress visibility-change PIN locking while the native print dialog is open. */
 export const PRINT_STARTED_EVENT = "repota:print-started";
 
+/**
+ * Broadcasts `PRINT_STARTED_EVENT` before calling `window.print()` so returning from the system
+ * print dialog does not immediately trigger the inactivity/visibility PIN lock on mobile PWAs.
+ */
 export const markPrintStarted = () => {
   window.dispatchEvent(new Event(PRINT_STARTED_EVENT));
 };
@@ -38,7 +43,8 @@ export const createPrintHandler = (haptic: boolean = true) => {
 };
 
 /**
- * For keyboard accessibility
+ * Keyboard print trigger (`Enter`/`Space`) that dispatches `beforeprint`, waits 100ms for
+ * lazy report views to render, then calls `markPrintStarted()` and `window.print()`.
  */
 export const createKeyboardPrintHandler = () => {
   return (e: React.KeyboardEvent) => {

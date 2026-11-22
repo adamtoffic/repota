@@ -18,6 +18,7 @@ export type PrintMode = "color" | "bw";
 export interface ClassScoreComponent {
   id: string;
   name: string;
+  /** Raw component score on `0..maxScore`; proportionally scaled into `SavedSubject.classScore` by `updateComponentAndRecalculateClassScore`. */
   score: number;
   maxScore: number; // Maximum possible score for this component
   category?: AssessmentCategory;
@@ -34,9 +35,15 @@ export interface ClassScoreComponentConfig {
 export interface SavedSubject {
   id: string;
   name: string;
+  /** Weighted class score on `0..SchoolSettings.classScoreMax` (recomputed from `classScoreComponents` when present). */
   classScore: number;
+  /**
+   * Stored weighted on `0..SchoolSettings.examScoreMax` (not raw `0..100`).
+   * Convert UI/CSV inputs via `convertExamRawToWeighted` and `formatExamWeightedAsRaw`.
+   */
   examScore: number;
-  classScoreComponents?: ClassScoreComponent[]; // Optional breakdown of class score - subject-specific!
+  /** Optional subject-specific SBA breakdown; when present, drives `classScore` proportionally. */
+  classScoreComponents?: ClassScoreComponent[];
 }
 
 export type FeeStatus = "PAID" | "PART_PAID" | "OWING" | "SCHOLARSHIP";
@@ -50,15 +57,17 @@ export interface PrivateFeeItem {
 }
 
 export interface StudentRecord {
+  /** UUID for real student records; sample records created by `loadDemoData` use a `demo-` prefix. */
   id: string;
   name: string;
   className: string;
   dateOfBirth?: string;
-  gender: "Male" | "Female"; // Required field
+  gender: "Male" | "Female";
   attendancePresent?: number;
   teacherRemark?: string;
   conduct?: string;
   interest?: string;
+  /** Inline data URL in memory and backups; persisted to IndexedDB as an `idb-blob://` reference by `idbStorage.ts`. */
   pictureUrl?: string;
   promotionStatus?: string;
 
@@ -78,6 +87,7 @@ export interface SchoolSettings {
   phoneNumber?: string;
   address?: string;
   email?: string;
+  /** Inline data URL in memory and backups; offloaded to IndexedDB media-blob storage (`idb-blob://`) on save. */
   logoUrl?: string;
 
   academicYear: string;
@@ -88,25 +98,31 @@ export interface SchoolSettings {
   headTeacherName?: string;
   classTeacherName?: string;
   totalAttendanceDays?: number;
+  /** GES class-score weighting cap (e.g., 30, 40, or 50); paired with `examScoreMax` to form the 100-point report scale. */
   classScoreMax: number;
+  /** GES exam-score weighting cap (e.g., 70, 60, or 50); paired with `classScoreMax` to form the 100-point report scale. */
   examScoreMax: number;
   classSize?: number;
 
+  /** Inline data URL in memory and backups; offloaded to IndexedDB media-blob storage (`idb-blob://`) on save. */
   headTeacherSignature?: string;
+  /** Inline data URL in memory and backups; offloaded to IndexedDB media-blob storage (`idb-blob://`) on save. */
   teacherSignature?: string;
 
   defaultSubjects: string[];
 
-  // Component library - templates that can be added to individual subjects
+  /** Reusable SBA component templates available for assignment across subjects. */
   componentLibrary?: ClassScoreComponentConfig[];
 
-  // Subject-component mapping - which components each subject uses
+  /** Active SBA components keyed by subject name; propagated to existing students via `syncSubjectComponentsFromSettings`. */
   subjectComponentMap?: Record<string, ClassScoreComponentConfig[]>;
 
-  // Private school fees (legacy fields kept for backward compatibility)
-  schoolGift?: number; // Termly school fees
-  canteenFees?: number; // Daily canteen fees
-  firstAidFees?: number; // Termly first aid fees
+  /** @deprecated Legacy private-school fee field retained for backup compatibility. Use `privateFeeItems`. */
+  schoolGift?: number;
+  /** @deprecated Legacy private-school fee field retained for backup compatibility. Use `privateFeeItems`. */
+  canteenFees?: number;
+  /** @deprecated Legacy private-school fee field retained for backup compatibility. Use `privateFeeItems`. */
+  firstAidFees?: number;
 
   // Customizable 3-slot private school items & toggles
   privateFeeItems?: PrivateFeeItem[];
@@ -116,22 +132,26 @@ export interface SchoolSettings {
 
   // Report Card Display & Brand Customization
   templateId?: string; // ID of the selected report template
-  showClassPosition?: boolean; // Toggle overall class rank on report cards (default: true)
-  showSubjectPosition?: boolean; // Toggle per-subject rank column on report cards (default: true)
+  /** Toggles overall class rank on report cards (defaults to `true` when omitted). */
+  showClassPosition?: boolean;
+  /** Toggles per-subject rank column on report cards (defaults to `true` when omitted). */
+  showSubjectPosition?: boolean;
   useCustomTemplateColor?: boolean; // Apply school's custom colors to templates
   primaryColor?: string; // Hex color e.g. #1e3a8a
   accentColor?: string; // Hex accent color e.g. #fcd34d
 
   examType?: ExamType; // Whether this is a standard termly exam or a mock exam
 
-  // Security settings
-  autoLockTimeout?: number; // Minutes of inactivity before auto-lock (default: 5)
+  /** Inactivity timeout in minutes before PIN lock engages (default: `5`). */
+  autoLockTimeout?: number;
 }
 
 export interface ProcessedSubject extends SavedSubject {
+  /** Weighted sum `classScore + examScore` on the 0–100 report scale. */
   totalScore: number;
   grade: Grade;
   remark: string;
+  /** Ordinal rank (e.g., `"1st"`); populated only after `assignSubjectPositions` runs. */
   subjectPosition?: string;
 }
 
@@ -141,8 +161,10 @@ export interface ProcessedStudent extends Omit<StudentRecord, "subjects"> {
 
   averageScore: number;
   totalScore: number;
+  /** Ordinal rank populated by `assignPositions`; initialized to `"pending..."` by `processStudent`. */
   classPosition: string;
   teacherRemark?: string;
+  /** GES aggregate score (lower is better); `null` for `KG` or students with no subjects. */
   aggregate: number | null;
 }
 

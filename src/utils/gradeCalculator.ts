@@ -7,6 +7,16 @@ import type {
   ProcessedStudent,
 } from "../types";
 
+/**
+ * Maps a weighted 0–100 subject total to the GES grade and remark for `level`.
+ *
+ * - `KG`: `GOLD` / `SILVER` / `BRONZE`
+ * - `PRIMARY`: `1`–`5`
+ * - `JHS`: `1`–`9`
+ * - `SHS`: `A1`–`F9`
+ *
+ * Unknown levels fall back to `{ grade: "F9", remark: "Invalid Level" }`.
+ */
 export const calculateGrade = (
   total: number,
   level: SchoolLevel,
@@ -63,6 +73,11 @@ const calculateSHSGrade = (total: number): { grade: Grade; remark: string } => {
   return { grade: "F9", remark: "Fail" };
 };
 
+/**
+ * Identifies core subjects using level-specific name substring matching.
+ * SHS requires `"core"` alongside `"math"` and `"integrated"` alongside `"science"`
+ * so Elective Maths and Elective Sciences remain classified as electives; `PRIMARY` and `JHS` match broadly.
+ */
 const isCoreSubject = (name: string, level: SchoolLevel): boolean => {
   const n = name.toLowerCase();
 
@@ -109,6 +124,13 @@ const gradeToNumber = (grade: Grade): number => {
   return map[grade as string] || 9; // Default to 9 (Fail) if unknown
 };
 
+/**
+ * Computes the GES aggregate score (lower is better) for a processed subject list:
+ * - `KG` or empty subjects: `null`
+ * - `PRIMARY`: 3 cores (English, Math, Science) + best 3 electives
+ * - `JHS`: 4 cores (English, Math, Science, Social) + best 2 electives
+ * - `SHS`: English + Core Math + best of Integrated Science/Social + best 3 electives
+ */
 const calculateAggregate = (subjects: ProcessedSubject[], level: SchoolLevel): number | null => {
   // KG and students with no subjects DO NOT produce an aggregate
   if (level === "KG" || subjects.length === 0) return null;
@@ -183,6 +205,11 @@ const calculateAggregate = (subjects: ProcessedSubject[], level: SchoolLevel): n
   return null;
 };
 
+/**
+ * Enriches a raw `StudentRecord` with per-subject totals/grades, rounded 2-decimal `averageScore`,
+ * computed `aggregate`, and `age` derived from `dateOfBirth` against today's date.
+ * Initializes `classPosition` to `"pending..."` until `assignPositions` runs across the class.
+ */
 export const processStudent = (student: StudentRecord, level: SchoolLevel): ProcessedStudent => {
   let totalScoreSum = 0;
   const subjectsSafe = student.subjects || [];
@@ -227,6 +254,10 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
   };
 };
 
+/**
+ * Returns a new array sorted descending by `averageScore` with `classPosition` ordinals populated
+ * using standard competition tie-breaking (`1st`, `1st`, `3rd`). Does not mutate the input array.
+ */
 export const assignPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
   // 1. Sort High to Low
   const sorted = [...students].sort((a, b) => b.averageScore - a.averageScore);
@@ -259,6 +290,10 @@ const getOrdinalSuffix = (i: number): string => {
 };
 
 // ✅ NEW: Helper to calculate Subject Positions
+/**
+ * Returns a new student array with `subjectPosition` ordinals populated per subject
+ * from `totalScore` across students taking that subject, using competition tie-breaking (`1st`, `1st`, `3rd`).
+ */
 export const assignSubjectPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
   // 1. Get a list of all unique subject names across all students
   const allSubjectNames = Array.from(

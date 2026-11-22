@@ -1,7 +1,8 @@
 import type { ClassScoreComponent } from "../types";
 
 /**
- * Clamp and convert a raw 0-100 exam score into the weighted exam component.
+ * Clamps a raw `0–100` exam score and converts it into the weighted `0..maxExamScore` scale.
+ * Non-finite inputs coerce to `0`. `wasClamped` is `true` only when `rawScore > 100` (not `< 0`).
  */
 export function convertExamRawToWeighted(
   rawScore: number,
@@ -15,7 +16,9 @@ export function convertExamRawToWeighted(
 }
 
 /**
- * Convert stored weighted examScore back to the 0-100 display scale.
+ * Converts a stored weighted `examScore` back to a rounded `0–100` display string.
+ *
+ * @returns Rounded `0–100` string, or `""` when `examScore` is `0`/falsy or `maxExamScore <= 0`.
  */
 export function formatExamWeightedAsRaw(examScore: number, maxExamScore: number): string {
   if (!examScore || maxExamScore <= 0) return "";
@@ -23,7 +26,8 @@ export function formatExamWeightedAsRaw(examScore: number, maxExamScore: number)
 }
 
 /**
- * Clamp a direct class score against the configured classScoreMax.
+ * Clamps and rounds a direct class score against `0..maxClassScore`.
+ * Non-finite inputs coerce to `0`; `wasClamped` is `true` only when `rawScore > maxClassScore`.
  */
 export function clampDirectClassScore(
   rawScore: number,
@@ -36,7 +40,8 @@ export function clampDirectClassScore(
 }
 
 /**
- * Update a single SBA class score component and recompute the weighted classScore total.
+ * Clamps one SBA class-score component to `0..comp.maxScore`, returns a new component array,
+ * and scales the combined component percentage proportionally onto `0..maxClassScore` (`Math.round`).
  */
 export function updateComponentAndRecalculateClassScore(
   components: ClassScoreComponent[],

@@ -18,6 +18,10 @@ const compatibleSubjectSchema = z.object({
   }).passthrough()).optional(),
 }).passthrough();
 
+/**
+ * Permissive `.passthrough()` schema used to accept older or forward-compatible student backups
+ * without stripping unknown fields. Strict current-schema anomalies are counted separately for warnings.
+ */
 export const compatibleStudentSchema = z.object({
   id: z.string().min(1, "Invalid student ID"),
   name: z.string().min(1, "Student name required"),
@@ -41,6 +45,10 @@ export const compatibleStudentSchema = z.object({
   headmasterRemark: z.string().optional(),
 }).passthrough();
 
+/**
+ * Permissive `.passthrough()` schema used after `DEFAULT_SETTINGS` backfilling to preserve
+ * unknown/legacy keys while validating structural settings fields required by the app.
+ */
 export const structuralSettingsSchema = z.object({
   schoolName: z.string(),
   className: z.string().optional(),
@@ -129,6 +137,11 @@ function structuralError(
   return new Error(`${prefix}: ${result.error.issues[0]?.message}`);
 }
 
+/**
+ * Merges incoming settings over `DEFAULT_SETTINGS` and validates against `structuralSettingsSchema`.
+ *
+ * @throws {Error} When required structural settings fields are missing or invalid.
+ */
 export function mergeSettings(settings: Record<string, unknown>) {
   const merged = { ...getDefaultSettings(), ...settings };
   const result = structuralSettingsSchema.safeParse(merged);
@@ -142,6 +155,11 @@ export type ValidatedBackup = {
   warningCount: number;
 };
 
+/**
+ * Thrown by `importBackupAtomically` when an import write fails mid-way and restoring the
+ * previous snapshot could not be guaranteed. Callers must keep persistence suspended and
+ * surface recovery UI (`markIncompleteRollback`).
+ */
 export class IncompleteRollbackError extends Error {
   constructor(options?: ErrorOptions) {
     super(
@@ -152,6 +170,16 @@ export class IncompleteRollbackError extends Error {
   }
 }
 
+/**
+ * Validates a parsed `.repota` or JSON backup in two tiers:
+ * 1. Structural compatibility (`compatibleStudentSchema`, `structuralSettingsSchema`) — throws if broken.
+ * 2. Strict current-schema check (`studentRecordSchema`, `schoolSettingsSchema`) — counts anomalies in
+ *    `warningCount` without blocking legacy imports.
+ *
+ * Missing settings keys are backfilled from `DEFAULT_SETTINGS` via `mergeSettings`.
+ *
+ * @throws {Error} When the root payload, any student record, or merged settings fail structural validation.
+ */
 export function validateBackup(data: unknown) {
   if (!data || typeof data !== "object") {
     throw new Error("Backup must be a JSON object.");
@@ -186,6 +214,17 @@ export function createBackupPayload(students: unknown[], settings: Record<string
   };
 }
 
+/**
+ * Replaces persisted students and settings in storage, rolling back if a two-step write fails mid-way.
+ *
+ * Callers must suspend debounced auto-persistence (`suspendPersistence`) and wait for startup
+ * migration (`waitForMigration`) before invoking this.
+ *
+ * @param allowUnreadableCurrent - Set `true` only during corruption recovery when existing storage cannot be read.
+ * @param saveBatch - Preferred single-transaction multi-key writer; falls back to sequential `save` + rollback when omitted.
+ * @throws {IncompleteRollbackError} When writing fails and restoring the prior snapshot could not be verified.
+ * @throws {Error} When backup validation fails, existing storage is unreadable (`allowUnreadableCurrent` is `false`), or an initial write fails cleanly with nothing changed.
+ */
 export async function importBackupAtomically(
   backup: unknown,
   load: <T>(key: string) => Promise<StorageLoadResult<T>>,

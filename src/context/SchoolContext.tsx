@@ -45,7 +45,9 @@ import {
 import { ConfirmModal } from "../components/ConfirmModal";
 import { setUnsavedChanges } from "../utils/preloadErrorHandler";
 
+/** Maximum wait before startup storage hydration fails over to recovery UI. */
 export const LOAD_TIMEOUT_MS = 10_000;
+/** Maximum wait before `waitForMigration` rejects during backup import or fresh recovery. */
 export const MIGRATION_WAIT_TIMEOUT_MS = 10_000;
 type LoadKeyStatus = "ok" | "error";
 type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
@@ -57,6 +59,12 @@ const DEFAULT_FACTORY_SETTINGS: SchoolSettings = {
   subjectComponentMap: {},
 };
 
+/**
+ * Root school state provider that hydrates students and settings from IndexedDB (running
+ * startup `localStorage` migration when needed), persists updates via a 500ms debounce,
+ * cancels unstarted `"fresh"` recovery flows when `isLocked` activates, and publishes both
+ * split slice contexts and the combined `SchoolContext` to limit consumer re-renders.
+ */
 export function SchoolProvider({
   children,
   isLocked = false,
