@@ -223,7 +223,7 @@ export function ScrollButton({
       className={`fixed right-4 z-30 flex flex-col items-end gap-1.5 transition-all duration-200 md:right-6 print:hidden ${bottomPositionClass} ${visibilityClass}`}
     >
       {statusLabel && (
-        <div className="border-border-strong/80 bg-surface/90 text-secondary dark:bg-elevated/90 rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-tight tabular-nums shadow-md backdrop-blur-md dark:shadow-[0_6px_20px_rgba(0,0,0,0.45),inset_0_1px_0_0_rgba(255,255,255,0.08)]">
+        <div className="text-secondary rounded-full border border-white/80 bg-white/75 px-2.5 py-1 text-[11px] font-bold tracking-tight tabular-nums shadow-[0_6px_20px_rgba(15,23,42,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:bg-[#131926]/75 dark:shadow-[0_8px_24px_rgba(0,0,0,0.55),inset_0_1px_0.5px_rgba(255,255,255,0.18)]">
           {statusLabel}
         </div>
       )}
@@ -231,7 +231,7 @@ export function ScrollButton({
       <div
         role="group"
         aria-label="Quick scroll navigation"
-        className="border-border-strong/80 bg-surface/90 dark:bg-elevated/85 flex w-10 flex-col items-center overflow-hidden rounded-full border p-0.5 shadow-[0_8px_24px_rgba(15,23,42,0.14)] backdrop-blur-md dark:shadow-[0_10px_28px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.08)]"
+        className="flex w-10 flex-col items-center overflow-hidden rounded-full border border-white/80 bg-white/75 p-0.5 shadow-[0_8px_28px_rgba(15,23,42,0.14),inset_0_1px_1px_rgba(255,255,255,0.95)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:bg-[#131926]/75 dark:shadow-[0_12px_32px_rgba(0,0,0,0.6),inset_0_1px_0.5px_rgba(255,255,255,0.18)]"
       >
         <button
           type="button"

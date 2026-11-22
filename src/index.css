@@ -218,12 +218,12 @@ body.modal-open {
       env(safe-area-inset-left);
   }
 
-  /* Bottom navigation bar clearance for standalone PWAs (4rem nav + 1rem gap + safe-area-inset-bottom) */
+  /* Bottom navigation bar clearance for standalone PWAs (60px floating dock + gaps + safe-area-inset-bottom) */
   .bottom-safe-nav {
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
   .pb-safe-nav {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
   @media (min-width: 768px) {
     .bottom-safe-nav {

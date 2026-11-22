@@ -73,6 +73,7 @@ export function AppShell({ children }: AppShellProps) {
     { to: "/analytics" as const, label: "Analytics", icon: BarChart3, isActive: isAnalyticsActive },
     { to: "/settings" as const, label: "Settings", icon: Settings, isActive: isSettingsActive },
   ];
+  const activePrimaryIndex = primaryItems.findIndex((item) => item.isActive);
 
   return (
     <div className="bg-background min-h-screen">
@@ -202,12 +203,21 @@ export function AppShell({ children }: AppShellProps) {
       {/* Persistent Auto-Save Indicator (isolated leaf so save ticks never re-render AppShell) */}
       <ConnectedAutoSaveIndicator />
 
-      {/* Mobile Bottom Navigation Bar */}
+      {/* Mobile Floating Liquid Glass Bottom Navigation Bar */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="safe-bottom border-border/80 bg-surface/95 fixed inset-x-0 bottom-0 z-40 transform-gpu rounded-t-3xl border-t shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden dark:shadow-[0_-8px_30px_rgba(0,0,0,0.45)] print:hidden"
+        className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 md:hidden print:hidden"
       >
-        <div className="mx-auto grid h-16 max-w-md grid-cols-4 px-2">
+        <div className="pointer-events-auto relative mx-auto mb-2.5 grid h-[60px] max-w-[380px] transform-gpu grid-cols-4 items-center rounded-full border border-white/80 bg-white/72 p-1.5 shadow-[0_8px_32px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.06),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-1px_1px_rgba(15,23,42,0.05)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:bg-[#131926]/72 dark:shadow-[0_12px_36px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.35)]">
+          {activePrimaryIndex >= 0 && (
+            <div className="pointer-events-none absolute inset-1.5" aria-hidden="true">
+              <div
+                className="h-full w-1/4 rounded-full bg-slate-900/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_1px_3px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/[0.05] transition-transform duration-300 ease-[cubic-bezier(0.32,1.18,0.42,1)] motion-reduce:transition-none dark:bg-white/[0.12] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.22),0_2px_8px_rgba(0,0,0,0.25)] dark:ring-white/[0.10]"
+                style={{ transform: `translateX(${activePrimaryIndex * 100}%)` }}
+              />
+            </div>
+          )}
+
           {primaryItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -217,22 +227,18 @@ export function AppShell({ children }: AppShellProps) {
                 preload={false}
                 aria-current={item.isActive ? "page" : undefined}
                 onClick={() => triggerHaptic("light")}
-                className={`group flex touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl py-1 text-[11px] select-none ${
-                  item.isActive ? "text-primary-text font-bold" : "text-muted font-medium"
+                className={`relative z-10 flex h-full touch-manipulation flex-col items-center justify-center gap-0.5 rounded-full text-[11px] leading-none transition-transform duration-150 select-none active:scale-95 ${
+                  item.isActive
+                    ? "text-primary-text font-bold"
+                    : "text-secondary/80 dark:text-muted font-medium"
                 }`}
                 data-record="true"
               >
-                <span
-                  className={`spring-tab pointer-events-none flex h-7 w-12 items-center justify-center rounded-full group-active:scale-95 ${
-                    item.isActive
-                      ? "text-primary-text -translate-y-0.5 scale-105 bg-blue-100/90 shadow-xs dark:bg-blue-950/70"
-                      : ""
+                <Icon
+                  className={`pointer-events-none h-5 w-5 transition-transform duration-200 ${
+                    item.isActive ? "scale-105 stroke-[2.4]" : "stroke-[1.9]"
                   }`}
-                >
-                  <Icon
-                    className={`pointer-events-none h-5 w-5 ${item.isActive ? "stroke-[2.5]" : "stroke-2"}`}
-                  />
-                </span>
+                />
                 <span className="pointer-events-none">{item.label}</span>
               </Link>
             );
