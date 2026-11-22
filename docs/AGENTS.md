@@ -6,3 +6,4 @@ Rules for every task:
 - Before finishing: npm run lint, npx tsc -b, npm test -- --run.
 - Commit when each goal is done, with a clear message.
 - Write docs/reports/<task>.md: what changed, why, what you verified, what you could NOT verify, and a "Summary for reviewer" of max 10 lines.
+- JSDoc: Document non-obvious invariants, units, preconditions, and @throws on exported types, core utils, and context contracts; never restate TypeScript types. See docs/jsdoc-conventions.md.

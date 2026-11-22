@@ -108,6 +108,7 @@ repota/
 - **Functional Components**: No class components
 - **ESLint**: Run `npm run lint` before committing
 - **Prettier**: Run `npm run format` before committing
+- **JSDoc**: Document non-obvious domain invariants, units, preconditions, and failure modes on core types/utils/contexts; avoid boilerplate that repeats TypeScript types (see [docs/jsdoc-conventions.md](docs/jsdoc-conventions.md))
 
 ### Testing
 
