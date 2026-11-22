@@ -334,8 +334,8 @@ export function QuickGradebook({
 
   if (availableSubjects.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <BookOpen className="mx-auto mb-3 h-8 w-8 text-gray-400" />
+      <div className="border-border bg-surface rounded-xl border p-8 text-center shadow-sm">
+        <BookOpen className="text-muted mx-auto mb-3 h-8 w-8" />
         <h3 className="text-main text-base font-bold" data-record="true">
           No Subjects Configured
         </h3>
@@ -347,30 +347,30 @@ export function QuickGradebook({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
       {/* Header Controls */}
-      <div className="border-b border-gray-100 p-4 sm:p-5">
+      <div className="border-border-subtle border-b p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <TableProperties className="text-primary h-5 w-5" />
+              <TableProperties className="text-primary-text h-5 w-5" />
               <h2 className="text-main text-lg font-bold" data-record="true">
                 Quick Gradebook
               </h2>
               <span
                 className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${
                   isMockExam
-                    ? "border-amber-200 bg-amber-50 text-amber-800"
-                    : "border-indigo-200 bg-indigo-50 text-indigo-700"
+                    ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300"
+                    : "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-950/60 dark:text-indigo-300"
                 }`}
               >
                 {isMockExam ? "Mock (0/100)" : `Termly (${maxClassScore}/${maxExamScore})`}
               </span>
-              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
                 {scoredCount}/{students.length} scored
               </span>
               {scoredCount > 0 && columnStats.avgLabel && (
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                   {columnStats.avgLabel}
                 </span>
               )}
@@ -388,7 +388,7 @@ export function QuickGradebook({
                 setPinnedStudentIds(new Set());
                 setSelectedSubject(e.target.value);
               }}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-800 shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border-border-strong bg-input text-main rounded-lg border px-3 py-2 text-sm font-bold shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               {availableSubjects.map((subjectName) => (
                 <option key={subjectName} value={subjectName}>
@@ -405,7 +405,7 @@ export function QuickGradebook({
                   setPinnedStudentIds(new Set());
                   setFocusColumn(e.target.value as FocusColumn);
                 }}
-                className="rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-800 shadow-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                className="rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-800 shadow-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm dark:border-purple-700/70 dark:bg-purple-950/60 dark:text-purple-200"
               >
                 <option value="CLASS_EXAM">Class &amp; Exam (/100)</option>
                 {sbaTaskOptions.map((task) => (
@@ -425,8 +425,8 @@ export function QuickGradebook({
               }}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold shadow-xs transition-colors ${
                 unscoredOnly
-                  ? "border-amber-500 bg-amber-50 text-amber-900"
-                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
+                  : "border-border-strong bg-surface text-secondary hover:bg-subtle"
               }`}
               data-record="true"
             >
@@ -435,7 +435,9 @@ export function QuickGradebook({
               {unscoredCount > 0 && (
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    unscoredOnly ? "bg-amber-200 text-amber-950" : "bg-gray-100 text-gray-700"
+                    unscoredOnly
+                      ? "bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-100"
+                      : "bg-subtle text-secondary"
                   }`}
                 >
                   {unscoredCount}
@@ -452,7 +454,7 @@ export function QuickGradebook({
                     ? `Export ${activeTaskConfig.name} scores to CSV`
                     : `Export ${activeSubject} scores to CSV`
                 }
-                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-xs transition-colors hover:bg-emerald-100"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-xs transition-colors hover:bg-emerald-100 dark:border-emerald-700/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-950/80"
               >
                 <Download className="h-3.5 w-3.5" />
                 <span>{activeTaskConfig ? "Export Task CSV" : "Export CSV"}</span>
@@ -465,7 +467,7 @@ export function QuickGradebook({
                 onClick={() =>
                   onOpenScoreImport(activeSubject, activeComponentName ?? undefined)
                 }
-                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-700 shadow-xs transition-colors hover:bg-purple-50"
+                className="bg-surface inline-flex items-center gap-1.5 rounded-lg border border-purple-300 px-3 py-2 text-xs font-bold text-purple-700 shadow-xs transition-colors hover:bg-purple-50 dark:border-purple-700/70 dark:text-purple-300 dark:hover:bg-purple-950/50"
               >
                 <Upload className="h-3.5 w-3.5" />
                 <span>Import</span>
@@ -476,7 +478,7 @@ export function QuickGradebook({
       </div>
 
       {/* Gradebook Rows */}
-      <div className="divide-y divide-gray-100">
+      <div className="divide-border-subtle divide-y">
         {unscoredOnly && visibleStudents.length === 0 ? (
           <div className="px-4 py-10 text-center sm:px-6">
             <p className="text-main text-sm font-bold" data-record="true">
@@ -491,7 +493,7 @@ export function QuickGradebook({
                 setPinnedStudentIds(new Set());
                 setUnscoredOnly(false);
               }}
-              className="text-primary hover:text-primary/80 mt-3 text-xs font-bold hover:underline"
+              className="text-primary-text hover:text-primary-text/80 mt-3 text-xs font-bold hover:underline"
             >
               Show All Students
             </button>
@@ -515,7 +517,7 @@ export function QuickGradebook({
                 <button
                   type="button"
                   onClick={() => handleAddSubjectToStudent(student)}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-950/80"
                 >
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span>Add Subject</span>
@@ -543,7 +545,7 @@ export function QuickGradebook({
           return (
             <div
               key={student.id}
-              className="flex flex-col gap-2.5 px-4 py-3 transition-colors hover:bg-gray-50/70 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              className="hover:bg-subtle/60 flex flex-col gap-2.5 px-4 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
               {/* Student Identity */}
               <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
@@ -552,16 +554,18 @@ export function QuickGradebook({
                     {index + 1}. {student.name}
                   </p>
                   <div className="mt-0.5 flex items-center gap-2 text-xs">
-                    <span className="font-semibold text-gray-600">{total} total</span>
+                    <span className="text-muted font-semibold tabular-nums">{total} total</span>
                     <span
                       className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${
-                        total < 50 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                        total < 50
+                          ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
+                          : "bg-green-100 text-green-700 dark:bg-emerald-950/60 dark:text-emerald-300"
                       }`}
                     >
                       {grade}
                     </span>
                     {!isMockExam && hasComponents && (
-                      <span className="text-[11px] font-medium text-purple-700">
+                      <span className="text-[11px] font-medium text-purple-700 tabular-nums dark:text-purple-400">
                         Class: {subject.classScore}/{maxClassScore}
                       </span>
                     )}
@@ -573,7 +577,7 @@ export function QuickGradebook({
                     type="button"
                     onClick={() => onOpenStudent(student)}
                     aria-label={`Open ${student.name} details`}
-                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    className="text-muted hover:bg-subtle hover:text-main rounded-lg p-2"
                     title="Open full score sheet"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -586,7 +590,7 @@ export function QuickGradebook({
                 {activeComponentName ? (
                   activeComponent ? (
                     <label className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold text-purple-700 uppercase">
+                      <span className="text-[10px] font-bold text-purple-700 uppercase dark:text-purple-300">
                         {activeComponent.name} (/{activeComponent.maxScore})
                       </span>
                       <input
@@ -627,11 +631,11 @@ export function QuickGradebook({
                             focusAdjacentStudentInput("comp", index, -1);
                           }
                         }}
-                        className="w-24 rounded-lg border border-purple-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                        className="bg-input text-main placeholder:text-muted w-24 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                       />
                     </label>
                   ) : (
-                    <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                    <span className="border-border bg-subtle text-muted rounded-lg border px-3 py-2 text-xs">
                       Not configured
                     </span>
                   )
@@ -640,7 +644,7 @@ export function QuickGradebook({
                     {!isMockExam && !hasComponents && (
                       <label className="flex flex-col items-center gap-0.5">
                         <span
-                          className="text-[10px] font-bold text-gray-500 uppercase"
+                          className="text-muted text-[10px] font-bold uppercase"
                           data-record="true"
                         >
                           Class (/{maxClassScore})
@@ -678,14 +682,14 @@ export function QuickGradebook({
                               focusAdjacentStudentInput("class", index, -1);
                             }
                           }}
-                          className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                         />
                       </label>
                     )}
 
                     <label className="flex flex-col items-center gap-0.5">
                       <span
-                        className="text-[10px] font-bold text-gray-500 uppercase"
+                        className="text-muted text-[10px] font-bold uppercase"
                         data-record="true"
                       >
                         {isMockExam ? "Score (/100)" : "Exam (/100)"}
@@ -744,7 +748,7 @@ export function QuickGradebook({
                             focusAdjacentStudentInput("exam", index, -1);
                           }
                         }}
-                        className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                       />
                     </label>
                   </>

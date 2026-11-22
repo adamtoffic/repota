@@ -8,9 +8,9 @@ interface Props {
 
 export function EmptyState({ onAddStudent, onImport, onLoadDemo }: Props) {
   return (
-    <div className="animate-fade-in mt-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-white px-5 py-10 text-center shadow-sm sm:mt-4 sm:px-8 sm:py-16">
-      <div className="bg-primary/10 mb-4 flex h-16 w-16 items-center justify-center rounded-full sm:mb-5 sm:h-20 sm:w-20">
-        <BookOpen className="text-primary h-8 w-8 sm:h-10 sm:w-10" />
+    <div className="animate-fade-in border-border bg-surface mt-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-10 text-center shadow-sm sm:mt-4 sm:px-8 sm:py-16">
+      <div className="bg-primary/10 dark:bg-primary/20 mb-4 flex h-16 w-16 items-center justify-center rounded-full sm:mb-5 sm:h-20 sm:w-20">
+        <BookOpen className="text-primary-text h-8 w-8 sm:h-10 sm:w-10" />
       </div>
 
       <h2 className="text-main mb-2 text-xl font-bold tracking-tight sm:text-2xl" data-record="true">
@@ -38,7 +38,7 @@ export function EmptyState({ onAddStudent, onImport, onLoadDemo }: Props) {
           <button
             type="button"
             onClick={onImport}
-            className="flex items-center justify-center gap-2 rounded-lg border-2 border-blue-200 bg-blue-50/70 px-6 py-3 font-bold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100 active:opacity-80"
+            className="flex items-center justify-center gap-2 rounded-lg border-2 border-blue-200 bg-blue-50/70 px-6 py-3 font-bold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100 active:opacity-80 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:border-blue-700 dark:hover:bg-blue-950/80"
             aria-label="Import student roster from CSV"
             data-record="true"
           >
@@ -50,7 +50,7 @@ export function EmptyState({ onAddStudent, onImport, onLoadDemo }: Props) {
         <button
           type="button"
           onClick={onLoadDemo}
-          className="bg-background text-muted rounded-lg border-2 border-gray-200 px-6 py-3 font-bold transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 active:opacity-80"
+          className="bg-background text-muted border-border rounded-lg border-2 px-6 py-3 font-bold transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 active:opacity-80 dark:hover:border-blue-700 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
           aria-label="Load demo student data for testing"
           data-record="true"
         >

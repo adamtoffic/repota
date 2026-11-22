@@ -91,17 +91,17 @@ export function RouteErrorFallback({ error }: { error?: unknown }) {
 
   return (
     <div className="bg-background flex min-h-[60vh] items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-lg sm:p-8">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+      <div className="border-border bg-surface w-full max-w-md rounded-2xl border p-6 text-center shadow-lg sm:p-8">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
           <AlertTriangle className="h-7 w-7" />
         </div>
         <h2 className="text-main text-xl font-bold">Unable to load this page</h2>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="text-secondary mt-2 text-sm">
           Unable to load this page — check your connection and reload
         </p>
         {errorMessage && (
-          <div className="mt-4 max-h-24 overflow-auto rounded-lg bg-gray-50 p-2 text-left">
-            <p className="font-mono text-xs break-all text-gray-500">{errorMessage}</p>
+          <div className="bg-subtle mt-4 max-h-24 overflow-auto rounded-lg p-2 text-left">
+            <p className="text-muted font-mono text-xs break-all">{errorMessage}</p>
           </div>
         )}
         <button
@@ -120,12 +120,12 @@ export function RouteErrorFallback({ error }: { error?: unknown }) {
 export function RouteNotFound() {
   return (
     <div className="bg-background flex min-h-[60vh] items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-lg sm:p-8">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+      <div className="border-border bg-surface w-full max-w-md rounded-2xl border p-6 text-center shadow-lg sm:p-8">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
           <Home className="h-7 w-7" />
         </div>
         <h2 className="text-main text-xl font-bold">Page not found</h2>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="text-secondary mt-2 text-sm">
           The page you requested doesn&apos;t exist or may have moved.
         </p>
         <Link

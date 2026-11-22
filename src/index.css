@@ -1,34 +1,139 @@
 @import "tailwindcss";
 
-@theme {
-  /* 🔵 BRAND: Navy Blue (#1E3A8A) */
-  --color-primary: #1e3a8a;
-  --color-primary-foreground: #ffffff;
+@custom-variant dark (&:where(.dark, .dark *));
 
-  /* 🟡 ACCENT: Ghana Gold (#FCD34D) */
-  --color-accent: #fcd34d;
-  --color-accent-foreground: #1e3a8a; /* Navy text on gold background looks best */
+:root {
+  --brand-primary: #1e3a8a;
+  --brand-primary-foreground: #ffffff;
+  --brand-primary-text: #1e3a8a;
+  --brand-accent: #fcd34d;
+  --brand-accent-foreground: #1e3a8a;
+  --status-danger: #dc2626;
+  --status-danger-foreground: #ffffff;
+  --status-success: #16a34a;
+  --status-success-foreground: #ffffff;
+  --surface-canvas: #f1f5f9;
+  --surface-card: #ffffff;
+  --surface-subtle: #eef2f6;
+  --surface-elevated: #ffffff;
+  --surface-input: #ffffff;
+  --border-default: #e2e8f0;
+  --border-subtle: #edf2f7;
+  --border-strong: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --font-serif: "Times New Roman", Times, serif;
+}
 
-  /* 🔴 DANGER: Ghana Red (#DC2626) */
-  --color-danger: #dc2626;
-  --color-danger-foreground: #ffffff;
+:root.dark {
+  --brand-primary: #2f6feb;
+  --brand-primary-foreground: #ffffff;
+  --brand-primary-text: #60a5fa;
+  --brand-accent: #f59e0b;
+  --brand-accent-foreground: #090c12;
+  --status-danger: #ef4444;
+  --status-danger-foreground: #ffffff;
+  --status-success: #22c55e;
+  --status-success-foreground: #ffffff;
+  --surface-canvas: #090c12;
+  --surface-card: #111620;
+  --surface-subtle: #171e2b;
+  --surface-elevated: #1d2636;
+  --surface-input: #0c1018;
+  --border-default: #20293a;
+  --border-subtle: #18202e;
+  --border-strong: #2f3c54;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #8b98b0;
+}
 
-  /* 🟢 SUCCESS: Green (#16A34A) */
-  --color-success: #16a34a;
-  --color-success-foreground: #ffffff;
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-primary-foreground: var(--brand-primary-foreground);
+  --color-primary-text: var(--brand-primary-text);
 
-  /* ⚫ SURFACE COLORS - Light Mode */
-  --color-background: #f9fafb; /* gray-50 */
-  --color-surface: #ffffff; /* white */
-  --color-main: #0f172a; /* slate-900 */
-  --color-muted: #64748b; /* slate-500 */
+  --color-accent: var(--brand-accent);
+  --color-accent-foreground: var(--brand-accent-foreground);
 
-  /* 🔤 FONT STACK */
+  --color-danger: var(--status-danger);
+  --color-danger-foreground: var(--status-danger-foreground);
+
+  --color-success: var(--status-success);
+  --color-success-foreground: var(--status-success-foreground);
+
+  --color-background: var(--surface-canvas);
+  --color-surface: var(--surface-card);
+  --color-subtle: var(--surface-subtle);
+  --color-elevated: var(--surface-elevated);
+  --color-input: var(--surface-input);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-main: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
-:root {
-  --font-serif: "Times New Roman", Times, serif;
+@layer base {
+  html,
+  body {
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+  }
+
+  :root.dark {
+    scrollbar-color: #2f3c54 #090c12;
+  }
+
+  :root.dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  :root.dark ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :root.dark ::-webkit-scrollbar-thumb {
+    background-color: #273247;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  :root.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #3a4a68;
+  }
+}
+
+/* Lock printable report cards, template previews, and off-screen PDF stages to light paper */
+.report-page,
+[data-paper-surface="true"] {
+  --brand-primary: #1e3a8a;
+  --brand-primary-foreground: #ffffff;
+  --brand-primary-text: #1e3a8a;
+  --brand-accent: #fcd34d;
+  --brand-accent-foreground: #1e3a8a;
+  --status-danger: #dc2626;
+  --status-danger-foreground: #ffffff;
+  --status-success: #16a34a;
+  --status-success-foreground: #ffffff;
+  --surface-canvas: #f9fafb;
+  --surface-card: #ffffff;
+  --surface-subtle: #f3f4f6;
+  --surface-elevated: #ffffff;
+  --surface-input: #ffffff;
+  --border-default: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --border-strong: #d1d5db;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  color-scheme: light;
 }
 
 /* iOS specific fixes for better mobile experience — single document scroll container */
@@ -94,6 +199,9 @@ body.modal-open {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  .safe-bottom-floating {
+    padding-bottom: max(0.625rem, calc(env(safe-area-inset-bottom, 0px) - 0.875rem));
+  }
   .safe-left {
     padding-left: env(safe-area-inset-left);
   }
@@ -113,12 +221,12 @@ body.modal-open {
       env(safe-area-inset-left);
   }
 
-  /* Bottom navigation bar clearance for standalone PWAs (4rem nav + 1rem gap + safe-area-inset-bottom) */
+  /* Bottom navigation bar clearance for standalone PWAs (60px floating dock + tightened safe-area gap) */
   .bottom-safe-nav {
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(4.75rem + max(0.625rem, calc(env(safe-area-inset-bottom, 0px) - 0.875rem)));
   }
   .pb-safe-nav {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(5.25rem + max(0.625rem, calc(env(safe-area-inset-bottom, 0px) - 0.875rem)));
   }
   @media (min-width: 768px) {
     .bottom-safe-nav {
@@ -428,12 +536,38 @@ a[role="button"]:active {
     margin: 0; /* Tells browser: "I'll handle the margins" */
   }
 
+  :root,
+  :root.dark {
+    --brand-primary: #1e3a8a;
+    --brand-primary-foreground: #ffffff;
+    --brand-primary-text: #1e3a8a;
+    --brand-accent: #fcd34d;
+    --brand-accent-foreground: #1e3a8a;
+    --status-danger: #dc2626;
+    --status-danger-foreground: #ffffff;
+    --status-success: #16a34a;
+    --status-success-foreground: #ffffff;
+    --surface-canvas: #ffffff;
+    --surface-card: #ffffff;
+    --surface-subtle: #f3f4f6;
+    --surface-elevated: #ffffff;
+    --surface-input: #ffffff;
+    --border-default: #e5e7eb;
+    --border-subtle: #f3f4f6;
+    --border-strong: #d1d5db;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    color-scheme: light;
+  }
+
   html,
   body {
     width: 210mm;
     margin: 0 !important;
     padding: 0 !important;
     background: white;
+    color: #0f172a;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

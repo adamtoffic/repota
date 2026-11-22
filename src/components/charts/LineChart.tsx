@@ -11,6 +11,8 @@ import {
   Legend,
   ComposedChart,
 } from "recharts";
+import { useTheme } from "../../hooks/useTheme";
+import { getChartThemeColors } from "../../utils/theme";
 
 interface TooltipPayload {
   payload: {
@@ -39,8 +41,8 @@ const LineChartTooltip: React.FC<{
 }> = ({ active, payload, color }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-        <p className="text-sm font-bold text-gray-900">{payload[0].payload.name}</p>
+      <div className="border-border bg-elevated rounded-lg border p-3 shadow-lg">
+        <p className="text-main text-sm font-bold">{payload[0].payload.name}</p>
         <p className="text-lg font-black" style={{ color }}>
           {payload[0].value}
         </p>
@@ -58,9 +60,12 @@ export const LineChart: React.FC<LineChartProps> = ({
   showArea = true,
   showLegend = false,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const chartColors = getChartThemeColors(resolvedTheme);
+
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-gray-400">No data available</div>
+      <div className="text-muted flex h-64 items-center justify-center">No data available</div>
     );
   }
 
@@ -78,17 +83,17 @@ export const LineChart: React.FC<LineChartProps> = ({
             <stop offset="95%" stopColor={color} stopOpacity={0.05} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
         <XAxis
           dataKey="name"
-          tick={{ fill: "#6b7280", fontSize: 12 }}
+          tick={{ fill: chartColors.axis, fontSize: 12 }}
           tickLine={false}
           angle={data.length > 10 ? -45 : 0}
           textAnchor={data.length > 10 ? "end" : "middle"}
           height={data.length > 10 ? 60 : 30}
         />
-        <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} tickLine={false} axisLine={false} />
-        <Tooltip content={<LineChartTooltip color={color} />} />
+        <YAxis tick={{ fill: chartColors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
+        <Tooltip content={<LineChartTooltip color={color} />} cursor={{ fill: chartColors.cursor }} />
         {showLegend && <Legend wrapperStyle={{ paddingTop: "10px" }} />}
         {showArea && (
           <Area

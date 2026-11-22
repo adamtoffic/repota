@@ -7,7 +7,7 @@ interface Props {
 }
 
 export function Skeleton({ className = "", variant = "rectangular", animation = "pulse" }: Props) {
-  const baseClasses = "bg-gray-200";
+  const baseClasses = "bg-gray-200 dark:bg-subtle";
 
   const variantClasses = {
     text: "h-4 rounded",
@@ -17,7 +17,7 @@ export function Skeleton({ className = "", variant = "rectangular", animation = 
 
   const animationClasses = {
     pulse: "animate-pulse",
-    wave: "animate-shimmer bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%]",
+    wave: "animate-shimmer bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-subtle dark:via-elevated dark:to-subtle bg-[length:200%_100%]",
     none: "",
   };
 
@@ -48,7 +48,7 @@ export function SkeletonText({
 
 export function SkeletonCard({ className = "" }: { className?: string }) {
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-6 ${className}`}>
+    <div className={`border-border bg-surface rounded-lg border p-6 ${className}`}>
       <Skeleton variant="rectangular" className="mb-4 h-6 w-1/3" />
       <SkeletonText lines={3} />
     </div>
@@ -59,7 +59,7 @@ export function SkeletonTable({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full">
-        <thead className="bg-gray-100">
+        <thead className="bg-subtle">
           <tr>
             {Array.from({ length: cols }).map((_, i) => (
               <th key={i} className="px-4 py-3">
@@ -68,7 +68,7 @@ export function SkeletonTable({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-border-subtle divide-y">
           {Array.from({ length: rows }).map((_, rowIdx) => (
             <tr key={rowIdx}>
               {Array.from({ length: cols }).map((_, colIdx) => (

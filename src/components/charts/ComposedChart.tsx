@@ -11,6 +11,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useTheme } from "../../hooks/useTheme";
+import { getChartThemeColors } from "../../utils/theme";
 
 interface TooltipPayload {
   payload: {
@@ -40,11 +42,11 @@ const ComposedChartTooltip: React.FC<{ active?: boolean; payload?: TooltipPayloa
 }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-        <p className="mb-2 text-sm font-bold text-gray-900">{payload[0].payload.name}</p>
+      <div className="border-border bg-elevated rounded-lg border p-3 shadow-lg">
+        <p className="text-main mb-2 text-sm font-bold">{payload[0].payload.name}</p>
         {payload.map((entry: TooltipPayload, index: number) => (
           <div key={index} className="flex items-center justify-between gap-4">
-            <span className="text-xs text-gray-600">{entry.name}:</span>
+            <span className="text-muted text-xs">{entry.name}:</span>
             <span className="font-bold" style={{ color: entry.color }}>
               {typeof entry.value === "number" ? entry.value.toFixed(1) : entry.value}
             </span>
@@ -62,20 +64,23 @@ export const ComposedChart: React.FC<ComposedChartProps> = ({
   lineKeys = [],
   height = 300,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const chartColors = getChartThemeColors(resolvedTheme);
+
   return (
     <ResponsiveContainer width="100%" height={height} debounce={50} className="chart-gpu-bars">
       <RechartsComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
         <XAxis
           dataKey="name"
-          tick={{ fill: "#6b7280", fontSize: 12 }}
+          tick={{ fill: chartColors.axis, fontSize: 12 }}
           tickLine={false}
           angle={data.length > 8 ? -45 : 0}
           textAnchor={data.length > 8 ? "end" : "middle"}
           height={data.length > 8 ? 60 : 30}
         />
-        <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} tickLine={false} axisLine={false} />
-        <Tooltip content={<ComposedChartTooltip />} />
+        <YAxis tick={{ fill: chartColors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
+        <Tooltip content={<ComposedChartTooltip />} cursor={{ fill: chartColors.cursor }} />
         <Legend wrapperStyle={{ paddingTop: "10px" }} />
 
         {barKeys.map((bar) => (

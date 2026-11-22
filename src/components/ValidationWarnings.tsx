@@ -115,34 +115,34 @@ export function ValidationWarnings({
           warning.color === "red"
             ? {
                 card: isActive
-                  ? "border-red-400 bg-red-100/80 ring-2 ring-red-400/50"
-                  : "border-red-200 bg-red-50 hover:bg-red-100/60",
-                text: "text-red-800",
-                icon: "text-red-600",
+                  ? "border-red-400 bg-red-100/80 ring-2 ring-red-400/50 dark:border-red-500 dark:bg-red-950/45 dark:ring-red-500/35"
+                  : "border-red-200 bg-red-50 hover:bg-red-100/60 dark:border-red-500/35 dark:border-l-[3px] dark:border-l-red-500 dark:bg-red-950/25 dark:hover:bg-red-950/40",
+                text: "text-red-800 dark:text-red-200",
+                icon: "text-red-600 dark:text-red-400",
                 pill: isActive
                   ? "bg-red-700 text-white"
-                  : "bg-red-100 text-red-700 group-hover:bg-red-200",
+                  : "bg-red-100 text-red-700 group-hover:bg-red-200 dark:bg-red-500/20 dark:text-red-300 dark:group-hover:bg-red-500/30",
               }
             : warning.color === "yellow"
               ? {
                   card: isActive
-                    ? "border-yellow-400 bg-yellow-100/80 ring-2 ring-yellow-400/50"
-                    : "border-yellow-200 bg-yellow-50 hover:bg-yellow-100/60",
-                  text: "text-yellow-900",
-                  icon: "text-yellow-600",
+                    ? "border-yellow-400 bg-yellow-100/80 ring-2 ring-yellow-400/50 dark:border-amber-500/60 dark:bg-amber-950/30 dark:ring-amber-500/30"
+                    : "border-yellow-200 bg-yellow-50 hover:bg-yellow-100/60 dark:border-border dark:border-l-[3px] dark:border-l-amber-400 dark:bg-surface dark:hover:bg-subtle/80 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+                  text: "text-yellow-900 dark:text-amber-200",
+                  icon: "text-yellow-600 dark:text-amber-400",
                   pill: isActive
                     ? "bg-yellow-700 text-white"
-                    : "bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200",
+                    : "bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200 dark:bg-amber-500/15 dark:text-amber-300 dark:group-hover:bg-amber-500/25",
                 }
               : {
                   card: isActive
-                    ? "border-orange-400 bg-orange-100/80 ring-2 ring-orange-400/50"
-                    : "border-orange-200 bg-orange-50 hover:bg-orange-100/60",
-                  text: "text-orange-800",
-                  icon: "text-orange-600",
+                    ? "border-orange-400 bg-orange-100/80 ring-2 ring-orange-400/50 dark:border-orange-500/60 dark:bg-orange-950/30 dark:ring-orange-500/30"
+                    : "border-orange-200 bg-orange-50 hover:bg-orange-100/60 dark:border-border dark:border-l-[3px] dark:border-l-orange-400 dark:bg-surface dark:hover:bg-subtle/80 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+                  text: "text-orange-800 dark:text-orange-200",
+                  icon: "text-orange-600 dark:text-orange-400",
                   pill: isActive
                     ? "bg-orange-700 text-white"
-                    : "bg-orange-100 text-orange-700 group-hover:bg-orange-200",
+                    : "bg-orange-100 text-orange-700 group-hover:bg-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:group-hover:bg-orange-500/25",
                 };
 
         return (
@@ -197,7 +197,7 @@ export function ValidationWarnings({
                 onClick={handleDismissPhotoWarning}
                 aria-label="Dismiss missing photos warning"
                 title="Dismiss for this session"
-                className="flex shrink-0 items-center justify-center border-l border-yellow-200/80 px-3 text-xs font-medium text-yellow-800/80 transition-colors hover:bg-yellow-200/50 hover:text-yellow-950"
+                className="flex shrink-0 items-center justify-center border-l border-yellow-200/80 px-3 text-xs font-medium text-yellow-800/80 transition-colors hover:bg-yellow-200/50 hover:text-yellow-950 dark:border-amber-800/70 dark:text-amber-300 dark:hover:bg-amber-900/60 dark:hover:text-amber-100"
                 data-record="true"
               >
                 <X className="h-4 w-4" />

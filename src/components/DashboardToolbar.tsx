@@ -100,11 +100,11 @@ export function DashboardToolbar({
       <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-4 w-4 text-gray-400" />
+            <Search className="text-muted h-4 w-4" />
           </div>
           <input
             type="text"
-            className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border-border-strong bg-input text-main placeholder:text-muted block w-full rounded-lg border py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             placeholder="Search students..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -135,7 +135,7 @@ export function DashboardToolbar({
             aria-label="Sort students"
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value as StudentSortOption)}
-            className="hover:bg-background h-[42px] shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-bold text-gray-700 shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:px-3 sm:text-sm"
+            className="hover:bg-subtle border-border-strong bg-input text-secondary h-[42px] shrink-0 rounded-lg border px-2.5 text-xs font-bold shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:px-3 sm:text-sm"
             data-record="true"
           >
             <option value="DEFAULT">Sort: Roll Order</option>
@@ -208,31 +208,31 @@ export function DashboardToolbar({
             onClick={() => setShowMenu((prev) => !prev)}
             aria-expanded={showMenu}
             aria-haspopup="menu"
-            className="hover:bg-background flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm active:scale-95 sm:text-sm"
+            className="hover:bg-subtle border-border-strong bg-surface text-secondary flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold shadow-sm active:scale-95 sm:text-sm"
             data-record="true"
           >
-            <SlidersHorizontal size={14} className="text-primary" />
+            <SlidersHorizontal size={14} className="text-primary-text" />
             <span>Class Tools</span>
             <ChevronDown
               size={14}
-              className={`text-gray-400 transition-transform ${showMenu ? "rotate-180" : ""}`}
+              className={`text-muted transition-transform ${showMenu ? "rotate-180" : ""}`}
             />
           </button>
 
           {showMenu && (
             <>
               <div
-                className="fixed inset-0 z-[45] bg-black/30 backdrop-blur-[1px] sm:z-10 sm:bg-transparent sm:backdrop-blur-none"
+                className="fixed inset-0 z-[45] bg-black/30 backdrop-blur-[1px] sm:z-10 sm:bg-transparent sm:backdrop-blur-none dark:bg-black/60 sm:dark:bg-transparent"
                 onClick={() => setShowMenu(false)}
               />
               <div
                 role="menu"
                 aria-label="Class Tools"
-                className="fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-t-3xl border-t border-gray-200 bg-white p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:right-0 sm:z-20 sm:mt-2 sm:max-h-[75vh] sm:w-72 sm:rounded-2xl sm:border sm:p-1.5 sm:pb-1.5 sm:shadow-xl"
+                className="border-border bg-elevated fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-t-3xl border-t p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:right-0 sm:z-20 sm:mt-2 sm:max-h-[75vh] sm:w-72 sm:rounded-2xl sm:border sm:p-1.5 sm:pb-1.5 sm:shadow-xl"
               >
                 {/* Mobile Drag Handle & Header */}
                 <div className="mb-3 flex flex-col items-center sm:hidden">
-                  <div className="mb-2 h-1 w-10 rounded-full bg-gray-300" />
+                  <div className="bg-border-strong mb-2 h-1 w-10 rounded-full" />
                   <div className="flex w-full items-center justify-between px-1">
                     <span className="text-main text-sm font-bold" data-record="true">
                       Class Tools
@@ -241,7 +241,7 @@ export function DashboardToolbar({
                       type="button"
                       onClick={() => setShowMenu(false)}
                       aria-label="Close Class Tools"
-                      className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="text-muted hover:bg-subtle hover:text-main rounded-full p-1"
                     >
                       <X size={16} />
                     </button>
@@ -250,7 +250,7 @@ export function DashboardToolbar({
 
                 {/* Group 1: Smart Assistant */}
                 <p
-                  className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                  className="text-muted px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider uppercase"
                   data-record="true"
                 >
                   Smart Assistant
@@ -262,10 +262,10 @@ export function DashboardToolbar({
                     onAutoRemarks();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl bg-purple-50 px-3 py-3 text-left text-sm font-bold text-purple-700 hover:bg-purple-100 sm:py-2.5"
+                  className="flex w-full items-center gap-2.5 rounded-xl bg-purple-50 px-3 py-3 text-left text-sm font-bold text-purple-700 hover:bg-purple-100 sm:py-2.5 dark:bg-purple-950/60 dark:text-purple-300 dark:hover:bg-purple-950/90"
                   data-record="true"
                 >
-                  <Wand2 size={16} className="shrink-0 text-purple-600" /> Auto-Fill Teacher Remarks
+                  <Wand2 size={16} className="shrink-0 text-purple-600 dark:text-purple-400" /> Auto-Fill Teacher Remarks
                 </button>
 
                 {/* Group 2: Import & Bulk Operations */}
@@ -275,9 +275,9 @@ export function DashboardToolbar({
                   onSyncClassSubjects ||
                   onBulkPromotion) && (
                   <>
-                    <div className="my-1.5 border-t border-gray-100" />
+                    <div className="border-border-subtle my-1.5 border-t" />
                     <p
-                      className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                      className="text-muted px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider uppercase"
                       data-record="true"
                     >
                       Import &amp; Class Setup
@@ -290,10 +290,10 @@ export function DashboardToolbar({
                           onImport();
                           setShowMenu(false);
                         }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                         data-record="true"
                       >
-                        <Upload size={16} className="shrink-0 text-blue-600" /> Import Student
+                        <Upload size={16} className="shrink-0 text-blue-600 dark:text-blue-400" /> Import Student
                         Roster
                       </button>
                     )}
@@ -305,10 +305,10 @@ export function DashboardToolbar({
                           onImportScores();
                           setShowMenu(false);
                         }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                         data-record="true"
                       >
-                        <Table2 size={16} className="shrink-0 text-purple-600" /> Import SBA / Exam
+                        <Table2 size={16} className="shrink-0 text-purple-600 dark:text-purple-400" /> Import SBA / Exam
                         Scores
                       </button>
                     )}
@@ -320,10 +320,10 @@ export function DashboardToolbar({
                           onBulkAttendance();
                           setShowMenu(false);
                         }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                         data-record="true"
                       >
-                        <CalendarCheck size={16} className="shrink-0 text-emerald-600" /> Bulk
+                        <CalendarCheck size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" /> Bulk
                         Attendance Entry
                       </button>
                     )}
@@ -335,10 +335,10 @@ export function DashboardToolbar({
                           onSyncClassSubjects();
                           setShowMenu(false);
                         }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                         data-record="true"
                       >
-                        <RefreshCw size={16} className="shrink-0 text-teal-600" /> Sync Subjects
+                        <RefreshCw size={16} className="shrink-0 text-teal-600 dark:text-teal-400" /> Sync Subjects
                         &amp; SBA Tasks
                       </button>
                     )}
@@ -350,21 +350,21 @@ export function DashboardToolbar({
                           onBulkPromotion();
                           setShowMenu(false);
                         }}
-                        className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                        className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                         data-record="true"
                       >
-                        <GraduationCap size={16} className="shrink-0 text-indigo-600" /> Bulk
+                        <GraduationCap size={16} className="shrink-0 text-indigo-600 dark:text-indigo-400" /> Bulk
                         Promotion Status
                       </button>
                     )}
                   </>
                 )}
 
-                <div className="my-1.5 border-t border-gray-100" />
+                <div className="border-border-subtle my-1.5 border-t" />
 
                 {/* Group 3: Export & Share */}
                 <p
-                  className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                  className="text-muted px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider uppercase"
                   data-record="true"
                 >
                   Export &amp; Share
@@ -376,10 +376,10 @@ export function DashboardToolbar({
                     onExport();
                     setShowMenu(false);
                   }}
-                  className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                  className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                   data-record="true"
                 >
-                  <Download size={16} className="shrink-0 text-blue-600" /> Export Broadsheet (CSV)
+                  <Download size={16} className="shrink-0 text-blue-600 dark:text-blue-400" /> Export Broadsheet (CSV)
                 </button>
                 {onExportDetailed && (
                   <button
@@ -389,10 +389,10 @@ export function DashboardToolbar({
                       onExportDetailed();
                       setShowMenu(false);
                     }}
-                    className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                    className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                     data-record="true"
                   >
-                    <FileSpreadsheet size={16} className="shrink-0 text-emerald-600" /> Export
+                    <FileSpreadsheet size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" /> Export
                     Detailed Broadsheet
                   </button>
                 )}
@@ -403,18 +403,18 @@ export function DashboardToolbar({
                     onExportStudentList();
                     setShowMenu(false);
                   }}
-                  className="hover:bg-background flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-gray-700 sm:py-2.5"
+                  className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                   data-record="true"
                 >
-                  <FileSpreadsheet size={16} className="shrink-0 text-indigo-600" /> Export Student
+                  <FileSpreadsheet size={16} className="shrink-0 text-indigo-600 dark:text-indigo-400" /> Export Student
                   Roll (.txt)
                 </button>
 
-                <div className="my-1.5 border-t border-gray-100" />
+                <div className="border-border-subtle my-1.5 border-t" />
 
                 {/* Group 4: Term Cleanup */}
                 <p
-                  className="px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-gray-400 uppercase"
+                  className="text-muted px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider uppercase"
                   data-record="true"
                 >
                   Term Cleanup
@@ -426,7 +426,7 @@ export function DashboardToolbar({
                     onClearScores();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-orange-600 hover:bg-orange-50 sm:py-2.5"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-orange-600 hover:bg-orange-50 sm:py-2.5 dark:text-orange-400 dark:hover:bg-orange-950/50"
                   data-record="true"
                 >
                   <Eraser size={16} className="shrink-0" /> Clear All Scores
@@ -438,7 +438,7 @@ export function DashboardToolbar({
                     onDeletePending();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 sm:py-2.5"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 sm:py-2.5 dark:text-red-400 dark:hover:bg-red-950/50"
                   data-record="true"
                 >
                   <Trash2 size={16} className="shrink-0" /> Remove Incomplete Students
@@ -459,16 +459,18 @@ function FilterButton({
   icon,
   isActive,
   onClick,
-  activeColor = "bg-primary",
-  hoverColor = "hover:bg-background",
+  activeColor,
+  hoverColor = "hover:bg-subtle",
 }: FilterButtonProps) {
+  const activeStyle = activeColor
+    ? `${activeColor} border-transparent text-white shadow-md`
+    : "bg-slate-900 border-transparent text-white shadow-sm dark:bg-elevated dark:text-main dark:border-border-strong dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
-        isActive
-          ? `${activeColor} text-white shadow-md`
-          : `border border-gray-200 bg-white text-gray-600 ${hoverColor}`
+      className={`flex items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
+        isActive ? activeStyle : `border-border bg-surface text-secondary ${hoverColor}`
       }`}
       data-record="true"
     >

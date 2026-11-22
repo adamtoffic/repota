@@ -37,11 +37,11 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
     <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* SBA WEIGHTS & TASK LIBRARY — hidden in mock exam mode */}
       {showSbaSetup && (
-        <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="border-border bg-surface space-y-6 rounded-xl border p-5 shadow-sm sm:p-6">
           {/* GRADING CONFIG - SBA RENAMED */}
-          <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5">
+          <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 sm:p-5 dark:border-amber-800/70 dark:bg-amber-950/35">
             <h3
-              className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase"
+              className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-yellow-900 uppercase dark:text-amber-200"
               data-record="true"
             >
               <AlertCircle className="h-4 w-4" /> Assessment Weights (SBA System)
@@ -63,7 +63,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                     examScoreMax: examScore,
                   });
                 }}
-                className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
+                className="border-yellow-300 text-center font-bold focus:border-yellow-500 focus:ring-yellow-300 dark:border-amber-700/70"
                 placeholder="50"
               />
               <Input
@@ -82,28 +82,28 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                     examScoreMax: examScore,
                   });
                 }}
-                className="border-yellow-300 bg-white text-center font-bold focus:border-yellow-500 focus:ring-yellow-300"
+                className="border-yellow-300 text-center font-bold focus:border-yellow-500 focus:ring-yellow-300 dark:border-amber-700/70"
                 placeholder="50"
               />
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-yellow-800">
+            <p className="mt-3 text-xs leading-relaxed text-yellow-800 dark:text-amber-300">
               <span className="font-bold">Total must equal 100%.</span> (Current:{" "}
               {(formData.classScoreMax || 0) + (formData.examScoreMax || 0)}%)
             </p>
           </div>
 
           {/* CLASS SCORE COMPONENTS - SBA RENAMED - RESPONSIVE FIXED */}
-          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5">
+          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 sm:p-5 dark:border-purple-800/70 dark:bg-purple-950/35">
             <div className="mb-3 flex items-center gap-2">
-              <Calculator className="h-4 w-4 text-purple-700" />
+              <Calculator className="h-4 w-4 text-purple-700 dark:text-purple-400" />
               <h3
-                className="text-xs font-bold tracking-wider text-purple-900 uppercase"
+                className="text-xs font-bold tracking-wider text-purple-900 uppercase dark:text-purple-200"
                 data-record="true"
               >
                 SBA Task Library
               </h3>
             </div>
-            <p className="mb-4 text-xs leading-relaxed text-purple-700">
+            <p className="mb-4 text-xs leading-relaxed text-purple-700 dark:text-purple-300">
               Define standard SBA tasks (e.g. Class Tests, Group Works, Projects) to use across
               subjects.
             </p>
@@ -112,13 +112,13 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
               {/* 1. Category Selector */}
               <div className="w-full sm:w-32">
-                <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase dark:text-purple-200">
                   Type
                 </label>
                 <select
                   value={newComponentCategory}
                   onChange={(e) => setNewComponentCategory(e.target.value as AssessmentCategory)}
-                  className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                  className="bg-input text-main w-full rounded-lg border border-purple-300 p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                 >
                   <option value="CAT">CAT (Test)</option>
                   <option value="GROUP">Group Work</option>
@@ -129,7 +129,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
 
               {/* 2. Name Input */}
               <div className="flex-1">
-                <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase dark:text-purple-200">
                   Task Name
                 </label>
                 <input
@@ -142,7 +142,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                       document.getElementById("max-score-input")?.focus();
                     }
                   }}
-                  className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                  className="bg-input text-main placeholder:text-muted w-full rounded-lg border border-purple-300 p-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                   placeholder="e.g. Natural Science Project"
                 />
               </div>
@@ -150,7 +150,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
               {/* 3. Max Score & Button - RESPONSIVE FIXED */}
               <div className="flex w-full gap-2 sm:w-auto">
                 <div className="flex-1 sm:w-24 sm:flex-none">
-                  <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase">
+                  <label className="mb-1 block text-[10px] font-bold tracking-wider text-purple-900 uppercase dark:text-purple-200">
                     Max Score
                   </label>
                   <input
@@ -167,7 +167,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                         addComponent();
                       }
                     }}
-                    className="w-full rounded-lg border border-purple-300 bg-white p-2.5 text-center text-sm outline-none focus:ring-2 focus:ring-purple-200"
+                    className="bg-input text-main placeholder:text-muted w-full rounded-lg border border-purple-300 p-2.5 text-center text-sm outline-none focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                     placeholder="15"
                   />
                 </div>
@@ -193,7 +193,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
             {/* Component List */}
             {(formData.componentLibrary || []).length > 0 ? (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-purple-800">
+                <p className="text-xs font-bold text-purple-800 dark:text-purple-300">
                   {(formData.componentLibrary || []).length} Task
                   {(formData.componentLibrary || []).length !== 1 ? "s" : ""} Defined
                 </p>
@@ -201,13 +201,13 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                   {(formData.componentLibrary || []).map((config) => (
                     <div
                       key={config.name}
-                      className="flex items-center gap-3 rounded-lg border border-purple-200 bg-white py-2 pr-2 pl-3 text-sm shadow-sm"
+                      className="bg-surface flex items-center gap-3 rounded-lg border border-purple-200 py-2 pr-2 pl-3 text-sm shadow-sm dark:border-purple-800/70"
                     >
                       <div className="flex min-w-0 flex-col">
-                        <span className="truncate text-xs font-bold text-gray-800">
+                        <span className="text-main truncate text-xs font-bold">
                           {config.name}
                         </span>
-                        <span className="text-[10px] font-bold tracking-wide text-purple-500 uppercase">
+                        <span className="text-[10px] font-bold tracking-wide text-purple-500 uppercase dark:text-purple-400">
                           {config.category === "CAT" ? "CLASS TEST" : config.category}
                         </span>
                       </div>
@@ -221,14 +221,14 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                         size="sm"
                         aria-label={`Remove ${config.name}`}
                       >
-                        <X className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
+                        <X className="text-muted h-3.5 w-3.5 hover:text-red-500" />
                       </IconButton>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border-2 border-dashed border-purple-200 bg-white p-4 text-center text-xs text-purple-400">
+              <div className="bg-surface rounded-lg border-2 border-dashed border-purple-200 p-4 text-center text-xs text-purple-400 dark:border-purple-800/70 dark:text-purple-300">
                 No SBA tasks defined. Add tasks (e.g. CAT 1, Group Work) to use with subjects.
               </div>
             )}
@@ -238,11 +238,11 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
 
       {/* CARD 5: SUBJECT COMPONENT ASSIGNMENT - SBA RENAMED */}
       {showSubjectAssignment && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2
-                className="text-base font-bold tracking-wide text-gray-800 uppercase"
+                className="text-main text-base font-bold tracking-wide uppercase"
                 data-record="true"
               >
                 Subject Assessment Config
@@ -269,18 +269,18 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
               );
 
               return (
-                <div key={subject} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div key={subject} className="border-border bg-subtle rounded-lg border p-4">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold text-gray-900">{subject}</h3>
+                      <h3 className="text-main font-bold">{subject}</h3>
                       {assignedComponents.length > 0 ? (
-                        <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold text-purple-800">
+                        <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold text-purple-800 dark:bg-purple-950/60 dark:text-purple-300">
                           {assignedComponents.length} task
                           {assignedComponents.length === 1 ? "" : "s"} • /{totalRawMax} raw →{" "}
                           {formData.classScoreMax || 0}% Class
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400 italic">No tasks assigned</span>
+                        <span className="text-muted text-xs italic">No tasks assigned</span>
                       )}
                     </div>
 
@@ -289,7 +289,7 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                         type="button"
                         onClick={() => onImportSubjectScores(subject)}
                         aria-label={`Import scores for ${subject}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-white px-2.5 py-1.5 text-xs font-bold text-purple-700 shadow-2xs transition-colors hover:bg-purple-50"
+                        className="bg-surface inline-flex items-center gap-1.5 rounded-lg border border-purple-200 px-2.5 py-1.5 text-xs font-bold text-purple-700 shadow-2xs transition-colors hover:bg-purple-50 dark:border-purple-800/70 dark:text-purple-300 dark:hover:bg-purple-950/60"
                       >
                         <Upload className="h-3.5 w-3.5" />
                         <span>Import Scores</span>
@@ -302,23 +302,23 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                       {assignedComponents.map((comp) => (
                         <div
                           key={comp.name}
-                          className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm sm:items-center"
+                          className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm sm:items-center dark:border-blue-800/70 dark:bg-blue-950/50"
                         >
                           <div className="flex min-w-0 flex-col">
-                            <span className="truncate text-xs font-bold text-gray-700">
+                            <span className="text-secondary truncate text-xs font-bold">
                               {comp.name}
                             </span>
-                            <span className="text-[10px] font-bold tracking-wide text-blue-500 uppercase">
+                            <span className="text-[10px] font-bold tracking-wide text-blue-500 uppercase dark:text-blue-400">
                               {comp.category === "CAT" ? "TEST" : comp.category}
                             </span>
                           </div>
-                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
+                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-900/70 dark:text-blue-200">
                             /{comp.maxScore}
                           </span>
                           <button
                             type="button"
                             onClick={() => removeComponentFromSubject(subject, comp.name)}
-                            className="rounded p-0.5 text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                            className="rounded p-0.5 text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/60 dark:hover:text-blue-200"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -334,11 +334,11 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                           key={comp.name}
                           type="button"
                           onClick={() => addComponentToSubject(subject, comp)}
-                          className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:border-blue-400 hover:bg-blue-50 active:scale-95"
+                          className="border-border-strong bg-surface text-secondary flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-all hover:border-blue-400 hover:bg-blue-50 active:scale-95 dark:hover:border-blue-600 dark:hover:bg-blue-950/50"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           {comp.name}
-                          <span className="text-xs text-gray-400">/{comp.maxScore}</span>
+                          <span className="text-muted text-xs">/{comp.maxScore}</span>
                         </button>
                       ))}
                     </div>

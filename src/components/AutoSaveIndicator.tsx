@@ -77,12 +77,12 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
       <div
         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium shadow-lg ${
           error
-            ? "border border-red-200 bg-red-50 text-red-700"
+            ? "border border-red-200 bg-red-50 text-red-700 dark:border-red-800/70 dark:bg-red-950/90 dark:text-red-300"
             : !isOnline
-              ? "border border-orange-200 bg-orange-50 text-orange-700"
+              ? "border border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800/70 dark:bg-orange-950/90 dark:text-orange-300"
               : isSaving
-                ? "border border-blue-200 bg-blue-50 text-blue-700"
-                : "border border-green-200 bg-green-50 text-green-700"
+                ? "border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/90 dark:text-blue-300"
+                : "border border-green-200 bg-green-50 text-green-700 dark:border-emerald-800/70 dark:bg-emerald-950/90 dark:text-emerald-300"
         }`}
       >
         {/* Icon */}

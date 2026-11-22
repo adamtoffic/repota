@@ -15,9 +15,10 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
 
 const variantStyles = {
   primary: "bg-primary hover:bg-primary/90 text-white shadow-sm",
-  secondary: "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300",
+  secondary:
+    "bg-gray-100 hover:bg-gray-200 dark:bg-subtle dark:hover:bg-elevated text-secondary border border-border-strong",
   danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
-  ghost: "hover:bg-gray-100 text-gray-700",
+  ghost: "hover:bg-gray-100 dark:hover:bg-subtle text-secondary",
 } as const;
 
 const sizeStyles = {

@@ -11,6 +11,8 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { useTheme } from "../../hooks/useTheme";
+import { getChartThemeColors } from "../../utils/theme";
 
 interface TooltipPayload {
   payload: {
@@ -40,8 +42,8 @@ const BarChartTooltip: React.FC<{ active?: boolean; payload?: TooltipPayload[] }
 }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-        <p className="text-sm font-bold text-gray-900">{payload[0].payload.name}</p>
+      <div className="border-border bg-elevated rounded-lg border p-3 shadow-lg">
+        <p className="text-main text-sm font-bold">{payload[0].payload.name}</p>
         <p className="text-lg font-black" style={{ color: payload[0].fill }}>
           {payload[0].value}%
         </p>
@@ -58,6 +60,9 @@ export const BarChart: React.FC<BarChartProps> = ({
   showLegend = false,
   gradient = true,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const chartColors = getChartThemeColors(resolvedTheme);
+
   const getBarColor = (index: number, customColor?: string) => {
     if (customColor) return customColor;
     const colors = [
@@ -100,17 +105,17 @@ export const BarChart: React.FC<BarChartProps> = ({
             ))}
           </defs>
         )}
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
         <XAxis
           dataKey="name"
-          tick={{ fill: "#6b7280", fontSize: 12 }}
+          tick={{ fill: chartColors.axis, fontSize: 12 }}
           tickLine={false}
           angle={data.length > 8 ? -45 : 0}
           textAnchor={data.length > 8 ? "end" : "middle"}
           height={data.length > 8 ? 60 : 30}
         />
-        <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} tickLine={false} axisLine={false} />
-        <Tooltip content={<BarChartTooltip />} cursor={{ fill: "rgba(59, 130, 246, 0.05)" }} />
+        <YAxis tick={{ fill: chartColors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
+        <Tooltip content={<BarChartTooltip />} cursor={{ fill: chartColors.cursor }} />
         {showLegend && <Legend wrapperStyle={{ paddingTop: "20px" }} />}
         <Bar
           dataKey="value"
@@ -118,7 +123,7 @@ export const BarChart: React.FC<BarChartProps> = ({
           maxBarSize={60}
           label={
             showValues
-              ? { position: "top", fill: "#374151", fontSize: 12, fontWeight: "bold" }
+              ? { position: "top", fill: chartColors.label, fontSize: 12, fontWeight: "bold" }
               : false
           }
           isAnimationActive={false}

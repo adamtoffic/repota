@@ -6,9 +6,32 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#1E3A8A" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1E3A8A" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1E3A8A" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <script>
+      (function () {
+        var pref = "system";
+        try {
+          var stored = window.localStorage.getItem("repota_theme");
+          if (stored === "light" || stored === "dark" || stored === "system") {
+            pref = stored;
+          }
+        } catch (e) {
+          // Ignore blocked storage
+        }
+        var prefersDark =
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var isDark = pref === "dark" || (pref === "system" && prefersDark);
+        var root = document.documentElement;
+        root.classList.toggle("dark", isDark);
+        root.style.colorScheme = isDark ? "dark" : "light";
+        root.dataset.theme = isDark ? "dark" : "light";
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+          meta.setAttribute("content", isDark ? "#090C12" : "#FFFFFF");
+        }
+      })();
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />

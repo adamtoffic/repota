@@ -3,6 +3,8 @@
 // Used on iOS 27+ Home Screen PWAs where window.print() is a silent no-op,
 // and as a fallback whenever window.print() fails to trigger print events.
 
+import { normalizeChartSvgForLightExport } from "./theme";
+
 export interface PdfGenerationProgress {
   current: number;
   total: number;
@@ -134,6 +136,7 @@ export async function generateReportsPdfFile(
     // (scale-[0.40]) never shrinks the captured canvas.
     const stage = document.createElement("div");
     stage.setAttribute("aria-hidden", "true");
+    stage.dataset.paperSurface = "true";
     stage.style.cssText =
       "position:fixed;left:-10000px;top:0;width:210mm;min-height:297mm;background:#ffffff;margin:0;padding:0;pointer-events:none;z-index:-1;";
     const clone = sourceCard.cloneNode(true) as HTMLElement;
@@ -150,6 +153,10 @@ export async function generateReportsPdfFile(
         backgroundColor: "#ffffff",
         logging: false,
         windowWidth: clone.scrollWidth || 794,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.classList.remove("dark");
+          clonedDoc.documentElement.style.colorScheme = "light";
+        },
       });
 
       if (i > 0) {
@@ -224,7 +231,8 @@ export async function generateBlocksPdfFile(
 
     const stage = document.createElement("div");
     stage.setAttribute("aria-hidden", "true");
-    stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${baseWidth}px;background:#ffffff;margin:0;padding:4px;pointer-events:none;z-index:-1;`;
+    stage.dataset.paperSurface = "true";
+    stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${baseWidth}px;background:#ffffff;color:#0f172a;margin:0;padding:4px;pointer-events:none;z-index:-1;`;
 
     // Freeze GPU chart/page animations at final visible frame during capture
     const noAnimStyle = document.createElement("style");
@@ -239,6 +247,7 @@ export async function generateBlocksPdfFile(
       el.style.marginLeft = "0";
       el.style.marginRight = "0";
     });
+    normalizeChartSvgForLightExport(clone);
     stage.appendChild(clone);
     document.body.appendChild(stage);
 
@@ -255,6 +264,10 @@ export async function generateBlocksPdfFile(
         backgroundColor: "#ffffff",
         logging: false,
         windowWidth: captureWidth,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.classList.remove("dark");
+          clonedDoc.documentElement.style.colorScheme = "light";
+        },
       });
 
       const blockHeightMm = (canvas.height * printableWidthMm) / canvas.width;

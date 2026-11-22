@@ -72,24 +72,24 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
   return (
     <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-xl">
       <div className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 p-4">
+        <div className="border-border-subtle flex items-center justify-between border-b p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
-            <CalendarCheck className="text-primary h-5 w-5" />
+            <CalendarCheck className="text-primary-text h-5 w-5" />
             Bulk Attendance Entry
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="space-y-4 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
-            <span className="text-xs font-bold text-blue-900">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3 dark:border-blue-800/60 dark:bg-blue-950/35">
+            <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
               Total Term Days: {maxDays}
             </span>
             <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
                 aria-label="Set all attendance days"
                 value={fillValue}
                 onChange={(e) => setFillValue(e.target.value)}
-                className="w-20 rounded-lg border border-blue-200 bg-white px-2 py-1 text-center text-xs font-bold"
+                className="bg-input text-main w-20 rounded-lg border border-blue-200 px-2 py-1 text-center text-xs font-bold dark:border-blue-700"
               />
               <button
                 type="button"
@@ -112,15 +112,15 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200">
+          <div className="divide-border-subtle border-border max-h-72 divide-y overflow-y-auto rounded-lg border">
             {students.map((student, idx) => {
               const current = getValue(student.id, student.attendancePresent ?? 0);
               return (
                 <div
                   key={student.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-gray-50"
+                  className="hover:bg-subtle flex items-center justify-between gap-3 px-3 py-2.5"
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">
+                  <span className="text-main min-w-0 flex-1 truncate text-sm font-semibold">
                     {idx + 1}. {student.name}
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -150,9 +150,9 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
                           next?.select();
                         }
                       }}
-                      className="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-center text-sm font-bold outline-none focus:border-blue-500"
+                      className="border-border-strong bg-input text-main w-20 rounded-lg border px-2 py-1.5 text-center text-sm font-bold outline-none focus:border-blue-500"
                     />
-                    <span className="text-xs font-medium text-gray-400">/ {maxDays}</span>
+                    <span className="text-muted text-xs font-medium">/ {maxDays}</span>
                   </div>
                 </div>
               );

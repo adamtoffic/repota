@@ -33,9 +33,11 @@ export function Button({
   const variantStyles: Record<ButtonVariant, string> = {
     primary: "bg-primary hover:bg-primary/90 text-white shadow-sm",
     danger: "bg-danger hover:bg-danger/90 text-white shadow-sm",
-    secondary: "bg-background hover:bg-gray-100 border border-gray-200 text-gray-700",
-    ghost: "hover:bg-gray-100 text-gray-700",
-    outline: "border border-gray-300 bg-white hover:bg-background text-gray-700 transition-colors",
+    secondary:
+      "bg-background hover:bg-gray-100 dark:hover:bg-subtle border border-border text-secondary",
+    ghost: "hover:bg-gray-100 dark:hover:bg-subtle text-secondary",
+    outline:
+      "border border-border-strong bg-surface hover:bg-background text-secondary transition-colors",
   };
 
   // Size styles

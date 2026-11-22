@@ -1,4 +1,5 @@
 // src/utils/analyticsExport.ts
+import { normalizeChartSvgForLightExport } from "./theme";
 
 /**
  * Export analytics chart as PNG image
@@ -21,8 +22,11 @@ export async function exportChartAsPNG(chartId: string, filename: string): Promi
       throw new Error("Chart could not be rendered. Please try again.");
     }
 
+    const svgClone = svgElement.cloneNode(true) as SVGSVGElement;
+    normalizeChartSvgForLightExport(svgClone);
+
     // Get SVG data
-    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const svgData = new XMLSerializer().serializeToString(svgClone);
     const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const svgUrl = URL.createObjectURL(svgBlob);
 
@@ -102,11 +106,26 @@ export function exportAnalyticsAsPDF(): void {
     (el as HTMLElement).style.display = "none";
   });
 
-  // Restore elements after print
+  const root = document.documentElement;
+  const hadDarkClass = root.classList.contains("dark");
+  const prevColorScheme = root.style.colorScheme;
+  if (hadDarkClass) {
+    root.classList.remove("dark");
+    root.style.colorScheme = "light";
+  }
+
+  let restored = false;
+  // Restore elements and active theme after print
   const restoreElements = () => {
+    if (restored) return;
+    restored = true;
     elementsToHide.forEach((el) => {
       (el as HTMLElement).style.display = "";
     });
+    if (hadDarkClass) {
+      root.classList.add("dark");
+      root.style.colorScheme = prevColorScheme || "dark";
+    }
     window.removeEventListener("afterprint", restoreElements);
   };
 
