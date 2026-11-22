@@ -38,6 +38,8 @@ import {
 } from "../utils/backupValidation";
 import type { RecoveryAction } from "../context/SchoolContextDefinition";
 import { isIOSDevice } from "../utils/iosInteraction";
+import { captureEvent } from "../utils/analytics";
+import { isDemoStudent } from "../utils/reportAnalytics";
 
 export interface DataBackupProps {
   recoveryOnly?: boolean;
@@ -275,6 +277,17 @@ export function DataBackup({
       }
 
       recordBackup(); // Track backup timestamp
+
+      const demoCount = parsedStudents.filter(
+        (item) => Boolean(item && typeof item === "object" && isDemoStudent(item as { id: string })),
+      ).length;
+      const realCount = parsedStudents.length - demoCount;
+      captureEvent("Backup_Exported", {
+        password_protected: Boolean(usePassword && password),
+        delivery_method: sharedViaOs ? "os_share" : "download",
+        students_count: parsedStudents.length,
+        is_demo: demoCount > 0 && realCount === 0,
+      });
 
       setStatus("success");
       showToast(
@@ -539,6 +552,16 @@ export function DataBackup({
       }
       setStatus("success");
       showToast("Class data loaded successfully!", "success");
+
+      const warningCount =
+        typeof (backup as { warningCount?: unknown }).warningCount === "number"
+          ? (backup as { warningCount: number }).warningCount
+          : 0;
+      captureEvent("Backup_Restored", {
+        students_count: backup.students.length,
+        from_recovery_mode: Boolean(recoveryOnly),
+        had_warnings: warningCount > 0,
+      });
 
       // Clean up
       setShowReloadOverlay(true);

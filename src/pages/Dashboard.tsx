@@ -16,6 +16,7 @@ import { EmptyState } from "../components/EmptyState";
 import { Footer } from "../components/Footer";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { useDebounce } from "../hooks/useDebounce";
+import { captureEvent } from "../utils/analytics";
 import { exportDetailedBroadsheetCSV, exportToCSV } from "../utils/export";
 import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
 import { BulkImportModal } from "../components/BulkImportModal";
@@ -146,6 +147,11 @@ export function Dashboard() {
     try {
       exportToCSV(students, `Class_Broadsheet_${new Date().toISOString().split("T")[0]}`);
       showToast("Class list exported successfully!", "success");
+      captureEvent("Class_Tool_Used", {
+        tool: "broadsheet_csv_export",
+        students_count: students.length,
+        school_level: settings.level || "unknown",
+      });
     } catch (error) {
       console.error("Export failed:", error);
       showToast(
@@ -163,6 +169,11 @@ export function Dashboard() {
         `Detailed_Broadsheet_${new Date().toISOString().split("T")[0]}`,
       );
       showToast("Detailed broadsheet exported!", "success");
+      captureEvent("Class_Tool_Used", {
+        tool: "detailed_broadsheet_csv_export",
+        students_count: students.length,
+        school_level: settings.level || "unknown",
+      });
     } catch (error) {
       console.error("Detailed export failed:", error);
       showToast(

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useContext, useMemo } from "react";
 import type { MouseEvent, ReactNode, SetStateAction } from "react";
-import posthog from "posthog-js";
+import { captureEvent } from "../utils/analytics";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../hooks/useToast";
@@ -239,8 +239,8 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   };
 
   const handleLevelChange = (newLevel: SchoolLevel) => {
+    if (newLevel === formData.level) return;
     if (
-      newLevel !== formData.level &&
       formData.defaultSubjects &&
       formData.defaultSubjects.length > 0
     ) {
@@ -252,6 +252,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   };
 
   const applyLevelChange = (newLevel: SchoolLevel) => {
+    const previousLevel = formData.level || "unknown";
     const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
     const defaultClass = CLASS_OPTIONS[newLevel]?.[0] || "";
 
@@ -262,7 +263,11 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       className: defaultClass,
     }));
     showToast(`Loaded presets for ${newLevel}`, "info");
-    posthog.capture("School_Level_Changed", { new_level: newLevel });
+    captureEvent("School_Level_Changed", {
+      previous_level: previousLevel,
+      new_level: newLevel,
+      students_count: students.length,
+    });
     setShowLevelChangeModal(false);
     setPendingLevel(null);
 

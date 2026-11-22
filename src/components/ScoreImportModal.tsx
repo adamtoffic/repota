@@ -35,6 +35,7 @@ import {
   type SbaImportMode,
 } from "../utils/csvImport";
 import { updateComponentAndRecalculateClassScore } from "../utils/scoreConversion";
+import { captureEvent } from "../utils/analytics";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { Textarea } from "./ui/Textarea";
@@ -515,7 +516,10 @@ function ScoreImportModalContent({
           : [...defaultSubs, updatedSub];
 
         const newStudent: StudentRecord = {
-          id: `${Date.now()}-${idx}`,
+          id:
+            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+              ? crypto.randomUUID()
+              : `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 8)}`,
           name: row.studentName,
           gender: "Male",
           className: effectiveSettings.className || "Class",
@@ -587,6 +591,17 @@ function ScoreImportModalContent({
         : "No scores were applied.",
       summary.length > 0 ? "success" : "info",
     );
+
+    if (updatedCount + createdCount > 0) {
+      captureEvent("Scores_Imported", {
+        mode: activeMode,
+        students_updated: updatedCount,
+        students_created: createdCount,
+        new_tasks_created: enabledNewTasks.length,
+        school_level: settings.level || "unknown",
+        exam_type: (settings.examType || "TERMLY").trim().toUpperCase(),
+      });
+    }
 
     setRawText("");
     setNewColumnOverrides({});

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { CalendarCheck, X } from "lucide-react";
 import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
+import { captureEvent } from "../utils/analytics";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 
@@ -58,6 +59,13 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
         : "Attendance is already up to date.",
       updatedCount > 0 ? "success" : "info",
     );
+    if (updatedCount > 0) {
+      captureEvent("Class_Tool_Used", {
+        tool: "bulk_attendance",
+        students_count: updatedCount,
+        school_level: settings.level || "unknown",
+      });
+    }
     onClose();
   };
 

@@ -5,6 +5,7 @@ import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSettingsForm } from "../hooks/useSettingsForm";
 import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
+import { captureEvent } from "../utils/analytics";
 import { exportToCSV } from "../utils/export";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Button } from "../components/ui";
@@ -47,6 +48,11 @@ function SbaPageContent() {
     try {
       exportToCSV(students, `Class_Broadsheet_${new Date().toISOString().split("T")[0]}`);
       showToast("Class scores exported successfully!", "success");
+      captureEvent("Class_Tool_Used", {
+        tool: "broadsheet_csv_export",
+        students_count: students.length,
+        school_level: settings.level || "unknown",
+      });
     } catch (error) {
       console.error("Export failed:", error);
       showToast(

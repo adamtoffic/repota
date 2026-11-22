@@ -19,6 +19,9 @@ describe("PostHog configuration", () => {
     const [, config] = posthog.init.mock.calls[0];
     expect(config).toMatchObject({
       autocapture: true,
+      capture_pageview: "history_change",
+      capture_pageleave: "if_capture_pageview",
+      disable_session_recording: true,
       mask_all_text: true,
       mask_all_element_attributes: true,
       session_recording: {
@@ -27,6 +30,8 @@ describe("PostHog configuration", () => {
         blockSelector: "img",
       },
     });
+
+    expect(config.before_send({ event: "test", properties: {}, uuid: "1" })).toBeNull();
 
     const { maskTextFn } = config.session_recording;
     const outside = document.createElement("span");

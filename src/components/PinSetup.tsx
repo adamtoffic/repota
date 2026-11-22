@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { captureEvent } from "../utils/analytics";
 import {
   Lock,
   Key,
@@ -43,6 +44,8 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<"face" | "fingerprint" | "other" | null>(null);
   const [enrollingBiometric, setEnrollingBiometric] = useState(false);
+  const securityQuestionsSavedRef = useRef(false);
+  const wasChangingPinRef = useRef(isChangingPin);
 
   // Check biometric availability on mount
   useEffect(() => {
@@ -107,11 +110,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
     const success = await saveSecurityQuestions(questionsToSave);
     if (success) {
+      securityQuestionsSavedRef.current = true;
       // Check if biometric is available, if so go to biometric step
       if (biometricAvailable) {
         setStep("biometric");
       } else {
-        await handleFinishSetup();
+        await handleFinishSetup(false);
       }
     } else {
       setError("Failed to save security questions. Please try again.");
@@ -127,19 +131,24 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     setEnrollingBiometric(false);
 
     if (success) {
-      await handleFinishSetup();
+      await handleFinishSetup(true);
     } else {
       setError(biometricError || "Failed to enroll biometric");
     }
   };
 
   const handleSkipBiometric = async () => {
-    await handleFinishSetup();
+    await handleFinishSetup(false);
   };
 
-  const handleFinishSetup = async () => {
+  const handleFinishSetup = async (biometricEnrolled = false) => {
     const success = await setupPin(pin, recoveryCode);
     if (success) {
+      captureEvent("Pin_Lock_Configured", {
+        is_change: wasChangingPinRef.current,
+        biometric_enabled: biometricEnrolled,
+        security_questions_configured: securityQuestionsSavedRef.current,
+      });
       onComplete();
     } else {
       setError("Failed to set up PIN. Please try again.");
@@ -151,7 +160,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     if (biometricAvailable) {
       setStep("biometric");
     } else {
-      await handleFinishSetup();
+      await handleFinishSetup(false);
     }
   };
 

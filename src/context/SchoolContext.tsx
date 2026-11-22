@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
-import posthog from "posthog-js";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
+import { captureEvent } from "../utils/analytics";
+import { isDemoStudent } from "../utils/reportAnalytics";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
@@ -513,6 +514,7 @@ export function SchoolProvider({
     if (!dataLossChecked && detectDataLoss()) {
       showToast("⚠️ Data may have been cleared. Please restore from backup if needed.", "error");
       sessionStorage.setItem("data_loss_checked", "true");
+      captureEvent("Data_Loss_Detected", { storage_type: getStorageType() });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
@@ -522,13 +524,19 @@ export function SchoolProvider({
   // 1. ADD
   const addStudent = useCallback(
     (student: StudentRecord, silent = false) => {
+      const prevRealCount = studentsRef.current.filter((s) => !isDemoStudent(s)).length;
       handleSetStudents((prev) => [...prev, student]);
       if (!silent && student.name !== "New Student") {
         showToast(`Student "${student.name}" added successfully!`, "success");
-        posthog.capture("Added_Student", {
-          school_level: settingsRef.current.level || "unknown",
-          school_type: settingsRef.current.schoolType || "unknown",
-        });
+        if (!isDemoStudent(student)) {
+          captureEvent("Added_Student", {
+            school_level: settingsRef.current.level || "unknown",
+            school_type: settingsRef.current.schoolType || "unknown",
+            exam_type: (settingsRef.current.examType || "TERMLY").trim().toUpperCase(),
+            is_first_student: prevRealCount === 0,
+            total_students_count: prevRealCount + 1,
+          });
+        }
       }
     },
     [handleSetStudents, showToast],
@@ -1013,11 +1021,16 @@ export function SchoolProvider({
       },
     ];
 
+    const existingCount = studentsRef.current.length;
     if (demoStudents.length > 0) {
       handleSetStudents((prev) => [...prev, ...demoStudents]);
       showToast(`${demoStudents.length} demo students loaded!`, "success");
-      posthog.capture("Loaded_Demo_Data", {
+      captureEvent("Loaded_Demo_Data", {
         school_level: currentSettings.level || "unknown",
+        school_type: currentSettings.schoolType || "unknown",
+        demo_students_count: demoStudents.length,
+        existing_students_count: existingCount,
+        is_empty_workspace: existingCount === 0,
       });
     }
   }, [handleSetStudents, showToast]);
@@ -1088,9 +1101,18 @@ export function SchoolProvider({
 
       handleSetStudents(updatedStudents);
       showToast("Remarks auto-generated and distributed uniquely!", "success");
-      posthog.capture("Auto_Remarks_Generated", {
-        students_count: total,
-      });
+      if (total > 0) {
+        const demoCount = currentStudents.filter((s) => isDemoStudent(s)).length;
+        const realCount = total - demoCount;
+        captureEvent("Auto_Remarks_Generated", {
+          students_count: total,
+          real_students_count: realCount,
+          demo_students_count: demoCount,
+          is_demo: demoCount > 0 && realCount === 0,
+          school_level: currentSettings.level || "unknown",
+          term: currentSettings.term || "unknown",
+        });
+      }
     },
     [handleSetStudents, showToast],
   );

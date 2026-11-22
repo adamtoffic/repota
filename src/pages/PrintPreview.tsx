@@ -3,14 +3,22 @@ import { ArrowLeft, Printer, AlertCircle, Image, Palette, X } from "lucide-react
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PdfExportModal } from "../components/PdfExportModal";
-import posthog from "posthog-js";
 import { ScrollButton } from "../components/ScrollButton";
 import { usePdfShareFlow } from "../hooks/usePdfShareFlow";
 import { getTemplateById } from "../templates/registry";
 import type { PrintMode } from "../types";
 import { buildPdfFilename, generateReportsPdfFile } from "../utils/pdfPrint";
+import { captureEvent } from "../utils/analytics";
 import { markPrintStarted } from "../utils/printHandler";
+import {
+  isDemoStudent,
+  trackReportPrint,
+  type PrintChannel,
+  type PrintScope,
+} from "../utils/reportAnalytics";
 import { isStudentPending } from "../utils/studentValidation";
+
+const PRINT_TRIGGER_COOLDOWN_MS = 1500;
 
 export function PrintPreview() {
   const students = useSchoolStudents();
@@ -80,11 +88,16 @@ export function PrintPreview() {
     () => students.filter((s) => !isStudentPending(s, settings)),
     [students, settings],
   );
-  const printableStudents = id
-    ? students.filter((s) => s.id === id)
-    : printFilter === "ready"
-      ? readyStudents
-      : students;
+  const printableStudents = useMemo(
+    () =>
+      id
+        ? students.filter((s) => s.id === id)
+        : printFilter === "ready"
+          ? readyStudents
+          : students,
+    [id, printFilter, readyStudents, students],
+  );
+  const printScope: PrintScope = id ? "single" : printFilter === "ready" ? "ready_filter" : "all";
   const studentsWithMissingPhotos = printableStudents.filter((student) => !student.pictureUrl);
 
   const SelectedTemplate = getTemplateById(settings.templateId);
@@ -138,27 +151,139 @@ export function PrintPreview() {
     [settings.className, printableStudents.length],
   );
 
-  const { modalProps: pdfModalProps, runPrintOrPdfFallback } = usePdfShareFlow({
+  const latestPrintPayloadRef = useRef({
+    students: printableStudents,
+    settings,
+    printMode,
+    printScope,
+  });
+  const pendingButtonPrintRef = useRef<{ expiresAt: number } | null>(null);
+  const lastButtonClickAtRef = useRef<number>(-Infinity);
+  const lastNativePrintTrackedAtRef = useRef<number>(-Infinity);
+  const hasTrackedPreviewRef = useRef(false);
+
+  useEffect(() => {
+    if (hasTrackedPreviewRef.current || printableStudents.length === 0) return;
+    hasTrackedPreviewRef.current = true;
+    const realStudents = printableStudents.filter((s) => !isDemoStudent(s));
+    const demoCount = printableStudents.length - realStudents.length;
+    const readyCount = realStudents.filter((s) => !isStudentPending(s, settings)).length;
+    captureEvent("Print_Preview_Opened", {
+      students_count: printableStudents.length,
+      real_students_count: realStudents.length,
+      ready_count: readyCount,
+      missing_photos_count: studentsWithMissingPhotos.length,
+      print_scope: printScope,
+      is_demo: demoCount > 0 && realStudents.length === 0,
+      template_id: settings.templateId || "original_v1",
+      school_level: settings.level || "unknown",
+      school_type: settings.schoolType || "unknown",
+    });
+  }, [printableStudents, printScope, settings, studentsWithMissingPhotos.length]);
+
+  useEffect(() => {
+    latestPrintPayloadRef.current = {
+      students: printableStudents,
+      settings,
+      printMode,
+      printScope,
+    };
+  }, [printableStudents, settings, printMode, printScope]);
+
+  const handlePdfCompleted = useCallback((method: "share" | "download") => {
+    const payload = latestPrintPayloadRef.current;
+    if (payload.students.length === 0) return;
+    trackReportPrint({
+      ...payload,
+      printChannel: method === "share" ? "ios_pdf_share" : "ios_pdf_download",
+    });
+  }, []);
+
+  const {
+    modalProps: pdfModalProps,
+    runPrintOrPdfFallback,
+    isGenerating,
+  } = usePdfShareFlow({
     cacheKey: contentKey,
     totalCount: printableStudents.length,
     itemLabel: "report card",
     buildPdf: buildReportCardsPdf,
+    onPdfCompleted: handlePdfCompleted,
+    analyticsSource: "report_cards",
   });
 
-  const handlePrint = () => {
-    try {
-      posthog.capture("Printed_Reports", {
-        students_count: printableStudents.length,
-        template_id: settings.templateId || "original_v1",
-        print_mode: printMode,
-        school_level: settings.level || "unknown",
-        school_type: settings.schoolType || "unknown",
+  useEffect(() => {
+    const confirmNativePrint = (requireArmedButton: boolean) => {
+      const now = Date.now();
+      const payload = latestPrintPayloadRef.current;
+      if (payload.students.length === 0) return;
+
+      const isArmed = Boolean(
+        pendingButtonPrintRef.current && now <= pendingButtonPrintRef.current.expiresAt,
+      );
+      if (requireArmedButton && !isArmed) return;
+
+      if (now - lastNativePrintTrackedAtRef.current < PRINT_TRIGGER_COOLDOWN_MS) {
+        pendingButtonPrintRef.current = null;
+        return;
+      }
+
+      pendingButtonPrintRef.current = null;
+      lastNativePrintTrackedAtRef.current = now;
+
+      const printChannel: PrintChannel = isArmed ? "native_print" : "keyboard_print";
+      trackReportPrint({
+        ...payload,
+        printChannel,
       });
-    } catch {
-      // Analytics must never block printing
+    };
+
+    const onBeforePrint = () => {
+      confirmNativePrint(false);
+    };
+
+    const onMediaChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        confirmNativePrint(false);
+      }
+    };
+
+    const onWindowBlur = () => {
+      confirmNativePrint(true);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        confirmNativePrint(true);
+      }
+    };
+
+    const printMql = typeof window.matchMedia === "function" ? window.matchMedia("print") : null;
+
+    window.addEventListener("beforeprint", onBeforePrint);
+    printMql?.addEventListener?.("change", onMediaChange);
+    window.addEventListener("blur", onWindowBlur);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      printMql?.removeEventListener?.("change", onMediaChange);
+      window.removeEventListener("blur", onWindowBlur);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  const handlePrint = () => {
+    const now = Date.now();
+    if (isGenerating || now - lastButtonClickAtRef.current < PRINT_TRIGGER_COOLDOWN_MS) {
+      return;
     }
+    lastButtonClickAtRef.current = now;
     markPrintStarted();
-    runPrintOrPdfFallback(() => window.print());
+    runPrintOrPdfFallback(() => {
+      pendingButtonPrintRef.current = { expiresAt: Date.now() + PRINT_TRIGGER_COOLDOWN_MS };
+      window.print();
+    });
   };
 
   if (printableStudents.length === 0) {
@@ -238,7 +363,8 @@ export function PrintPreview() {
             <button
               type="button"
               onClick={handlePrint}
-              className="bg-primary hover:bg-primary/90 flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold text-white shadow-sm transition-all active:scale-95 sm:gap-2 sm:px-5 sm:text-sm"
+              disabled={isGenerating}
+              className="bg-primary hover:bg-primary/90 flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold text-white shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:gap-2 sm:px-5 sm:text-sm"
             >
               <Printer className="h-4 w-4 shrink-0" />
               <span>Print</span>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { GraduationCap, X } from "lucide-react";
 import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
+import { captureEvent } from "../utils/analytics";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 
@@ -59,6 +60,13 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
         : "No promotion changes needed.",
       updated > 0 ? "success" : "info",
     );
+    if (updated > 0) {
+      captureEvent("Class_Tool_Used", {
+        tool: "bulk_promotion",
+        students_count: updated,
+        school_level: settings.level || "unknown",
+      });
+    }
     onClose();
   };
 

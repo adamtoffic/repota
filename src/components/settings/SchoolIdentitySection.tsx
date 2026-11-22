@@ -2,7 +2,8 @@ import { Briefcase, RotateCcw, School } from "lucide-react";
 import { ImageUploader } from "../ImageUploader";
 import { Input } from "../ui";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
-import type { PrivateFeeItem } from "../../types";
+import type { PrivateFeeItem, SchoolSettings } from "../../types";
+import { captureEvent } from "../../utils/analytics";
 import {
   DEFAULT_PAYMENT_NOTE,
   DEFAULT_PRIVATE_FEE_SLOTS,
@@ -14,6 +15,17 @@ export function SchoolIdentitySection() {
   const { formData, setFormData, isPersistenceSuspended } = useSettingsForm();
   const feeSlots = resolveEditablePrivateFeeItems(formData);
   const showFeeSchedule = formData.showFeeSchedule !== false;
+
+  const handleSchoolTypeChange = (nextType: SchoolSettings["schoolType"]) => {
+    if (formData.schoolType === nextType) return;
+    const previousType = formData.schoolType || "STANDARD";
+    setFormData({ ...formData, schoolType: nextType });
+    captureEvent("School_Type_Changed", {
+      previous_type: previousType,
+      new_type: nextType,
+      school_level: formData.level || "unknown",
+    });
+  };
 
   const updateFeeSlot = (index: number, patch: Partial<PrivateFeeItem>) => {
     const nextSlots = feeSlots.map((slot, idx) => (idx === index ? { ...slot, ...patch } : slot));
@@ -103,7 +115,7 @@ export function SchoolIdentitySection() {
                     type="radio"
                     name="schoolType"
                     checked={formData.schoolType === "STANDARD"}
-                    onChange={() => setFormData({ ...formData, schoolType: "STANDARD" })}
+                    onChange={() => handleSchoolTypeChange("STANDARD")}
                     className="text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-bold text-gray-700">Standard (GES)</span>
@@ -114,7 +126,7 @@ export function SchoolIdentitySection() {
                     type="radio"
                     name="schoolType"
                     checked={formData.schoolType === "ISLAMIC"}
-                    onChange={() => setFormData({ ...formData, schoolType: "ISLAMIC" })}
+                    onChange={() => handleSchoolTypeChange("ISLAMIC")}
                     className="text-green-600 focus:ring-green-500"
                   />
                   <span className="text-sm font-bold text-gray-700">Islamic / Arabic</span>
@@ -125,7 +137,7 @@ export function SchoolIdentitySection() {
                     type="radio"
                     name="schoolType"
                     checked={formData.schoolType === "PRIVATE"}
-                    onChange={() => setFormData({ ...formData, schoolType: "PRIVATE" })}
+                    onChange={() => handleSchoolTypeChange("PRIVATE")}
                     className="text-purple-600 focus:ring-purple-500"
                   />
                   <span className="text-sm font-bold text-gray-700">Private School</span>
