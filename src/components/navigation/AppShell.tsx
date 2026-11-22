@@ -206,9 +206,9 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Floating Liquid Glass Bottom Navigation Bar */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 md:hidden print:hidden"
+        className="safe-bottom safe-bottom-floating pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 md:hidden print:hidden"
       >
-        <div className="pointer-events-auto relative mx-auto mb-2.5 grid h-[60px] max-w-[380px] transform-gpu grid-cols-4 items-center rounded-full border border-white/80 bg-white/72 p-1.5 shadow-[0_8px_32px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.06),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-1px_1px_rgba(15,23,42,0.05)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:bg-[#131926]/72 dark:shadow-[0_12px_36px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.35)]">
+        <div className="pointer-events-auto relative mx-auto grid h-[60px] max-w-[380px] transform-gpu grid-cols-4 items-center rounded-full border border-white/80 bg-white/72 p-1.5 shadow-[0_8px_32px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.06),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-1px_1px_rgba(15,23,42,0.05)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:bg-[#131926]/72 dark:shadow-[0_12px_36px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.35)]">
           {activePrimaryIndex >= 0 && (
             <div className="pointer-events-none absolute inset-1.5" aria-hidden="true">
               <div
