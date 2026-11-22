@@ -262,6 +262,7 @@ export function StudentList({
       ) : (
         <div
           ref={mobileParentRef}
+          data-scroll-region="student-list"
           className="max-h-[68vh] overflow-y-auto overscroll-contain md:hidden"
         >
           <div
@@ -289,6 +290,7 @@ export function StudentList({
       {/* DESKTOP TABLE */}
       <div
         ref={parentRef}
+        data-scroll-region="student-list"
         className="hidden w-full overflow-x-auto md:block"
         style={{
           maxHeight: "600px",

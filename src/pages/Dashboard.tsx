@@ -601,7 +601,7 @@ export function Dashboard() {
       />
 
       {/* ✅ SCROLL TO TOP/BOTTOM BUTTON */}
-      {students.length >= 10 && <ScrollButton />}
+      {students.length >= 10 && <ScrollButton scrollTargetSelector='[data-scroll-region="student-list"]' />}
 
       {/* ✅ WELCOME TOUR for first-time users */}
       <WelcomeTour

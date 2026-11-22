@@ -28,6 +28,7 @@ export function PrintPreview() {
   const [printMode, setPrintMode] = useState<PrintMode>("color");
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
   const [photoWarningDismissed, setPhotoWarningDismissed] = useState(false);
+  const [activeCardIndex, setActiveCardIndex] = useState(1);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
@@ -161,6 +162,56 @@ export function PrintPreview() {
   const lastButtonClickAtRef = useRef<number>(-Infinity);
   const lastNativePrintTrackedAtRef = useRef<number>(-Infinity);
   const hasTrackedPreviewRef = useRef(false);
+
+  useEffect(() => {
+    if (printableStudents.length < 3) return;
+
+    let rafId: number | null = null;
+
+    const updateActiveCard = () => {
+      rafId = null;
+      const container = printAreaRef.current;
+      if (!container) return;
+
+      const cards = container.querySelectorAll<HTMLElement>(".report-wrapper");
+      if (cards.length === 0) return;
+
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0 && window.scrollY >= maxScroll - 32) {
+        setActiveCardIndex((prev) => (prev === cards.length ? prev : cards.length));
+        return;
+      }
+
+      const anchorY = window.innerHeight * 0.35;
+      let current = 1;
+      for (let i = 0; i < cards.length; i++) {
+        if (cards[i].getBoundingClientRect().top <= anchorY) {
+          current = i + 1;
+        } else {
+          break;
+        }
+      }
+
+      setActiveCardIndex((prev) => (prev === current ? prev : current));
+    };
+
+    const scheduleUpdate = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(updateActiveCard);
+    };
+
+    updateActiveCard();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, [printableStudents.length]);
 
   useEffect(() => {
     if (hasTrackedPreviewRef.current || printableStudents.length === 0) return;
@@ -524,7 +575,12 @@ export function PrintPreview() {
       </div>
 
       {/* SCROLL BUTTON */}
-      {printableStudents.length >= 3 && <ScrollButton />}
+      {printableStudents.length >= 3 && (
+        <ScrollButton
+          hasBottomNav={false}
+          statusLabel={`${Math.min(activeCardIndex, printableStudents.length)} / ${printableStudents.length}`}
+        />
+      )}
 
       <PdfExportModal {...pdfModalProps} />
     </div>
