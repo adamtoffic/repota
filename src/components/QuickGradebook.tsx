@@ -5,6 +5,7 @@ import {
   ExternalLink,
   Filter,
   PlusCircle,
+  RefreshCw,
   TableProperties,
   Upload,
 } from "lucide-react";
@@ -25,13 +26,77 @@ import { captureEvent, trackScoreEntrySessionOnce } from "../utils/analytics";
 
 interface QuickGradebookProps {
   students: ProcessedStudent[];
+  /**
+   * Full unfiltered class roster used to keep edited rows mounted with live updated scores
+   * even when a parent Dashboard filter (e.g., Incomplete / No Scores) stops matching mid-edit.
+   */
+  allStudents?: ProcessedStudent[];
+  /**
+   * Opaque key capturing parent search/filter/sort settings (must not depend on student scores).
+   * Changing this key refreshes the frozen row-order snapshot.
+   */
+  sessionKey?: string;
   settings: SchoolSettings;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
-  onOpenStudent?: (student: ProcessedStudent) => void;
+  onOpenStudent?: (student: ProcessedStudent, orderedStudents?: ProcessedStudent[]) => void;
   onOpenScoreImport?: (subject: string, taskName?: string) => void;
+  onClearParentFilters?: () => void;
 }
 
 type FocusColumn = "CLASS_EXAM" | `COMP:${string}`;
+
+interface OrderSnapshot {
+  key: string;
+  ids: string[];
+  knownRosterIds: Set<string>;
+}
+
+function syncOrderSnapshot(
+  current: OrderSnapshot,
+  nextKey: string,
+  nextStudents: ProcessedStudent[],
+  rosterStudents: ProcessedStudent[],
+): OrderSnapshot | null {
+  if (current.key !== nextKey) {
+    return {
+      key: nextKey,
+      ids: nextStudents.map((student) => student.id),
+      knownRosterIds: new Set(rosterStudents.map((student) => student.id)),
+    };
+  }
+
+  const unseenIds = new Set<string>();
+  for (const student of rosterStudents) {
+    if (!current.knownRosterIds.has(student.id)) {
+      unseenIds.add(student.id);
+    }
+  }
+  if (unseenIds.size === 0) return null;
+
+  const newlyMatchingIds = nextStudents
+    .filter((student) => unseenIds.has(student.id))
+    .map((student) => student.id);
+  const nextKnown = new Set(current.knownRosterIds);
+  unseenIds.forEach((id) => nextKnown.add(id));
+
+  return {
+    key: nextKey,
+    ids: [...current.ids, ...newlyMatchingIds],
+    knownRosterIds: nextKnown,
+  };
+}
+
+function resolveStudentsFromSnapshot(
+  ids: string[],
+  rosterById: Map<string, ProcessedStudent>,
+): ProcessedStudent[] {
+  const resolved: ProcessedStudent[] = [];
+  for (const id of ids) {
+    const latest = rosterById.get(id);
+    if (latest) resolved.push(latest);
+  }
+  return resolved;
+}
 
 function isStudentUnscoredInGradebook(
   student: ProcessedStudent,
@@ -53,14 +118,23 @@ function isStudentUnscoredInGradebook(
 
 export function QuickGradebook({
   students,
+  allStudents,
+  sessionKey,
   settings,
   onUpdateStudent,
   onOpenStudent,
   onOpenScoreImport,
+  onClearParentFilters,
 }: QuickGradebookProps) {
   const isMockExam = settings.examType === "MOCK";
   const maxClassScore = settings.classScoreMax;
   const maxExamScore = settings.examScoreMax;
+
+  const rosterStudents = allStudents ?? students;
+  const rosterById = useMemo(
+    () => new Map(rosterStudents.map((student) => [student.id, student])),
+    [rosterStudents],
+  );
 
   const availableSubjects = useMemo(() => {
     const ordered: string[] = [];
@@ -73,9 +147,11 @@ export function QuickGradebook({
     };
 
     (settings.defaultSubjects || []).forEach(addSubjectName);
-    students.forEach((student) => student.subjects.forEach((sub) => addSubjectName(sub.name)));
+    rosterStudents.forEach((student) =>
+      student.subjects.forEach((sub) => addSubjectName(sub.name)),
+    );
     return ordered;
-  }, [settings.defaultSubjects, students]);
+  }, [settings.defaultSubjects, rosterStudents]);
 
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const activeSubject = availableSubjects.includes(selectedSubject)
@@ -84,7 +160,7 @@ export function QuickGradebook({
 
   const [focusColumn, setFocusColumn] = useState<FocusColumn>("CLASS_EXAM");
   const [unscoredOnly, setUnscoredOnly] = useState(false);
-  const [pinnedStudentIds, setPinnedStudentIds] = useState<Set<string>>(() => new Set());
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const [examDrafts, setExamDrafts] = useState<Record<string, { baseScore: number; raw: string }>>(
     {},
   );
@@ -94,7 +170,7 @@ export function QuickGradebook({
   const sbaTaskOptions = useMemo(() => {
     if (isMockExam || !activeSubject) return [] as Array<{ name: string; maxScore: number }>;
     const byName = new Map<string, number>();
-    students.forEach((student) => {
+    rosterStudents.forEach((student) => {
       const subject = student.subjects.find((sub) => sub.name === activeSubject);
       subject?.classScoreComponents?.forEach((comp) => {
         if (!byName.has(comp.name)) {
@@ -103,7 +179,7 @@ export function QuickGradebook({
       });
     });
     return Array.from(byName.entries()).map(([name, maxScore]) => ({ name, maxScore }));
-  }, [isMockExam, activeSubject, students]);
+  }, [isMockExam, activeSubject, rosterStudents]);
 
   const activeFocusColumn: FocusColumn =
     focusColumn.startsWith("COMP:") &&
@@ -119,11 +195,76 @@ export function QuickGradebook({
     ? sbaTaskOptions.find((t) => t.name === activeComponentName)
     : undefined;
 
+  // Tier 1: Freeze parent-filtered/sorted student scope & order across score edits
+  const scopeKey = `${sessionKey ?? ""}|${refreshNonce}`;
+  const [scopeSnapshot, setScopeSnapshot] = useState<OrderSnapshot>(() => ({
+    key: scopeKey,
+    ids: students.map((student) => student.id),
+    knownRosterIds: new Set(rosterStudents.map((student) => student.id)),
+  }));
+
+  const nextScopeSnapshot = syncOrderSnapshot(scopeSnapshot, scopeKey, students, rosterStudents);
+  const activeScopeSnapshot = nextScopeSnapshot ?? scopeSnapshot;
+  if (nextScopeSnapshot) {
+    setScopeSnapshot(nextScopeSnapshot);
+  }
+
+  const sessionStudents = useMemo(
+    () => resolveStudentsFromSnapshot(activeScopeSnapshot.ids, rosterById),
+    [activeScopeSnapshot.ids, rosterById],
+  );
+
+  // Tier 2: Freeze gradebook row membership & order while entering scores under Unscored-only
+  const sessionUnscoredFiltered = useMemo(() => {
+    if (!unscoredOnly) return sessionStudents;
+    return sessionStudents.filter((student) =>
+      isStudentUnscoredInGradebook(student, activeSubject, activeComponentName, isMockExam),
+    );
+  }, [unscoredOnly, sessionStudents, activeSubject, activeComponentName, isMockExam]);
+
+  const visibleKey = `${scopeKey}|${activeSubject}|${activeFocusColumn}|${unscoredOnly ? "unscored" : "all"}`;
+  const [visibleSnapshot, setVisibleSnapshot] = useState<OrderSnapshot>(() => ({
+    key: visibleKey,
+    ids: sessionUnscoredFiltered.map((student) => student.id),
+    knownRosterIds: new Set(rosterStudents.map((student) => student.id)),
+  }));
+
+  const nextVisibleSnapshot = syncOrderSnapshot(
+    visibleSnapshot,
+    visibleKey,
+    sessionUnscoredFiltered,
+    rosterStudents,
+  );
+  const activeVisibleSnapshot = nextVisibleSnapshot ?? visibleSnapshot;
+  if (nextVisibleSnapshot) {
+    setVisibleSnapshot(nextVisibleSnapshot);
+  }
+
+  const visibleStudents = useMemo(
+    () => resolveStudentsFromSnapshot(activeVisibleSnapshot.ids, rosterById),
+    [activeVisibleSnapshot.ids, rosterById],
+  );
+
+  const liveVisibleStudents = useMemo(() => {
+    if (!unscoredOnly) return students;
+    return students.filter((student) =>
+      isStudentUnscoredInGradebook(student, activeSubject, activeComponentName, isMockExam),
+    );
+  }, [unscoredOnly, students, activeSubject, activeComponentName, isMockExam]);
+
+  const hasPendingOrderOrFilterChanges = useMemo(() => {
+    if (visibleStudents.length !== liveVisibleStudents.length) return true;
+    for (let i = 0; i < visibleStudents.length; i++) {
+      if (visibleStudents[i].id !== liveVisibleStudents[i].id) return true;
+    }
+    return false;
+  }, [visibleStudents, liveVisibleStudents]);
+
   const columnStats = useMemo(() => {
-    if (!activeSubject || students.length === 0) return { scored: 0, avgLabel: "" };
+    if (!activeSubject || sessionStudents.length === 0) return { scored: 0, avgLabel: "" };
     if (activeTaskConfig) {
       const scores: number[] = [];
-      students.forEach((student) => {
+      sessionStudents.forEach((student) => {
         const sub = student.subjects.find((s) => s.name === activeSubject);
         const comp = sub?.classScoreComponents?.find((c) => c.name === activeTaskConfig.name);
         if (comp && comp.score > 0) scores.push(comp.score);
@@ -139,7 +280,7 @@ export function QuickGradebook({
     }
 
     const totals: number[] = [];
-    students.forEach((student) => {
+    sessionStudents.forEach((student) => {
       const sub = student.subjects.find((s) => s.name === activeSubject);
       if (!sub) return;
       const hasAny = isMockExam ? sub.examScore > 0 : sub.classScore > 0 || sub.examScore > 0;
@@ -150,41 +291,37 @@ export function QuickGradebook({
         ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1)
         : "0";
     return { scored: totals.length, avgLabel: `Avg: ${avg}%` };
-  }, [activeSubject, activeTaskConfig, isMockExam, students]);
+  }, [activeSubject, activeTaskConfig, isMockExam, sessionStudents]);
 
   const unscoredCount = useMemo(() => {
     if (!activeSubject) return 0;
-    return students.filter((student) =>
+    return sessionStudents.filter((student) =>
       isStudentUnscoredInGradebook(student, activeSubject, activeComponentName, isMockExam),
     ).length;
-  }, [students, activeSubject, activeComponentName, isMockExam]);
-
-  const visibleStudents = useMemo(() => {
-    if (!unscoredOnly) return students;
-    return students.filter(
-      (student) =>
-        pinnedStudentIds.has(student.id) ||
-        isStudentUnscoredInGradebook(student, activeSubject, activeComponentName, isMockExam),
-    );
-  }, [unscoredOnly, students, pinnedStudentIds, activeSubject, activeComponentName, isMockExam]);
+  }, [sessionStudents, activeSubject, activeComponentName, isMockExam]);
 
   const handleExportCurrentView = () => {
-    if (!activeSubject || students.length === 0) return;
+    if (!activeSubject || sessionStudents.length === 0) return;
     const dateStamp = new Date().toISOString().split("T")[0];
     const safeSub = activeSubject.replace(/\s+/g, "_");
     if (activeTaskConfig) {
-      const csv = buildSingleComponentExportCsv(activeSubject, activeTaskConfig, students, settings);
+      const csv = buildSingleComponentExportCsv(
+        activeSubject,
+        activeTaskConfig,
+        sessionStudents,
+        settings,
+      );
       downloadCsvFile(
         csv,
         `${safeSub}_${activeTaskConfig.name.replace(/\s+/g, "_")}_${dateStamp}.csv`,
       );
     } else {
-      const csv = buildSubjectQuickExportCsv(activeSubject, students, settings);
+      const csv = buildSubjectQuickExportCsv(activeSubject, sessionStudents, settings);
       downloadCsvFile(csv, `${safeSub}_Gradebook_${dateStamp}.csv`);
     }
     captureEvent("Class_Tool_Used", {
       tool: "gradebook_csv_export",
-      students_count: students.length,
+      students_count: sessionStudents.length,
       school_level: settings.level || "unknown",
     });
   };
@@ -193,9 +330,11 @@ export function QuickGradebook({
 
   const focusAdjacentStudentInput = (
     field: "class" | "exam" | "comp",
-    currentIndex: number,
+    currentStudentId: string,
     direction: 1 | -1 = 1,
   ) => {
+    const currentIndex = visibleStudents.findIndex((student) => student.id === currentStudentId);
+    if (currentIndex === -1) return;
     for (
       let nextIndex = currentIndex + direction;
       nextIndex >= 0 && nextIndex < visibleStudents.length;
@@ -212,12 +351,12 @@ export function QuickGradebook({
 
   /**
    * Power-user clipboard paste: pasting a multi-line column of numbers copied from
-   * Excel or Google Sheets fills consecutive students downward from `startIndex`.
+   * Excel or Google Sheets fills consecutive students downward from `startStudentId`.
    */
   const handleColumnPaste = (
     e: React.ClipboardEvent<HTMLInputElement>,
     field: "class" | "exam" | "comp",
-    startIndex: number,
+    startStudentId: string,
   ) => {
     const text = e.clipboardData.getData("text");
     if (!text || !/[\r\n]/.test(text)) return;
@@ -227,6 +366,9 @@ export function QuickGradebook({
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
     if (lines.length <= 1) return;
+
+    const startIndex = visibleStudents.findIndex((student) => student.id === startStudentId);
+    if (startIndex === -1) return;
 
     e.preventDefault();
     let lineOffset = 0;
@@ -283,22 +425,11 @@ export function QuickGradebook({
     }
   };
 
-  const pinStudentWhileFiltering = (studentId: string) => {
-    if (!unscoredOnly) return;
-    setPinnedStudentIds((prev) => {
-      if (prev.has(studentId)) return prev;
-      const next = new Set(prev);
-      next.add(studentId);
-      return next;
-    });
-  };
-
   const commitSubjectUpdate = (
     student: ProcessedStudent,
     updatedSubject: SavedSubject,
     fromPaste = false,
   ) => {
-    pinStudentWhileFiltering(student.id);
     const updatedSubjects = student.subjects.map((sub) =>
       sub.id === updatedSubject.id ? updatedSubject : sub,
     );
@@ -315,7 +446,6 @@ export function QuickGradebook({
 
   const handleAddSubjectToStudent = (student: ProcessedStudent) => {
     if (!activeSubject) return;
-    pinStudentWhileFiltering(student.id);
     const configuredTasks = settings.subjectComponentMap?.[activeSubject];
     const newSubject: SavedSubject = {
       id: crypto.randomUUID(),
@@ -367,7 +497,7 @@ export function QuickGradebook({
                 {isMockExam ? "Mock (0/100)" : `Termly (${maxClassScore}/${maxExamScore})`}
               </span>
               <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-                {scoredCount}/{students.length} scored
+                {scoredCount}/{sessionStudents.length} scored
               </span>
               {scoredCount > 0 && columnStats.avgLabel && (
                 <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
@@ -384,10 +514,7 @@ export function QuickGradebook({
             <select
               aria-label="Gradebook subject"
               value={activeSubject}
-              onChange={(e) => {
-                setPinnedStudentIds(new Set());
-                setSelectedSubject(e.target.value);
-              }}
+              onChange={(e) => setSelectedSubject(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-800 shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               {availableSubjects.map((subjectName) => (
@@ -401,10 +528,7 @@ export function QuickGradebook({
               <select
                 aria-label="Gradebook score column"
                 value={activeFocusColumn}
-                onChange={(e) => {
-                  setPinnedStudentIds(new Set());
-                  setFocusColumn(e.target.value as FocusColumn);
-                }}
+                onChange={(e) => setFocusColumn(e.target.value as FocusColumn)}
                 className="rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-800 shadow-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm"
               >
                 <option value="CLASS_EXAM">Class &amp; Exam (/100)</option>
@@ -419,10 +543,7 @@ export function QuickGradebook({
             <button
               type="button"
               aria-pressed={unscoredOnly}
-              onClick={() => {
-                setPinnedStudentIds(new Set());
-                setUnscoredOnly((prev) => !prev);
-              }}
+              onClick={() => setUnscoredOnly((prev) => !prev)}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold shadow-xs transition-colors ${
                 unscoredOnly
                   ? "border-amber-500 bg-amber-50 text-amber-900"
@@ -443,7 +564,20 @@ export function QuickGradebook({
               )}
             </button>
 
-            {students.length > 0 && (
+            {hasPendingOrderOrFilterChanges && (
+              <button
+                type="button"
+                onClick={() => setRefreshNonce((prev) => prev + 1)}
+                title="Row order is locked while entering scores. Click to apply the active sort and filters."
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 shadow-xs transition-colors hover:bg-blue-100"
+                data-record="true"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Order locked · Re-apply</span>
+              </button>
+            )}
+
+            {sessionStudents.length > 0 && (
               <button
                 type="button"
                 onClick={handleExportCurrentView}
@@ -477,25 +611,44 @@ export function QuickGradebook({
 
       {/* Gradebook Rows */}
       <div className="divide-y divide-gray-100">
-        {unscoredOnly && visibleStudents.length === 0 ? (
-          <div className="px-4 py-10 text-center sm:px-6">
-            <p className="text-main text-sm font-bold" data-record="true">
-              All students have scores entered for this view
-            </p>
-            <p className="text-muted mt-1 text-xs">
-              Switch subjects or turn off the filter to review existing marks.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setPinnedStudentIds(new Set());
-                setUnscoredOnly(false);
-              }}
-              className="text-primary hover:text-primary/80 mt-3 text-xs font-bold hover:underline"
-            >
-              Show All Students
-            </button>
-          </div>
+        {visibleStudents.length === 0 ? (
+          unscoredOnly && sessionStudents.length > 0 ? (
+            <div className="px-4 py-10 text-center sm:px-6">
+              <p className="text-main text-sm font-bold" data-record="true">
+                All students have scores entered for this view
+              </p>
+              <p className="text-muted mt-1 text-xs" data-record="true">
+                Switch subjects or turn off the filter to review existing marks.
+              </p>
+              <button
+                type="button"
+                onClick={() => setUnscoredOnly(false)}
+                className="text-primary hover:text-primary/80 mt-3 text-xs font-bold hover:underline"
+                data-record="true"
+              >
+                Show All Students
+              </button>
+            </div>
+          ) : (
+            <div className="px-4 py-10 text-center sm:px-6">
+              <p className="text-main text-sm font-bold" data-record="true">
+                No students match the current search or filter
+              </p>
+              <p className="text-muted mt-1 text-xs" data-record="true">
+                Clear or adjust the dashboard search and filters to enter scores.
+              </p>
+              {onClearParentFilters && (
+                <button
+                  type="button"
+                  onClick={onClearParentFilters}
+                  className="text-primary hover:text-primary/80 mt-3 text-xs font-bold hover:underline"
+                  data-record="true"
+                >
+                  Clear Search &amp; Filters
+                </button>
+              )}
+            </div>
+          )
         ) : (
           visibleStudents.map((student, index) => {
           const subject = student.subjects.find((sub) => sub.name === activeSubject);
@@ -571,7 +724,7 @@ export function QuickGradebook({
                 {onOpenStudent && (
                   <button
                     type="button"
-                    onClick={() => onOpenStudent(student)}
+                    onClick={() => onOpenStudent(student, visibleStudents)}
                     aria-label={`Open ${student.name} details`}
                     className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                     title="Open full score sheet"
@@ -617,14 +770,14 @@ export function QuickGradebook({
                             classScore,
                           });
                         }}
-                        onPaste={(e) => handleColumnPaste(e, "comp", index)}
+                        onPaste={(e) => handleColumnPaste(e, "comp", student.id)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusAdjacentStudentInput("comp", index, 1);
+                            focusAdjacentStudentInput("comp", student.id, 1);
                           } else if (e.key === "ArrowUp") {
                             e.preventDefault();
-                            focusAdjacentStudentInput("comp", index, -1);
+                            focusAdjacentStudentInput("comp", student.id, -1);
                           }
                         }}
                         className="w-24 rounded-lg border border-purple-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
@@ -668,14 +821,14 @@ export function QuickGradebook({
                             );
                             commitSubjectUpdate(student, { ...subject, classScore: score });
                           }}
-                          onPaste={(e) => handleColumnPaste(e, "class", index)}
+                          onPaste={(e) => handleColumnPaste(e, "class", student.id)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === "ArrowDown") {
                               e.preventDefault();
-                              focusAdjacentStudentInput("class", index, 1);
+                              focusAdjacentStudentInput("class", student.id, 1);
                             } else if (e.key === "ArrowUp") {
                               e.preventDefault();
-                              focusAdjacentStudentInput("class", index, -1);
+                              focusAdjacentStudentInput("class", student.id, -1);
                             }
                           }}
                           className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -734,14 +887,14 @@ export function QuickGradebook({
                             return next;
                           });
                         }}
-                        onPaste={(e) => handleColumnPaste(e, "exam", index)}
+                        onPaste={(e) => handleColumnPaste(e, "exam", student.id)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusAdjacentStudentInput("exam", index, 1);
+                            focusAdjacentStudentInput("exam", student.id, 1);
                           } else if (e.key === "ArrowUp") {
                             e.preventDefault();
-                            focusAdjacentStudentInput("exam", index, -1);
+                            focusAdjacentStudentInput("exam", student.id, -1);
                           }
                         }}
                         className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"

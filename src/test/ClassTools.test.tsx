@@ -183,4 +183,22 @@ describe("Class Tools Expansion", () => {
     expect(csvText).toContain('"Admission No","Fee Status","Fee Arrears"');
     expect(csvText).toContain('"ADM-2","OWING","200"');
   });
+
+  it("sorts detailed broadsheet CSV by class position without mutating input array", async () => {
+    let capturedBlob: Blob | null = null;
+    vi.spyOn(URL, "createObjectURL").mockImplementation((obj) => {
+      capturedBlob = obj as Blob;
+      return "blob:detailed-ranked";
+    });
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    const unsortedStudents = [sampleStudents[1], sampleStudents[0]];
+    expect(exportDetailedBroadsheetCSV(unsortedStudents, settings, "Detailed_Ranked")).toBe(true);
+    expect(unsortedStudents.map((s) => s.id)).toEqual(["s2", "s1"]);
+
+    const lines = (await capturedBlob!.text()).split("\n");
+    expect(lines[1]).toContain('"Kwame Mensah"');
+    expect(lines[2]).toContain('"Ama Serwaa"');
+  });
 });

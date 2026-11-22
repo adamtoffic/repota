@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { SubjectRow } from "../components/SubjectRow";
@@ -6,11 +6,25 @@ import { AcademicTab } from "../components/tabs/AcademicTab";
 import { DetailsTab } from "../components/tabs/DetailsTab";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { QuickGradebook } from "../components/QuickGradebook";
+import { Dashboard } from "../pages/Dashboard";
 import { PrintPreview } from "../pages/PrintPreview";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
-import type { ProcessedStudent, SavedSubject, SchoolSettings } from "../types";
-import { sortStudents } from "../utils/studentValidation";
+import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
+import {
+  assignPositions,
+  assignSubjectPositions,
+  processStudent,
+} from "../utils/gradeCalculator";
+import { hasNoScoresEntered, sortStudents } from "../utils/studentValidation";
+
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...props }: { children: React.ReactNode }) => <a {...props}>{children}</a>,
@@ -342,6 +356,388 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       expect(screen.getByText(/1\. Scored Student/)).toBeInTheDocument();
       fireEvent.click(filterBtn);
       expect(screen.getByText(/All students have scores entered for this view/i)).toBeInTheDocument();
+    });
+
+    it("preserves roll order and advances focus downward when Student B overtakes Student A through assignPositions", () => {
+      const initialRecords: StudentRecord[] = [
+        {
+          id: "sA",
+          name: "Student A",
+          className: "Basic 6",
+          subjects: [{ id: "mA", name: "Mathematics", classScore: 10, examScore: 10 }],
+        },
+        {
+          id: "sB",
+          name: "Student B",
+          className: "Basic 6",
+          subjects: [{ id: "mB", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+        {
+          id: "sC",
+          name: "Student C",
+          className: "Basic 6",
+          subjects: [{ id: "mC", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+      ];
+
+      function RollOrderGradebookHarness() {
+        const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+        const processed = useMemo(
+          () =>
+            assignPositions(
+              assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+            ),
+          [records],
+        );
+
+        return (
+          <div>
+            <div data-testid="positions">
+              {processed.map((s) => `${s.id}:${s.classPosition}`).join(",")}
+            </div>
+            <QuickGradebook
+              students={processed}
+              allStudents={processed}
+              sessionKey="|ALL|DEFAULT"
+              settings={testSettings}
+              onUpdateStudent={(updated) =>
+                setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
+            />
+          </div>
+        );
+      }
+
+      render(<RollOrderGradebookHarness />);
+
+      const sBExam = screen.getByLabelText("Student B Exam Score") as HTMLInputElement;
+      const sCExam = screen.getByLabelText("Student C Exam Score") as HTMLInputElement;
+      sBExam.focus();
+
+      // Entering 80/100 (weighted 40) makes Student B overtake Student A (20) to become 1st
+      fireEvent.change(sBExam, { target: { value: "80" } });
+
+      expect(screen.getByTestId("positions").textContent).toBe("sA:2nd,sB:1st,sC:3rd");
+      expect(screen.getByText("1. Student A")).toBeInTheDocument();
+      expect(screen.getByText("2. Student B")).toBeInTheDocument();
+      expect(screen.getByText("3. Student C")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Order locked/i })).not.toBeInTheDocument();
+
+      fireEvent.keyDown(sBExam, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(sCExam);
+
+      fireEvent.keyDown(sCExam, { key: "ArrowUp" });
+      expect(document.activeElement).toBe(sBExam);
+
+      fireEvent.keyDown(sBExam, { key: "Enter" });
+      expect(document.activeElement).toBe(sCExam);
+    });
+
+    it("locks row order under score-dependent AVG_DESC sort and re-applies on demand", () => {
+      const initialRecords: StudentRecord[] = [
+        {
+          id: "sA",
+          name: "Student A",
+          className: "Basic 6",
+          subjects: [{ id: "mA", name: "Mathematics", classScore: 10, examScore: 10 }],
+        },
+        {
+          id: "sB",
+          name: "Student B",
+          className: "Basic 6",
+          subjects: [{ id: "mB", name: "Mathematics", classScore: 5, examScore: 5 }],
+        },
+        {
+          id: "sC",
+          name: "Student C",
+          className: "Basic 6",
+          subjects: [{ id: "mC", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+      ];
+
+      function SortedGradebookHarness() {
+        const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+        const processed = useMemo(
+          () =>
+            assignPositions(
+              assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+            ),
+          [records],
+        );
+        const sorted = useMemo(
+          () => sortStudents(processed, "AVG_DESC", testSettings),
+          [processed],
+        );
+
+        return (
+          <QuickGradebook
+            students={sorted}
+            allStudents={processed}
+            sessionKey="|ALL|AVG_DESC"
+            settings={testSettings}
+            onUpdateStudent={(updated) =>
+              setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+            }
+          />
+        );
+      }
+
+      render(<SortedGradebookHarness />);
+
+      const sBExam = screen.getByLabelText("Student B Exam Score") as HTMLInputElement;
+      const sCExam = screen.getByLabelText("Student C Exam Score") as HTMLInputElement;
+      sBExam.focus();
+
+      // Student B jumps from 10 to 50 total, overtaking Student A (20)
+      fireEvent.change(sBExam, { target: { value: "80" } });
+
+      // Row order remains locked at [A, B, C] until teacher clicks Re-apply
+      expect(screen.getByText("1. Student A")).toBeInTheDocument();
+      expect(screen.getByText("2. Student B")).toBeInTheDocument();
+      expect(screen.getByText("3. Student C")).toBeInTheDocument();
+
+      fireEvent.keyDown(sBExam, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(sCExam);
+
+      const reapplyBtn = screen.getByRole("button", { name: /Order locked · Re-apply/i });
+      fireEvent.click(reapplyBtn);
+
+      expect(screen.getByText("1. Student B")).toBeInTheDocument();
+      expect(screen.getByText("2. Student A")).toBeInTheDocument();
+      expect(screen.getByText("3. Student C")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Order locked/i })).not.toBeInTheDocument();
+    });
+
+    it("keeps the last student mounted and focused mid-typing under parent NO_SCORES filter", () => {
+      const initialRecords: StudentRecord[] = [
+        {
+          id: "sA",
+          name: "Scored Alpha",
+          className: "Basic 6",
+          subjects: [{ id: "mA", name: "Mathematics", classScore: 20, examScore: 30 }],
+        },
+        {
+          id: "sB",
+          name: "Unscored Beta",
+          className: "Basic 6",
+          subjects: [{ id: "mB", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+      ];
+
+      function FilteredGradebookHarness() {
+        const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+        const [filterActive, setFilterActive] = useState(true);
+        const processed = useMemo(
+          () =>
+            assignPositions(
+              assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+            ),
+          [records],
+        );
+        const filtered = useMemo(
+          () => (filterActive ? processed.filter(hasNoScoresEntered) : processed),
+          [filterActive, processed],
+        );
+
+        return (
+          <QuickGradebook
+            students={filtered}
+            allStudents={processed}
+            sessionKey={filterActive ? "|NO_SCORES|DEFAULT" : "|ALL|DEFAULT"}
+            settings={testSettings}
+            onUpdateStudent={(updated) =>
+              setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+            }
+            onClearParentFilters={() => setFilterActive(false)}
+          />
+        );
+      }
+
+      render(<FilteredGradebookHarness />);
+
+      const classInput = screen.getByLabelText("Unscored Beta Class Score") as HTMLInputElement;
+      classInput.focus();
+
+      // First digit immediately fails hasNoScoresEntered (filtered becomes [])
+      fireEvent.change(classInput, { target: { value: "4" } });
+      expect(screen.getByLabelText("Unscored Beta Class Score")).toBe(classInput);
+      expect(document.activeElement).toBe(classInput);
+
+      // Second digit finishes cleanly on the same mounted input
+      fireEvent.change(classInput, { target: { value: "45" } });
+      expect(classInput.value).toBe("45");
+
+      fireEvent.click(screen.getByRole("button", { name: /Order locked · Re-apply/i }));
+      expect(
+        screen.getByText(/No students match the current search or filter/i),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Clear Search & Filters/i }));
+      expect(screen.getByText("1. Scored Alpha")).toBeInTheDocument();
+      expect(screen.getByText("2. Unscored Beta")).toBeInTheDocument();
+    });
+
+    it("keeps multi-column Excel pastes (Class then Exam) aligned to each student through assignPositions", () => {
+      const initialRecords: StudentRecord[] = [
+        {
+          id: "sA",
+          name: "Student A",
+          className: "Basic 6",
+          subjects: [{ id: "mA", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+        {
+          id: "sB",
+          name: "Student B",
+          className: "Basic 6",
+          subjects: [{ id: "mB", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+        {
+          id: "sC",
+          name: "Student C",
+          className: "Basic 6",
+          subjects: [{ id: "mC", name: "Mathematics", classScore: 0, examScore: 0 }],
+        },
+      ];
+
+      function PasteHarness() {
+        const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+        const processed = useMemo(
+          () =>
+            assignPositions(
+              assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+            ),
+          [records],
+        );
+
+        return (
+          <div>
+            <div data-testid="summary">
+              {processed
+                .map((s) => `${s.id}:${s.subjects[0].classScore}/${s.subjects[0].examScore}`)
+                .join("|")}
+            </div>
+            <QuickGradebook
+              students={processed}
+              allStudents={processed}
+              sessionKey="|ALL|DEFAULT"
+              settings={testSettings}
+              onUpdateStudent={(updated) =>
+                setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
+            />
+          </div>
+        );
+      }
+
+      render(<PasteHarness />);
+
+      fireEvent.paste(screen.getByLabelText("Student A Class Score"), {
+        clipboardData: { getData: () => "20\n45\n10" },
+      });
+      fireEvent.paste(screen.getByLabelText("Student A Exam Score"), {
+        clipboardData: { getData: () => "60\n80\n90" },
+      });
+
+      expect(screen.getByTestId("summary").textContent).toBe("sA:20/30|sB:45/40|sC:10/45");
+    });
+  });
+
+  describe("Dashboard stable entry & modal navigation", () => {
+    it("keeps ScoreEntryModal Next/Prev and QuickGradebook navigation stable when scores change rank under AVG_DESC", () => {
+      localStorage.setItem("repota_welcome_tour_v2", "true");
+      try {
+        const initialRecords: StudentRecord[] = [
+          {
+            id: "sA",
+            name: "Student A",
+            className: "Basic 6",
+            subjects: [{ id: "mA", name: "Mathematics", classScore: 15, examScore: 15 }],
+          },
+          {
+            id: "sB",
+            name: "Student B",
+            className: "Basic 6",
+            subjects: [{ id: "mB", name: "Mathematics", classScore: 10, examScore: 10 }],
+          },
+          {
+            id: "sC",
+            name: "Student C",
+            className: "Basic 6",
+            subjects: [{ id: "mC", name: "Mathematics", classScore: 5, examScore: 5 }],
+          },
+        ];
+
+        function DashboardHarness() {
+          const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+          const processed = useMemo(
+            () =>
+              assignPositions(
+                assignSubjectPositions(records.map((r) => processStudent(r, testSettings.level))),
+              ),
+            [records],
+          );
+
+          const ctx: SchoolContextType = {
+            ...makeSchoolContext(processed, testSettings),
+            updateStudent: (updated) =>
+              setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r))),
+          };
+
+          return (
+            <SchoolContext.Provider value={ctx}>
+              <Dashboard />
+            </SchoolContext.Provider>
+          );
+        }
+
+        render(<DashboardHarness />);
+
+        // Sort by Average Descending: [Student A (30), Student B (20), Student C (10)]
+        fireEvent.change(screen.getByLabelText("Sort students"), {
+          target: { value: "AVG_DESC" },
+        });
+
+        // Open Student B (index 2 of 3)
+        fireEvent.click(screen.getAllByText("Student B")[0]);
+        expect(screen.getByText("(2 of 3)")).toBeInTheDocument();
+
+        // Update Student B's Mathematics Exam Score so B overtakes A in live AVG_DESC
+        fireEvent.change(screen.getByLabelText("Mathematics Exam Score"), {
+          target: { value: "100" },
+        });
+
+        // Clicking Next must advance to Student C (3 of 3), NOT jump back to Student A
+        const footer = screen.getByTestId("mobile-modal-footer");
+        fireEvent.click(within(footer).getByRole("button", { name: "Next student" }));
+        expect(screen.getByText("(3 of 3)")).toBeInTheDocument();
+        expect((screen.getByRole("dialog").querySelector("select") as HTMLSelectElement).value).toBe(
+          "sC",
+        );
+
+        // Close modal, switch to Quick Gradebook (current AVG_DESC order is [B (60), A (30), C (10)])
+        fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+        fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
+
+        expect(screen.getByText("1. Student B")).toBeInTheDocument();
+        expect(screen.getByText("2. Student A")).toBeInTheDocument();
+        expect(screen.getByText("3. Student C")).toBeInTheDocument();
+
+        // Make Student C (total 50) overtake Student A (total 30); row order stays [B, A, C]
+        const sAExam = screen.getByLabelText("Student A Exam Score") as HTMLInputElement;
+        const sCExam = screen.getByLabelText("Student C Exam Score") as HTMLInputElement;
+        sCExam.focus();
+        fireEvent.change(sCExam, { target: { value: "90" } });
+
+        fireEvent.keyDown(sCExam, { key: "ArrowUp" });
+        expect(document.activeElement).toBe(sAExam);
+
+        // Re-applying sort moves Student C above Student A
+        fireEvent.click(screen.getByRole("button", { name: /Order locked · Re-apply/i }));
+        expect(screen.getByText("1. Student B")).toBeInTheDocument();
+        expect(screen.getByText("2. Student C")).toBeInTheDocument();
+        expect(screen.getByText("3. Student A")).toBeInTheDocument();
+      } finally {
+        localStorage.removeItem("repota_welcome_tour_v2");
+      }
     });
   });
 
