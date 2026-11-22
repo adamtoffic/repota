@@ -86,13 +86,13 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           }
           colorClass={
             stats.isOverCapacity
-              ? "bg-red-50/70 border-red-300 ring-1 ring-red-200 dark:bg-red-950/35 dark:border-red-500/45 dark:ring-red-500/30"
-              : "bg-blue-50/50 border-blue-100 dark:bg-surface dark:border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+              ? "bg-red-50/80 border-red-200 ring-1 ring-red-200 dark:bg-red-950/35 dark:border-red-500/45 dark:ring-red-500/30"
+              : "bg-surface border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
           }
           iconWellClass={
             stats.isOverCapacity
               ? "bg-red-100/80 border-red-200 dark:bg-red-500/15 dark:border-red-500/25"
-              : "bg-surface/80 border-border/60 dark:bg-blue-500/12 dark:border-blue-500/20"
+              : "bg-blue-50 border-blue-100 dark:bg-blue-500/12 dark:border-blue-500/20"
           }
           alert={stats.isOverCapacity}
           alertColor="red"
@@ -103,8 +103,8 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           label="Pending Entry"
           value={stats.pending}
           icon={<Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
-          colorClass="bg-orange-50/50 border-orange-100 dark:bg-surface dark:border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-          iconWellClass="bg-surface/80 border-border/60 dark:bg-orange-500/12 dark:border-orange-500/20"
+          colorClass="bg-surface border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+          iconWellClass="bg-orange-50 border-orange-100 dark:bg-orange-500/12 dark:border-orange-500/20"
           alert={stats.pending > 0}
           alertColor="orange"
           isActive={activeFilter === "PENDING"}
@@ -120,8 +120,8 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           label="Class Average"
           value={`${stats.classAverage}%`}
           icon={<BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
-          colorClass="bg-purple-50/50 border-purple-100 dark:bg-surface dark:border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-          iconWellClass="bg-surface/80 border-border/60 dark:bg-purple-500/12 dark:border-purple-500/20"
+          colorClass="bg-surface border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+          iconWellClass="bg-purple-50 border-purple-100 dark:bg-purple-500/12 dark:border-purple-500/20"
         />
 
         {/* CARD 4: PASS RATE (Success Metric / Actionable Failing Filter) */}
@@ -137,12 +137,12 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           }
           colorClass={
             stats.passRate >= 50
-              ? "bg-green-50/50 border-green-100 dark:bg-surface dark:border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-              : "bg-red-50/50 border-red-100 dark:bg-red-950/30 dark:border-red-500/40"
+              ? "bg-surface border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+              : "bg-red-50/80 border-red-200 dark:bg-red-950/30 dark:border-red-500/40"
           }
           iconWellClass={
             stats.passRate >= 50
-              ? "bg-surface/80 border-border/60 dark:bg-emerald-500/12 dark:border-emerald-500/20"
+              ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-500/12 dark:border-emerald-500/20"
               : "bg-red-100/80 border-red-200 dark:bg-red-500/15 dark:border-red-500/25"
           }
           alert={stats.failing > 0}

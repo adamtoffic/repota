@@ -18,15 +18,17 @@ export function PageHeader({
   variant = "solid",
   hideOnDesktop = false,
 }: PageHeaderProps) {
-  const bgClass = variant === "transparent" ? "bg-surface/95 backdrop-blur-sm" : "bg-surface";
-  const safeAreaBg = variant === "transparent" ? "bg-surface/95" : "bg-surface";
+  const bgClass =
+    variant === "transparent"
+      ? "bg-white/80 backdrop-blur-xl backdrop-saturate-[160%] dark:bg-[#111620]/80"
+      : "bg-white/85 backdrop-blur-xl backdrop-saturate-[160%] dark:bg-[#111620]/85";
 
   return (
     <nav
-      className={`border-border sticky top-0 z-30 border-b shadow-sm ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
+      className={`border-border/80 sticky top-0 z-30 border-b shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)] ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
     >
       {/* Safe area spacer for notch/dynamic island */}
-      <div className={`safe-top ${safeAreaBg}`} />
+      <div className="safe-top" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between md:justify-end">
           {/* LEFT SIDE: Brand Identity (mobile only — desktop sidebar shows brand lockup) */}
