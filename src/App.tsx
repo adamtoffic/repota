@@ -2,6 +2,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router";
 import { Toaster, toast } from "sonner";
 import { SchoolProvider } from "./context/SchoolContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
@@ -11,6 +12,7 @@ import { LockScreen } from "./components/LockScreen";
 import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
 import { useSchoolSettings } from "./hooks/useSchoolData";
+import { useTheme } from "./hooks/useTheme";
 import { PRINT_STARTED_EVENT } from "./utils/printHandler";
 import { getStorageType, STORAGE_QUOTA_EXCEEDED_EVENT } from "./utils/idbStorage";
 import { captureEvent } from "./utils/analytics";
@@ -31,6 +33,7 @@ function AppContent({
   const [showRecovery, setShowRecovery] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const settings = useSchoolSettings();
+  const { resolvedTheme } = useTheme();
   const rawTimeout = settings.autoLockTimeout;
   const timeoutMinutes =
     typeof rawTimeout === "number" &&
@@ -161,6 +164,7 @@ function AppContent({
       >
         {/* Sonner Toaster - top-center so it never overlaps the mobile bottom nav */}
         <Toaster
+          theme={resolvedTheme}
           position="top-center"
           offset={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
           mobileOffset={{
@@ -194,9 +198,11 @@ function App() {
   const [isLocked, setIsLocked] = useState(() => isPinConfigured());
   return (
     <ErrorBoundary>
-      <SchoolProvider isLocked={isLocked}>
-        <AppContent isLocked={isLocked} setIsLocked={setIsLocked} />
-      </SchoolProvider>
+      <ThemeProvider>
+        <SchoolProvider isLocked={isLocked}>
+          <AppContent isLocked={isLocked} setIsLocked={setIsLocked} />
+        </SchoolProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

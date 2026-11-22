@@ -1,34 +1,115 @@
 @import "tailwindcss";
 
-@theme {
-  /* 🔵 BRAND: Navy Blue (#1E3A8A) */
-  --color-primary: #1e3a8a;
-  --color-primary-foreground: #ffffff;
+@custom-variant dark (&:where(.dark, .dark *));
 
-  /* 🟡 ACCENT: Ghana Gold (#FCD34D) */
-  --color-accent: #fcd34d;
-  --color-accent-foreground: #1e3a8a; /* Navy text on gold background looks best */
+:root {
+  --brand-primary: #1e3a8a;
+  --brand-primary-foreground: #ffffff;
+  --brand-primary-text: #1e3a8a;
+  --brand-accent: #fcd34d;
+  --brand-accent-foreground: #1e3a8a;
+  --status-danger: #dc2626;
+  --status-danger-foreground: #ffffff;
+  --status-success: #16a34a;
+  --status-success-foreground: #ffffff;
+  --surface-canvas: #f9fafb;
+  --surface-card: #ffffff;
+  --surface-subtle: #f3f4f6;
+  --surface-elevated: #ffffff;
+  --surface-input: #ffffff;
+  --border-default: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --border-strong: #d1d5db;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --font-serif: "Times New Roman", Times, serif;
+}
 
-  /* 🔴 DANGER: Ghana Red (#DC2626) */
-  --color-danger: #dc2626;
-  --color-danger-foreground: #ffffff;
+:root.dark {
+  --brand-primary: #2563eb;
+  --brand-primary-foreground: #ffffff;
+  --brand-primary-text: #60a5fa;
+  --brand-accent: #fbbf24;
+  --brand-accent-foreground: #0f172a;
+  --status-danger: #ef4444;
+  --status-danger-foreground: #ffffff;
+  --status-success: #22c55e;
+  --status-success-foreground: #ffffff;
+  --surface-canvas: #0b1220;
+  --surface-card: #111b2e;
+  --surface-subtle: #18243b;
+  --surface-elevated: #1e2d48;
+  --surface-input: #0f192c;
+  --border-default: #263550;
+  --border-subtle: #1e2c44;
+  --border-strong: #384b6e;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+}
 
-  /* 🟢 SUCCESS: Green (#16A34A) */
-  --color-success: #16a34a;
-  --color-success-foreground: #ffffff;
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-primary-foreground: var(--brand-primary-foreground);
+  --color-primary-text: var(--brand-primary-text);
 
-  /* ⚫ SURFACE COLORS - Light Mode */
-  --color-background: #f9fafb; /* gray-50 */
-  --color-surface: #ffffff; /* white */
-  --color-main: #0f172a; /* slate-900 */
-  --color-muted: #64748b; /* slate-500 */
+  --color-accent: var(--brand-accent);
+  --color-accent-foreground: var(--brand-accent-foreground);
 
-  /* 🔤 FONT STACK */
+  --color-danger: var(--status-danger);
+  --color-danger-foreground: var(--status-danger-foreground);
+
+  --color-success: var(--status-success);
+  --color-success-foreground: var(--status-success-foreground);
+
+  --color-background: var(--surface-canvas);
+  --color-surface: var(--surface-card);
+  --color-subtle: var(--surface-subtle);
+  --color-elevated: var(--surface-elevated);
+  --color-input: var(--surface-input);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-main: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
-:root {
-  --font-serif: "Times New Roman", Times, serif;
+@layer base {
+  html,
+  body {
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+  }
+}
+
+/* Lock printable report cards, template previews, and off-screen PDF stages to light paper */
+.report-page,
+[data-paper-surface="true"] {
+  --brand-primary: #1e3a8a;
+  --brand-primary-foreground: #ffffff;
+  --brand-primary-text: #1e3a8a;
+  --brand-accent: #fcd34d;
+  --brand-accent-foreground: #1e3a8a;
+  --status-danger: #dc2626;
+  --status-danger-foreground: #ffffff;
+  --status-success: #16a34a;
+  --status-success-foreground: #ffffff;
+  --surface-canvas: #f9fafb;
+  --surface-card: #ffffff;
+  --surface-subtle: #f3f4f6;
+  --surface-elevated: #ffffff;
+  --surface-input: #ffffff;
+  --border-default: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --border-strong: #d1d5db;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  color-scheme: light;
 }
 
 /* iOS specific fixes for better mobile experience — single document scroll container */
@@ -428,12 +509,38 @@ a[role="button"]:active {
     margin: 0; /* Tells browser: "I'll handle the margins" */
   }
 
+  :root,
+  :root.dark {
+    --brand-primary: #1e3a8a;
+    --brand-primary-foreground: #ffffff;
+    --brand-primary-text: #1e3a8a;
+    --brand-accent: #fcd34d;
+    --brand-accent-foreground: #1e3a8a;
+    --status-danger: #dc2626;
+    --status-danger-foreground: #ffffff;
+    --status-success: #16a34a;
+    --status-success-foreground: #ffffff;
+    --surface-canvas: #ffffff;
+    --surface-card: #ffffff;
+    --surface-subtle: #f3f4f6;
+    --surface-elevated: #ffffff;
+    --surface-input: #ffffff;
+    --border-default: #e5e7eb;
+    --border-subtle: #f3f4f6;
+    --border-strong: #d1d5db;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    color-scheme: light;
+  }
+
   html,
   body {
     width: 210mm;
     margin: 0 !important;
     padding: 0 !important;
     background: white;
+    color: #0f172a;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
