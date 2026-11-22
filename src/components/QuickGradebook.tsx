@@ -21,6 +21,7 @@ import {
   formatExamWeightedAsRaw,
   updateComponentAndRecalculateClassScore,
 } from "../utils/scoreConversion";
+import { trackScoreEntrySessionOnce } from "../utils/analytics";
 
 interface QuickGradebookProps {
   students: ProcessedStudent[];
@@ -224,6 +225,7 @@ export function QuickGradebook({
 
     e.preventDefault();
     let lineOffset = 0;
+    let updatedAny = false;
 
     for (let idx = startIndex; idx < visibleStudents.length && lineOffset < lines.length; idx++) {
       const targetStudent = visibleStudents[idx];
@@ -244,19 +246,35 @@ export function QuickGradebook({
           numeric,
           maxClassScore,
         );
-        commitSubjectUpdate(targetStudent, {
-          ...sub,
-          classScoreComponents: updatedComponents,
-          classScore,
-        });
+        commitSubjectUpdate(
+          targetStudent,
+          {
+            ...sub,
+            classScoreComponents: updatedComponents,
+            classScore,
+          },
+          true,
+        );
+        updatedAny = true;
       } else if (field === "class") {
         if (!isMockExam && sub.classScoreComponents?.length) continue;
         const { score } = clampDirectClassScore(numeric, maxClassScore);
-        commitSubjectUpdate(targetStudent, { ...sub, classScore: score });
+        commitSubjectUpdate(targetStudent, { ...sub, classScore: score }, true);
+        updatedAny = true;
       } else if (field === "exam") {
         const { weightedScore } = convertExamRawToWeighted(numeric, maxExamScore);
-        commitSubjectUpdate(targetStudent, { ...sub, examScore: weightedScore });
+        commitSubjectUpdate(targetStudent, { ...sub, examScore: weightedScore }, true);
+        updatedAny = true;
       }
+    }
+
+    if (updatedAny) {
+      trackScoreEntrySessionOnce({
+        entryMode: "quick_gradebook",
+        usedColumnPaste: true,
+        schoolLevel: settings.level,
+        examType: settings.examType,
+      });
     }
   };
 
@@ -270,12 +288,24 @@ export function QuickGradebook({
     });
   };
 
-  const commitSubjectUpdate = (student: ProcessedStudent, updatedSubject: SavedSubject) => {
+  const commitSubjectUpdate = (
+    student: ProcessedStudent,
+    updatedSubject: SavedSubject,
+    fromPaste = false,
+  ) => {
     pinStudentWhileFiltering(student.id);
     const updatedSubjects = student.subjects.map((sub) =>
       sub.id === updatedSubject.id ? updatedSubject : sub,
     );
     onUpdateStudent({ ...student, subjects: updatedSubjects }, true);
+    if (!fromPaste) {
+      trackScoreEntrySessionOnce({
+        entryMode: "quick_gradebook",
+        usedColumnPaste: false,
+        schoolLevel: settings.level,
+        examType: settings.examType,
+      });
+    }
   };
 
   const handleAddSubjectToStudent = (student: ProcessedStudent) => {

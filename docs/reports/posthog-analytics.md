@@ -38,13 +38,19 @@ Branch: `feat/posthog-report-analytics` (branched from `feat/navigation-shell` a
   - Created `src/utils/analytics.ts` (`captureEvent`, `isStandalonePwa`, `getRuntimeAnalyticsContext`, `sanitizePostHogUrl`, `trackScoreEntrySessionOnce`, `resetSessionAnalyticsGuards`).
   - Updated `src/main.tsx` (`capture_pageview: "history_change"`, `capture_pageleave: "if_capture_pageview"`, `before_send` runtime context + URL sanitization).
   - Updated `src/test/PostHogInitialization.test.ts` and added `src/test/analytics.test.ts`.
-- **Commit 5 — Hardened existing events, no-op guards & `ScoreImportModal` UUIDs**
+- **Commit 5 (`c090728`) — Hardened existing events, no-op guards & `ScoreImportModal` UUIDs**
   - Routed `src/utils/reportAnalytics.ts` through `captureEvent` and added `has_custom_colors`, `has_school_logo`, and `has_fee_schedule_enabled` to `Report_Card_Generated` and `Printed_Reports`.
   - Updated `src/context/SchoolContext.tsx`: `Added_Student` adds `exam_type`, `is_first_student`, and `total_students_count` (excluding `demo-*` students); `Loaded_Demo_Data` adds `school_type`, `demo_students_count`, `existing_students_count`, and `is_empty_workspace`; `Auto_Remarks_Generated` skips empty classes and adds `real_students_count`, `demo_students_count`, `is_demo`, `school_level`, and `term`.
   - Updated `src/components/BulkImportModal.tsx`: tracks `import_source` (`"paste"` vs `"file"`), `school_level`, `school_type`, and `had_missing_gender` on `Bulk_Import_Success`.
   - Updated `src/context/SettingsFormContext.tsx` and `src/components/settings/ReportTemplateSection.tsx`: guarded no-op clicks on active school level or active template and enriched `School_Level_Changed` (`previous_level`, `students_count`) and `Template_Changed` (`previous_template_id`, `school_level`, `school_type`, `uses_custom_color`).
   - Upgraded new-student IDs in `src/components/ScoreImportModal.tsx` to `crypto.randomUUID()` (with fallback).
   - Added `src/test/ExistingEventsAnalytics.test.tsx` and branding-flag coverage in `src/test/reportAnalytics.test.ts`.
+- **Commit 6 — Core funnel & offline reliability telemetry (Tier 1)**
+  - Added `analyticsSource` and `Ios_Pdf_Fallback_Used` outcome tracking (`"shared" | "downloaded" | "aborted" | "error"` with `trigger_reason`) in `src/hooks/usePdfShareFlow.ts`, wired from `src/pages/PrintPreview.tsx` (`"report_cards"`) and `src/pages/Analytics.tsx` (`"analytics"`).
+  - Added `Print_Preview_Opened` (once per `/print` mount when students exist) in `src/pages/PrintPreview.tsx`.
+  - Added `Scores_Imported` in `src/components/ScoreImportModal.tsx`, and session-deduped `Score_Entry_Session` in `src/components/QuickGradebook.tsx` (distinguishing manual entry vs. column paste) and `src/components/ScoreEntryModal.tsx`.
+  - Added `Data_Loss_Detected` in `src/context/SchoolContext.tsx`, `Storage_Quota_Exceeded` in `src/App.tsx`, and `Backup_Exported` / `Backup_Restored` in `src/components/DataBackup.tsx`.
+  - Updated `src/test/PrintPreviewAnalytics.test.tsx` and added `src/test/FunnelAndReliabilityAnalytics.test.tsx`.
 
 ---
 
@@ -58,7 +64,10 @@ Branch: `feat/posthog-report-analytics` (branched from `feat/navigation-shell` a
 
 ## What Was Verified
 
-- Commit 5 targeted run:
+- Commit 6 targeted run:
+  - `npm run lint`: exited `0`.
+  - `npx vitest run src/test/PrintPreviewAnalytics.test.tsx src/test/FunnelAndReliabilityAnalytics.test.tsx src/test/DataBackup.test.tsx src/test/AppAutoLock.test.tsx src/test/ScoreImportAndGradebook.test.tsx src/test/ScoreEntryUX.test.tsx`: exited `0` (`6` test files, `67` tests passed).
+- Commit 5 targeted run (`c090728`):
   - `npm run lint`: exited `0`.
   - `npx vitest run src/test/ExistingEventsAnalytics.test.tsx src/test/reportAnalytics.test.ts src/test/SchoolContextActions.test.tsx src/test/SettingsSubRoutes.test.tsx src/test/SettingsIntegration.test.tsx src/test/StudentCRUD.test.tsx`: exited `0` (`6` test files, `49` tests passed).
 - Commit 4 targeted run (`8a9e4b7`):

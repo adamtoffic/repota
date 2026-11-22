@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { captureEvent } from "../utils/analytics";
 import { useToast } from "./useToast";
 import { isIOSPWA, shouldUseIOSPdfPrintFallback } from "../utils/iosInteraction";
 import {
@@ -32,6 +33,7 @@ interface UsePdfShareFlowOptions {
     signal: AbortSignal;
   }) => Promise<File>;
   onPdfCompleted?: (method: "share" | "download") => void;
+  analyticsSource?: "report_cards" | "analytics";
 }
 
 /**
@@ -44,6 +46,7 @@ export function usePdfShareFlow({
   itemLabel,
   buildPdf,
   onPdfCompleted,
+  analyticsSource,
 }: UsePdfShareFlowOptions) {
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -56,6 +59,19 @@ export function usePdfShareFlow({
   const abortRef = useRef<AbortController | null>(null);
   const watchdogCleanupRef = useRef<(() => void) | null>(null);
   const onPdfCompletedRef = useRef(onPdfCompleted);
+  const triggerReasonRef = useRef<"ios27_auto" | "watchdog_recovery">("ios27_auto");
+
+  const trackFallbackOutcome = useCallback(
+    (outcome: "shared" | "downloaded" | "aborted" | "error") => {
+      if (!analyticsSource) return;
+      captureEvent("Ios_Pdf_Fallback_Used", {
+        trigger_reason: triggerReasonRef.current,
+        outcome,
+        source: analyticsSource,
+      });
+    },
+    [analyticsSource],
+  );
 
   useEffect(() => {
     onPdfCompletedRef.current = onPdfCompleted;
@@ -81,30 +97,36 @@ export function usePdfShareFlow({
     setError(null);
   }, []);
 
-  const triggerShare = useCallback(async (targetFile: File) => {
-    try {
-      const outcome = await sharePdfFile(targetFile);
-      if (outcome === "shared") {
-        onPdfCompletedRef.current?.("share");
-        setIsOpen(false);
-        setStatus("idle");
-        return;
+  const triggerShare = useCallback(
+    async (targetFile: File) => {
+      try {
+        const outcome = await sharePdfFile(targetFile);
+        if (outcome === "shared") {
+          trackFallbackOutcome("shared");
+          onPdfCompletedRef.current?.("share");
+          setIsOpen(false);
+          setStatus("idle");
+          return;
+        }
+        if (outcome === "aborted") {
+          trackFallbackOutcome("aborted");
+          setIsOpen(false);
+          setStatus("idle");
+          return;
+        }
+        setFile(targetFile);
+        setStatus("ready");
+        setIsOpen(true);
+      } catch (err) {
+        trackFallbackOutcome("error");
+        setFile(targetFile);
+        setError(err instanceof Error ? err.message : "Could not open the share sheet.");
+        setStatus("ready");
+        setIsOpen(true);
       }
-      if (outcome === "aborted") {
-        setIsOpen(false);
-        setStatus("idle");
-        return;
-      }
-      setFile(targetFile);
-      setStatus("ready");
-      setIsOpen(true);
-    } catch (err) {
-      setFile(targetFile);
-      setError(err instanceof Error ? err.message : "Could not open the share sheet.");
-      setStatus("ready");
-      setIsOpen(true);
-    }
-  }, []);
+    },
+    [trackFallbackOutcome],
+  );
 
   const startPdfFlow = useCallback(async () => {
     const cached = cacheRef.current;
@@ -135,10 +157,11 @@ export function usePdfShareFlow({
       await triggerShare(generated);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
+      trackFallbackOutcome("error");
       setStatus("error");
       setError(err instanceof Error ? err.message : "Failed to build PDF.");
     }
-  }, [buildPdf, cacheKey, totalCount, triggerShare]);
+  }, [buildPdf, cacheKey, totalCount, trackFallbackOutcome, triggerShare]);
 
   const armWatchdog = useCallback(() => {
     watchdogCleanupRef.current?.();
@@ -165,6 +188,7 @@ export function usePdfShareFlow({
         showToast("Print sheet did not open in this web app.", "info", {
           label: "Print / Save PDF",
           onClick: () => {
+            triggerReasonRef.current = "watchdog_recovery";
             void startPdfFlow();
           },
         });
@@ -190,6 +214,7 @@ export function usePdfShareFlow({
   const runPrintOrPdfFallback = useCallback(
     (triggerNativePrint: () => void): "native" | "pdf-fallback" => {
       if (shouldUseIOSPdfPrintFallback()) {
+        triggerReasonRef.current = "ios27_auto";
         void startPdfFlow();
         return "pdf-fallback";
       }
@@ -218,6 +243,7 @@ export function usePdfShareFlow({
     onDownload: () => {
       if (file) {
         downloadPdfFile(file);
+        trackFallbackOutcome("downloaded");
         onPdfCompletedRef.current?.("download");
       }
     },

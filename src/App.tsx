@@ -12,7 +12,8 @@ import { PinRecovery } from "./components/PinRecovery";
 import { useIdleTimer } from "./hooks/useIdleTimer";
 import { useSchoolSettings } from "./hooks/useSchoolData";
 import { PRINT_STARTED_EVENT } from "./utils/printHandler";
-import { STORAGE_QUOTA_EXCEEDED_EVENT } from "./utils/idbStorage";
+import { getStorageType, STORAGE_QUOTA_EXCEEDED_EVENT } from "./utils/idbStorage";
+import { captureEvent } from "./utils/analytics";
 
 export const HIDDEN_LOCK_GRACE_MS = 30_000;
 export const PRINT_LOCK_SUPPRESSION_MS = 2 * 60_000;
@@ -105,6 +106,7 @@ function AppContent({
           "Storage full: cannot save latest changes. Save a .repota backup and clear old photos.",
         { id: "storage-quota-exceeded", duration: 8000 },
       );
+      captureEvent("Storage_Quota_Exceeded", { storage_type: getStorageType() });
     };
 
     window.addEventListener(PRINT_STARTED_EVENT, markPrintInProgress);

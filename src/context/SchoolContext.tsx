@@ -514,6 +514,7 @@ export function SchoolProvider({
     if (!dataLossChecked && detectDataLoss()) {
       showToast("⚠️ Data may have been cleared. Please restore from backup if needed.", "error");
       sessionStorage.setItem("data_loss_checked", "true");
+      captureEvent("Data_Loss_Detected", { storage_type: getStorageType() });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount

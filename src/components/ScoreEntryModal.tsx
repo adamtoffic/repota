@@ -5,6 +5,7 @@ import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
 import { useSwipe } from "../hooks/useSwipe";
+import { trackScoreEntrySessionOnce } from "../utils/analytics";
 
 interface Props {
   student: ProcessedStudent;
@@ -242,7 +243,14 @@ export function ScoreEntryModal({
                 key={student.id}
                 student={student}
                 level={level}
-                onUpdate={(updated) => onUpdateStudent(updated, true)} // Silent mode - tab shows its own toast
+                onUpdate={(updated) => {
+                  trackScoreEntrySessionOnce({
+                    entryMode: "score_modal",
+                    usedColumnPaste: false,
+                    schoolLevel: level,
+                  });
+                  onUpdateStudent(updated, true);
+                }} // Silent mode - tab shows its own toast
                 filterSubject={selectedSubject}
               />
             )}

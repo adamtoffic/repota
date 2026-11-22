@@ -370,6 +370,7 @@ export const Analytics: React.FC = () => {
     totalCount: 4,
     itemLabel: "analytics section",
     buildPdf: buildAnalyticsPdf,
+    analyticsSource: "analytics",
   });
 
   // Export handlers

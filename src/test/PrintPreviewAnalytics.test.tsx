@@ -167,6 +167,20 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Print" }));
 
+    expect(getCapturedEvents("Print_Preview_Opened")).toEqual([
+      {
+        students_count: 2,
+        real_students_count: 2,
+        ready_count: 2,
+        missing_photos_count: 2,
+        print_scope: "all",
+        is_demo: false,
+        template_id: "original_v1",
+        school_level: "JHS",
+        school_type: "STANDARD",
+      },
+    ]);
+
     expect(window.print).toHaveBeenCalledOnce();
     const generated = getCapturedEvents("Report_Card_Generated");
     expect(generated).toHaveLength(2);
@@ -265,7 +279,9 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
     });
 
     expect(window.print).toHaveBeenCalledOnce();
-    expect(posthogMock.capture).not.toHaveBeenCalled();
+    expect(getCapturedEvents("Printed_Reports")).toHaveLength(0);
+    expect(getCapturedEvents("Report_Card_Generated")).toHaveLength(0);
+    expect(getCapturedEvents("Ios_Pdf_Fallback_Used")).toHaveLength(0);
   });
 
   it("tracks iOS 27+ PDF fallback only on share completion or PDF download, never on abort", async () => {
@@ -279,7 +295,7 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
 
     const ctx = makeSchoolContext([makeStudent("s1", "Ama")]);
 
-    // 1. Aborted Share Sheet -> zero analytics events
+    // 1. Aborted Share Sheet -> zero report generation events, logs fallback outcome
     pdfPrintMock.sharePdfFile.mockResolvedValueOnce("aborted");
     const { unmount } = render(
       <SchoolContext.Provider value={ctx}>
@@ -290,7 +306,15 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
     await flushMicrotasks();
 
     expect(pdfPrintMock.sharePdfFile).toHaveBeenCalledOnce();
-    expect(posthogMock.capture).not.toHaveBeenCalled();
+    expect(getCapturedEvents("Printed_Reports")).toHaveLength(0);
+    expect(getCapturedEvents("Report_Card_Generated")).toHaveLength(0);
+    expect(getCapturedEvents("Ios_Pdf_Fallback_Used")).toEqual([
+      {
+        trigger_reason: "ios27_auto",
+        outcome: "aborted",
+        source: "report_cards",
+      },
+    ]);
     unmount();
 
     // 2. Shared via Share Sheet -> ios_pdf_share
@@ -310,6 +334,11 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
     expect(getCapturedEvents("Printed_Reports")[0]).toMatchObject({
       print_channel: "ios_pdf_share",
       new_unique_reports_count: 1,
+    });
+    expect(getCapturedEvents("Ios_Pdf_Fallback_Used")[1]).toEqual({
+      trigger_reason: "ios27_auto",
+      outcome: "shared",
+      source: "report_cards",
     });
     sharedRender.unmount();
 
@@ -337,5 +366,12 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
       print_channel: "ios_pdf_download",
       new_unique_reports_count: 1,
     });
+    expect(getCapturedEvents("Ios_Pdf_Fallback_Used")).toEqual([
+      {
+        trigger_reason: "ios27_auto",
+        outcome: "downloaded",
+        source: "report_cards",
+      },
+    ]);
   });
 });

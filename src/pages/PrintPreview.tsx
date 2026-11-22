@@ -8,8 +8,14 @@ import { usePdfShareFlow } from "../hooks/usePdfShareFlow";
 import { getTemplateById } from "../templates/registry";
 import type { PrintMode } from "../types";
 import { buildPdfFilename, generateReportsPdfFile } from "../utils/pdfPrint";
+import { captureEvent } from "../utils/analytics";
 import { markPrintStarted } from "../utils/printHandler";
-import { trackReportPrint, type PrintChannel, type PrintScope } from "../utils/reportAnalytics";
+import {
+  isDemoStudent,
+  trackReportPrint,
+  type PrintChannel,
+  type PrintScope,
+} from "../utils/reportAnalytics";
 import { isStudentPending } from "../utils/studentValidation";
 
 const PRINT_TRIGGER_COOLDOWN_MS = 1500;
@@ -154,6 +160,26 @@ export function PrintPreview() {
   const pendingButtonPrintRef = useRef<{ expiresAt: number } | null>(null);
   const lastButtonClickAtRef = useRef<number>(-Infinity);
   const lastNativePrintTrackedAtRef = useRef<number>(-Infinity);
+  const hasTrackedPreviewRef = useRef(false);
+
+  useEffect(() => {
+    if (hasTrackedPreviewRef.current || printableStudents.length === 0) return;
+    hasTrackedPreviewRef.current = true;
+    const realStudents = printableStudents.filter((s) => !isDemoStudent(s));
+    const demoCount = printableStudents.length - realStudents.length;
+    const readyCount = realStudents.filter((s) => !isStudentPending(s, settings)).length;
+    captureEvent("Print_Preview_Opened", {
+      students_count: printableStudents.length,
+      real_students_count: realStudents.length,
+      ready_count: readyCount,
+      missing_photos_count: studentsWithMissingPhotos.length,
+      print_scope: printScope,
+      is_demo: demoCount > 0 && realStudents.length === 0,
+      template_id: settings.templateId || "original_v1",
+      school_level: settings.level || "unknown",
+      school_type: settings.schoolType || "unknown",
+    });
+  }, [printableStudents, printScope, settings, studentsWithMissingPhotos.length]);
 
   useEffect(() => {
     latestPrintPayloadRef.current = {
@@ -183,6 +209,7 @@ export function PrintPreview() {
     itemLabel: "report card",
     buildPdf: buildReportCardsPdf,
     onPdfCompleted: handlePdfCompleted,
+    analyticsSource: "report_cards",
   });
 
   useEffect(() => {
