@@ -21,7 +21,7 @@ Branch: `docs/core-jsdoc-contracts` (branched from `feat/navigation-shell`)
 - `src/utils/export.ts`: documented formula-prefix neutralization (`=`, `+`, `-`, `@`, `\t`, `\r`), `MOCK` vs `TERMLY` column collapsing, `PRIVATE` fee columns, and `@throws` preconditions.
 - `src/utils/remarkGenerator.ts`: documented `generateTeacherRemark`, `generateHeadmasterRemark` promotional term rules, and `generateAttendanceRating` thresholds.
 
-### Commit 4 — `docs(state): document backup rollback, context lifecycle, hook slices, print events, and report`
+### Commit 4 (`8ff1a82`) — `docs(state): document backup rollback, context lifecycle, hook slices, print events, and report`
 
 - `src/utils/backupValidation.ts`: documented `.passthrough()` schemas (`compatibleStudentSchema`, `structuralSettingsSchema`), `mergeSettings`, `IncompleteRollbackError`, two-tier `validateBackup`, and `importBackupAtomically` suspension/migration preconditions.
 - `src/context/SchoolContextDefinition.ts`, `src/context/SchoolContext.tsx`, `src/hooks/useSchoolData.ts`: documented `SchoolActionsType` (`silent` flags, zero-score-only `deletePendingStudents`, persistence suspension, rollback markers, migration wait), `SchoolLifecycleType` flags, split-context isolation vs. `SchoolContext`, `SchoolProvider` startup/auto-lock/debounce behavior, and React 19 `use(SchoolContext)` fallback hooks.
@@ -30,17 +30,22 @@ Branch: `docs/core-jsdoc-contracts` (branched from `feat/navigation-shell`)
 - `src/utils/fileEncryption.ts`: removed the redundant type-repeating comment above internal `base64ToArray`.
 - `docs/reports/core-jsdoc-contracts.md`: added this task report.
 
+### Commit 5 — `docs(agents): add current root AGENTS.md with architecture and JSDoc invariants`
+
+- Created `AGENTS.md` at repository root capturing current hard rules (storage keys/IDB stores/backup formats, `npm`/`npx`-only, zero-PII/session-replay boundary, JSDoc standard), verified provider/route hierarchy (`SchoolProvider` -> `AppContent` -> `RouterProvider`, `DataGate` -> `SettingsFormProvider` mount order, `/print` outside `AppShell`), domain units (`examScore` weighting, pending/failing definitions, `demo-` prefix, `@deprecated` fees), and test/commit/report workflow.
+- Replaced duplicate rules in `docs/AGENTS.md` with a canonical pointer to `../AGENTS.md` and updated the link in `docs/jsdoc-conventions.md` so rules stay single-source-of-truth.
+
 ## Why
 
-TypeScript enforces signatures cleanly, but critical bugs in Repota come from contracts outside the type system: weighted vs. raw `0–100` exam scores, `isStudentPending` treating `0` as unentered, `DataGate` needing to hydrate settings before `SettingsFormProvider` mounts, `importBackupAtomically` suspension/rollback requirements, and IndexedDB `idb-blob://` offloading. Documenting only these non-obvious invariants keeps signal high for engineers and AI agents without adding boilerplate comment debt.
+TypeScript enforces signatures cleanly, but critical bugs in Repota come from contracts outside the type system: weighted vs. raw `0–100` exam scores, `isStudentPending` treating `0` as unentered, `DataGate` needing to hydrate settings before `SettingsFormProvider` mounts, `importBackupAtomically` suspension/rollback requirements, and IndexedDB `idb-blob://` offloading. Documenting only these non-obvious invariants — and placing the canonical `AGENTS.md` at repository root — ensures both engineers and future coding agents discover and follow these rules automatically.
 
 ## What Was Verified
 
 - Diff audit (`git diff -U0 feat/navigation-shell -- src/`): confirmed zero runtime logic, Zod schema, storage key, or TypeScript signature changes across all 14 touched `src/` files (pure comment/JSDoc changes plus Prettier line-wrapping on pre-existing unions in `src/utils/studentValidation.ts`).
-- `npx prettier --end-of-line auto --check` passed on `docs/jsdoc-conventions.md`, `docs/AGENTS.md`, `CONTRIBUTING.md`, `docs/reports/core-jsdoc-contracts.md`, and the 11 Prettier-clean `src/` files (`src/types/index.ts`, `gradeCalculator.ts`, `studentValidation.ts`, `scoreConversion.ts`, `export.ts`, `remarkGenerator.ts`, `SchoolContextDefinition.ts`, `SettingsFormContext.tsx`, `DataGate.tsx`, `useSchoolData.ts`, `printHandler.ts`).
-- `npm run lint` (`eslint .`): exited `0` with no errors or warnings.
-- `npx tsc -b`: exited `0`.
-- `npm test -- --run --maxWorkers=2`: exited `0` — `Test Files  40 passed (40)`, `Tests  398 passed (398)` (0 skipped).
+- `npx prettier --end-of-line auto --check` passed on `AGENTS.md`, `docs/jsdoc-conventions.md`, `docs/AGENTS.md`, `CONTRIBUTING.md`, `docs/reports/core-jsdoc-contracts.md`, and the 11 Prettier-clean `src/` files (`src/types/index.ts`, `gradeCalculator.ts`, `studentValidation.ts`, `scoreConversion.ts`, `export.ts`, `remarkGenerator.ts`, `SchoolContextDefinition.ts`, `SettingsFormContext.tsx`, `DataGate.tsx`, `useSchoolData.ts`, `printHandler.ts`).
+- `npm run lint` (`eslint .`): exited `0` with no errors or warnings (re-run after root `AGENTS.md` updates).
+- `npx tsc -b`: exited `0` (re-run after root `AGENTS.md` updates).
+- `npm test -- --run --maxWorkers=2`: exited `0` — `Test Files  40 passed (40)`, `Tests  398 passed (398)` (0 skipped; re-run after root `AGENTS.md` updates).
 
 ## What Could Not Be Verified
 
@@ -50,8 +55,8 @@ TypeScript enforces signatures cleanly, but critical bugs in Repota come from co
 
 ## Summary for Reviewer
 
-- Cut clean branch `docs/core-jsdoc-contracts` from `feat/navigation-shell` with 4 logical commits and zero runtime changes.
-- Added signal-only JSDoc guidelines in `docs/jsdoc-conventions.md`, linked from `docs/AGENTS.md` and `CONTRIBUTING.md` (no `eslint-plugin-jsdoc` spam).
+- Cut clean branch `docs/core-jsdoc-contracts` from `feat/navigation-shell` with 5 logical commits and zero runtime changes.
+- Added signal-only JSDoc guidelines in `docs/jsdoc-conventions.md`, promoted canonical `AGENTS.md` to repository root (with `docs/AGENTS.md` pointing to it), and updated `CONTRIBUTING.md`.
 - Documented core score units, `demo-` / `idb-blob://` conventions, and `@deprecated` fee fields in `src/types/index.ts`.
 - Documented GES grading/aggregate rules, pending/failing definitions, score clamping edge cases, CSV formula neutralization, and remark rules across core `src/utils/`.
 - Documented two-tier backup validation, atomic rollback recovery, `SchoolProvider` lifecycle, `DataGate` -> `SettingsFormProvider` mount order, slice hooks, and `PRINT_STARTED_EVENT`.

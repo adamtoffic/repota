@@ -57,4 +57,4 @@ function base64ToArray(base64: string): Uint8Array;
 
 ## Tooling Policy
 
-Enforced via code review and [docs/AGENTS.md](AGENTS.md). Repota intentionally does **not** install `eslint-plugin-jsdoc` so contributors are never forced to write boilerplate comments on self-explanatory functions.
+Enforced via code review and [AGENTS.md](../AGENTS.md). Repota intentionally does **not** install `eslint-plugin-jsdoc` so contributors are never forced to write boilerplate comments on self-explanatory functions.
