@@ -12,6 +12,7 @@ import {
 import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
+import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 import { useSwipe } from "../hooks/useSwipe";
 import { useSchoolLifecycle, useSchoolSettings } from "../hooks/useSchoolData";
 import { trackScoreEntrySessionOnce } from "../utils/analytics";
@@ -110,6 +111,84 @@ function ModalSaveStatus() {
   );
 }
 
+interface MobileModalFooterProps {
+  hasNavigation: boolean;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}
+
+/**
+ * Thumb-zone navigation footer isolated as a leaf component so focus state changes
+ * never re-render form rows, and hidden (`invisible pointer-events-none`) while editing
+ * so iOS WebKit Form Assistant hit-testing never treats scrolled inputs as obscured.
+ */
+function MobileModalFooter({
+  hasNavigation,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+  onClose,
+}: MobileModalFooterProps) {
+  const isEditableFocused = useEditableInputFocused();
+
+  return (
+    <div
+      data-testid="mobile-modal-footer"
+      aria-hidden={isEditableFocused || undefined}
+      className={`safe-bottom border-border bg-surface fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 border-t px-4 py-2.5 transition-all duration-150 sm:hidden ${
+        isEditableFocused
+          ? "pointer-events-none invisible translate-y-4 opacity-0"
+          : "pointer-events-auto visible translate-y-0 opacity-100"
+      }`}
+    >
+      {hasNavigation ? (
+        <button
+          type="button"
+          onClick={onPrevious}
+          disabled={!hasPrevious}
+          aria-label="Previous student"
+          className="border-border-strong bg-surface text-secondary flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          data-record="true"
+        >
+          <ChevronLeft size={16} />
+          <span>Prev</span>
+        </button>
+      ) : (
+        <span />
+      )}
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="bg-primary hover:bg-primary/90 min-h-11 rounded-xl px-5 text-sm font-bold text-white shadow-sm active:scale-95"
+        data-record="true"
+      >
+        Done
+      </button>
+
+      {hasNavigation ? (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!hasNext}
+          aria-label="Next student"
+          className="border-border-strong bg-surface text-secondary flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          data-record="true"
+        >
+          <span>Next</span>
+          <ChevronRight size={16} />
+        </button>
+      ) : (
+        <span />
+      )}
+    </div>
+  );
+}
+
 export function ScoreEntryModal({
   student,
   level,
@@ -127,6 +206,7 @@ export function ScoreEntryModal({
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [hasNestedModal, setHasNestedModal] = useState(false);
 
+  const dialogScrollRef = useRef<HTMLDivElement>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -167,6 +247,9 @@ export function ScoreEntryModal({
   // Reset modal scroll position when switching students or tabs.
   useEffect(() => {
     if (!isOpen) return;
+    if (dialogScrollRef.current) {
+      dialogScrollRef.current.scrollTop = 0;
+    }
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
@@ -245,7 +328,8 @@ export function ScoreEntryModal({
 
   return (
     <div
-      className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-0 backdrop-blur-sm sm:p-4 dark:bg-black/70"
+      ref={dialogScrollRef}
+      className="animate-fade-in bg-surface fixed inset-0 z-100 overscroll-contain max-sm:overflow-y-auto sm:flex sm:items-center sm:justify-center sm:overflow-hidden sm:bg-black/50 sm:p-4 sm:backdrop-blur-sm dark:sm:bg-black/70"
       role="dialog"
       aria-modal="true"
       aria-labelledby="score-entry-modal-title"
@@ -253,7 +337,7 @@ export function ScoreEntryModal({
     >
       <div
         ref={modalContentRef}
-        className="animate-sheet-up bg-surface sm:border-border flex h-dvh max-h-dvh w-full max-w-4xl flex-col overflow-hidden shadow-2xl sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:rounded-2xl sm:border dark:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
+        className="animate-sheet-up bg-surface sm:border-border flex min-h-dvh w-full max-w-4xl flex-col shadow-2xl sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border dark:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="safe-top bg-surface shrink-0 sm:hidden" />
@@ -375,8 +459,8 @@ export function ScoreEntryModal({
           data-testid="student-pulse-strip"
           className="border-border-subtle bg-subtle/45 border-b px-4 py-2 sm:px-5"
         >
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-xs">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="flex flex-col gap-1.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-x-4 whitespace-nowrap">
               <div className="flex items-center gap-1.5">
                 <span className="text-muted font-medium" data-record="true">
                   Average:
@@ -445,7 +529,7 @@ export function ScoreEntryModal({
             role="tab"
             aria-selected={activeTab === "ACADEMIC"}
             onClick={() => setActiveTab("ACADEMIC")}
-            className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-bold transition-colors ${
+            className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold transition-colors ${
               activeTab === "ACADEMIC"
                 ? "border-primary-text text-primary-text"
                 : "text-muted hover:text-main border-transparent"
@@ -471,7 +555,7 @@ export function ScoreEntryModal({
             role="tab"
             aria-selected={activeTab === "DETAILS"}
             onClick={() => setActiveTab("DETAILS")}
-            className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-bold transition-colors ${
+            className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold transition-colors ${
               activeTab === "DETAILS"
                 ? "border-primary-text text-primary-text"
                 : "text-muted hover:text-main border-transparent"
@@ -495,7 +579,7 @@ export function ScoreEntryModal({
         {/* SCROLLABLE WORKSPACE */}
         <div
           ref={scrollContainerRef}
-          className="bg-background/50 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5"
+          className="bg-background/50 flex-1 p-3 pb-32 sm:overflow-y-auto sm:overscroll-contain sm:p-5 sm:pb-5"
         >
           <div key={`${student.id}-${activeTab}`} className="animate-page-enter">
             {activeTab === "ACADEMIC" && (
@@ -526,52 +610,22 @@ export function ScoreEntryModal({
           </div>
         </div>
 
-        {/* MOBILE THUMB-ZONE FOOTER */}
-        <div
-          data-testid="mobile-modal-footer"
-          className="safe-bottom border-border bg-surface flex shrink-0 items-center justify-between gap-2 border-t px-4 py-2.5 sm:hidden"
-        >
-          {hasNavigation && allStudents && onNavigate ? (
-            <button
-              type="button"
-              onClick={() => hasPrevious && onNavigate(allStudents[currentIndex - 1].id)}
-              disabled={!hasPrevious}
-              aria-label="Previous student"
-              className="border-border-strong bg-surface text-secondary flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-              data-record="true"
-            >
-              <ChevronLeft size={16} />
-              <span>Prev</span>
-            </button>
-          ) : (
-            <span />
-          )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-primary hover:bg-primary/90 min-h-11 rounded-xl px-5 text-sm font-bold text-white shadow-sm active:scale-95"
-            data-record="true"
-          >
-            Done
-          </button>
-
-          {hasNavigation && allStudents && onNavigate ? (
-            <button
-              type="button"
-              onClick={() => hasNext && onNavigate(allStudents[currentIndex + 1].id)}
-              disabled={!hasNext}
-              aria-label="Next student"
-              className="border-border-strong bg-surface text-secondary flex min-h-11 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-bold active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-              data-record="true"
-            >
-              <span>Next</span>
-              <ChevronRight size={16} />
-            </button>
-          ) : (
-            <span />
-          )}
-        </div>
+        <MobileModalFooter
+          hasNavigation={hasNavigation}
+          hasPrevious={hasPrevious}
+          hasNext={hasNext}
+          onPrevious={() => {
+            if (hasPrevious && allStudents && onNavigate) {
+              onNavigate(allStudents[currentIndex - 1].id);
+            }
+          }}
+          onNext={() => {
+            if (hasNext && allStudents && onNavigate) {
+              onNavigate(allStudents[currentIndex + 1].id);
+            }
+          }}
+          onClose={onClose}
+        />
       </div>
     </div>
   );

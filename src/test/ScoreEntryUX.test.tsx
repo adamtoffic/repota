@@ -1696,5 +1696,177 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       expect(promoSelect.value).toBe("Repeated Basic 4");
       expect(within(promoSelect).getByRole("option", { name: "Repeated Basic 4" })).toBeInTheDocument();
     });
+
+    it("hides mobile modal footer on focus, stays hidden across quick hops, and restores after 180ms blur", () => {
+      vi.useFakeTimers();
+      try {
+        const s1 = makeStudent("s1", "Ama Mensah", [
+          { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+          { id: "sub-2", name: "English", classScore: 0, examScore: 0 },
+        ]);
+        const s2 = makeStudent("s2", "Kofi Boateng", [
+          { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+        ]);
+        const students = [s1, s2];
+
+        render(
+          <SchoolContext.Provider value={makeSchoolContext(students)}>
+            <ScoreEntryModal
+              student={s1}
+              level="JHS"
+              isOpen={true}
+              onClose={vi.fn()}
+              onUpdateStudent={vi.fn()}
+              allStudents={students}
+              onNavigate={vi.fn()}
+            />
+          </SchoolContext.Provider>,
+        );
+
+        const footer = screen.getByTestId("mobile-modal-footer");
+        expect(footer).toHaveClass("pointer-events-auto", "visible", "opacity-100");
+        expect(footer).not.toHaveAttribute("aria-hidden");
+
+        const mathClassInput = screen.getByLabelText("Mathematics Class Score") as HTMLInputElement;
+        const mathExamInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
+
+        // Focusing an input hides the mobile footer so it cannot obscure scrolled inputs on iOS
+        fireEvent.focusIn(mathClassInput);
+        expect(footer).toHaveClass("pointer-events-none", "invisible", "opacity-0");
+        expect(footer).toHaveAttribute("aria-hidden", "true");
+
+        // Rapid hops (< 180ms) keep the footer hidden continuously
+        fireEvent.focusOut(mathClassInput, { relatedTarget: mathExamInput });
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+        fireEvent.focusIn(mathExamInput);
+        act(() => {
+          vi.advanceTimersByTime(120);
+        });
+        expect(footer).toHaveClass("pointer-events-none", "invisible", "opacity-0");
+        expect(footer).toHaveAttribute("aria-hidden", "true");
+
+        // Blurring completely restores the footer only after the 180ms debounce window
+        fireEvent.focusOut(mathExamInput, { relatedTarget: null });
+        act(() => {
+          vi.advanceTimersByTime(179);
+        });
+        expect(footer).toHaveClass("pointer-events-none", "invisible", "opacity-0");
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(footer).toHaveClass("pointer-events-auto", "visible", "opacity-100");
+        expect(footer).not.toHaveAttribute("aria-hidden");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("uses single top-level dialog scroller on mobile and keeps form inputs with scroll margins", () => {
+      const s1 = makeStudent("s1", "Ama Mensah", [
+        { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+      ]);
+
+      render(
+        <SchoolContext.Provider value={makeSchoolContext([s1])}>
+          <ScoreEntryModal
+            student={s1}
+            level="JHS"
+            isOpen={true}
+            onClose={vi.fn()}
+            onUpdateStudent={vi.fn()}
+          />
+        </SchoolContext.Provider>,
+      );
+
+      const dialog = screen.getByRole("dialog");
+      expect(dialog).toHaveClass("max-sm:overflow-y-auto");
+
+      const sheet = dialog.firstElementChild as HTMLElement;
+      expect(sheet).toHaveClass("sm:overflow-hidden");
+      expect(sheet.className.split(/\s+/)).not.toContain("overflow-hidden");
+
+      const mathClassInput = screen.getByLabelText("Mathematics Class Score");
+      const mathExamInput = screen.getByLabelText("Mathematics Exam Score");
+      const form = mathClassInput.closest("form");
+      expect(form).not.toBeNull();
+      expect(form).toHaveAttribute("novalidate");
+      expect(mathClassInput).toHaveClass("scroll-mt-16", "scroll-mb-24");
+      expect(mathExamInput).toHaveClass("scroll-mt-16", "scroll-mb-24");
+    });
+
+    it("avoids post-blur draft churn on round-trip exam scores and defers rounding normalization by 180ms", () => {
+      vi.useFakeTimers();
+      try {
+        function ControlledSubjectRow() {
+          const [subject, setSubject] = useState<SavedSubject>({
+            id: "sub-1",
+            name: "Mathematics",
+            classScore: 40,
+            examScore: 0,
+          });
+          return (
+            <SubjectRow
+              subject={subject}
+              level="JHS"
+              maxClassScore={50}
+              maxExamScore={50}
+              onChange={setSubject}
+            />
+          );
+        }
+
+        render(<ControlledSubjectRow />);
+        const examInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
+        const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+
+        // Round-trip score "80" (weighted 40 -> formats to "80"): zero blur timer churn
+        fireEvent.focus(examInput);
+        fireEvent.change(examInput, { target: { value: "80" } });
+        expect(examInput.value).toBe("80");
+        setTimeoutSpy.mockClear();
+
+        fireEvent.blur(examInput);
+        expect(setTimeoutSpy).not.toHaveBeenCalled();
+
+        // Odd raw score "89" (weighted 45 -> formats to "90"): keeps "89" until 180ms after blur
+        fireEvent.focus(examInput);
+        fireEvent.change(examInput, { target: { value: "89" } });
+        expect(examInput.value).toBe("89");
+
+        fireEvent.blur(examInput);
+        expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+        expect(setTimeoutSpy.mock.calls[0]?.[1]).toBe(180);
+        expect(examInput.value).toBe("89");
+
+        // Refocusing within 180ms cancels normalization so "89" stays intact
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+        fireEvent.focus(examInput);
+        act(() => {
+          vi.advanceTimersByTime(150);
+        });
+        expect(examInput.value).toBe("89");
+
+        // Blurring for the full 180ms normalizes "89" -> "90"
+        fireEvent.blur(examInput);
+        act(() => {
+          vi.advanceTimersByTime(179);
+        });
+        expect(examInput.value).toBe("89");
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(examInput.value).toBe("90");
+
+        setTimeoutSpy.mockRestore();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

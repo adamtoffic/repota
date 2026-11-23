@@ -29,6 +29,16 @@ interface Props {
   onDelete?: () => void;
 }
 
+/**
+ * Auto-selects score text on fine-pointer desktops while skipping touch/iOS selection
+ * so Form Assistant (⌄ / ⌃) focus jumps do not trigger WebKit selection/scroll glitches.
+ */
+function selectOnDesktopFocus(input: HTMLInputElement) {
+  if (window.matchMedia?.("(pointer: fine)")?.matches) {
+    input.select();
+  }
+}
+
 export function SubjectRow({
   subject,
   level,
@@ -107,7 +117,7 @@ export function SubjectRow({
   const handleExamChange = (value: string) => {
     clearTimer("examBlur");
     if (value === "") {
-      setExamDraft({ baseScore: 0, raw: "" });
+      if (examDraft !== null) setExamDraft(null);
       onChange({ ...subject, examScore: 0 });
       setExamScoreError(null);
       return;
@@ -124,14 +134,19 @@ export function SubjectRow({
 
     if (wasClamped) {
       setExamScoreError("Max 100");
-      setExamDraft({ baseScore: weightedScore, raw: String(clampedRaw) });
-      onChange({ ...subject, examScore: weightedScore });
       scheduleTimer("examError", () => setExamScoreError(null), 2000);
-      return;
+    } else {
+      setExamScoreError(null);
     }
 
-    setExamScoreError(null);
-    setExamDraft({ baseScore: weightedScore, raw: value });
+    const normalizedDisplay = wasClamped ? String(clampedRaw) : value;
+    const formattedWeighted = formatExamWeightedAsRaw(weightedScore, maxExamScore);
+    if (normalizedDisplay !== formattedWeighted) {
+      setExamDraft({ baseScore: weightedScore, raw: normalizedDisplay });
+    } else if (examDraft !== null) {
+      setExamDraft(null);
+    }
+
     onChange({ ...subject, examScore: weightedScore });
   };
 
@@ -282,9 +297,9 @@ export function SubjectRow({
               </button>
             )}
           </div>
-          {status === "complete" && (
-            <p className="text-muted mt-0.5 pl-4 text-[11px] sm:hidden">{remark}</p>
-          )}
+          <p className="text-muted mt-0.5 h-4 truncate pl-4 text-[11px] leading-4 sm:hidden">
+            {status === "complete" ? remark : "\u00A0"}
+          </p>
         </div>
 
         {/* 2. Score Inputs */}
@@ -345,7 +360,7 @@ export function SubjectRow({
                     aria-label={`${subject.name} Class Score`}
                     value={subject.classScore === 0 ? "" : subject.classScore}
                     onChange={(e) => handleClassChange(e.target.value)}
-                    onFocus={(e) => e.currentTarget.select()}
+                    onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
                     onKeyDown={(e) => handleFieldKeyDown(e, "class")}
                     className={`placeholder:text-muted h-10 w-full scroll-mt-16 scroll-mb-24 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                       classScoreError
@@ -389,11 +404,12 @@ export function SubjectRow({
               value={examRawInput}
               onChange={(e) => handleExamChange(e.target.value)}
               onBlur={() => {
+                if (examDraft === null) return;
                 scheduleTimer("examBlur", () => setExamDraft(null), 180);
               }}
               onFocus={(e) => {
                 clearTimer("examBlur");
-                e.currentTarget.select();
+                selectOnDesktopFocus(e.currentTarget);
               }}
               onKeyDown={(e) => handleFieldKeyDown(e, "exam")}
               className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full scroll-mt-16 scroll-mb-24 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
@@ -538,7 +554,7 @@ export function SubjectRow({
                     onChange={(e) =>
                       handleComponentChange(component.id, component.maxScore, e.target.value)
                     }
-                    onFocus={(e) => e.currentTarget.select()}
+                    onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
                     onKeyDown={(e) => handleFieldKeyDown(e, `comp:${component.id}`)}
                     className={`bg-input text-main placeholder:text-muted h-9 w-full scroll-mt-16 scroll-mb-24 rounded-md border px-2 text-center text-sm font-bold tabular-nums transition-colors outline-none focus:ring-2 ${
                       compError
