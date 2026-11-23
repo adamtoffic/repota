@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { HelpCircle, X, Printer, Plus, List, TableProperties, Upload } from "lucide-react";
+import type { ProcessedStudent } from "../types";
 import {
   useSchoolActions,
   useSchoolSettings,
@@ -61,6 +62,7 @@ export function Dashboard() {
   const [confirmClearScoresModal, setConfirmClearScoresModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [modalStudentQueueIds, setModalStudentQueueIds] = useState<string[] | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showScoreImportModal, setShowScoreImportModal] = useState(false);
@@ -137,7 +139,41 @@ export function Dashboard() {
     return sortStudents(matched, sortBy, settings);
   }, [students, settings, debounceSearch, activeFilter, sortBy]);
 
-  const editingStudent = students.find((s) => s.id === editingStudentId);
+  const studentsById = useMemo(
+    () => new Map(students.map((student) => [student.id, student])),
+    [students],
+  );
+
+  const modalNavigationStudents = useMemo(() => {
+    if (!modalStudentQueueIds) return filteredStudents;
+    const resolved: ProcessedStudent[] = [];
+    for (const id of modalStudentQueueIds) {
+      const latest = studentsById.get(id);
+      if (latest) resolved.push(latest);
+    }
+    return resolved;
+  }, [modalStudentQueueIds, studentsById, filteredStudents]);
+
+  const editingStudent = editingStudentId ? studentsById.get(editingStudentId) : undefined;
+  const gradebookSessionKey = `${debounceSearch}|${activeFilter}|${sortBy}`;
+
+  const handleOpenStudentModal = (
+    student: ProcessedStudent,
+    orderedQueue?: ProcessedStudent[],
+  ) => {
+    const queue = orderedQueue ?? filteredStudents;
+    const ids = queue.map((item) => item.id);
+    if (!ids.includes(student.id)) {
+      ids.unshift(student.id);
+    }
+    setModalStudentQueueIds(ids);
+    setEditingStudentId(student.id);
+  };
+
+  const handleCloseStudentModal = () => {
+    setEditingStudentId(null);
+    setModalStudentQueueIds(null);
+  };
 
   const handleOpenAddStudent = () => {
     setIsAddModalOpen(true);
@@ -242,6 +278,7 @@ export function Dashboard() {
       {/* NAV */}
       <PageHeader
         hideOnDesktop
+        sticky={entryViewMode !== "GRADEBOOK"}
         schoolName={settings.schoolName}
         actions={
           students.length > 0 ? (
@@ -365,14 +402,16 @@ export function Dashboard() {
               onFilterChange={setActiveFilter}
             />
 
-            {/* VALIDATION WARNINGS */}
-            <ValidationWarnings
-              students={students}
-              settings={settings}
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-              onReviewPending={() => setActiveFilter("PENDING")}
-            />
+            {/* VALIDATION WARNINGS (suppressed in Quick Gradebook to prevent above-table layout shifts mid-entry) */}
+            {entryViewMode !== "GRADEBOOK" && (
+              <ValidationWarnings
+                students={students}
+                settings={settings}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                onReviewPending={() => setActiveFilter("PENDING")}
+              />
+            )}
 
             <DashboardToolbar
               searchQuery={searchQuery}
@@ -406,105 +445,108 @@ export function Dashboard() {
               }}
             />
 
-            {/* ✅ LOGIC: If filtered list is empty, show "No Results", else show List */}
-            {filteredStudents.length === 0 ? (
-              <div className="border-border bg-surface rounded-xl border py-16 text-center shadow-sm">
-                <div className="bg-subtle mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
-                  <X className="text-muted h-7 w-7" />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div
+                  role="group"
+                  aria-label="Workspace entry view"
+                  className="border-border bg-subtle inline-flex rounded-xl border p-1 shadow-xs"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setEntryViewMode("LIST")}
+                    aria-pressed={entryViewMode === "LIST"}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                      entryViewMode === "LIST"
+                        ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
+                        : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
+                    }`}
+                    data-record="true"
+                  >
+                    <List
+                      className={`h-3.5 w-3.5 ${entryViewMode === "LIST" ? "text-primary-text" : ""}`}
+                    />
+                    <span>Student List</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntryViewMode("GRADEBOOK")}
+                    aria-pressed={entryViewMode === "GRADEBOOK"}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                      entryViewMode === "GRADEBOOK"
+                        ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
+                        : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
+                    }`}
+                    data-record="true"
+                  >
+                    <TableProperties
+                      className={`h-3.5 w-3.5 ${entryViewMode === "GRADEBOOK" ? "text-primary-text" : ""}`}
+                    />
+                    <span>Quick Gradebook</span>
+                  </button>
                 </div>
-                <h3 className="text-main text-lg font-bold" data-record="true">
-                  No students found
-                </h3>
-                <p className="text-muted mt-1 text-sm">
-                  No results for "{searchQuery}" in{" "}
-                  {activeFilter === "ALL"
-                    ? "all students"
-                    : activeFilter.toLowerCase().replace(/_/g, " ")}
-                  .
-                </p>
-                <button
-                  onClick={() => {
+              </div>
+
+              {entryViewMode === "GRADEBOOK" ? (
+                <QuickGradebook
+                  students={filteredStudents}
+                  allStudents={students}
+                  sessionKey={gradebookSessionKey}
+                  settings={settings}
+                  onUpdateStudent={updateStudent}
+                  onOpenStudent={(s, ordered) => handleOpenStudentModal(s, ordered)}
+                  onOpenScoreImport={(subject, taskName) => {
+                    setScoreImportPreset({ subject, taskName });
+                    setShowScoreImportModal(true);
+                  }}
+                  onClearParentFilters={() => {
                     setSearchQuery("");
                     setActiveFilter("ALL");
                   }}
-                  className="text-primary-text hover:text-primary-text/80 mt-4 text-sm font-bold transition-colors hover:underline"
-                  data-record="true"
-                >
-                  Clear Search & Filters
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div
-                    role="group"
-                    aria-label="Workspace entry view"
-                    className="border-border bg-subtle inline-flex rounded-xl border p-1 shadow-xs"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setEntryViewMode("LIST")}
-                      aria-pressed={entryViewMode === "LIST"}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                        entryViewMode === "LIST"
-                          ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
-                          : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
-                      }`}
-                      data-record="true"
-                    >
-                      <List
-                        className={`h-3.5 w-3.5 ${entryViewMode === "LIST" ? "text-primary-text" : ""}`}
-                      />
-                      <span>Student List</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEntryViewMode("GRADEBOOK")}
-                      aria-pressed={entryViewMode === "GRADEBOOK"}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                        entryViewMode === "GRADEBOOK"
-                          ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
-                          : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
-                      }`}
-                      data-record="true"
-                    >
-                      <TableProperties
-                        className={`h-3.5 w-3.5 ${entryViewMode === "GRADEBOOK" ? "text-primary-text" : ""}`}
-                      />
-                      <span>Quick Gradebook</span>
-                    </button>
+                />
+              ) : filteredStudents.length === 0 ? (
+                <div className="border-border bg-surface rounded-xl border py-16 text-center shadow-sm">
+                  <div className="bg-subtle mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                    <X className="text-muted h-7 w-7" />
                   </div>
-                </div>
-
-                {entryViewMode === "GRADEBOOK" ? (
-                  <QuickGradebook
-                    students={filteredStudents}
-                    settings={settings}
-                    onUpdateStudent={updateStudent}
-                    onOpenStudent={(s) => setEditingStudentId(s.id)}
-                    onOpenScoreImport={(subject, taskName) => {
-                      setScoreImportPreset({ subject, taskName });
-                      setShowScoreImportModal(true);
+                  <h3 className="text-main text-lg font-bold" data-record="true">
+                    No students found
+                  </h3>
+                  <p className="text-muted mt-1 text-sm">
+                    No results for "{searchQuery}" in{" "}
+                    {activeFilter === "ALL"
+                      ? "all students"
+                      : activeFilter.toLowerCase().replace(/_/g, " ")}
+                    .
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setActiveFilter("ALL");
                     }}
-                  />
-                ) : (
-                  <StudentList
-                    students={filteredStudents}
-                    onAddStudent={addStudent}
-                    onDeleteStudent={deleteStudent}
-                    onEditStudent={(s) => setEditingStudentId(s.id)}
-                    onImport={() => setShowImportModal(true)}
-                    isAddModalOpen={isAddModalOpen}
-                    onOpenAddModalChange={setIsAddModalOpen}
-                  />
-                )}
-              </div>
-            )}
+                    className="text-primary-text hover:text-primary-text/80 mt-4 text-sm font-bold transition-colors hover:underline"
+                    data-record="true"
+                  >
+                    Clear Search & Filters
+                  </button>
+                </div>
+              ) : (
+                <StudentList
+                  students={filteredStudents}
+                  onAddStudent={addStudent}
+                  onDeleteStudent={deleteStudent}
+                  onEditStudent={(s) => handleOpenStudentModal(s)}
+                  onImport={() => setShowImportModal(true)}
+                  isAddModalOpen={isAddModalOpen}
+                  onOpenAddModalChange={setIsAddModalOpen}
+                />
+              )}
+            </div>
           </>
         )}
       </main>
 
-      {(students.length === 0 || filteredStudents.length === 0) && (
+      {(students.length === 0 || filteredStudents.length === 0 || entryViewMode === "GRADEBOOK") && (
         <AddStudentModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
@@ -534,9 +576,9 @@ export function Dashboard() {
           student={editingStudent}
           level={settings.level}
           isOpen={!!editingStudent}
-          onClose={() => setEditingStudentId(null)}
+          onClose={handleCloseStudentModal}
           onUpdateStudent={updateStudent}
-          allStudents={filteredStudents}
+          allStudents={modalNavigationStudents}
           onNavigate={setEditingStudentId}
           initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
         />

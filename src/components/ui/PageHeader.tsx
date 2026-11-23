@@ -6,6 +6,8 @@ interface PageHeaderProps {
   actions?: ReactNode;
   variant?: "solid" | "transparent";
   hideOnDesktop?: boolean;
+  /** Pin header to the top viewport edge (`false` removes sticky hit-test bar during mobile gradebook entry). */
+  sticky?: boolean;
 }
 
 /**
@@ -17,6 +19,7 @@ export function PageHeader({
   actions,
   variant = "solid",
   hideOnDesktop = false,
+  sticky = true,
 }: PageHeaderProps) {
   const bgClass =
     variant === "transparent"
@@ -25,7 +28,7 @@ export function PageHeader({
 
   return (
     <nav
-      className={`border-border/80 sticky top-0 z-30 border-b shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)] ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
+      className={`border-border/80 ${sticky ? "sticky top-0 z-30" : "relative"} border-b shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)] ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
     >
       {/* Safe area spacer for notch/dynamic island */}
       <div className="safe-top" />

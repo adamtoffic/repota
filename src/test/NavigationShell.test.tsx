@@ -35,6 +35,7 @@ vi.mock("../utils/dataProtection", () => ({
 }));
 
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
+import { ScrollButton } from "../components/ScrollButton";
 import { SchoolProvider } from "../context/SchoolContext";
 import { createAppRouter } from "../router";
 import { setUnsavedChanges } from "../utils/preloadErrorHandler";
@@ -391,6 +392,106 @@ describe("NavigationShell and route exclusions", () => {
       expect(screen.getByText(/Saving\.\.\./i)).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it("marks AutoSaveIndicator pointer-events-none and disables mobile fixed overlay hit-testing while editing inputs", async () => {
+    const originalScrollYDesc = Object.getOwnPropertyDescriptor(window, "scrollY");
+    const originalInnerHeightDesc = Object.getOwnPropertyDescriptor(window, "innerHeight");
+    const originalScrollHeightDesc = Object.getOwnPropertyDescriptor(
+      document.documentElement,
+      "scrollHeight",
+    );
+
+    Object.defineProperty(window, "scrollY", { configurable: true, get: () => 400 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, get: () => 800 });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      get: () => 2400,
+    });
+
+    try {
+      const { container: indicatorContainer } = render(
+        <AutoSaveIndicator isSaving={true} lastSaved={new Date()} />,
+      );
+      expect(indicatorContainer.firstElementChild?.className).toContain("pointer-events-none");
+
+      const { container: scrollContainer } = render(<ScrollButton />);
+      const scrollWrapper = scrollContainer.firstElementChild as HTMLElement;
+
+      renderAppAt("/");
+      await screen.findByPlaceholderText("Search students...");
+
+      vi.useFakeTimers();
+
+      fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
+      const examInput = screen.getByLabelText("Student One Exam Score") as HTMLInputElement;
+      const searchInput = screen.getByPlaceholderText("Search students...") as HTMLInputElement;
+      const sortSelect = screen.getByLabelText("Sort students") as HTMLSelectElement;
+
+      const mobileBar = screen.getByLabelText("Mobile bottom navigation");
+      const mobilePill = mobileBar.firstElementChild as HTMLElement;
+
+      expect(mobileBar.className).not.toContain("invisible");
+      expect(mobilePill.className).toContain("pointer-events-auto");
+      expect(scrollWrapper.className).not.toContain("max-md:pointer-events-none");
+
+      // Focusing a <select> must NOT hide mobile chrome (iOS keeps <select> active after picker closes)
+      act(() => {
+        sortSelect.focus();
+      });
+      act(() => {
+        vi.advanceTimersByTime(50);
+      });
+      expect(mobileBar.className).not.toContain("invisible");
+
+      // Focusing an editable input hides mobile nav pill + ScrollButton hit-testing
+      act(() => {
+        examInput.focus();
+      });
+      expect(mobileBar).toHaveAttribute("aria-hidden", "true");
+      expect(mobileBar.className).toContain("invisible");
+      expect(mobilePill.className).toContain("pointer-events-none");
+      expect(scrollWrapper.className).toContain("max-md:pointer-events-none");
+      expect(scrollWrapper.className).toContain("max-md:invisible");
+
+      // Rapid blur -> focus to another input within 180ms keeps overlays continuously hidden
+      act(() => {
+        fireEvent.blur(examInput);
+        vi.advanceTimersByTime(100);
+      });
+      expect(mobileBar.className).toContain("invisible");
+      act(() => {
+        searchInput.focus();
+        vi.advanceTimersByTime(200);
+      });
+      expect(mobileBar.className).toContain("invisible");
+
+      // Blur to non-editable body restores mobile overlays after 180ms settle window
+      act(() => {
+        searchInput.blur();
+        fireEvent.focusOut(searchInput);
+        vi.advanceTimersByTime(150);
+      });
+      expect(mobileBar.className).toContain("invisible");
+
+      act(() => {
+        vi.advanceTimersByTime(50);
+      });
+      expect(mobileBar.className).not.toContain("invisible");
+      expect(mobilePill.className).toContain("pointer-events-auto");
+      expect(scrollWrapper.className).not.toContain("max-md:pointer-events-none");
+    } finally {
+      vi.useRealTimers();
+      if (originalScrollYDesc) {
+        Object.defineProperty(window, "scrollY", originalScrollYDesc);
+      }
+      if (originalInnerHeightDesc) {
+        Object.defineProperty(window, "innerHeight", originalInnerHeightDesc);
+      }
+      if (originalScrollHeightDesc) {
+        Object.defineProperty(document.documentElement, "scrollHeight", originalScrollHeightDesc);
+      }
     }
   });
 });

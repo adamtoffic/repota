@@ -1,10 +1,25 @@
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { downloadCsvFile, escapeCsvCell } from "./csvImport";
 
+function parsePositionRank(position: string | undefined): number {
+  if (!position) return Number.POSITIVE_INFINITY;
+  const match = /^\s*(\d+)/.exec(position);
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+}
+
+function sortStudentsByClassPosition(students: ProcessedStudent[]): ProcessedStudent[] {
+  return [...students].sort((a, b) => {
+    const rankA = parsePositionRank(a.classPosition);
+    const rankB = parsePositionRank(b.classPosition);
+    if (rankA !== rankB) return rankA - rankB;
+    return b.averageScore - a.averageScore;
+  });
+}
+
 /**
- * Exports a summary broadsheet CSV spanning the union of all student subject names and
- * triggers a browser file download. Neutralizes spreadsheet formula prefixes (`=`, `+`, `-`, `@`, `\t`, `\r`)
- * on string cells before quoting.
+ * Exports a summary broadsheet CSV spanning the union of all student subject names ordered by
+ * class position (`1st` → last) without mutating `students`, and triggers a browser download.
+ * Neutralizes spreadsheet formula prefixes (`=`, `+`, `-`, `@`, `\t`, `\r`) on string cells before quoting.
  *
  * @throws {Error} When `students` is empty or `fileName` is blank.
  */
@@ -18,9 +33,11 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
       throw new Error("Invalid filename");
     }
 
+    const rankedStudents = sortStudentsByClassPosition(students);
+
     // 1. Build dynamic subject columns across all students
     const subjectNames = Array.from(
-      new Set(students.flatMap((student) => student.subjects.map((subject) => subject.name))),
+      new Set(rankedStudents.flatMap((student) => student.subjects.map((subject) => subject.name))),
     );
 
     // 2. Define requested columns
@@ -36,7 +53,7 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
     };
 
     // 3. Map Data
-    const rows = students.map((student) => {
+    const rows = rankedStudents.map((student) => {
       const subjectScoreMap = new Map(
         student.subjects.map((subject) => [
           subject.name,
@@ -87,7 +104,8 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
 }
 
 /**
- * Exports a full broadsheet CSV via `escapeCsvCell` and `downloadCsvFile`.
+ * Exports a full broadsheet CSV via `escapeCsvCell` and `downloadCsvFile`, ordered by
+ * class position (`1st` → last) without mutating `students`.
  * Collapses subject columns to `(Total)` when `settings.examType === "MOCK"` (otherwise Class/Exam/Total),
  * and appends admission/fee columns when `settings.schoolType === "PRIVATE"`.
  *
@@ -105,10 +123,11 @@ export function exportDetailedBroadsheetCSV(
     throw new Error("Invalid filename");
   }
 
+  const rankedStudents = sortStudentsByClassPosition(students);
   const isPrivate = settings.schoolType === "PRIVATE";
   const isMock = settings.examType === "MOCK";
   const subjectNames = Array.from(
-    new Set(students.flatMap((student) => student.subjects.map((subject) => subject.name))),
+    new Set(rankedStudents.flatMap((student) => student.subjects.map((subject) => subject.name))),
   );
 
   const subjectHeaders = subjectNames.flatMap((name) =>
@@ -129,7 +148,7 @@ export function exportDetailedBroadsheetCSV(
     ...(isPrivate ? ["Admission No", "Fee Status", "Fee Arrears"] : []),
   ];
 
-  const rows = students.map((student) => {
+  const rows = rankedStudents.map((student) => {
     const subMap = new Map(student.subjects.map((sub) => [sub.name, sub]));
     const subjectCells = subjectNames.flatMap((name) => {
       const sub = subMap.get(name);

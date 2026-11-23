@@ -276,6 +276,8 @@ describe("processStudent", () => {
       const ranked = assignPositions(many.map((s) => processStudent(s, "JHS")));
       const byId = new Map(ranked.map((s) => [s.id, s]));
 
+      expect(ranked.slice(0, 4).map((s) => s.id)).toEqual(["low", "tieA", "tieB", "fourth"]);
+      expect(many.map((s) => s.id)).toEqual(ranked.map((s) => s.id));
       expect(byId.get("tieA")?.classPosition).toBe("1st");
       expect(byId.get("tieB")?.classPosition).toBe("1st");
       expect(byId.get("fourth")?.classPosition).toBe("3rd");

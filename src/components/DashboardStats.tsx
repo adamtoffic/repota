@@ -108,6 +108,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           alert={stats.pending > 0}
           alertColor="orange"
           isActive={activeFilter === "PENDING"}
+          isActionable={Boolean(onFilterChange)}
           onClick={
             onFilterChange && stats.pending > 0
               ? () => onFilterChange(activeFilter === "PENDING" ? "ALL" : "PENDING")
@@ -148,6 +149,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           alert={stats.failing > 0}
           alertColor="red"
           isActive={activeFilter === "FAILING"}
+          isActionable={Boolean(onFilterChange)}
           onClick={
             onFilterChange && stats.failing > 0
               ? () => onFilterChange(activeFilter === "FAILING" ? "ALL" : "FAILING")
@@ -169,6 +171,7 @@ interface StatCardProps {
   alert?: boolean;
   alertColor?: "orange" | "red";
   isActive?: boolean;
+  isActionable?: boolean;
   onClick?: () => void;
 }
 
@@ -181,6 +184,7 @@ function StatCard({
   alert,
   alertColor = "orange",
   isActive = false,
+  isActionable = false,
   onClick,
 }: StatCardProps) {
   const alertColors = {
@@ -221,19 +225,24 @@ function StatCard({
     </>
   );
 
-  if (onClick) {
+  if (isActionable || onClick) {
     const hoverRingClass =
       alertColor === "red" ? "hover:ring-red-300" : "hover:ring-orange-300";
     const activeRingClass =
       alertColor === "red" ? "ring-2 ring-red-500" : "ring-2 ring-orange-500";
+    const isInteractive = Boolean(onClick);
+    // Keep one stable <button> element across 0 <-> N transitions so WebKit never sees a DOM node swap mid-entry.
     return (
       <button
         type="button"
+        disabled={!isInteractive}
         onClick={onClick}
-        aria-pressed={isActive}
-        className={`animate-fade-in flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left shadow-sm transition-all hover:ring-2 active:scale-[0.99] sm:p-4 ${hoverRingClass} ${
-          isActive ? activeRingClass : ""
-        } ${colorClass}`}
+        aria-pressed={isInteractive ? isActive : undefined}
+        className={`flex w-full items-center justify-between rounded-xl border p-3 text-left shadow-sm transition-colors sm:p-4 ${
+          isInteractive
+            ? `cursor-pointer hover:ring-2 active:scale-[0.99] ${hoverRingClass}`
+            : "cursor-default"
+        } ${isInteractive && isActive ? activeRingClass : ""} ${colorClass}`}
       >
         {content}
       </button>

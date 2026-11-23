@@ -255,29 +255,25 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
 };
 
 /**
- * Returns a new array sorted descending by `averageScore` with `classPosition` ordinals populated
- * using standard competition tie-breaking (`1st`, `1st`, `3rd`). Does not mutate the input array.
+ * Returns a new array preserving input roll order with `classPosition` ordinals populated
+ * from descending `averageScore` using standard competition tie-breaking (`1st`, `1st`, `3rd`).
+ * Does not mutate or reorder the input array.
  */
 export const assignPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
-  // 1. Sort High to Low
-  const sorted = [...students].sort((a, b) => b.averageScore - a.averageScore);
+  const sortedScores = students.map((s) => s.averageScore).sort((a, b) => b - a);
+  const ordinalByScore = new Map<number, string>();
 
-  return sorted.map((student, index) => {
-    let rank = index + 1;
-
-    // 2. Handle Tie-Breaking (Same logic as Subject Position)
-    // If this student has the same average as the previous one...
-    if (index > 0 && student.averageScore === sorted[index - 1].averageScore) {
-      // Find the first student who had this score to get the true rank
-      const firstOccurrence = sorted.findIndex((s) => s.averageScore === student.averageScore);
-      rank = firstOccurrence + 1;
+  for (let index = 0; index < sortedScores.length; index++) {
+    const score = sortedScores[index];
+    if (!ordinalByScore.has(score)) {
+      ordinalByScore.set(score, getOrdinalSuffix(index + 1));
     }
+  }
 
-    return {
-      ...student,
-      classPosition: getOrdinalSuffix(rank),
-    };
-  });
+  return students.map((student) => ({
+    ...student,
+    classPosition: ordinalByScore.get(student.averageScore) ?? "pending...",
+  }));
 };
 
 const getOrdinalSuffix = (i: number): string => {
