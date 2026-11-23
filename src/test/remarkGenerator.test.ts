@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { generateTeacherRemark, generateHeadmasterRemark } from "../utils/remarkGenerator";
+import {
+  generateTeacherRemark,
+  generateHeadmasterRemark,
+  getRandomConductTrait,
+  getRandomInterest,
+} from "../utils/remarkGenerator";
 import type { ProcessedStudent } from "../types";
 
 // Mock student for testing
@@ -102,5 +107,21 @@ describe("generateHeadmasterRemark", () => {
     expect(typeof kgRemark).toBe("string");
     expect(typeof primaryRemark).toBe("string");
     expect(typeof jhsRemark).toBe("string");
+  });
+});
+
+describe("conduct & interest shufflers", () => {
+  it("avoids returning the excluded current conduct trait", () => {
+    const current = getRandomConductTrait();
+    for (let i = 0; i < 15; i++) {
+      expect(getRandomConductTrait(current)).not.toBe(current);
+    }
+  });
+
+  it("avoids returning the excluded current interest", () => {
+    const current = getRandomInterest();
+    for (let i = 0; i < 15; i++) {
+      expect(getRandomInterest(current)).not.toBe(current);
+    }
   });
 });
