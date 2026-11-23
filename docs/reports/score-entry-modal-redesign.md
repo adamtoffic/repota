@@ -46,31 +46,38 @@ Branch: `feat/score-entry-modal-redesign` (branched from `feat/navigation-shell`
    - **`src/components/tabs/DetailsTab.tsx`**: Upgraded `Days Present` (plus fine-pointer-gated `.select()` and `scroll-mt-24 scroll-mb-40`), `Promotion Status`, `Teacher's Remark`, and `Fee Payment Status` to `text-base sm:text-sm`.
    - **`src/test/ScoreEntryUX.test.tsx`**: Updated assertions for `text-base` mobile sizing and `scroll-mt-24 scroll-mb-40` margins across inputs, SBA components, selects, and textarea.
 
+11. **`c3e4616` — `fix(score-entry,ios): render mobile score entry in native document flow to fix iOS Form Assistant navigation`**
+   - **`src/index.css`**: Added `@media (max-width: 639px)` rules hiding `[data-hide-on-mobile-sheet="true"]` overlays and clearing `.pb-safe-nav` bottom padding whenever `html[data-mobile-sheet-open="true"]` is set; promoted `animate-fade-in`, `animate-page-enter`, and `animate-sheet-up` to `@utility` so `sm:animate-*` only applies on desktop (`>= 640px`).
+   - **`src/components/navigation/AppShell.tsx`, `src/components/AutoSaveIndicator.tsx`, & `src/components/PwaInstallPrompt.tsx`**: Tagged floating/fixed shell chrome with `data-hide-on-mobile-sheet="true"`.
+   - **`src/components/ScoreEntryModal.tsx`**: Replaced the mobile `fixed inset-0` / `overflow-y-auto` scroller and unconditional `body.style.overflow = "hidden"` lock with native document-flow rendering on `< 640px` (`relative min-h-dvh`, `window.scrollTo?.(0, 0)` on student/tab change, `pb-36`, `sm:animate-*`, `z-50` `MobileModalFooter`), while keeping the centered backdrop modal and body scroll lock on `>= 640px` (`matchMedia("(min-width: 640px)")`).
+   - **`src/pages/Dashboard.tsx`**: Wrapped `PageHeader`, `<main>`, and `<Footer>` in `data-testid="dashboard-background-shell"` (`max-sm:hidden` while `editingStudent` is open), suppressed `<ScrollButton>` while the modal is open, and restored `window.scrollY` on mobile close.
+   - **`src/test/ScoreEntryUX.test.tsx`, `src/test/NavigationShell.test.tsx`, & `src/test/ModalAndOverlayUX.test.tsx`**: Verified mobile document-flow classes, `data-mobile-sheet-open`, desktop-only body overflow locking, background `Dashboard` `max-sm:hidden` toggling, and `data-hide-on-mobile-sheet="true"` attributes.
+
 ## Why
 
 - Transform `ScoreEntryModal` from a cramped raw subject stack into a focused **student report workspace** complementing `QuickGradebook` (subject-first) with live student readiness, print access, and calm desktop/mobile ergonomics.
-- Eliminate silent data/navigation bugs: disappearing students under active filters, double-`Escape` dismissing the modal behind confirm dialogs, lost SBA components on missing-subject sync, red fail badges on unscored subjects, unimplemented mobile `"Next"` tip behavior, diagonal scroll mis-swipes, blank-name saves, out-of-range attendance entry, iOS Safari `type="number"` selection/WebKit Form Assistant quirks, mobile `< 16px` Safari auto-zoom on SBA/select/remark fields, WebKit `isObscuredElement` hit-test skips caused by visible mobile footers / nested clipping scrollers / tight bottom keyboard clearance / layout shifts / touch `.select()` / round-trip blur churn, legacy `promotionStatus` dropdown masking, and harsh auto-generated remarks on unscored students.
+- Eliminate silent data/navigation bugs: disappearing students under active filters, double-`Escape` dismissing the modal behind confirm dialogs, lost SBA components on missing-subject sync, red fail badges on unscored subjects, unimplemented mobile `"Next"` tip behavior, diagonal scroll mis-swipes, blank-name saves, out-of-range attendance entry, iOS Safari `type="number"` selection/WebKit Form Assistant quirks, mobile `< 16px` Safari auto-zoom on SBA/select/remark fields, WebKit `isObscuredElement` hit-test skips caused by `position: fixed; inset: 0; overflow-y: auto` + `body { overflow: hidden }` clipping scrolled inputs past the viewport (`⌄` disabling mid-list and `⌃` reversing/skipping into hidden `Dashboard` controls), layout shifts, touch `.select()`, round-trip blur churn, legacy `promotionStatus` dropdown masking, and harsh auto-generated remarks on unscored students.
 
 ## What Was Verified
 
 - `npm run lint` (`eslint .`): **Passed** (exit code `0`).
 - `npx tsc -b`: **Passed** (exit code `0`).
-- `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  467 passed (467)`, `0` failed (`98.79s`), including all `ScoreEntryUX.test.tsx` tests (`text-base`, `scroll-mt-24 scroll-mb-40`, `MobileModalFooter`, dialog scroller, and `examDraft`), `remarkGenerator.test.ts`, `ScoreImportAndGradebook.test.tsx`, `ModalAndOverlayUX.test.tsx`, and `FunnelAndReliabilityAnalytics.test.tsx`.
-- `npm run build` (`tsc -b && vite build`): **Passed** (`built in 21.62s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3308.95 KiB`).
+- `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  468 passed (468)`, `0` failed (`170.06s`), including all `ScoreEntryUX.test.tsx`, `NavigationShell.test.tsx`, `ModalAndOverlayUX.test.tsx`, `remarkGenerator.test.ts`, `ScoreImportAndGradebook.test.tsx`, and `FunnelAndReliabilityAnalytics.test.tsx` suites.
+- `npm run build` (`tsc -b && vite build`): **Passed** (`built in 34.17s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3311.11 KiB`; verified `data-mobile-sheet-open` and `sm:animate-*` rules compiled in `dist/assets/index-*.css`).
 - Privacy & schema boundaries checked: zero changes to `ges_v1_students`, `ges_v1_settings`, `idbStorage.ts`, `backupValidation.ts`, `fileEncryption.ts`, or `analytics.ts`; `data-record="true"` verified strictly on static labels/controls.
 
 ## What Could Not Be Verified
 
-- Physical mobile device ergonomics (real iOS Safari / Android Chrome virtual numeric keypad `enterKeyHint="next"`, WebKit Form Assistant `⌄`/`⌃` traversal across every row, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
+- Physical mobile device ergonomics (real iOS Safari / iOS 27 Form Assistant `⌄`/`⌃` traversal across an entire multi-subject list, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
 - Interactive live visual browser inspection across Light and Dark modes at desktop and mobile viewports (no browser check was run in this session).
 
 ## Summary for reviewer
 
-- Branched `feat/score-entry-modal-redesign` from `feat/navigation-shell`, resolved `9870c7b` (PR #64) merge conflicts cleanly (`faa71cb`), and added iOS Form Assistant (`2031e0b`, `ebe4241`) and auto-zoom/scroll-clearance polish (`e5ab41b`).
+- Branched `feat/score-entry-modal-redesign` from `feat/navigation-shell`, resolved `9870c7b` (PR #64) merge conflicts cleanly (`faa71cb`), and hardened mobile/iOS score entry (`2031e0b`, `ebe4241`, `e5ab41b`, `c3e4616`).
 - Fixed active-filter roster eviction in `Dashboard.tsx`, nested `ConfirmModal` `Escape` pass-through, diagonal scroll swipe misfires, and SBA component loss on missing-subject hydration.
 - Redesigned `SubjectRow` (`sm:contents` column parity, single-node Totals, honest `Pending`/`Partial`/Grade states, streamlined SBA drawer) and `AcademicTab` (`All`/`Incomplete` pinning, SBA accordion, `Enter`/Arrow keyboard flow).
 - Hardened `SubjectRow`, `AcademicTab`, and `DetailsTab` for iOS Safari (`type="text" inputMode="numeric" pattern="[0-9]*"`, `<form noValidate>`, `text-base` mobile controls, round-trip-clean `examDraft`, fine-pointer `.select()`, fixed-height mobile remark, `scroll-mt-24 scroll-mb-40`).
-- Eliminated `ScoreEntryModal` WebKit `isObscuredElement` skips by moving mobile scroll to `role="dialog"`, increasing bottom padding to `pb-56`, stabilizing Pulse Strip/tab heights, and isolating `MobileModalFooter` to hide on focus.
-- Rebuilt `ScoreEntryModal` with a compact switcher header, isolated `ModalSaveStatus`, live Student Pulse Strip, tab readiness badges, Print/SBA router slots, and `examType` tracking.
+- Moved mobile `ScoreEntryModal` (`< 640px`) out of `fixed inset-0` into native document flow (matching `QuickGradebook`), hiding background `Dashboard` (`max-sm:hidden`) and fixed shell chrome (`data-mobile-sheet-open="true"`) while keeping the desktop backdrop modal (`>= 640px`).
+- Rebuilt `ScoreEntryModal` with a compact switcher header, isolated `ModalSaveStatus` & `MobileModalFooter`, live Student Pulse Strip, tab readiness badges, Print/SBA router slots, and `examType` tracking.
 - Hardened `DetailsTab` with empty-name guards, attendance clamping + live rating, legacy `promotionStatus` fallback option, score-guarded `Smart Generate`, and `Auto-fill Empty`.
-- Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `467` tests passed), and `npm run build` (`0`).
+- Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `468` tests passed), and `npm run build` (`0`).
