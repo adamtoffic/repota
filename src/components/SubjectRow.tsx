@@ -362,7 +362,7 @@ export function SubjectRow({
                     onChange={(e) => handleClassChange(e.target.value)}
                     onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
                     onKeyDown={(e) => handleFieldKeyDown(e, "class")}
-                    className={`placeholder:text-muted h-10 w-full scroll-mt-16 scroll-mb-24 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
+                    className={`placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                       classScoreError
                         ? "bg-input text-main border-red-500 focus:border-red-500 focus:ring-red-500/25"
                         : "border-border-strong bg-input text-main hover:border-muted focus:border-blue-500 focus:ring-blue-500/25"
@@ -412,7 +412,7 @@ export function SubjectRow({
                 selectOnDesktopFocus(e.currentTarget);
               }}
               onKeyDown={(e) => handleFieldKeyDown(e, "exam")}
-              className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full scroll-mt-16 scroll-mb-24 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
+              className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                 examScoreError
                   ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                   : "border-border-strong focus:border-blue-500 focus:ring-blue-500/25"
@@ -556,7 +556,7 @@ export function SubjectRow({
                     }
                     onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
                     onKeyDown={(e) => handleFieldKeyDown(e, `comp:${component.id}`)}
-                    className={`bg-input text-main placeholder:text-muted h-9 w-full scroll-mt-16 scroll-mb-24 rounded-md border px-2 text-center text-sm font-bold tabular-nums transition-colors outline-none focus:ring-2 ${
+                    className={`bg-input text-main placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-md border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:h-9 sm:text-sm ${
                       compError
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                         : "border-purple-200 focus:border-purple-500 focus:ring-purple-500/30 dark:border-purple-700/70"

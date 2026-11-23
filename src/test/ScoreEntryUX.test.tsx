@@ -1657,6 +1657,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         expect(input).toHaveAttribute("type", "text");
         expect(input).toHaveAttribute("inputmode", "numeric");
         expect(input).toHaveAttribute("pattern", "[0-9]*");
+        expect(input).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
       }
 
       fireEvent.change(sbaInput, { target: { value: "abc" } });
@@ -1677,6 +1678,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       expect(classInput).toHaveAttribute("type", "text");
       expect(classInput).toHaveAttribute("inputmode", "numeric");
       expect(classInput).toHaveAttribute("pattern", "[0-9]*");
+      expect(classInput).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
       fireEvent.change(classInput, { target: { value: "abc" } });
       expect(onSubjectChange).not.toHaveBeenCalled();
 
@@ -1693,8 +1695,13 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       );
 
       const promoSelect = screen.getByLabelText("Promotion Status") as HTMLSelectElement;
+      const daysPresentInput = screen.getByLabelText("Days Present") as HTMLInputElement;
+      const teacherRemarkTextarea = screen.getByLabelText("Teacher's Remark") as HTMLTextAreaElement;
       expect(promoSelect.value).toBe("Repeated Basic 4");
       expect(within(promoSelect).getByRole("option", { name: "Repeated Basic 4" })).toBeInTheDocument();
+      expect(promoSelect).toHaveClass("text-base");
+      expect(daysPresentInput).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
+      expect(teacherRemarkTextarea).toHaveClass("text-base");
     });
 
     it("hides mobile modal footer on focus, stays hidden across quick hops, and restores after 180ms blur", () => {
@@ -1767,16 +1774,22 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
     it("uses single top-level dialog scroller on mobile and keeps form inputs with scroll margins", () => {
       const s1 = makeStudent("s1", "Ama Mensah", [
         { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+        { id: "sub-2", name: "English", classScore: 0, examScore: 0 },
+      ]);
+      const s2 = makeStudent("s2", "Kofi Boateng", [
+        { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
       ]);
 
       render(
-        <SchoolContext.Provider value={makeSchoolContext([s1])}>
+        <SchoolContext.Provider value={makeSchoolContext([s1, s2])}>
           <ScoreEntryModal
             student={s1}
             level="JHS"
             isOpen={true}
             onClose={vi.fn()}
             onUpdateStudent={vi.fn()}
+            allStudents={[s1, s2]}
+            onNavigate={vi.fn()}
           />
         </SchoolContext.Provider>,
       );
@@ -1793,8 +1806,13 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       const form = mathClassInput.closest("form");
       expect(form).not.toBeNull();
       expect(form).toHaveAttribute("novalidate");
-      expect(mathClassInput).toHaveClass("scroll-mt-16", "scroll-mb-24");
-      expect(mathExamInput).toHaveClass("scroll-mt-16", "scroll-mb-24");
+      expect(mathClassInput).toHaveClass("scroll-mt-24", "scroll-mb-40", "text-base");
+      expect(mathExamInput).toHaveClass("scroll-mt-24", "scroll-mb-40", "text-base");
+
+      const switcherSelect = screen.getByLabelText("Switch student");
+      const subjectFilterSelect = screen.getByLabelText("Filter by subject");
+      expect(switcherSelect).toHaveClass("text-base");
+      expect(subjectFilterSelect).toHaveClass("text-base");
     });
 
     it("avoids post-blur draft churn on round-trip exam scores and defers rounding normalization by 180ms", () => {

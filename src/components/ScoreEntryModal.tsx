@@ -363,7 +363,7 @@ export function ScoreEntryModal({
                   aria-label="Switch student"
                   value={student.id}
                   onChange={(e) => onNavigate(e.target.value)}
-                  className="border-border-strong bg-input text-main w-full max-w-xs truncate rounded-lg border px-2.5 py-1.5 text-sm font-bold transition-colors outline-none hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 sm:text-base"
+                  className="border-border-strong bg-input text-main w-full max-w-xs truncate rounded-lg border px-2.5 py-1.5 text-base font-bold transition-colors outline-none hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
                 >
                   {allStudents.map((s, idx) => {
                     const counts = getScoredSubjectCounts(s, isMockExam);
@@ -579,7 +579,7 @@ export function ScoreEntryModal({
         {/* SCROLLABLE WORKSPACE */}
         <div
           ref={scrollContainerRef}
-          className="bg-background/50 flex-1 p-3 pb-32 sm:overflow-y-auto sm:overscroll-contain sm:p-5 sm:pb-5"
+          className="bg-background/50 flex-1 p-3 pb-56 sm:overflow-y-auto sm:overscroll-contain sm:p-5 sm:pb-5"
         >
           <div key={`${student.id}-${activeTab}`} className="animate-page-enter">
             {activeTab === "ACADEMIC" && (

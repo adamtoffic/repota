@@ -452,7 +452,7 @@ export function AcademicTab({
                 onChange={(e) =>
                   onFilterSubjectChange(e.target.value === "all" ? null : e.target.value)
                 }
-                className="border-border-strong bg-input text-main h-8 max-w-44 rounded-lg border px-2.5 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
+                className="border-border-strong bg-input text-main h-9 max-w-44 rounded-lg border px-2.5 text-base font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 sm:h-8 sm:text-xs"
               >
                 <option value="all">All subjects</option>
                 {subjectOptions.map((subj) => (

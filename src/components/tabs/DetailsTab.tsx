@@ -316,8 +316,12 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 spellCheck={false}
                 value={formData.attendancePresent === 0 ? "" : formData.attendancePresent}
                 onChange={(e) => handleAttendanceChange(e.target.value)}
-                onFocus={(e) => e.currentTarget.select()}
-                className="border-border-strong bg-input text-main placeholder:text-muted w-full rounded-lg border px-4 py-2.5 pr-16 font-mono font-bold transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                onFocus={(e) => {
+                  if (window.matchMedia?.("(pointer: fine)")?.matches) {
+                    e.currentTarget.select();
+                  }
+                }}
+                className="border-border-strong bg-input text-main placeholder:text-muted w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-4 py-2.5 pr-16 font-mono text-base font-bold transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:text-sm"
                 placeholder="0"
               />
               <span className="text-muted pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs tabular-nums">
@@ -343,7 +347,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               id={promotionSelectId}
               value={formData.promotionStatus}
               onChange={(e) => handleImmediateSave({ promotionStatus: e.target.value })}
-              className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-base outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:text-sm"
             >
               <option value="">-- Select Status --</option>
               <option value="Promoted to Next Class">Promoted</option>
@@ -472,7 +476,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
               placeholder="Write a custom remark..."
               value={formData.teacherRemark}
               onChange={(e) => handleImmediateSave({ teacherRemark: e.target.value })}
-              className="border-border-strong bg-input text-main placeholder:text-muted w-full resize-none rounded-lg border px-4 py-2.5 text-sm transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              className="border-border-strong bg-input text-main placeholder:text-muted w-full resize-none rounded-lg border px-4 py-2.5 text-base transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:text-sm"
             />
             {isUnscored && (
               <p className="text-muted mt-1 text-[11px]" data-record="true">
@@ -528,7 +532,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 aria-label="Fee Payment Status"
                 value={formData.feeStatus}
                 onChange={(e) => handleImmediateSave({ feeStatus: e.target.value })}
-                className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+                className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-base outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 sm:text-sm"
               >
                 <option value="">-- Not Tracked --</option>
                 <option value="PAID">Paid in Full</option>
