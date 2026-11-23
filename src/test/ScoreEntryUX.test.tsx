@@ -21,6 +21,7 @@ import {
   processStudent,
 } from "../utils/gradeCalculator";
 import { hasNoScoresEntered, sortStudents } from "../utils/studentValidation";
+import indexCss from "../index.css?raw";
 
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -1808,6 +1809,9 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       expect(dialogClasses).not.toContain("overflow-hidden");
       expect(dialogClasses).not.toContain("overflow-y-auto");
       expect(dialogClasses).not.toContain("max-sm:overflow-y-auto");
+      expect(dialog.matches('[class~="fixed"][class~="inset-0"][class*="z-"]')).toBe(false);
+      expect(indexCss).not.toContain('[class*="fixed"]');
+      expect(indexCss).toContain('[class~="fixed"][class~="inset-0"][class*="z-"]');
       expect(document.documentElement.dataset.mobileSheetOpen).toBe("true");
 
       const sheet = dialog.firstElementChild as HTMLElement;
