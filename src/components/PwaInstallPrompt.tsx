@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Download, X, Share } from "lucide-react";
+import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 import { captureEvent } from "../utils/analytics";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -23,6 +24,7 @@ const isSafari = () => {
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOSDevice] = useState(isIOS());
+  const isEditableFocused = useEditableInputFocused();
 
   // Check if app is already installed or dismissed recently
   const getInitialShowPrompt = () => {
@@ -129,10 +131,15 @@ export function PwaInstallPrompt() {
 
   if (!showPrompt) return null;
 
+  const keyboardHiddenClass = isEditableFocused ? "pointer-events-none invisible opacity-0" : "";
+
   // Different UI for iOS Safari (instructions instead of install button)
   if (isIOSDevice && isSafari()) {
     return (
-      <div className="animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 sm:left-auto sm:w-96 print:hidden">
+      <div
+        aria-hidden={isEditableFocused || undefined}
+        className={`animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 print:hidden ${keyboardHiddenClass}`}
+      >
         <div className="bg-elevated rounded-lg border border-blue-200 p-4 shadow-lg dark:border-blue-800/70">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/60">
@@ -185,7 +192,10 @@ export function PwaInstallPrompt() {
 
   // Default UI for Chrome/Edge (with install button)
   return (
-    <div className="animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 sm:left-auto sm:w-96 print:hidden">
+    <div
+      aria-hidden={isEditableFocused || undefined}
+      className={`animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 print:hidden ${keyboardHiddenClass}`}
+    >
       <div className="bg-elevated rounded-lg border border-blue-200 p-4 shadow-lg dark:border-blue-800/70">
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/60">

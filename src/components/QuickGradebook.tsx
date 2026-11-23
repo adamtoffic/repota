@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Download,
@@ -168,6 +168,7 @@ export function QuickGradebook({
   const [examDrafts, setExamDrafts] = useState<Record<string, { baseScore: number; raw: string }>>(
     {},
   );
+  const idPrefix = useId();
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const blurCleanupTimersRef = useRef<Record<string, number>>({});
 
@@ -557,7 +558,7 @@ export function QuickGradebook({
   }
 
   return (
-    <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
+    <div className="border-border bg-surface rounded-xl border shadow-sm">
       {/* Header Controls */}
       <div className="border-border-subtle border-b p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -576,11 +577,10 @@ export function QuickGradebook({
               >
                 {isMockExam ? "Mock (0/100)" : `Termly (${maxClassScore}/${maxExamScore})`}
               </span>
-<<<<<<<=======
               <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 tabular-nums dark:bg-blue-950/60 dark:text-blue-300">
                 {scoredCount}/{sessionStudents.length} scored
               </span>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 tabular-nums dark:bg-emerald-950/60 dark:text-emerald-300">
+              <span className="min-w-[6.75rem] rounded-full bg-emerald-50 px-2.5 py-0.5 text-center text-xs font-bold text-emerald-700 tabular-nums dark:bg-emerald-950/60 dark:text-emerald-300">
                 {scoredCount > 0 && columnStats.avgLabel ? columnStats.avgLabel : "Avg: —"}
               </span>
             </div>
@@ -695,7 +695,7 @@ export function QuickGradebook({
       </div>
 
       {/* Gradebook Rows */}
-      <div className="divide-border-subtle divide-y">
+      <form onSubmit={(e) => e.preventDefault()} noValidate className="divide-border-subtle divide-y">
         {visibleStudents.length === 0 ? (
           unscoredOnly && sessionStudents.length > 0 ? (
             <div className="px-4 py-10 text-center sm:px-6">
@@ -777,6 +777,10 @@ export function QuickGradebook({
           const activeComponent = activeComponentName
             ? subject.classScoreComponents?.find((comp) => comp.name === activeComponentName)
             : undefined;
+          const safeStudentId = student.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+          const compInputId = `${idPrefix}-comp-${safeStudentId}`;
+          const classInputId = `${idPrefix}-class-${safeStudentId}`;
+          const examInputId = `${idPrefix}-exam-${safeStudentId}`;
           const showClassInput =
             !isMockExam &&
             !hasComponents &&
@@ -789,7 +793,7 @@ export function QuickGradebook({
           return (
             <div
               key={student.id}
-              className="hover:bg-subtle/60 flex flex-col gap-2.5 px-4 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              className="hover:bg-subtle/60 flex flex-col gap-2.5 px-4 py-3 transition-colors last:rounded-b-xl sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
               {/* Student Identity */}
               <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
@@ -833,11 +837,16 @@ export function QuickGradebook({
               <div className="flex items-center gap-2 sm:shrink-0">
                 {activeComponentName ? (
                   activeComponent ? (
-                    <label className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold text-purple-700 uppercase dark:text-purple-300">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <label
+                        htmlFor={compInputId}
+                        className="text-[10px] font-bold text-purple-700 uppercase dark:text-purple-300"
+                      >
                         {activeComponent.name} (/{activeComponent.maxScore})
-                      </span>
+                      </label>
                       <input
+                        id={compInputId}
+                        name={compInputId}
                         ref={(el) => {
                           inputRefs.current[`comp:${student.id}`] = el;
                         }}
@@ -880,9 +889,9 @@ export function QuickGradebook({
                             focusAdjacentStudentInput("comp", student.id, -1);
                           }
                         }}
-                        className="bg-input text-main placeholder:text-muted w-24 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
+                        className="bg-input text-main placeholder:text-muted w-24 scroll-mt-24 scroll-mb-40 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                       />
-                    </label>
+                    </div>
                   ) : (
                     <span className="border-border bg-subtle text-muted rounded-lg border px-3 py-2 text-xs">
                       Not configured
@@ -897,14 +906,17 @@ export function QuickGradebook({
                     )}
 
                     {showClassInput && (
-                      <label className="flex flex-col items-center gap-0.5">
-                        <span
+                      <div className="flex flex-col items-center gap-0.5">
+                        <label
+                          htmlFor={classInputId}
                           className="text-muted text-[10px] font-bold uppercase"
                           data-record="true"
                         >
                           Class (/{maxClassScore})
-                        </span>
+                        </label>
                         <input
+                          id={classInputId}
+                          name={classInputId}
                           ref={(el) => {
                             inputRefs.current[`class:${student.id}`] = el;
                           }}
@@ -940,20 +952,23 @@ export function QuickGradebook({
                               focusAdjacentStudentInput("class", student.id, -1);
                             }
                           }}
-                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                         />
-                      </label>
+                      </div>
                     )}
 
                     {showExamInput && (
-                      <label className="flex flex-col items-center gap-0.5">
-                        <span
+                      <div className="flex flex-col items-center gap-0.5">
+                        <label
+                          htmlFor={examInputId}
                           className="text-muted text-[10px] font-bold uppercase"
                           data-record="true"
                         >
                           {isMockExam ? "Score (/100)" : "Exam (/100)"}
-                        </span>
+                        </label>
                         <input
+                          id={examInputId}
+                          name={examInputId}
                           ref={(el) => {
                             inputRefs.current[`exam:${student.id}`] = el;
                           }}
@@ -967,6 +982,7 @@ export function QuickGradebook({
                           aria-label={`${student.name} Exam Score`}
                           value={examRawValue}
                           placeholder="/100"
+                          onFocus={() => clearBlurCleanupTimer(draftKey)}
                           onChange={(e) => {
                             const raw = e.target.value;
                             clearBlurCleanupTimer(draftKey);
@@ -1024,7 +1040,7 @@ export function QuickGradebook({
                                 delete next[draftKey];
                                 return next;
                               });
-                            }, 0);
+                            }, 180);
                           }}
                           onPaste={(e) => handleColumnPaste(e, "exam", student.id)}
                           onKeyDown={(e) => {
@@ -1036,9 +1052,9 @@ export function QuickGradebook({
                               focusAdjacentStudentInput("exam", student.id, -1);
                             }
                           }}
-                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                         />
-                      </label>
+                      </div>
                     )}
                   </>
                 )}
@@ -1047,7 +1063,7 @@ export function QuickGradebook({
           );
         })
         )}
-      </div>
+      </form>
     </div>
   );
 }

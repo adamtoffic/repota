@@ -6,6 +6,7 @@ import { AcademicTab } from "../components/tabs/AcademicTab";
 import { DetailsTab } from "../components/tabs/DetailsTab";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { QuickGradebook } from "../components/QuickGradebook";
+import { DashboardStats } from "../components/DashboardStats";
 import { Dashboard } from "../pages/Dashboard";
 import { PrintPreview } from "../pages/PrintPreview";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
@@ -764,25 +765,91 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         fireEvent.change(sAClass, { target: { value: "20abc" } });
         expect(sAClass.value).toBe("20");
 
-        // 89/100 converts to 45/50 (which formats back as 90); blur must NOT mutate synchronously
+        // 89/100 converts to 45/50 (which formats back as 90); blur must NOT mutate across 180ms WebKit settle window
         fireEvent.change(sAExam, { target: { value: "89" } });
         expect(sAExam.value).toBe("89");
 
         fireEvent.blur(sAExam);
+        act(() => {
+          vi.advanceTimersByTime(150);
+        });
         expect(sAExam.value).toBe("89");
 
         act(() => {
-          vi.runAllTimers();
+          vi.advanceTimersByTime(40);
         });
         expect(sAExam.value).toBe("90");
       } finally {
         vi.useRealTimers();
       }
     });
+
+    it("renders rows inside a semantic form without overflow-hidden and links explicit htmlFor labels outside score inputs", () => {
+      const sbaSettings: SchoolSettings = {
+        ...testSettings,
+        componentLibrary: [{ name: "Quiz 1", maxScore: 20, category: "CAT" }],
+        subjectComponentMap: {
+          Mathematics: [{ name: "Quiz 1", maxScore: 20, category: "CAT" }],
+        },
+      };
+      const studentRecords = [
+        makeStudent("stu/1", "Student Alpha", [
+          {
+            id: "sub-alpha",
+            name: "Mathematics",
+            classScore: 15,
+            examScore: 30,
+          },
+        ]),
+        makeStudent("stu/2", "Student Beta", [
+          {
+            id: "sub-beta",
+            name: "Mathematics",
+            classScore: 10,
+            examScore: 25,
+            classScoreComponents: [{ id: "c1", name: "Quiz 1", maxScore: 20, score: 10 }],
+          },
+        ]),
+      ];
+
+      const { container } = render(
+        <QuickGradebook
+          students={studentRecords}
+          settings={sbaSettings}
+          onUpdateStudent={vi.fn()}
+        />,
+      );
+
+      expect(container.firstElementChild?.className).not.toContain("overflow-hidden");
+      const form = container.querySelector("form");
+      expect(form).toBeInTheDocument();
+
+      const alphaClass = screen.getByLabelText("Student Alpha Class Score") as HTMLInputElement;
+      const alphaExam = screen.getByLabelText("Student Alpha Exam Score") as HTMLInputElement;
+      for (const input of [alphaClass, alphaExam]) {
+        expect(form).toContainElement(input);
+        expect(input.closest("label")).toBeNull();
+        expect(input.id).toBeTruthy();
+        expect(input.name).toBe(input.id);
+        expect(input.className).toContain("scroll-mt-24");
+        expect(input.className).toContain("scroll-mb-40");
+        expect(container.querySelector(`label[for="${input.id}"]`)).toBeInTheDocument();
+      }
+
+      // Switch to SBA task column and confirm sibling label + input structure
+      fireEvent.change(screen.getByLabelText("Gradebook score column"), {
+        target: { value: "COMP:Quiz 1" },
+      });
+      const betaQuiz = screen.getByLabelText("Student Beta Quiz 1 Score") as HTMLInputElement;
+      expect(form).toContainElement(betaQuiz);
+      expect(betaQuiz.closest("label")).toBeNull();
+      expect(betaQuiz.id).toBeTruthy();
+      expect(container.querySelector(`label[for="${betaQuiz.id}"]`)).toBeInTheDocument();
+    });
   });
 
   describe("Dashboard stable entry & modal navigation", () => {
-    it("suppresses ValidationWarnings banners in Quick Gradebook mode to prevent above-table layout shifts", () => {
+    it("switches PageHeader off sticky positioning in Quick Gradebook and suppresses ValidationWarnings", () => {
       localStorage.setItem("repota_welcome_tour_v2", "true");
       try {
         const records: StudentRecord[] = [
@@ -798,18 +865,88 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         );
         const ctx = makeSchoolContext(processed, testSettings);
 
-        render(
+        const { container } = render(
           <SchoolContext.Provider value={ctx}>
             <Dashboard />
           </SchoolContext.Provider>,
         );
 
+        const headerNav = container.querySelector("nav");
+        expect(headerNav?.className).toContain("sticky");
         expect(screen.getByText(/1 student has no scores entered/i)).toBeInTheDocument();
+
         fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
+        expect(headerNav?.className).not.toContain("sticky");
+        expect(headerNav?.className).toContain("relative");
         expect(screen.queryByText(/1 student has no scores entered/i)).not.toBeInTheDocument();
       } finally {
         localStorage.removeItem("repota_welcome_tour_v2");
       }
+    });
+
+    it("keeps DashboardStats Pending Entry and Pass Rate cards mounted as the same button node when counts cross 0", () => {
+      const pendingStudent = makeStudent("s1", "Student One", [
+        { id: "m1", name: "Mathematics", classScore: 0, examScore: 0 },
+        { id: "e1", name: "English", classScore: 0, examScore: 0 },
+      ]);
+      const passingStudent = makeStudent(
+        "s1",
+        "Student One",
+        [
+          { id: "m1", name: "Mathematics", classScore: 35, examScore: 40 },
+          { id: "e1", name: "English", classScore: 35, examScore: 40 },
+        ],
+        75,
+      );
+      const failingStudent = makeStudent(
+        "s1",
+        "Student One",
+        [
+          { id: "m1", name: "Mathematics", classScore: 10, examScore: 15 },
+          { id: "e1", name: "English", classScore: 10, examScore: 15 },
+        ],
+        25,
+      );
+      const onFilterChange = vi.fn();
+
+      const { rerender } = render(
+        <DashboardStats
+          students={[pendingStudent]}
+          settings={testSettings}
+          activeFilter="ALL"
+          onFilterChange={onFilterChange}
+        />,
+      );
+
+      const pendingBtn = screen.getByRole("button", { name: /Pending Entry/i });
+      const passRateBtn = screen.getByRole("button", { name: /Pass Rate/i });
+      expect(pendingBtn).toBeEnabled();
+      expect(passRateBtn).toBeDisabled();
+
+      // Transition pending 1 -> 0: element identity remains the exact same <button>
+      rerender(
+        <DashboardStats
+          students={[passingStudent]}
+          settings={testSettings}
+          activeFilter="ALL"
+          onFilterChange={onFilterChange}
+        />,
+      );
+      expect(screen.getByRole("button", { name: /Pending Entry/i })).toBe(pendingBtn);
+      expect(pendingBtn).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Pass Rate/i })).toBe(passRateBtn);
+
+      // Transition failing 0 -> 1: Pass Rate element identity remains the exact same <button>
+      rerender(
+        <DashboardStats
+          students={[failingStudent]}
+          settings={testSettings}
+          activeFilter="ALL"
+          onFilterChange={onFilterChange}
+        />,
+      );
+      expect(screen.getByRole("button", { name: /Pass Rate/i })).toBe(passRateBtn);
+      expect(passRateBtn).toBeEnabled();
     });
     it("keeps ScoreEntryModal Next/Prev and QuickGradebook navigation stable when scores change rank under AVG_DESC", () => {
       localStorage.setItem("repota_welcome_tour_v2", "true");

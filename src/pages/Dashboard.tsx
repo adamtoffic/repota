@@ -278,6 +278,7 @@ export function Dashboard() {
       {/* NAV */}
       <PageHeader
         hideOnDesktop
+        sticky={entryViewMode !== "GRADEBOOK"}
         schoolName={settings.schoolName}
         actions={
           students.length > 0 ? (
