@@ -42,16 +42,21 @@ export function clampDirectClassScore(
 /**
  * Clamps one SBA class-score component to `0..comp.maxScore`, returns a new component array,
  * and scales the combined component percentage proportionally onto `0..maxClassScore` (`Math.round`).
+ * `wasClamped` is `true` only when `rawScore > comp.maxScore` (matching `clampDirectClassScore` and `convertExamRawToWeighted`).
  */
 export function updateComponentAndRecalculateClassScore(
   components: ClassScoreComponent[],
   componentId: string,
   rawScore: number,
   maxClassScore: number,
-): { updatedComponents: ClassScoreComponent[]; classScore: number } {
+): { updatedComponents: ClassScoreComponent[]; classScore: number; wasClamped: boolean } {
   const safeRaw = Number.isFinite(rawScore) ? rawScore : 0;
+  let wasClamped = false;
   const updatedComponents = components.map((comp) => {
     if (comp.id !== componentId) return comp;
+    if (safeRaw > comp.maxScore) {
+      wasClamped = true;
+    }
     const clampedScore = Math.min(Math.max(safeRaw, 0), comp.maxScore);
     return { ...comp, score: clampedScore };
   });
@@ -63,5 +68,6 @@ export function updateComponentAndRecalculateClassScore(
   return {
     updatedComponents,
     classScore: Math.round(percentage * maxClassScore),
+    wasClamped,
   };
 }

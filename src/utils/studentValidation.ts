@@ -1,10 +1,29 @@
-import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
+import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
 
 export type DashboardFilter =
   "ALL" | "PENDING" | "NO_SCORES" | "PARTIAL_SCORES" | "MISSING_PHOTOS" | "FAILING";
 
 export type StudentSortOption =
   "DEFAULT" | "NAME_ASC" | "NAME_DESC" | "AVG_DESC" | "AVG_ASC" | "INCOMPLETE_FIRST";
+
+export type SubjectScoreStatus = "complete" | "partial" | "unscored";
+
+/**
+ * Classifies a subject's entry completeness.
+ * In `MOCK` mode only `examScore > 0` is required; in `TERMLY` mode both `classScore > 0`
+ * and `examScore > 0` are required for `"complete"` (`0` is treated as unentered).
+ */
+export function getSubjectScoreStatus(
+  subject: SavedSubject,
+  isMockExam = false,
+): SubjectScoreStatus {
+  if (isMockExam) {
+    return subject.examScore > 0 ? "complete" : "unscored";
+  }
+  if (subject.classScore > 0 && subject.examScore > 0) return "complete";
+  if (subject.classScore > 0 || subject.examScore > 0) return "partial";
+  return "unscored";
+}
 
 /**
  * Returns `true` when `subjects` is empty or every subject has `classScore <= 0` and `examScore <= 0`.
@@ -59,20 +78,28 @@ export function isStudentFailing(
 
 /**
  * Summarizes subject score progress:
- * - `scored`: subjects with `classScore > 0 || examScore > 0`
- * - `completed`: subjects with both `classScore > 0 && examScore > 0`
+ * - `scored`: subjects with any non-zero score (`getSubjectScoreStatus !== "unscored"`)
+ * - `completed`: subjects satisfying all required inputs (`getSubjectScoreStatus === "complete"`)
  * - `total`: total number of enrolled subjects on the record
  */
-export function getScoredSubjectCounts(student: StudentRecord): {
+export function getScoredSubjectCounts(
+  student: StudentRecord,
+  isMockExam = false,
+): {
   scored: number;
   completed: number;
   total: number;
 } {
   const total = student.subjects.length;
-  const scored = student.subjects.filter((sub) => sub.classScore > 0 || sub.examScore > 0).length;
-  const completed = student.subjects.filter(
-    (sub) => sub.classScore > 0 && sub.examScore > 0,
-  ).length;
+  let scored = 0;
+  let completed = 0;
+
+  for (const sub of student.subjects) {
+    const status = getSubjectScoreStatus(sub, isMockExam);
+    if (status !== "unscored") scored += 1;
+    if (status === "complete") completed += 1;
+  }
+
   return { scored, completed, total };
 }
 

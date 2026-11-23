@@ -61,6 +61,7 @@ export function Dashboard() {
   const [confirmClearScoresModal, setConfirmClearScoresModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [modalRosterIds, setModalRosterIds] = useState<string[] | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showScoreImportModal, setShowScoreImportModal] = useState(false);
@@ -138,6 +139,27 @@ export function Dashboard() {
   }, [students, settings, debounceSearch, activeFilter, sortBy]);
 
   const editingStudent = students.find((s) => s.id === editingStudentId);
+
+  // Snapshot the filtered/sorted roster on modal open so live edits under active filters
+  // never evict or reorder the student mid-session until the modal closes.
+  const modalStudents = useMemo(() => {
+    if (!modalRosterIds) return filteredStudents;
+    const byId = new Map(students.map((student) => [student.id, student]));
+    const resolved = modalRosterIds
+      .map((id) => byId.get(id))
+      .filter((student): student is NonNullable<typeof student> => Boolean(student));
+    return resolved.length > 0 ? resolved : filteredStudents;
+  }, [modalRosterIds, students, filteredStudents]);
+
+  const handleOpenStudentModal = (studentId: string) => {
+    setModalRosterIds(filteredStudents.map((s) => s.id));
+    setEditingStudentId(studentId);
+  };
+
+  const handleCloseStudentModal = () => {
+    setEditingStudentId(null);
+    setModalRosterIds(null);
+  };
 
   const handleOpenAddStudent = () => {
     setIsAddModalOpen(true);
@@ -481,7 +503,7 @@ export function Dashboard() {
                     students={filteredStudents}
                     settings={settings}
                     onUpdateStudent={updateStudent}
-                    onOpenStudent={(s) => setEditingStudentId(s.id)}
+                    onOpenStudent={(s) => handleOpenStudentModal(s.id)}
                     onOpenScoreImport={(subject, taskName) => {
                       setScoreImportPreset({ subject, taskName });
                       setShowScoreImportModal(true);
@@ -492,7 +514,7 @@ export function Dashboard() {
                     students={filteredStudents}
                     onAddStudent={addStudent}
                     onDeleteStudent={deleteStudent}
-                    onEditStudent={(s) => setEditingStudentId(s.id)}
+                    onEditStudent={(s) => handleOpenStudentModal(s.id)}
                     onImport={() => setShowImportModal(true)}
                     isAddModalOpen={isAddModalOpen}
                     onOpenAddModalChange={setIsAddModalOpen}
@@ -534,9 +556,9 @@ export function Dashboard() {
           student={editingStudent}
           level={settings.level}
           isOpen={!!editingStudent}
-          onClose={() => setEditingStudentId(null)}
+          onClose={handleCloseStudentModal}
           onUpdateStudent={updateStudent}
-          allStudents={filteredStudents}
+          allStudents={modalStudents}
           onNavigate={setEditingStudentId}
           initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
         />
