@@ -26,29 +26,38 @@ Branch: `feat/score-entry-modal-redesign` (branched from `feat/navigation-shell`
 6. **`e6d68fe` — `test(score-entry): add comprehensive UX, navigation, keyboard, and guardrail test coverage`**
    - **`src/test/ScoreEntryUX.test.tsx` & `src/test/remarkGenerator.test.ts`**: Added tests covering live pulse/readiness/KG aggregate/MOCK telemetry, nested `Escape` isolation, diagonal swipe rejection, Dashboard filter roster stability during score entry, honest `SubjectRow` statuses and SBA clamping, `AcademicTab` keyboard flow/SBA hydration/incomplete pinning/focus add/accordion toggle, `DetailsTab` guardrails and autofill, and non-repeating conduct/interest shuffles.
 
+7. **`faa71cb` — `Merge branch 'feat/navigation-shell' into feat/score-entry-modal-redesign`**
+   - Merged latest `feat/navigation-shell` (`9870c7b`, including PR #64 `fix/gradebook-stable-order`), keeping `QuickGradebook` `orderedQueue` support, `PageHeader sticky` toggle, `ValidationWarnings` gradebook suppression, and `ScoreEntryModal`'s `renderPrintAction` / `renderSbaSetupLink` slots cleanly unified in **`src/pages/Dashboard.tsx`** and **`src/test/ScoreEntryUX.test.tsx`** (updating PR #64's counter assertions to `2 / 3` and `3 / 3`).
+
+8. **`2031e0b` — `fix(score-entry): harden iOS numeric inputs, Form Assistant flow, and legacy promotion preservation`**
+   - **`src/components/SubjectRow.tsx` & `src/components/tabs/AcademicTab.tsx`**: Switched Class, Exam, and SBA inputs to `type="text" inputMode="numeric" pattern="[0-9]*"` with explicit `id`/`name`/`htmlFor` mobile labels, `scroll-mt-16 scroll-mb-24`, numeric input guards, `180ms` post-blur `examDraft` deferral (canceled on focus/change), `rounded-b-xl` SBA drawer framing without outer `overflow-hidden`, and a semantic `<form noValidate>` wrapper around subject rows for iOS WebKit Form Assistant traversal.
+   - **`src/components/tabs/DetailsTab.tsx`**: Switched `Days Present` to `type="text" inputMode="numeric" pattern="[0-9]*"` with digit guard, and preserved legacy/renamed `promotionStatus` strings (e.g., `"Repeated Basic 4"` on a `"Basic 5"` record) via a conditional fallback `<option>`.
+   - **`src/test/ScoreEntryUX.test.tsx`**: Added assertions for iOS-safe text numeric attributes/non-numeric rejection across `SubjectRow` and legacy `promotionStatus` preservation in `DetailsTab`.
+
 ## Why
 
 - Transform `ScoreEntryModal` from a cramped raw subject stack into a focused **student report workspace** complementing `QuickGradebook` (subject-first) with live student readiness, print access, and calm desktop/mobile ergonomics.
-- Eliminate silent data/navigation bugs: disappearing students under active filters, double-`Escape` dismissing the modal behind confirm dialogs, lost SBA components on missing-subject sync, red fail badges on unscored subjects, unimplemented mobile `"Next"` tip behavior, diagonal scroll mis-swipes, blank-name saves, out-of-range attendance entry, and harsh auto-generated remarks on unscored students.
+- Eliminate silent data/navigation bugs: disappearing students under active filters, double-`Escape` dismissing the modal behind confirm dialogs, lost SBA components on missing-subject sync, red fail badges on unscored subjects, unimplemented mobile `"Next"` tip behavior, diagonal scroll mis-swipes, blank-name saves, out-of-range attendance entry, iOS Safari `type="number"` selection/WebKit Form Assistant quirks, legacy `promotionStatus` dropdown masking, and harsh auto-generated remarks on unscored students.
 
 ## What Was Verified
 
 - `npm run lint` (`eslint .`): **Passed** (exit code `0`).
 - `npx tsc -b`: **Passed** (exit code `0`).
-- `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  450 passed (450)`, `0` failed (`98.04s`), including `ScoreEntryUX.test.tsx` (16/16), `remarkGenerator.test.ts` (13/13), `ScoreImportAndGradebook.test.tsx` (11/11), `ModalAndOverlayUX.test.tsx` (6/6), and `FunnelAndReliabilityAnalytics.test.tsx` (4/4).
-- `npm run build` (`tsc -b && vite build`): **Passed** (`built in 40.43s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3298.35 KiB`).
+- `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  464 passed (464)`, `0` failed (`117.01s`), including `ScoreEntryUX.test.tsx` (`27` tests), `remarkGenerator.test.ts` (`13` tests), `ScoreImportAndGradebook.test.tsx` (`11` tests), `ModalAndOverlayUX.test.tsx` (`6` tests), and `FunnelAndReliabilityAnalytics.test.tsx` (`4` tests).
+- `npm run build` (`tsc -b && vite build`): **Passed** (`built in 32.85s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3306.50 KiB`).
 - Privacy & schema boundaries checked: zero changes to `ges_v1_students`, `ges_v1_settings`, `idbStorage.ts`, `backupValidation.ts`, `fileEncryption.ts`, or `analytics.ts`; `data-record="true"` verified strictly on static labels/controls.
 
 ## What Could Not Be Verified
 
-- Physical mobile device ergonomics (real iOS Safari / Android Chrome virtual numeric keypad `enterKeyHint="next"` behavior, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
+- Physical mobile device ergonomics (real iOS Safari / Android Chrome virtual numeric keypad `enterKeyHint="next"`, WebKit Form Assistant `⌄`/`⌃`, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
 - Interactive live visual browser inspection across Light and Dark modes at desktop and mobile viewports (no browser check was run in this session).
 
 ## Summary for reviewer
 
-- Branched `feat/score-entry-modal-redesign` from `feat/navigation-shell` (`15b4b26`) and delivered the full `ScoreEntryModal` overhaul in 6 atomic commits + report.
+- Branched `feat/score-entry-modal-redesign` from `feat/navigation-shell`, resolved `9870c7b` (PR #64) merge conflicts cleanly (`faa71cb`), and added iOS + legacy-promotion polish (`2031e0b`).
 - Fixed active-filter roster eviction in `Dashboard.tsx`, nested `ConfirmModal` `Escape` pass-through, diagonal scroll swipe misfires, and SBA component loss on missing-subject hydration.
 - Redesigned `SubjectRow` (`sm:contents` column parity, single-node Totals, honest `Pending`/`Partial`/Grade states, streamlined SBA drawer) and `AcademicTab` (`All`/`Incomplete` pinning, SBA accordion, `Enter`/Arrow keyboard flow).
-- Rebuilt `ScoreEntryModal` with a compact switcher header, isolated `ModalSaveStatus` leaf, live Student Pulse Strip, tab readiness badges, Print/SBA router slots, scroll reset, and `examType` analytics tracking.
-- Hardened `DetailsTab` with empty-name guards, attendance clamping + live rating, score-guarded `Smart Generate`, deduplicated shuffles, and one-tap `Auto-fill Empty`.
-- Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `450` tests passed), and `npm run build` (`0`).
+- Hardened `SubjectRow` and `AcademicTab` for iOS Safari (`type="text" inputMode="numeric" pattern="[0-9]*"`, `<form noValidate>`, `180ms` post-blur normalization, `scroll-mt-16 scroll-mb-24`).
+- Rebuilt `ScoreEntryModal` with a compact switcher header, isolated `ModalSaveStatus`, live Student Pulse Strip, tab readiness badges, Print/SBA router slots, and `examType` tracking.
+- Hardened `DetailsTab` with empty-name guards, attendance clamping + live rating, legacy `promotionStatus` fallback option, score-guarded `Smart Generate`, and `Auto-fill Empty`.
+- Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `464` tests passed), and `npm run build` (`0`).
