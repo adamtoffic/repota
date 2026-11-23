@@ -507,8 +507,8 @@ export function AcademicTab({
         </div>
       )}
 
-      {/* Subject List / Empty States */}
-      <div className="space-y-2.5">
+      {/* Subject List / Empty States (semantic form enables iOS WebKit Form Assistant traversal) */}
+      <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-2.5">
         {displayedSubjects.length === 0 ? (
           filterSubject ? (
             <div className="border-border bg-surface rounded-xl border border-dashed px-4 py-10 text-center">
@@ -589,7 +589,7 @@ export function AcademicTab({
             );
           })
         )}
-      </div>
+      </form>
 
       {/* Discreet Bottom Utility Row */}
       {student.subjects.length > 0 && (

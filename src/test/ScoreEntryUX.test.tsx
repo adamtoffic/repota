@@ -1630,5 +1630,71 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       const regeneratedRecord = onUpdateScored.mock.calls.at(-1)?.[0] as StudentRecord;
       expect(regeneratedRecord.teacherRemark).not.toBe(firstRemark);
     });
+
+    it("uses iOS-safe text numeric inputs across SubjectRow and preserves legacy promotionStatus in DetailsTab", () => {
+      const onSubjectChange = vi.fn();
+      const sbaSubject: SavedSubject = {
+        id: "sub-1",
+        name: "Mathematics",
+        classScore: 0,
+        examScore: 0,
+        classScoreComponents: [{ id: "c1", name: "CAT 1", score: 0, maxScore: 10 }],
+      };
+
+      const { rerender } = render(
+        <SubjectRow
+          subject={sbaSubject}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onSubjectChange}
+        />,
+      );
+
+      const sbaInput = screen.getByLabelText("Mathematics CAT 1 Score") as HTMLInputElement;
+      const examInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
+      for (const input of [sbaInput, examInput]) {
+        expect(input).toHaveAttribute("type", "text");
+        expect(input).toHaveAttribute("inputmode", "numeric");
+        expect(input).toHaveAttribute("pattern", "[0-9]*");
+      }
+
+      fireEvent.change(sbaInput, { target: { value: "abc" } });
+      fireEvent.change(examInput, { target: { value: "abc" } });
+      expect(onSubjectChange).not.toHaveBeenCalled();
+
+      // Direct class input (no SBA components) also uses text numeric attributes and guards non-numeric input
+      rerender(
+        <SubjectRow
+          subject={{ id: "sub-2", name: "English", classScore: 0, examScore: 0 }}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onSubjectChange}
+        />,
+      );
+      const classInput = screen.getByLabelText("English Class Score") as HTMLInputElement;
+      expect(classInput).toHaveAttribute("type", "text");
+      expect(classInput).toHaveAttribute("inputmode", "numeric");
+      expect(classInput).toHaveAttribute("pattern", "[0-9]*");
+      fireEvent.change(classInput, { target: { value: "abc" } });
+      expect(onSubjectChange).not.toHaveBeenCalled();
+
+      // DetailsTab preserves legacy/renamed promotionStatus (e.g. "Repeated Basic 4" on a "Basic 5" student)
+      const legacyStudent: ProcessedStudent = {
+        ...makeStudent("s-legacy", "Kojo Mensah", []),
+        className: "Basic 5",
+        promotionStatus: "Repeated Basic 4",
+      };
+      render(
+        <SchoolContext.Provider value={makeSchoolContext([legacyStudent])}>
+          <DetailsTab student={legacyStudent} onUpdate={vi.fn()} />
+        </SchoolContext.Provider>,
+      );
+
+      const promoSelect = screen.getByLabelText("Promotion Status") as HTMLSelectElement;
+      expect(promoSelect.value).toBe("Repeated Basic 4");
+      expect(within(promoSelect).getByRole("option", { name: "Repeated Basic 4" })).toBeInTheDocument();
+    });
   });
 });

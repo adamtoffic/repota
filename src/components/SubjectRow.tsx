@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import type { ClassScoreComponentConfig, SavedSubject, SchoolLevel } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
@@ -29,9 +29,6 @@ interface Props {
   onDelete?: () => void;
 }
 
-const NUMBER_INPUT_RESET_CLASSES =
-  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
 export function SubjectRow({
   subject,
   level,
@@ -47,6 +44,10 @@ export function SubjectRow({
   onChange,
   onDelete,
 }: Props) {
+  const inputIdPrefix = useId();
+  const classInputId = `${inputIdPrefix}-class`;
+  const examInputId = `${inputIdPrefix}-exam`;
+
   const components = subject.classScoreComponents ?? [];
   const hasComponents = !isMockExam && components.length > 0;
 
@@ -96,7 +97,15 @@ export function SubjectRow({
     timersRef.current[key] = window.setTimeout(fn, ms);
   };
 
+  const clearTimer = (key: string) => {
+    if (timersRef.current[key]) {
+      clearTimeout(timersRef.current[key]);
+      delete timersRef.current[key];
+    }
+  };
+
   const handleExamChange = (value: string) => {
+    clearTimer("examBlur");
     if (value === "") {
       setExamDraft({ baseScore: 0, raw: "" });
       onChange({ ...subject, examScore: 0 });
@@ -104,8 +113,12 @@ export function SubjectRow({
       return;
     }
 
+    if (!/^\d*\.?\d*$/.test(value)) return;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+
     const { clampedRaw, wasClamped, weightedScore } = convertExamRawToWeighted(
-      Number(value),
+      numeric,
       maxExamScore,
     );
 
@@ -131,7 +144,11 @@ export function SubjectRow({
       return;
     }
 
-    const { score, wasClamped } = clampDirectClassScore(Number(value), maxClassScore);
+    if (!/^\d*\.?\d*$/.test(value)) return;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+
+    const { score, wasClamped } = clampDirectClassScore(numeric, maxClassScore);
 
     if (wasClamped) {
       setClassScoreError(`Max ${maxClassScore}`);
@@ -146,8 +163,11 @@ export function SubjectRow({
 
   const handleComponentChange = (componentId: string, maxScore: number, value: string) => {
     if (!subject.classScoreComponents) return;
+    if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
 
     const rawScore = value === "" ? 0 : Number(value);
+    if (!Number.isFinite(rawScore)) return;
+
     const { updatedComponents, classScore, wasClamped } = updateComponentAndRecalculateClassScore(
       subject.classScoreComponents,
       componentId,
@@ -218,7 +238,7 @@ export function SubjectRow({
 
   return (
     <div
-      className={`border-border bg-surface overflow-hidden rounded-xl border shadow-xs transition-colors focus-within:border-blue-400/80 dark:focus-within:border-blue-500/70 ${
+      className={`border-border bg-surface rounded-xl border shadow-xs transition-colors focus-within:border-blue-400/80 dark:focus-within:border-blue-500/70 ${
         isObsolete ? "opacity-75" : ""
       }`}
     >
@@ -276,46 +296,58 @@ export function SubjectRow({
           {/* Class Score — omitted in Mock mode */}
           {!isMockExam && (
             <div className="min-w-0">
-              <span
-                className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
-                data-record="true"
-              >
-                Class (/{maxClassScore})
-              </span>
               {hasComponents ? (
-                <button
-                  type="button"
-                  onClick={toggleComponents}
-                  aria-expanded={showComponents}
-                  title={`Auto-calculated from SBA tasks (${subject.classScore}/${maxClassScore})`}
-                  className="flex h-10 w-full items-center justify-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2 text-sm font-bold text-purple-700 tabular-nums transition-colors hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
-                >
-                  <span>{subject.classScore}</span>
-                  <span className="text-[11px] font-medium text-purple-500 dark:text-purple-400">
-                    /{maxClassScore}
+                <>
+                  <span
+                    className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
+                    data-record="true"
+                  >
+                    Class (/{maxClassScore})
                   </span>
-                  {showComponents ? (
-                    <ChevronUp className="h-3.5 w-3.5 opacity-75" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5 opacity-75" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={toggleComponents}
+                    aria-expanded={showComponents}
+                    title={`Auto-calculated from SBA tasks (${subject.classScore}/${maxClassScore})`}
+                    className="flex h-10 w-full items-center justify-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2 text-sm font-bold text-purple-700 tabular-nums transition-colors hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
+                  >
+                    <span>{subject.classScore}</span>
+                    <span className="text-[11px] font-medium text-purple-500 dark:text-purple-400">
+                      /{maxClassScore}
+                    </span>
+                    {showComponents ? (
+                      <ChevronUp className="h-3.5 w-3.5 opacity-75" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 opacity-75" />
+                    )}
+                  </button>
+                </>
               ) : (
                 <>
+                  <label
+                    htmlFor={classInputId}
+                    className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
+                    data-record="true"
+                  >
+                    Class (/{maxClassScore})
+                  </label>
                   <input
+                    id={classInputId}
+                    name={classInputId}
                     ref={(el) => registerInputRef?.("class", el)}
-                    type="number"
+                    type="text"
                     inputMode="numeric"
+                    pattern="[0-9]*"
                     enterKeyHint="next"
-                    min={0}
-                    max={maxClassScore}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     aria-label={`${subject.name} Class Score`}
                     value={subject.classScore === 0 ? "" : subject.classScore}
                     onChange={(e) => handleClassChange(e.target.value)}
                     onFocus={(e) => e.currentTarget.select()}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onKeyDown={(e) => handleFieldKeyDown(e, "class")}
-                    className={`placeholder:text-muted h-10 w-full rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${NUMBER_INPUT_RESET_CLASSES} ${
+                    className={`placeholder:text-muted h-10 w-full scroll-mt-16 scroll-mb-24 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                       classScoreError
                         ? "bg-input text-main border-red-500 focus:border-red-500 focus:ring-red-500/25"
                         : "border-border-strong bg-input text-main hover:border-muted focus:border-blue-500 focus:ring-blue-500/25"
@@ -335,27 +367,36 @@ export function SubjectRow({
 
           {/* Exam Score */}
           <div className="min-w-0">
-            <span
+            <label
+              htmlFor={examInputId}
               className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
               data-record="true"
             >
               {isMockExam ? "Score (/100)" : "Exam (/100)"}
-            </span>
+            </label>
             <input
+              id={examInputId}
+              name={examInputId}
               ref={(el) => registerInputRef?.("exam", el)}
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
               enterKeyHint={isLastRow ? "done" : "next"}
-              min={0}
-              max={100}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               aria-label={`${subject.name} Exam Score`}
               value={examRawInput}
               onChange={(e) => handleExamChange(e.target.value)}
-              onBlur={() => setExamDraft(null)}
-              onFocus={(e) => e.currentTarget.select()}
-              onWheel={(e) => e.currentTarget.blur()}
+              onBlur={() => {
+                scheduleTimer("examBlur", () => setExamDraft(null), 180);
+              }}
+              onFocus={(e) => {
+                clearTimer("examBlur");
+                e.currentTarget.select();
+              }}
               onKeyDown={(e) => handleFieldKeyDown(e, "exam")}
-              className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${NUMBER_INPUT_RESET_CLASSES} ${
+              className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full scroll-mt-16 scroll-mb-24 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                 examScoreError
                   ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                   : "border-border-strong focus:border-blue-500 focus:ring-blue-500/25"
@@ -444,7 +485,7 @@ export function SubjectRow({
 
       {/* Streamlined SBA Component Breakdown Drawer */}
       {hasComponents && showComponents && (
-        <div className="border-t border-purple-200/80 bg-purple-50/45 px-3 py-3 sm:px-4 dark:border-purple-800/60 dark:bg-purple-950/30">
+        <div className="rounded-b-xl border-t border-purple-200/80 bg-purple-50/45 px-3 py-3 sm:px-4 dark:border-purple-800/60 dark:bg-purple-950/30">
           <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span
               className="font-semibold text-purple-900 dark:text-purple-200"
@@ -465,7 +506,7 @@ export function SubjectRow({
 
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
             {components.map((component) => {
-              const compInputId = `sba-${subject.id}-${component.id}`;
+              const compInputId = `${inputIdPrefix}-sba-${component.id}`;
               const compError = componentErrors[component.id];
               return (
                 <div
@@ -483,21 +524,23 @@ export function SubjectRow({
                   </label>
                   <input
                     id={compInputId}
+                    name={compInputId}
                     ref={(el) => registerInputRef?.(`comp:${component.id}`, el)}
-                    type="number"
+                    type="text"
                     inputMode="numeric"
+                    pattern="[0-9]*"
                     enterKeyHint="next"
-                    min={0}
-                    max={component.maxScore}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     aria-label={`${subject.name} ${component.name} Score`}
                     value={component.score === 0 ? "" : component.score}
                     onChange={(e) =>
                       handleComponentChange(component.id, component.maxScore, e.target.value)
                     }
                     onFocus={(e) => e.currentTarget.select()}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onKeyDown={(e) => handleFieldKeyDown(e, `comp:${component.id}`)}
-                    className={`bg-input text-main placeholder:text-muted h-9 w-full rounded-md border px-2 text-center text-sm font-bold tabular-nums transition-colors outline-none focus:ring-2 ${NUMBER_INPUT_RESET_CLASSES} ${
+                    className={`bg-input text-main placeholder:text-muted h-9 w-full scroll-mt-16 scroll-mb-24 rounded-md border px-2 text-center text-sm font-bold tabular-nums transition-colors outline-none focus:ring-2 ${
                       compError
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                         : "border-purple-200 focus:border-purple-500 focus:ring-purple-500/30 dark:border-purple-700/70"

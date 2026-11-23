@@ -25,9 +25,6 @@ interface Props {
   onUpdate: (updatedRecord: StudentRecord, silent?: boolean) => void;
 }
 
-const NUMBER_INPUT_RESET_CLASSES =
-  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
 export function DetailsTab({ student, onUpdate }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
@@ -123,6 +120,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
       return;
     }
 
+    if (!/^\d*$/.test(value)) return;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return;
 
@@ -187,6 +185,17 @@ export function DetailsTab({ student, onUpdate }: Props) {
   const promotionSelectId = `${fieldPrefix}-promotion`;
   const remarkTextareaId = `${fieldPrefix}-remark`;
   const feeStatusSelectId = `${fieldPrefix}-fee-status`;
+
+  const presetPromotionValues = [
+    "",
+    "Promoted to Next Class",
+    `Repeated ${student.className}`,
+    "Promoted on Probation",
+    "Withdrawn",
+  ];
+  const hasCustomPromotionStatus =
+    Boolean(formData.promotionStatus) &&
+    !presetPromotionValues.includes(formData.promotionStatus);
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -298,15 +307,17 @@ export function DetailsTab({ student, onUpdate }: Props) {
             <div className="relative">
               <input
                 id={attendanceInputId}
-                type="number"
+                name={attendanceInputId}
+                type="text"
                 inputMode="numeric"
-                min={0}
-                max={totalDays}
+                pattern="[0-9]*"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 value={formData.attendancePresent === 0 ? "" : formData.attendancePresent}
                 onChange={(e) => handleAttendanceChange(e.target.value)}
                 onFocus={(e) => e.currentTarget.select()}
-                onWheel={(e) => e.currentTarget.blur()}
-                className={`border-border-strong bg-input text-main placeholder:text-muted w-full rounded-lg border px-4 py-2.5 pr-16 font-mono font-bold transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 ${NUMBER_INPUT_RESET_CLASSES}`}
+                className="border-border-strong bg-input text-main placeholder:text-muted w-full rounded-lg border px-4 py-2.5 pr-16 font-mono font-bold transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                 placeholder="0"
               />
               <span className="text-muted pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs tabular-nums">
@@ -339,6 +350,9 @@ export function DetailsTab({ student, onUpdate }: Props) {
               <option value={`Repeated ${student.className}`}>Repeated</option>
               <option value="Promoted on Probation">Probation</option>
               <option value="Withdrawn">Withdrawn</option>
+              {hasCustomPromotionStatus && (
+                <option value={formData.promotionStatus}>{formData.promotionStatus}</option>
+              )}
             </select>
             {settings.term !== "Third Term" && (
               <p className="text-muted mt-1 text-[11px]" data-record="true">
