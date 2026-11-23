@@ -28,6 +28,7 @@ export function PrintPreview() {
   const [printMode, setPrintMode] = useState<PrintMode>("color");
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
   const [photoWarningDismissed, setPhotoWarningDismissed] = useState(false);
+  const [activeCardIndex, setActiveCardIndex] = useState(1);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
@@ -163,6 +164,56 @@ export function PrintPreview() {
   const hasTrackedPreviewRef = useRef(false);
 
   useEffect(() => {
+    if (printableStudents.length < 3) return;
+
+    let rafId: number | null = null;
+
+    const updateActiveCard = () => {
+      rafId = null;
+      const container = printAreaRef.current;
+      if (!container) return;
+
+      const cards = container.querySelectorAll<HTMLElement>(".report-wrapper");
+      if (cards.length === 0) return;
+
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0 && window.scrollY >= maxScroll - 32) {
+        setActiveCardIndex((prev) => (prev === cards.length ? prev : cards.length));
+        return;
+      }
+
+      const anchorY = window.innerHeight * 0.35;
+      let current = 1;
+      for (let i = 0; i < cards.length; i++) {
+        if (cards[i].getBoundingClientRect().top <= anchorY) {
+          current = i + 1;
+        } else {
+          break;
+        }
+      }
+
+      setActiveCardIndex((prev) => (prev === current ? prev : current));
+    };
+
+    const scheduleUpdate = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(updateActiveCard);
+    };
+
+    updateActiveCard();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, [printableStudents.length]);
+
+  useEffect(() => {
     if (hasTrackedPreviewRef.current || printableStudents.length === 0) return;
     hasTrackedPreviewRef.current = true;
     const realStudents = printableStudents.filter((s) => !isDemoStudent(s));
@@ -290,12 +341,12 @@ export function PrintPreview() {
     const isFilteredToReady = !id && printFilter === "ready" && students.length > 0;
     return (
       <div className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center">
-        <div className="max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="border-border bg-surface max-w-md rounded-xl border p-8 shadow-sm">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-orange-500" />
           <h2 className="text-main mb-2 text-xl font-bold">
             {isFilteredToReady ? "No Complete Report Cards Ready" : "No Students Found"}
           </h2>
-          <p className="mb-6 text-gray-600">
+          <p className="text-secondary mb-6">
             {isFilteredToReady
               ? `All ${students.length} students still have missing subjects or zero scores.`
               : "Add students and enter their grades before generating reports."}
@@ -312,7 +363,7 @@ export function PrintPreview() {
             )}
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              className="border-border-strong bg-surface text-secondary hover:bg-subtle inline-flex items-center gap-2 rounded-lg border px-5 py-2 text-sm font-bold"
             >
               <ArrowLeft className="h-4 w-4" /> Back to Home
             </Link>
@@ -323,11 +374,11 @@ export function PrintPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans print:m-0 print:bg-white print:p-0">
+    <div className="bg-subtle dark:bg-background min-h-screen font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
       <div
         data-testid="print-sticky-toolbar"
-        className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 p-3 backdrop-blur-md sm:p-4 print:hidden"
+        className="border-border bg-surface/85 sticky top-0 z-50 border-b p-3 backdrop-blur-md sm:p-4 print:hidden"
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           {/* LEFT: Back + Title */}
@@ -335,7 +386,7 @@ export function PrintPreview() {
             <Link
               to="/"
               aria-label="Back to Home"
-              className="shrink-0 rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100"
+              className="text-secondary hover:bg-subtle shrink-0 rounded-full p-2 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
@@ -354,9 +405,9 @@ export function PrintPreview() {
               to="/settings/templates"
               title="Customize report style & colors"
               aria-label="Customize report style"
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-700 shadow-2xs transition-colors hover:bg-gray-50 sm:px-3"
+              className="border-border bg-surface text-secondary hover:bg-subtle inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold shadow-2xs transition-colors sm:px-3"
             >
-              <Palette className="h-3.5 w-3.5 text-indigo-600" />
+              <Palette className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden md:inline">Style</span>
             </Link>
 
@@ -372,16 +423,16 @@ export function PrintPreview() {
           </div>
 
           {/* FILTER & INK MODE STRIP */}
-          <div className="flex w-full items-center justify-between gap-2 border-t border-gray-100 pt-2 sm:order-2 sm:w-auto sm:justify-start sm:gap-3 sm:border-t-0 sm:pt-0">
+          <div className="border-border-subtle flex w-full items-center justify-between gap-2 border-t pt-2 sm:order-2 sm:w-auto sm:justify-start sm:gap-3 sm:border-t-0 sm:pt-0">
             {!id && students.length > 0 && (
               <div className="flex flex-col items-start gap-0.5 sm:items-center">
-                <p className="hidden text-[9px] font-black tracking-widest text-gray-400 uppercase sm:block">
+                <p className="text-muted hidden text-[9px] font-black tracking-widest uppercase sm:block">
                   Students
                 </p>
                 <div
                   role="group"
                   aria-label="Print readiness filter"
-                  className="flex h-9 items-center rounded-xl border border-gray-200 bg-gray-100 p-0.5 shadow-inner"
+                  className="border-border bg-subtle flex h-9 items-center rounded-xl border p-0.5 shadow-inner"
                 >
                   <button
                     type="button"
@@ -389,8 +440,8 @@ export function PrintPreview() {
                     aria-pressed={printFilter === "all"}
                     className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors ${
                       printFilter === "all"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-elevated text-main shadow-sm"
+                        : "text-muted hover:text-main"
                     }`}
                   >
                     All ({students.length})
@@ -401,8 +452,8 @@ export function PrintPreview() {
                     aria-pressed={printFilter === "ready"}
                     className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors ${
                       printFilter === "ready"
-                        ? "bg-white text-emerald-700 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-elevated text-emerald-700 shadow-sm dark:text-emerald-400"
+                        : "text-muted hover:text-main"
                     }`}
                   >
                     Ready ({readyStudents.length})
@@ -413,15 +464,15 @@ export function PrintPreview() {
 
             {/* ── INK MODE TOGGLE ───────────────────────────────────── */}
             <div className="flex flex-col items-end gap-0.5 sm:items-center">
-              <p className="hidden text-[9px] font-black tracking-widest text-gray-400 uppercase sm:block">
+              <p className="text-muted hidden text-[9px] font-black tracking-widest uppercase sm:block">
                 Ink Mode
               </p>
               {/* Pill container */}
-              <div className="relative flex h-9 items-center rounded-xl border border-gray-200 bg-gray-100 p-0.5 shadow-inner">
+              <div className="border-border bg-subtle relative flex h-9 items-center rounded-xl border p-0.5 shadow-inner">
                 {/* Animated sliding background pill */}
                 <div
                   aria-hidden="true"
-                  className={`pointer-events-none absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-[10px] bg-white shadow-sm ring-1 ring-black/6 transition-transform duration-200 ease-in-out ${
+                  className={`bg-elevated pointer-events-none absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-[10px] shadow-sm ring-1 ring-black/6 transition-transform duration-200 ease-in-out dark:ring-white/10 ${
                     printMode === "bw" ? "translate-x-[calc(100%+4px)]" : "translate-x-0"
                   }`}
                 />
@@ -433,7 +484,9 @@ export function PrintPreview() {
                   aria-pressed={printMode === "color"}
                   title="Full color print"
                   className={`relative z-10 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors duration-150 sm:px-3 ${
-                    printMode === "color" ? "text-primary" : "text-gray-400 hover:text-gray-600"
+                    printMode === "color"
+                      ? "text-primary-text"
+                      : "text-muted hover:text-main"
                   }`}
                 >
                   {/* Color swatch dot */}
@@ -452,7 +505,7 @@ export function PrintPreview() {
                   aria-pressed={printMode === "bw"}
                   title="Black & white print"
                   className={`relative z-10 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors duration-150 sm:px-3 ${
-                    printMode === "bw" ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
+                    printMode === "bw" ? "text-main" : "text-muted hover:text-main"
                   }`}
                 >
                   {/* Greyscale dot */}
@@ -473,10 +526,10 @@ export function PrintPreview() {
       {/* VALIDATION WARNING FOR MISSING PHOTOS (Outside sticky toolbar so it scrolls naturally) */}
       {studentsWithMissingPhotos.length > 0 && !photoWarningDismissed && (
         <div className="mx-auto max-w-5xl px-3 pt-3 sm:px-4 print:hidden">
-          <div className="flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3.5 shadow-xs sm:p-4">
-            <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+          <div className="flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3.5 shadow-xs sm:p-4 dark:border-amber-800/70 dark:bg-amber-950/50">
+            <Image className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600 dark:text-amber-400" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-yellow-800">
+              <p className="text-sm font-bold text-yellow-800 dark:text-amber-200">
                 ⚠️ {studentsWithMissingPhotos.length} student
                 {studentsWithMissingPhotos.length === 1 ? "" : "s"} missing photo
                 {studentsWithMissingPhotos.length === 1 ? "" : "s"}
@@ -490,7 +543,7 @@ export function PrintPreview() {
               type="button"
               onClick={() => setPhotoWarningDismissed(true)}
               aria-label="Dismiss missing photo warning"
-              className="shrink-0 rounded-lg p-1 text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-950"
+              className="shrink-0 rounded-lg p-1 text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-950 dark:text-amber-300 dark:hover:bg-amber-900/60 dark:hover:text-amber-100"
             >
               <X className="h-4 w-4" />
             </button>
@@ -511,7 +564,8 @@ export function PrintPreview() {
             <div className="origin-top scale-[0.42] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
               <div
                 data-pdf-card="true"
-                className="bg-white shadow-2xl print:m-0 print:p-0 print:shadow-none"
+                data-paper-surface="true"
+                className="bg-white text-black shadow-2xl print:m-0 print:p-0 print:shadow-none"
               >
                 <SelectedTemplate student={student} settings={settings} printMode={printMode} />
               </div>
@@ -521,7 +575,12 @@ export function PrintPreview() {
       </div>
 
       {/* SCROLL BUTTON */}
-      {printableStudents.length >= 3 && <ScrollButton />}
+      {printableStudents.length >= 3 && (
+        <ScrollButton
+          hasBottomNav={false}
+          statusLabel={`${Math.min(activeCardIndex, printableStudents.length)} / ${printableStudents.length}`}
+        />
+      )}
 
       <PdfExportModal {...pdfModalProps} />
     </div>

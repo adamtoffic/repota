@@ -40,12 +40,12 @@ export function SchoolIdentitySection() {
   return (
     <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 1: IDENTITY */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-lg bg-blue-100 p-2.5">
-            <School className="h-5 w-5 text-blue-600" />
+          <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-950/60">
+            <School className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
-          <h2 className="text-lg font-bold text-gray-800" data-record="true">
+          <h2 className="text-main text-lg font-bold" data-record="true">
             School Identity
           </h2>
         </div>
@@ -109,7 +109,7 @@ export function SchoolIdentitySection() {
               <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
                 Curriculum Type
               </label>
-              <div className="bg-background flex flex-wrap gap-4 rounded-lg border border-gray-100 p-3">
+              <div className="bg-background border-border-subtle flex flex-wrap gap-4 rounded-lg border p-3">
                 <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"
@@ -118,7 +118,7 @@ export function SchoolIdentitySection() {
                     onChange={() => handleSchoolTypeChange("STANDARD")}
                     className="text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-bold text-gray-700">Standard (GES)</span>
+                  <span className="text-secondary text-sm font-bold">Standard (GES)</span>
                 </label>
 
                 <label className="flex cursor-pointer items-center gap-2">
@@ -129,7 +129,7 @@ export function SchoolIdentitySection() {
                     onChange={() => handleSchoolTypeChange("ISLAMIC")}
                     className="text-green-600 focus:ring-green-500"
                   />
-                  <span className="text-sm font-bold text-gray-700">Islamic / Arabic</span>
+                  <span className="text-secondary text-sm font-bold">Islamic / Arabic</span>
                 </label>
 
                 <label className="flex cursor-pointer items-center gap-2">
@@ -140,7 +140,7 @@ export function SchoolIdentitySection() {
                     onChange={() => handleSchoolTypeChange("PRIVATE")}
                     className="text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-sm font-bold text-gray-700">Private School</span>
+                  <span className="text-secondary text-sm font-bold">Private School</span>
                 </label>
               </div>
             </div>
@@ -150,23 +150,23 @@ export function SchoolIdentitySection() {
 
       {/* Private School 3-Slot Fee Schedule */}
       {formData.schoolType === "PRIVATE" && (
-        <div className="space-y-4 rounded-xl border border-purple-200 bg-purple-50/70 p-4 sm:p-5">
+        <div className="space-y-4 rounded-xl border border-purple-200 bg-purple-50/70 p-4 sm:p-5 dark:border-purple-800/70 dark:bg-purple-950/35">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3
-                className="text-xs font-bold tracking-wider text-purple-900 uppercase"
+                className="text-xs font-bold tracking-wider text-purple-900 uppercase dark:text-purple-200"
                 data-record="true"
               >
                 Fee Schedule (3 A4 Slots)
               </h3>
-              <p className="mt-0.5 text-xs text-purple-700">
+              <p className="mt-0.5 text-xs text-purple-700 dark:text-purple-300">
                 Customize labels, amounts, and toggle each of the 3 slots on or off while keeping
                 every template on one A4 page.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-1.5 text-xs font-bold text-purple-900">
+              <label className="bg-surface inline-flex cursor-pointer items-center gap-2 rounded-lg border border-purple-200 px-3 py-1.5 text-xs font-bold text-purple-900 dark:border-purple-800/70 dark:text-purple-200">
                 <input
                   type="checkbox"
                   checked={showFeeSchedule}
@@ -186,7 +186,7 @@ export function SchoolIdentitySection() {
                     ...syncLegacyFeesFromItems(resetSlots),
                   });
                 }}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline dark:text-purple-300"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset Labels
@@ -200,8 +200,8 @@ export function SchoolIdentitySection() {
                 key={slot.id}
                 className={`grid grid-cols-1 gap-3 rounded-lg border p-3 transition-colors sm:grid-cols-[auto_1.4fr_1fr_1fr] sm:items-end ${
                   slot.enabled
-                    ? "border-purple-200 bg-white"
-                    : "border-gray-200 bg-gray-50/80 opacity-75"
+                    ? "bg-surface border-purple-200 dark:border-purple-800/70"
+                    : "border-border bg-subtle opacity-75"
                 }`}
               >
                 <label className="flex cursor-pointer items-center gap-2 pb-2">
@@ -210,9 +210,9 @@ export function SchoolIdentitySection() {
                     aria-label={`Enable slot ${index + 1}`}
                     checked={slot.enabled}
                     onChange={(e) => updateFeeSlot(index, { enabled: e.target.checked })}
-                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    className="border-border-strong h-4 w-4 rounded text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-xs font-bold text-gray-700 sm:hidden">
+                  <span className="text-secondary text-xs font-bold sm:hidden">
                     Item {index + 1} Active
                   </span>
                 </label>
@@ -249,7 +249,7 @@ export function SchoolIdentitySection() {
                     aria-label={`Item ${index + 1} Cycle`}
                     value={slot.cycle}
                     onChange={(e) => updateFeeSlot(index, { cycle: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 sm:py-2"
+                    className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2.5 text-sm font-medium outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 sm:py-2"
                   >
                     <option value="Per Term">Per Term</option>
                     <option value="Daily">Daily</option>
@@ -261,8 +261,8 @@ export function SchoolIdentitySection() {
             ))}
           </div>
 
-          <div className="space-y-3 border-t border-purple-200 pt-3">
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-purple-900">
+          <div className="space-y-3 border-t border-purple-200 pt-3 dark:border-purple-800/70">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-200">
               <input
                 type="checkbox"
                 checked={Boolean(formData.showStudentFeeArrearsOnReport)}
@@ -290,12 +290,12 @@ export function SchoolIdentitySection() {
       )}
 
       {/* CARD 3: STAFF */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-lg bg-purple-100 p-2.5">
-            <Briefcase className="h-5 w-5 text-purple-600" />
+          <div className="rounded-lg bg-purple-100 p-2.5 dark:bg-purple-950/60">
+            <Briefcase className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           </div>
-          <h2 className="text-lg font-bold text-gray-800" data-record="true">
+          <h2 className="text-main text-lg font-bold" data-record="true">
             Staff Details
           </h2>
         </div>

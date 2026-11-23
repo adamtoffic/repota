@@ -109,32 +109,32 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70"
       >
-        <div className="animate-sheet-up relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up border-border bg-elevated relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border p-6 shadow-2xl sm:p-8">
           <button
             type="button"
             onClick={onCancel}
             aria-label="Close PIN recovery"
-            className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main absolute top-4 right-4 rounded-full p-1 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
 
           <div className="mb-6 flex justify-center">
-            <div className="rounded-full bg-yellow-100 p-4">
+            <div className="rounded-full bg-yellow-100 p-4 dark:bg-amber-950/60">
               {method === "code" ? (
-                <Key className="h-12 w-12 text-yellow-600" />
+                <Key className="h-12 w-12 text-yellow-600 dark:text-amber-400" />
               ) : (
-                <HelpCircle className="h-12 w-12 text-green-600" />
+                <HelpCircle className="h-12 w-12 text-green-600 dark:text-emerald-400" />
               )}
             </div>
           </div>
 
-          <h1 className="mb-3 text-center text-2xl font-bold text-gray-900">
+          <h1 className="text-main mb-3 text-center text-2xl font-bold">
             {method === "code" ? "Enter Recovery Code" : "Answer Security Questions"}
           </h1>
-          <p className="mb-6 text-center text-sm text-gray-600">
+          <p className="text-muted mb-6 text-center text-sm">
             {method === "code"
               ? "Enter the 6-digit recovery code you saved when you set up your PIN."
               : "Answer at least 2 out of 3 questions correctly to reset your PIN."}
@@ -142,7 +142,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
           {/* Method switcher tabs */}
           {hasSecurityQuestions && (
-            <div className="mb-6 flex gap-2 rounded-lg bg-gray-100 p-1">
+            <div className="bg-subtle border-border mb-6 flex gap-2 rounded-lg border p-1">
               <button
                 type="button"
                 onClick={() => {
@@ -151,8 +151,8 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 }}
                 className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
                   method === "code"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-surface text-main shadow-sm"
+                    : "text-muted hover:text-main"
                 }`}
               >
                 Recovery Code
@@ -165,8 +165,8 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 }}
                 className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
                   method === "questions"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-surface text-main shadow-sm"
+                    : "text-muted hover:text-main"
                 }`}
               >
                 Security Questions
@@ -189,7 +189,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                   setError("");
                 }}
                 onKeyDown={(e) => e.key === "Enter" && handleVerifyRecovery()}
-                className="w-full rounded-lg border-2 border-gray-300 p-4 text-center text-3xl font-bold tracking-widest transition-all outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-200"
+                className="border-border-strong bg-input text-main placeholder:text-muted w-full rounded-lg border-2 p-4 text-center text-3xl font-bold tracking-widest transition-all outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/25"
                 placeholder="000000"
                 autoFocus
               />
@@ -206,9 +206,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 return (
                   <div
                     key={questionId}
-                    className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4"
+                    className="border-border bg-subtle rounded-lg border-2 p-4"
                   >
-                    <label className="mb-2 block text-sm font-bold text-gray-700">
+                    <label className="text-secondary mb-2 block text-sm font-bold">
                       {question.question}
                     </label>
                     <input
@@ -221,7 +221,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                         setError("");
                       }}
                       placeholder={question.placeholder}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                      className="border-border-strong bg-input text-main placeholder:text-muted w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-500/30 focus:outline-none"
                       autoFocus={index === 0}
                     />
                   </div>
@@ -231,7 +231,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           )}
 
           {error && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -259,20 +259,20 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70"
       >
-        <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up border-border bg-elevated relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-2xl sm:p-8">
           <button
             type="button"
             onClick={onCancel}
             aria-label="Close PIN recovery"
-            className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main absolute top-4 right-4 rounded-full p-1 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
 
-          <h1 className="mb-3 text-center text-2xl font-bold text-gray-900">Create New PIN</h1>
-          <p className="mb-6 text-center text-sm text-gray-600">Enter your new 4-digit PIN.</p>
+          <h1 className="text-main mb-3 text-center text-2xl font-bold">Create New PIN</h1>
+          <p className="text-muted mb-6 text-center text-sm">Enter your new 4-digit PIN.</p>
 
           <div className="mb-6">
             <input
@@ -287,13 +287,13 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 setError("");
               }}
               onKeyDown={(e) => e.key === "Enter" && handleNewPin()}
-              className="w-full rounded-lg border-2 border-gray-300 p-4 text-center text-4xl font-bold tracking-widest transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-200"
+              className="border-border-strong bg-input text-main w-full rounded-lg border-2 p-4 text-center text-4xl font-bold tracking-widest transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/25"
               placeholder="••••"
               autoFocus
             />
 
             {error && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -303,7 +303,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={handleNewPin}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-primary hover:bg-primary/90 w-full rounded-lg px-4 py-3 font-bold text-white shadow-md transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={newPin.length !== 4}
           >
             Continue
@@ -318,20 +318,20 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+      className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70"
     >
-      <div className="animate-sheet-up relative my-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8">
+      <div className="animate-sheet-up border-border bg-elevated relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-2xl sm:p-8">
         <button
           type="button"
           onClick={onCancel}
           aria-label="Close PIN recovery"
-          className="absolute top-4 right-4 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          className="text-muted hover:bg-subtle hover:text-main absolute top-4 right-4 rounded-full p-1 transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h1 className="mb-3 text-center text-2xl font-bold text-gray-900">Confirm New PIN</h1>
-        <p className="mb-6 text-center text-sm text-gray-600">Re-enter your PIN to confirm.</p>
+        <h1 className="text-main mb-3 text-center text-2xl font-bold">Confirm New PIN</h1>
+        <p className="text-muted mb-6 text-center text-sm">Re-enter your PIN to confirm.</p>
 
         <div className="mb-6">
           <input
@@ -346,13 +346,13 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
               setError("");
             }}
             onKeyDown={(e) => e.key === "Enter" && handleConfirmPin()}
-            className="w-full rounded-lg border-2 border-gray-300 p-4 text-center text-4xl font-bold tracking-widest transition-all outline-none focus:border-green-500 focus:ring-4 focus:ring-green-200"
+            className="border-border-strong bg-input text-main w-full rounded-lg border-2 p-4 text-center text-4xl font-bold tracking-widest transition-all outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/25"
             placeholder="••••"
             autoFocus
           />
 
           {error && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -366,7 +366,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
               setConfirmPin("");
               setStep("newPin");
             }}
-            className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-3 font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95"
+            className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border-2 px-4 py-3 font-bold transition-all active:scale-95"
           >
             Back
           </button>

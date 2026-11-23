@@ -641,19 +641,19 @@ function ScoreImportModalContent({
   return (
     <Modal isOpen={isOpen} onClose={resetAndClose} closeOnBackdrop={false} className="max-w-3xl">
       <div className="flex max-h-[90vh] flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="border-border-subtle flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3.5 sm:px-5 sm:py-4">
           <h3
             className="text-main flex min-w-0 items-center gap-2 text-base font-bold sm:text-lg"
             data-record="true"
           >
-            <Upload className="text-primary h-5 w-5 shrink-0" />
+            <Upload className="text-primary-text h-5 w-5 shrink-0" />
             <span className="truncate">Import &amp; Export Subject Scores</span>
           </h3>
           <button
             type="button"
             onClick={resetAndClose}
             aria-label="Close modal"
-            className="shrink-0 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main shrink-0 rounded-lg p-1"
           >
             <X className="h-5 w-5" />
           </button>
@@ -661,18 +661,18 @@ function ScoreImportModalContent({
 
         <div className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
           {availableSubjects.length === 0 ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
               Add at least one subject in Settings before importing scores.
             </div>
           ) : (
             <>
               {/* Step 1: Subject + Mode Tabs */}
-              <div className="space-y-3 rounded-xl border border-purple-200 bg-purple-50/70 p-3 sm:p-4">
+              <div className="space-y-3 rounded-xl border border-purple-200 bg-purple-50/70 p-3 sm:p-4 dark:border-purple-800/60 dark:bg-purple-950/35">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                   <div className="min-w-0">
                     <label
                       htmlFor="sba-import-subject"
-                      className="mb-1 block text-xs font-bold tracking-wider text-purple-900 uppercase"
+                      className="mb-1 block text-xs font-bold tracking-wider text-purple-900 uppercase dark:text-purple-200"
                     >
                       1. Target Subject (Subject-by-Subject)
                     </label>
@@ -684,7 +684,7 @@ function ScoreImportModalContent({
                         setNewColumnOverrides({});
                         setIsPreviewing(false);
                       }}
-                      className="w-full rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-bold text-gray-800 outline-none focus:border-purple-500"
+                      className="bg-input text-main w-full rounded-lg border border-purple-300 px-3 py-2 text-sm font-bold outline-none focus:border-purple-500 dark:border-purple-700"
                     >
                       {availableSubjects.map((sub) => (
                         <option key={sub} value={sub}>
@@ -698,9 +698,9 @@ function ScoreImportModalContent({
                   <div
                     role="tablist"
                     aria-label="Score import mode"
-                    className={`grid w-full min-w-0 ${
+                    className={`bg-surface grid w-full min-w-0 ${
                       modeTabs.length === 1 ? "grid-cols-1" : "grid-cols-3"
-                    } gap-1 rounded-xl border border-purple-200 bg-white p-1`}
+                    } gap-1 rounded-xl border border-purple-200 p-1 dark:border-purple-800/70`}
                   >
                     {modeTabs.map((tab) => (
                       <button
@@ -715,7 +715,7 @@ function ScoreImportModalContent({
                         className={`min-w-0 rounded-lg px-1.5 py-1.5 text-center text-[11px] leading-tight font-bold whitespace-normal transition-colors sm:px-2.5 sm:text-xs sm:whitespace-nowrap ${
                           activeMode === tab.id
                             ? "bg-purple-700 text-white shadow-xs"
-                            : "text-gray-600 hover:bg-purple-50"
+                            : "text-secondary hover:bg-purple-50 dark:hover:bg-purple-950/50"
                         }`}
                       >
                         {tab.label}
@@ -727,7 +727,7 @@ function ScoreImportModalContent({
                 {/* SBA Aggregation Formula / Status Strip */}
                 {!isMock && (
                   activeTasks.length > 0 ? (
-                    <p className="rounded-lg border border-purple-200/80 bg-white/80 px-3 py-1.5 text-[11px] font-medium text-purple-900">
+                    <p className="bg-surface/90 rounded-lg border border-purple-200/80 px-3 py-1.5 text-[11px] font-medium text-purple-900 dark:border-purple-800/60 dark:text-purple-200">
                       <strong>{activeSubject} SBA:</strong> {activeTasks.length} component
                       {activeTasks.length === 1 ? "" : "s"} (total /
                       {activeTasks.reduce((sum, t) => sum + t.maxScore, 0)}) aggregate to{" "}
@@ -735,7 +735,7 @@ function ScoreImportModalContent({
                       <strong>Exam (/100 → /{settings.examScoreMax})</strong>
                     </p>
                   ) : (
-                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900">
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
                       No SBA components assigned to <strong>{activeSubject}</strong> yet. Add
                       tasks on the SBA page or use <strong>Single SBA Task</strong> →{" "}
                       <strong>+ Create New SBA Task...</strong> to import component scores.
@@ -745,12 +745,12 @@ function ScoreImportModalContent({
 
                 {/* Single SBA Component Picker / Creator */}
                 {activeMode === "SINGLE_COMPONENT" && (
-                  <div className="space-y-3 rounded-lg border border-purple-200 bg-white p-3">
+                  <div className="bg-surface space-y-3 rounded-lg border border-purple-200 p-3 dark:border-purple-800/60">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
                       <div>
                         <label
                           htmlFor="single-sba-task-select"
-                          className="mb-1 block text-[11px] font-bold text-gray-600 uppercase"
+                          className="text-secondary mb-1 block text-[11px] font-bold uppercase"
                         >
                           SBA Component
                         </label>
@@ -761,7 +761,7 @@ function ScoreImportModalContent({
                             setSelectedTaskOption(e.target.value);
                             setIsPreviewing(false);
                           }}
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-purple-500"
+                          className="border-border-strong bg-input text-main w-full rounded-lg border px-3 py-2 text-xs font-bold outline-none focus:border-purple-500"
                         >
                           {activeTasks.map((task) => (
                             <option key={task.name} value={task.name}>
@@ -779,7 +779,7 @@ function ScoreImportModalContent({
                           <button
                             type="button"
                             onClick={handleExportSingleComponent}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
                           >
                             <Download className="h-3.5 w-3.5" />
                             Export {activeSingleTask.name} (CSV)
@@ -789,7 +789,7 @@ function ScoreImportModalContent({
                     </div>
 
                     {isCreatingSingleTask && (
-                      <div className="space-y-1.5 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5">
+                      <div className="space-y-1.5 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5 dark:border-indigo-800/60 dark:bg-indigo-950/35">
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.5fr_0.7fr_1fr]">
                           <input
                             type="text"
@@ -797,7 +797,7 @@ function ScoreImportModalContent({
                             value={newSingleTaskName}
                             onChange={(e) => setNewSingleTaskName(e.target.value)}
                             placeholder="e.g. English Summary Group Work"
-                            className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500"
+                            className="bg-input text-main rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 dark:border-indigo-700"
                           />
                           <input
                             type="number"
@@ -807,10 +807,10 @@ function ScoreImportModalContent({
                             value={newSingleTaskMax}
                             onChange={(e) => setNewSingleTaskMax(e.target.value)}
                             placeholder="Max (15)"
-                            className={`rounded-lg border bg-white px-2.5 py-1.5 text-center text-xs font-bold outline-none focus:border-indigo-500 ${
+                            className={`bg-input text-main rounded-lg border px-2.5 py-1.5 text-center text-xs font-bold outline-none focus:border-indigo-500 ${
                               isSingleTaskMaxValid
-                                ? "border-indigo-200"
-                                : "border-red-400 text-red-700"
+                                ? "border-indigo-200 dark:border-indigo-700"
+                                : "border-red-400 text-red-700 dark:border-red-500 dark:text-red-400"
                             }`}
                           />
                           <select
@@ -819,7 +819,7 @@ function ScoreImportModalContent({
                             onChange={(e) =>
                               setNewSingleTaskCategory(e.target.value as AssessmentCategory)
                             }
-                            className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold"
+                            className="bg-input text-main rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold dark:border-indigo-700"
                           >
                             <option value="CAT">CAT (Test)</option>
                             <option value="GROUP">Group Work</option>
@@ -828,7 +828,7 @@ function ScoreImportModalContent({
                           </select>
                         </div>
                         {!isSingleTaskMaxValid && (
-                          <p className="text-[11px] font-semibold text-red-700" role="alert">
+                          <p className="text-[11px] font-semibold text-red-700 dark:text-red-400" role="alert">
                             Max score must be between 1 and 100.
                           </p>
                         )}
@@ -839,7 +839,7 @@ function ScoreImportModalContent({
 
                 {/* Template Download & CSV Upload Actions */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-[11px] text-purple-900">
+                  <p className="text-[11px] text-purple-900 dark:text-purple-200">
                     {activeMode === "SINGLE_COMPONENT"
                       ? activeSingleTask
                         ? `2-column sheet: Name, ${activeSingleTask.name} (/${activeSingleTask.maxScore})`
@@ -857,7 +857,7 @@ function ScoreImportModalContent({
                     <button
                       type="button"
                       onClick={handleDownloadTemplate}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs font-bold text-purple-800 hover:bg-purple-100"
+                      className="bg-surface inline-flex items-center gap-1.5 rounded-lg border border-purple-300 px-3 py-2 text-xs font-bold text-purple-800 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-950/60"
                     >
                       <Download className="h-3.5 w-3.5" />
                       Download Template (CSV)
@@ -878,7 +878,7 @@ function ScoreImportModalContent({
 
               {!isPreviewing ? (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-600">
+                  <p className="text-secondary text-xs">
                     Paste rows directly from Excel or Google Sheets (include the header row), or
                     upload a completed CSV template above. Blank cells leave existing scores intact.
                   </p>
@@ -918,9 +918,9 @@ function ScoreImportModalContent({
                 <div className="space-y-3">
                   {parsedResult && parsedResult.rows.length > 0 ? (
                     <>
-                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-900">
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-900 dark:border dark:border-green-800/60 dark:bg-green-950/40 dark:text-green-200">
                         <div className="flex items-center gap-2 font-semibold">
-                          <CheckCircle className="h-4 w-4 shrink-0 text-green-600" />
+                          <CheckCircle className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
                           <span>
                             Matched <strong>{parsedResult.matchedStudentCount}</strong> of{" "}
                             <strong>{parsedResult.rows.length}</strong> row
@@ -933,7 +933,7 @@ function ScoreImportModalContent({
                             type="checkbox"
                             checked={createUnmatched}
                             onChange={(e) => setCreateUnmatched(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-purple-600"
+                            className="border-border-strong h-3.5 w-3.5 rounded text-purple-600"
                           />
                           <span>Add unmatched students</span>
                         </label>
@@ -944,11 +944,11 @@ function ScoreImportModalContent({
                           role="alert"
                           className={`flex items-start gap-2 rounded-lg border p-2.5 text-xs ${
                             parsedResult.matchedStudentCount === 0 && !createUnmatched
-                              ? "border-red-300 bg-red-50 text-red-900"
-                              : "border-amber-200 bg-amber-50 text-amber-900"
+                              ? "border-red-300 bg-red-50 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
+                              : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200"
                           }`}
                         >
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                           <span>
                             <strong>{parsedResult.unmatchedStudentCount}</strong> row
                             {parsedResult.unmatchedStudentCount === 1 ? " did" : "s did"} not match
@@ -962,15 +962,15 @@ function ScoreImportModalContent({
 
                       {/* Newly Detected SBA Components Card (Full Subject mode) */}
                       {parsedResult.detectedNewColumns.length > 0 && (
-                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-indigo-950">
-                            <PlusCircle className="h-4 w-4 text-indigo-600" />
+                        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 dark:border-indigo-800/60 dark:bg-indigo-950/35">
+                          <div className="flex items-center gap-2 text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                            <PlusCircle className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                             <span>
                               New SBA Component{parsedResult.detectedNewColumns.length > 1 ? "s" : ""}{" "}
                               Detected for {activeSubject}
                             </span>
                           </div>
-                          <p className="text-[11px] text-indigo-800">
+                          <p className="text-[11px] text-indigo-800 dark:text-indigo-300">
                             These columns aren&apos;t in {activeSubject}&apos;s SBA list yet. Checked
                             items will be created in Settings and assigned to every student.
                           </p>
@@ -980,7 +980,7 @@ function ScoreImportModalContent({
                               return (
                                 <div
                                   key={col.colIndex}
-                                  className="grid grid-cols-1 gap-2 rounded-lg border border-indigo-200 bg-white p-2.5 sm:grid-cols-[auto_1.4fr_0.8fr_1fr] sm:items-center"
+                                  className="bg-surface grid grid-cols-1 gap-2 rounded-lg border border-indigo-200 p-2.5 sm:grid-cols-[auto_1.4fr_0.8fr_1fr] sm:items-center dark:border-indigo-800/60"
                                 >
                                   <label className="inline-flex cursor-pointer items-center gap-2">
                                     <input
@@ -990,9 +990,9 @@ function ScoreImportModalContent({
                                       onChange={(e) =>
                                         updateNewColOverride(col, { enabled: e.target.checked })
                                       }
-                                      className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                                      className="border-border-strong h-4 w-4 rounded text-indigo-600"
                                     />
-                                    <span className="text-xs font-bold sm:hidden">Create</span>
+                                    <span className="text-main text-xs font-bold sm:hidden">Create</span>
                                   </label>
 
                                   <input
@@ -1003,11 +1003,11 @@ function ScoreImportModalContent({
                                     onChange={(e) =>
                                       updateNewColOverride(col, { name: e.target.value })
                                     }
-                                    className="rounded border border-gray-300 px-2 py-1 text-xs font-bold disabled:bg-gray-100"
+                                    className="border-border-strong bg-input text-main disabled:bg-subtle rounded border px-2 py-1 text-xs font-bold"
                                   />
 
                                   <div className="flex items-center gap-1">
-                                    <span className="text-[10px] font-bold text-gray-500">
+                                    <span className="text-muted text-[10px] font-bold">
                                       Max /
                                     </span>
                                     <input
@@ -1025,7 +1025,7 @@ function ScoreImportModalContent({
                                           ),
                                         })
                                       }
-                                      className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-xs font-bold disabled:bg-gray-100"
+                                      className="border-border-strong bg-input text-main disabled:bg-subtle w-16 rounded border px-2 py-1 text-center text-xs font-bold"
                                     />
                                   </div>
 
@@ -1038,7 +1038,7 @@ function ScoreImportModalContent({
                                         category: e.target.value as AssessmentCategory,
                                       })
                                     }
-                                    className="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-semibold disabled:bg-gray-100"
+                                    className="border-border-strong bg-input text-main disabled:bg-subtle rounded border px-2 py-1 text-xs font-semibold"
                                   >
                                     <option value="CAT">CAT (Test)</option>
                                     <option value="PROJECT">Project</option>
@@ -1054,9 +1054,9 @@ function ScoreImportModalContent({
 
                       {/* Existing Score Conflict Policy */}
                       {parsedResult.conflictCount > 0 && (
-                        <div className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-950">
+                        <div className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
                           <div className="flex items-center gap-2 font-bold">
-                            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
+                            <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                             <span>
                               {parsedResult.conflictCount} existing score
                               {parsedResult.conflictCount === 1 ? "" : "s"} already recorded for{" "}
@@ -1089,8 +1089,8 @@ function ScoreImportModalContent({
                       )}
 
                       {parsedResult.duplicateRowCount > 0 && (
-                        <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-900">
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600" />
+                        <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-900 dark:border-orange-800/60 dark:bg-orange-950/40 dark:text-orange-200">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400" />
                           <span>
                             Detected {parsedResult.duplicateRowCount} duplicate student row
                             {parsedResult.duplicateRowCount > 1 ? "s" : ""} in your sheet.
@@ -1101,9 +1101,9 @@ function ScoreImportModalContent({
                       {parsedResult.headerMismatchWarning && (
                         <div
                           role="alert"
-                          className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-bold text-red-900"
+                          className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-bold text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
                         >
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                           <span>{parsedResult.headerMismatchWarning}</span>
                         </div>
                       )}
@@ -1111,10 +1111,10 @@ function ScoreImportModalContent({
                       {parsedResult.overMaxCount > 0 && (
                         <div
                           role="alert"
-                          className="space-y-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-950"
+                          className="space-y-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-950 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
                         >
                           <div className="flex items-start gap-2 font-bold">
-                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                             <span>
                               {parsedResult.overMaxCount} score
                               {parsedResult.overMaxCount === 1 ? " exceeds" : "s exceed"} the
@@ -1123,21 +1123,21 @@ function ScoreImportModalContent({
                               clamping below.
                             </span>
                           </div>
-                          <label className="inline-flex cursor-pointer items-center gap-1.5 font-semibold text-red-900">
+                          <label className="inline-flex cursor-pointer items-center gap-1.5 font-semibold text-red-900 dark:text-red-200">
                             <input
                               type="checkbox"
                               checked={allowClampExceeding}
                               onChange={(e) => setAllowClampExceeding(e.target.checked)}
-                              className="h-3.5 w-3.5 rounded border-red-300 text-red-600"
+                              className="h-3.5 w-3.5 rounded border-red-300 text-red-600 dark:border-red-700"
                             />
                             <span>Clamp scores above maximum to allowed limit</span>
                           </label>
                         </div>
                       )}
 
-                      <div className="max-h-60 overflow-auto rounded-lg border border-gray-200">
+                      <div className="border-border max-h-60 overflow-auto rounded-lg border">
                         <table className="w-full text-left text-xs">
-                          <thead className="sticky top-0 bg-gray-100 text-[10px] font-bold text-gray-600 uppercase">
+                          <thead className="bg-subtle text-secondary sticky top-0 text-[10px] font-bold uppercase">
                             <tr>
                               <th className="px-3 py-2">Student</th>
                               <th className="px-3 py-2">Match</th>
@@ -1147,46 +1147,46 @@ function ScoreImportModalContent({
                               <th className="px-3 py-2 text-center">Total</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 bg-white">
+                          <tbody className="divide-border-subtle bg-surface divide-y">
                             {parsedResult.rows.map((row, idx) => {
                               const total = row.computedClassScore + row.effectiveExamWeighted;
                               return (
                                 <tr
                                   key={idx}
-                                  className={row.hasOverMaxError ? "bg-red-50/60" : undefined}
+                                  className={row.hasOverMaxError ? "bg-red-50/60 dark:bg-red-950/35" : undefined}
                                 >
-                                  <td className="px-3 py-2 font-bold text-gray-800">
+                                  <td className="text-main px-3 py-2 font-bold">
                                     {row.studentName}
                                     {row.isDuplicateInImport && (
-                                      <span className="ml-1.5 rounded bg-orange-100 px-1 py-0.5 text-[9px] font-bold text-orange-800">
+                                      <span className="ml-1.5 rounded bg-orange-100 px-1 py-0.5 text-[9px] font-bold text-orange-800 dark:bg-orange-950/60 dark:text-orange-300">
                                         Duplicate
                                       </span>
                                     )}
                                   </td>
                                   <td className="px-3 py-2">
                                     {row.isNewStudent ? (
-                                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
                                         {createUnmatched ? "New Student" : "Skipped"}
                                       </span>
                                     ) : (
-                                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                                         Matched
                                       </span>
                                     )}
                                   </td>
-                                  <td className="px-3 py-2 text-[11px] text-gray-600">
+                                  <td className="text-secondary px-3 py-2 text-[11px]">
                                     {row.componentScores.map((c) => (
                                       <span key={c.name} className="mr-2 inline-block">
                                         <strong>{c.name}:</strong>{" "}
                                         {c.clamped ? (
-                                          <span className="font-bold text-red-700">
+                                          <span className="font-bold text-red-700 dark:text-red-400">
                                             {c.rawScore} &gt; /{c.maxScore}!{" "}
                                             <span className="text-[10px] font-normal">
                                               (max {c.maxScore})
                                             </span>
                                           </span>
                                         ) : c.isConflict ? (
-                                          <span className="font-bold text-amber-700">
+                                          <span className="font-bold text-amber-700 dark:text-amber-400">
                                             {conflictPolicy === "KEEP_EXISTING"
                                               ? `${c.existingScore} (kept)`
                                               : `${c.existingScore} → ${c.score}`}
@@ -1200,24 +1200,24 @@ function ScoreImportModalContent({
                                     ))}
                                     {row.componentScores.length === 0 && "—"}
                                   </td>
-                                  <td className="px-3 py-2 text-center font-mono font-bold">
+                                  <td className="text-main px-3 py-2 text-center font-mono font-bold">
                                     <div>
                                       {row.computedClassScore}
                                       {row.hasWarnings && (
-                                        <span className="ml-1 text-[10px] text-red-600">*</span>
+                                        <span className="ml-1 text-[10px] text-red-600 dark:text-red-400">*</span>
                                       )}
                                     </div>
                                     {row.sbaTaskCount > 0 && (
-                                      <div className="text-[10px] font-normal text-gray-500">
+                                      <div className="text-muted text-[10px] font-normal">
                                         {row.sbaRawSum}/{row.sbaMaxSum} ({row.sbaTaskCount} task
                                         {row.sbaTaskCount === 1 ? "" : "s"})
                                       </div>
                                     )}
                                   </td>
-                                  <td className="px-3 py-2 text-center font-mono font-bold">
+                                  <td className="text-main px-3 py-2 text-center font-mono font-bold">
                                     {row.examRawScore ? (
                                       row.examRawScore.clamped ? (
-                                        <span className="text-red-700">
+                                        <span className="text-red-700 dark:text-red-400">
                                           {row.examRawScore.enteredRaw}% &gt; /100!
                                         </span>
                                       ) : row.examRawScore.isConflict &&
@@ -1227,14 +1227,14 @@ function ScoreImportModalContent({
                                         `${row.examRawScore.weighted} (${row.examRawScore.raw}%)`
                                       )
                                     ) : row.existingExamWeighted > 0 ? (
-                                      <span className="text-[11px] font-semibold text-gray-500">
+                                      <span className="text-muted text-[11px] font-semibold">
                                         {row.existingExamWeighted} (kept)
                                       </span>
                                     ) : (
                                       "—"
                                     )}
                                   </td>
-                                  <td className="text-primary px-3 py-2 text-center font-mono font-black">
+                                  <td className="text-primary-text px-3 py-2 text-center font-mono font-black">
                                     {total}
                                   </td>
                                 </tr>
@@ -1245,7 +1245,7 @@ function ScoreImportModalContent({
                       </div>
                     </>
                   ) : (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-800">
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
                       Could not find valid header + score rows. Ensure row 1 contains headers like{" "}
                       <code>Name, Science Project (/20), Exam</code>.
                     </div>

@@ -25,17 +25,17 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="bg-background flex min-h-screen items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-xl border border-red-100 bg-white p-8 text-center shadow-xl">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+          <div className="bg-surface w-full max-w-md rounded-xl border border-red-200 p-8 text-center shadow-xl dark:border-red-900/70">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/60">
+              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
             <h1 className="text-main text-2xl font-black">Something went wrong</h1>
-            <p className="mt-2 text-gray-600">
+            <p className="text-secondary mt-2">
               The application encountered an unexpected error. Don't worry, your data is safe.
             </p>
 
-            <div className="mt-6 max-h-40 overflow-auto rounded-lg bg-gray-100 p-4 text-left">
-              <p className="font-mono text-xs break-all text-red-500">
+            <div className="bg-subtle mt-6 max-h-40 overflow-auto rounded-lg p-4 text-left">
+              <p className="font-mono text-xs break-all text-red-600 dark:text-red-400">
                 {this.state.error?.message || "Unknown Error"}
               </p>
             </div>

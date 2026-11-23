@@ -312,7 +312,7 @@ export function Dashboard() {
               onImport={() => setShowImportModal(true)}
               onLoadDemo={() => setShowDemoModal(true)}
             />
-            <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+            <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm dark:border-blue-800/70 dark:bg-blue-950/40">
               <div className="flex items-start gap-4">
                 <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
                   <HelpCircle className="h-5 w-5 text-white" />
@@ -351,13 +351,13 @@ export function Dashboard() {
                   {settings.examType === "MOCK" ? (
                     <Link
                       to="/settings/academic"
-                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
                       title="Change exam mode in Settings"
                     >
                       Mock Exam (0/100)
                     </Link>
                   ) : (
-                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300">
                       Termly ({settings.classScoreMax}/{settings.examScoreMax})
                     </span>
                   )}
@@ -375,10 +375,10 @@ export function Dashboard() {
                     setScoreImportPreset({});
                     setShowScoreImportModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 shadow-xs transition-colors hover:bg-gray-50 active:scale-95"
+                  className="border-border bg-surface text-secondary hover:bg-subtle inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold shadow-xs transition-colors active:scale-95"
                   data-record="true"
                 >
-                  <Upload className="h-4 w-4 text-purple-600" />
+                  <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <span>Import Scores</span>
                 </button>
                 <button
@@ -449,7 +449,7 @@ export function Dashboard() {
                 <div
                   role="group"
                   aria-label="Workspace entry view"
-                  className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm"
+                  className="border-border bg-subtle inline-flex rounded-xl border p-1 shadow-xs"
                 >
                   <button
                     type="button"
@@ -457,12 +457,14 @@ export function Dashboard() {
                     aria-pressed={entryViewMode === "LIST"}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
                       entryViewMode === "LIST"
-                        ? "bg-primary text-white shadow-sm"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
+                        : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
                     }`}
                     data-record="true"
                   >
-                    <List className="h-3.5 w-3.5" />
+                    <List
+                      className={`h-3.5 w-3.5 ${entryViewMode === "LIST" ? "text-primary-text" : ""}`}
+                    />
                     <span>Student List</span>
                   </button>
                   <button
@@ -471,12 +473,14 @@ export function Dashboard() {
                     aria-pressed={entryViewMode === "GRADEBOOK"}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
                       entryViewMode === "GRADEBOOK"
-                        ? "bg-primary text-white shadow-sm"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-surface text-main dark:bg-elevated dark:text-main shadow-xs ring-1 ring-black/5 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:ring-white/10"
+                        : "text-secondary hover:bg-surface/60 hover:text-main dark:hover:bg-surface/60"
                     }`}
                     data-record="true"
                   >
-                    <TableProperties className="h-3.5 w-3.5" />
+                    <TableProperties
+                      className={`h-3.5 w-3.5 ${entryViewMode === "GRADEBOOK" ? "text-primary-text" : ""}`}
+                    />
                     <span>Quick Gradebook</span>
                   </button>
                 </div>
@@ -500,8 +504,8 @@ export function Dashboard() {
                   }}
                 />
               ) : filteredStudents.length === 0 ? (
-                <div className="rounded-xl border border-gray-200 bg-white py-16 text-center shadow-sm">
-                  <div className="bg-background mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                <div className="border-border bg-surface rounded-xl border py-16 text-center shadow-sm">
+                  <div className="bg-subtle mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
                     <X className="text-muted h-7 w-7" />
                   </div>
                   <h3 className="text-main text-lg font-bold" data-record="true">
@@ -519,7 +523,7 @@ export function Dashboard() {
                       setSearchQuery("");
                       setActiveFilter("ALL");
                     }}
-                    className="text-primary hover:text-primary/80 mt-4 text-sm font-bold transition-colors hover:underline"
+                    className="text-primary-text hover:text-primary-text/80 mt-4 text-sm font-bold transition-colors hover:underline"
                     data-record="true"
                   >
                     Clear Search & Filters
@@ -638,7 +642,7 @@ export function Dashboard() {
       />
 
       {/* ✅ SCROLL TO TOP/BOTTOM BUTTON */}
-      {students.length >= 10 && <ScrollButton />}
+      {students.length >= 10 && <ScrollButton scrollTargetSelector='[data-scroll-region="student-list"]' />}
 
       {/* ✅ WELCOME TOUR for first-time users */}
       <WelcomeTour

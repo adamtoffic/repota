@@ -27,7 +27,7 @@ export function PdfExportModal({
       aria-labelledby="ios-pdf-modal-title"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs print:hidden"
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+      <div className="bg-surface border-border w-full max-w-sm rounded-2xl border p-5 shadow-2xl">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 id="ios-pdf-modal-title" className="text-main text-base font-bold">
@@ -49,7 +49,7 @@ export function PdfExportModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main rounded-full p-1"
           >
             <X className="h-5 w-5" />
           </button>
@@ -57,11 +57,11 @@ export function PdfExportModal({
 
         {status === "generating" && (
           <div className="my-4">
-            <div className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-gray-700">
-              <Loader2 className="text-primary h-5 w-5 animate-spin" />
+            <div className="text-secondary flex items-center justify-center gap-2 py-2 text-sm font-medium">
+              <Loader2 className="text-primary-text h-5 w-5 animate-spin" />
               <span>{total > 0 ? `${pct}%` : "Starting…"}</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="bg-subtle h-2 w-full overflow-hidden rounded-full">
               <div
                 className="bg-primary h-full transition-all duration-200"
                 style={{ width: `${pct}%` }}
@@ -72,7 +72,7 @@ export function PdfExportModal({
 
         {status === "ready" && file && (
           <div className="mt-4 flex flex-col gap-2">
-            {error && <p className="text-xs text-amber-700">{error}</p>}
+            {error && <p className="text-xs text-amber-700 dark:text-amber-400">{error}</p>}
             <button
               type="button"
               onClick={onShare}
@@ -84,7 +84,7 @@ export function PdfExportModal({
             <button
               type="button"
               onClick={onDownload}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 active:scale-[0.98]"
+              className="border-border-strong bg-surface text-secondary hover:bg-subtle flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold active:scale-[0.98]"
             >
               <Download className="h-4 w-4" />
               Download PDF
@@ -104,7 +104,7 @@ export function PdfExportModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700"
+              className="border-border-strong bg-surface text-secondary hover:bg-subtle rounded-xl border px-4 py-2.5 text-sm font-bold"
             >
               Cancel
             </button>

@@ -19,12 +19,12 @@ export function AcademicSessionSection() {
   return (
     <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 2: ACADEMIC SESSION */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-lg bg-orange-100 p-2.5">
-            <BookOpen className="h-5 w-5 text-orange-600" />
+          <div className="rounded-lg bg-orange-100 p-2.5 dark:bg-orange-950/60">
+            <BookOpen className="h-5 w-5 text-orange-600 dark:text-orange-400" />
           </div>
-          <h2 className="text-lg font-bold text-gray-800" data-record="true">
+          <h2 className="text-main text-lg font-bold" data-record="true">
             Academic Session
           </h2>
         </div>
@@ -43,8 +43,8 @@ export function AcademicSessionSection() {
                   onClick={() => handleLevelChange(lvl)}
                   className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 sm:px-4 sm:py-2.5 ${
                     formData.level === lvl
-                      ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50/50"
+                      ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200 dark:border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:ring-blue-800/60"
+                      : "border-border bg-surface text-secondary hover:border-blue-300 hover:bg-blue-50/50 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
                   }`}
                 >
                   {lvl}
@@ -52,8 +52,8 @@ export function AcademicSessionSection() {
               ))}
             </div>
 
-            <div className="mt-3 flex gap-2 rounded-lg bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">
-              <AlertCircle className="h-4 w-4 shrink-0 text-blue-600" />
+            <div className="mt-3 flex gap-2 rounded-lg bg-blue-50 p-3 text-xs leading-relaxed text-blue-800 dark:border dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-200">
+              <AlertCircle className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
               <p>
                 {formData.level === "KG" &&
                   "Kindergarten: Uses developmental grading (Gold, Silver, Bronze)."}
@@ -85,7 +85,7 @@ export function AcademicSessionSection() {
                   className="pl-9 font-bold"
                   placeholder="e.g. Basic 4"
                 />
-                <Users className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Users className="text-muted pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               </div>
             </div>
             <Input
@@ -145,7 +145,7 @@ export function AcademicSessionSection() {
                 onChange={(e) =>
                   setFormData({ ...formData, term: e.target.value as AcademicPeriod })
                 }
-                className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm font-bold transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-sm font-bold transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
               >
                 <option value="First Term">First Term</option>
                 <option value="Second Term">Second Term</option>
@@ -176,9 +176,9 @@ export function AcademicSessionSection() {
                   className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
                     (formData.examType ?? "TERMLY") === type
                       ? type === "MOCK"
-                        ? "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200"
-                        : "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50/50"
+                        ? "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-800/60"
+                        : "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-200 dark:border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:ring-blue-800/60"
+                      : "border-border bg-surface text-secondary hover:border-border-strong hover:bg-subtle"
                   }`}
                 >
                   {type === "TERMLY" ? "📚 Termly" : "📃 Mock Exam"}
@@ -186,8 +186,8 @@ export function AcademicSessionSection() {
               ))}
             </div>
             {formData.examType === "MOCK" && (
-              <div className="mt-3 flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+              <div className="mt-3 flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800 dark:border dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
+                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <p>
                   <strong>Mock Exam mode:</strong> Only exam scores (0–100) are recorded. Class
                   scores and SBA components are disabled. Grades use the same system.
@@ -199,9 +199,9 @@ export function AcademicSessionSection() {
       </div>
 
       {/* CARD 4: SUBJECTS */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-4">
-          <h2 className="text-base font-bold tracking-wide text-gray-800 uppercase" data-record="true">
+          <h2 className="text-main text-base font-bold tracking-wide uppercase" data-record="true">
             Class Subjects (Learning Areas)
           </h2>
           <p className="text-muted text-xs">
@@ -224,7 +224,7 @@ export function AcademicSessionSection() {
             variant="secondary"
             size="md"
             aria-label="Add subject"
-            className="rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+            className="rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-950/70 dark:text-blue-300 dark:hover:bg-blue-900/70"
           >
             <Plus className="h-5 w-5" />
           </IconButton>
@@ -234,13 +234,13 @@ export function AcademicSessionSection() {
           {(formData.defaultSubjects || []).map((sub, index) => (
             <span
               key={index}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700"
+              className="border-border bg-subtle text-secondary inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium"
             >
               {sub}
               <button
                 type="button"
                 onClick={() => removeSubject(index)}
-                className="rounded-full p-0.5 text-gray-400 hover:bg-red-100 hover:text-red-500"
+                className="text-muted rounded-full p-0.5 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-950/60 dark:hover:text-red-400"
               >
                 <X className="h-3 w-3" />
               </button>

@@ -70,11 +70,11 @@ function SbaPageContent() {
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-purple-100 p-2.5">
-                <Calculator className="h-5 w-5 text-purple-600" />
+              <div className="rounded-lg bg-purple-100 p-2.5 dark:bg-purple-950/60">
+                <Calculator className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
                 <h1 className="text-main text-xl font-bold" data-record="true">
@@ -140,14 +140,14 @@ function SbaPageContent() {
         <SettingsStatusBanners />
 
         {hasMismatches && formData.examType !== "MOCK" && students.length > 0 && (
-          <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
             <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
                 <p className="font-bold" data-record="true">
                   Student SBA tasks are out of sync
                 </p>
-                <p className="mt-0.5 text-xs text-amber-800" data-record="true">
+                <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300" data-record="true">
                   Click "Sync Tasks to Students" above so existing student score sheets match your
                   updated subject task configuration.
                 </p>
@@ -157,12 +157,12 @@ function SbaPageContent() {
         )}
 
         {formData.examType === "MOCK" && (
-          <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
             <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
                 <p className="font-bold">Mock Exam mode is currently active</p>
-                <p className="mt-0.5 text-xs text-amber-800">
+                <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300">
                   Mock Exam mode uses 100% examination scores (0% class score) and hides SBA
                   weights and task creation.
                 </p>
@@ -170,7 +170,7 @@ function SbaPageContent() {
             </div>
             <Link
               to="/settings/academic"
-              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100"
+              className="dark:bg-elevated inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-700/70 dark:text-amber-200 dark:hover:bg-amber-950/80"
             >
               Change Exam Type
             </Link>

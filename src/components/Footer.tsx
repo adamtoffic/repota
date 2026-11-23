@@ -6,14 +6,14 @@ export function Footer() {
 
   return (
     <>
-      <footer className="text-muted mt-auto border-t border-gray-200 bg-white py-6 text-sm sm:py-8">
+      <footer className="text-muted border-border bg-surface mt-auto border-t py-6 text-sm sm:py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Container with responsive layout */}
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row md:gap-4">
             {/* Brand Section */}
             <div className="flex items-center gap-2">
               <span className="text-main text-base font-bold sm:text-lg">Repota</span>
-              <span className="rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs">
+              <span className="border-border bg-subtle rounded-full border px-2 py-0.5 text-xs">
                 v1.0.0
               </span>
             </div>
@@ -22,7 +22,7 @@ export function Footer() {
             <div className="grid grid-cols-2 gap-3 text-center sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-4 md:gap-6">
               <button
                 onClick={() => setShowAbout(true)}
-                className="hover:text-primary whitespace-nowrap transition-colors"
+                className="hover:text-primary-text whitespace-nowrap transition-colors"
               >
                 About & Privacy
               </button>
@@ -44,7 +44,7 @@ export function Footer() {
               <a
                 /* 🔴 EDIT THIS: Put your real email below */
                 href="mailto:repota.team@proton.me"
-                className="hover:text-primary flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+                className="hover:text-primary-text flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
               >
                 <span>📧</span>
                 <span className="hidden sm:inline">Email Us</span>
@@ -64,7 +64,7 @@ export function Footer() {
               </a>
 
               {/* Made in Ghana - Full width on mobile or inline on desktop */}
-              <span className="col-span-2 flex items-center justify-center gap-1.5 text-gray-400 sm:col-span-1">
+              <span className="text-muted col-span-2 flex items-center justify-center gap-1.5 sm:col-span-1">
                 <span className="text-lg">🇬🇭</span> Made in Ghana
               </span>
             </div>
@@ -72,7 +72,7 @@ export function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="mt-4 text-center text-xs text-gray-400">
+        <div className="text-muted mt-4 text-center text-xs">
           © {new Date().getFullYear()} Repota. Built with ❤️ for Ghanaian Teachers.
         </div>
       </footer>

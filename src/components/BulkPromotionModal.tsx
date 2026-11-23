@@ -73,16 +73,16 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
   return (
     <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-2xl">
       <div className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 p-4">
+        <div className="border-border-subtle flex items-center justify-between border-b p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
-            <GraduationCap className="text-primary h-5 w-5" />
+            <GraduationCap className="text-primary-text h-5 w-5" />
             Bulk Promotion Status
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
           >
             <X className="h-5 w-5" />
           </button>
@@ -90,14 +90,14 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-4 p-5">
           {settings.term !== "Third Term" && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
               Note: Promotion status is printed on report cards during <strong>Third Term</strong>{" "}
               (currently set to {settings.term}).
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-indigo-950">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 dark:border-indigo-800/60 dark:bg-indigo-950/40">
+            <div className="flex items-center gap-2 text-xs font-bold text-indigo-950 dark:text-indigo-200">
               <span>Pass Mark Threshold:</span>
               <input
                 type="number"
@@ -106,7 +106,7 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
                 aria-label="Pass Mark Threshold"
                 value={threshold}
                 onChange={(e) => setThreshold(Math.min(Math.max(Number(e.target.value) || 0, 0), 100))}
-                className="w-16 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-center font-bold"
+                className="bg-input text-main w-16 rounded-lg border border-indigo-200 px-2 py-1 text-center font-bold dark:border-indigo-700"
               />
               <span>%</span>
             </div>
@@ -119,7 +119,7 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
             </button>
           </div>
 
-          <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200">
+          <div className="divide-border-subtle border-border max-h-72 divide-y overflow-y-auto rounded-lg border">
             {students.map((student, idx) => {
               const effective = getEffectiveStatus(
                 student.id,
@@ -133,10 +133,10 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
                   className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-gray-800">
+                    <p className="text-main truncate text-sm font-bold">
                       {idx + 1}. {student.name}
                     </p>
-                    <p className="text-xs text-gray-500">Average: {student.averageScore}%</p>
+                    <p className="text-muted text-xs">Average: {student.averageScore}%</p>
                   </div>
                   <select
                     aria-label={`${student.name} Promotion Status`}
@@ -144,7 +144,7 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setOverrides((prev) => ({ ...prev, [student.id]: e.target.value }))
                     }
-                    className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-indigo-500"
+                    className="border-border-strong bg-input text-main rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-indigo-500"
                   >
                     <option value="Promoted to Next Class">Promoted</option>
                     <option value={`Repeated ${student.className}`}>Repeated</option>

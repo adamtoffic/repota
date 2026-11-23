@@ -69,7 +69,9 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
             inputRef.current?.click();
           }
         }}
-        className={`w-full ${maxHeight} group bg-background relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none`}
+        className={`w-full ${maxHeight} group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition-colors hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none ${
+          value ? "border-border-strong bg-white" : "border-border-strong bg-background"
+        }`}
       >
         {value ? (
           // ✅ SHOW IMAGE
@@ -77,8 +79,8 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
         ) : (
           // ✅ SHOW EMPTY STATE (Using ImageIcon here)
           <div className="p-4 text-center">
-            <ImageIcon className="mx-auto mb-1 h-6 w-6 text-gray-300" />
-            <span className="text-xs font-medium text-gray-400">Click to Upload</span>
+            <ImageIcon className="text-muted mx-auto mb-1 h-6 w-6 opacity-60" />
+            <span className="text-muted text-xs font-medium">Click to Upload</span>
           </div>
         )}
 
@@ -88,7 +90,7 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
         </div>
       </div>
 
-      <p className="text-[10px] text-gray-400">
+      <p className="text-muted text-[10px]">
         {label.includes("Signature")
           ? "Tip: Sign on plain white paper and crop closely."
           : "Tip: Auto-compressed for performance."}
@@ -108,7 +110,7 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
         <button
           type="button"
           onClick={handleRemove}
-          className="flex items-center gap-1 self-start text-[10px] font-bold text-red-500 hover:text-red-700"
+          className="flex items-center gap-1 self-start text-[10px] font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
         >
           <X className="h-3 w-3" /> Remove Image
         </button>

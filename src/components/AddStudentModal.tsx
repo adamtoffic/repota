@@ -49,16 +49,16 @@ export function AddStudentModal({
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-sm">
       <div className="space-y-4 p-5 sm:p-6">
         <div className="flex items-center justify-between">
-          <h3 id="add-student-modal-title" className="text-lg font-bold text-gray-800" data-record="true">
+          <h3 id="add-student-modal-title" className="text-main text-lg font-bold" data-record="true">
             Add New Student
           </h3>
           <button
             type="button"
             onClick={handleClose}
             aria-label="Close modal"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
           >
-            <X className="text-muted h-5 w-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
@@ -86,8 +86,8 @@ export function AddStudentModal({
                 onClick={() => setNewGender("Male")}
                 className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
                   newGender === "Male"
-                    ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200"
-                    : "border-gray-300 bg-white text-gray-600 hover:border-blue-300"
+                    ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:ring-blue-800/60"
+                    : "border-border-strong bg-surface text-secondary hover:border-blue-300 dark:hover:border-blue-500"
                 }`}
                 data-record="true"
               >
@@ -98,8 +98,8 @@ export function AddStudentModal({
                 onClick={() => setNewGender("Female")}
                 className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
                   newGender === "Female"
-                    ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200"
-                    : "border-gray-300 bg-white text-gray-600 hover:border-pink-300"
+                    ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200 dark:bg-pink-950/50 dark:text-pink-300 dark:ring-pink-800/60"
+                    : "border-border-strong bg-surface text-secondary hover:border-pink-300 dark:hover:border-pink-500"
                 }`}
                 data-record="true"
               >
@@ -115,10 +115,10 @@ export function AddStudentModal({
             >
               Class
             </label>
-            <p className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600">
+            <p className="border-border bg-subtle text-secondary w-full rounded-lg border px-3 py-2 text-sm font-medium">
               {settings.className || "Not configured"}
             </p>
-            <p className="mt-1 text-[10px] text-gray-400" data-record="true">
+            <p className="text-muted mt-1 text-[10px]" data-record="true">
               Based on School Level: {settings.level}
             </p>
           </div>

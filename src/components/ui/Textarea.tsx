@@ -13,17 +13,17 @@ export const Textarea = ({
   recordLabel = true,
   ...props
 }: TextareaProps) => {
-  const textareaClasses = `w-full rounded-lg border px-4 py-2.5 outline-none transition-all resize-none ${
+  const textareaClasses = `bg-input text-main placeholder:text-muted w-full rounded-lg border px-4 py-2.5 outline-none transition-all resize-none ${
     error
       ? "border-red-500 focus:ring-2 focus:ring-red-500"
-      : "border-gray-300 focus:ring-2 focus:ring-blue-500"
+      : "border-border-strong focus:ring-2 focus:ring-blue-500"
   } ${className}`;
 
   return (
     <div className="space-y-1.5">
       {label && (
         <label
-          className="block text-sm font-medium text-gray-700"
+          className="text-secondary block text-sm font-medium"
           {...(recordLabel ? { "data-record": "true" } : {})}
         >
           {label}
@@ -31,7 +31,7 @@ export const Textarea = ({
         </label>
       )}
       <textarea className={textareaClasses} {...props} />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 };

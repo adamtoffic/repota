@@ -32,12 +32,12 @@ export function SecurityBackupSection() {
     <>
       <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 border-0 p-0">
         {/* CARD 6: SECURITY & PRIVACY */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
           <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-lg bg-green-100 p-2.5">
-              <Lock className="h-5 w-5 text-green-600" />
+            <div className="rounded-lg bg-green-100 p-2.5 dark:bg-emerald-950/60">
+              <Lock className="h-5 w-5 text-green-600 dark:text-emerald-400" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800" data-record="true">
+            <h2 className="text-main text-lg font-bold" data-record="true">
               Security & Privacy
             </h2>
           </div>
@@ -108,15 +108,21 @@ export function SecurityBackupSection() {
             )}
 
             {isPinConfigured() && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-2 font-bold text-blue-900" data-record="true">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800/70 dark:bg-blue-950/45">
+                <h3
+                  className="mb-2 font-bold text-blue-900 dark:text-blue-200"
+                  data-record="true"
+                >
                   Auto-Lock Timer
                 </h3>
-                <p className="mb-3 text-sm text-blue-800">
+                <p className="mb-3 text-sm text-blue-800 dark:text-blue-300">
                   Automatically lock the app after a period of inactivity.
                 </p>
                 <div className="flex items-center gap-3">
-                  <label htmlFor="autoLockTimeout" className="text-sm font-medium text-blue-900">
+                  <label
+                    htmlFor="autoLockTimeout"
+                    className="text-sm font-medium text-blue-900 dark:text-blue-200"
+                  >
                     Lock after:
                   </label>
                   <select
@@ -125,7 +131,7 @@ export function SecurityBackupSection() {
                     onChange={(e) =>
                       setFormData({ ...formData, autoLockTimeout: Number(e.target.value) })
                     }
-                    className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-900 transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="bg-input text-main rounded-lg border border-blue-300 px-3 py-2 text-sm font-medium transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-blue-700/70"
                   >
                     <option value={1}>1 minute</option>
                     <option value={2}>2 minutes</option>
