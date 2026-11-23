@@ -69,11 +69,13 @@ Branch: `feat/score-entry-modal-redesign` (branched from `feat/navigation-shell`
 - `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  468 passed (468)`, `0` failed (`157.30s`), including CSS token-matching assertions and all `ScoreEntryUX.test.tsx`, `NavigationShell.test.tsx`, `ModalAndOverlayUX.test.tsx`, `remarkGenerator.test.ts`, `ScoreImportAndGradebook.test.tsx`, and `FunnelAndReliabilityAnalytics.test.tsx` suites.
 - `npm run build` (`tsc -b && vite build`): **Passed** (`built in 32.65s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3311.18 KiB`; verified `[class~=fixed][class~=inset-0][class*=z-]` present and `[class*=fixed]` absent in `dist/assets/index-*.css`).
 - Privacy & schema boundaries checked: zero changes to `ges_v1_students`, `ges_v1_settings`, `idbStorage.ts`, `backupValidation.ts`, `fileEncryption.ts`, or `analytics.ts`; `data-record="true"` verified strictly on static labels/controls.
+- **Physical device verification:** Confirmed by user on iPhone via the PR #66 Vercel preview (`ad37b11` / `21c3033`) — full native page scrolling through all subjects, clean Form Assistant `⌄`/`⌃` traversal, and zero auto-zoom across SBA drawers, dropdowns, and `DetailsTab`.
 
 ## What Could Not Be Verified
 
-- Physical mobile device ergonomics (real iOS Safari / iOS 27 Form Assistant `⌄`/`⌃` traversal across an entire multi-subject list, native vertical scrolling through all subjects, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
-- Interactive live visual browser inspection across Light and Dark modes at desktop and mobile viewports (no browser check was run in this session).
+- Automated iOS WebKit Playwright/E2E tests (none configured in CI).
+- Physical Android Chrome virtual keyboard and iPadOS hardware keyboard flows.
+- Interactive desktop Light and Dark mode live visual inspection (no browser session run in this task).
 
 ## Summary for reviewer
 
@@ -84,4 +86,4 @@ Branch: `feat/score-entry-modal-redesign` (branched from `feat/navigation-shell`
 - Moved mobile `ScoreEntryModal` (`< 640px`) out of `fixed inset-0` into native document flow (matching `QuickGradebook`) and fixed `[class~="fixed"][class~="inset-0"][class*="z-"]` in `src/index.css` so responsive `sm:fixed` sheets scroll freely on mobile.
 - Rebuilt `ScoreEntryModal` with a compact switcher header, isolated `ModalSaveStatus` & `MobileModalFooter`, live Student Pulse Strip, tab readiness badges, Print/SBA router slots, and `examType` tracking.
 - Hardened `DetailsTab` with empty-name guards, attendance clamping + live rating, legacy `promotionStatus` fallback option, score-guarded `Smart Generate`, and `Auto-fill Empty`.
-- Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `468` tests passed), and `npm run build` (`0`).
+- Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `468` tests passed), `npm run build` (`0`), and physical iPhone Safari verification on PR #66 Vercel preview.
