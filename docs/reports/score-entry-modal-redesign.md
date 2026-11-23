@@ -53,31 +53,35 @@ Branch: `feat/score-entry-modal-redesign` (branched from `feat/navigation-shell`
    - **`src/pages/Dashboard.tsx`**: Wrapped `PageHeader`, `<main>`, and `<Footer>` in `data-testid="dashboard-background-shell"` (`max-sm:hidden` while `editingStudent` is open), suppressed `<ScrollButton>` while the modal is open, and restored `window.scrollY` on mobile close.
    - **`src/test/ScoreEntryUX.test.tsx`, `src/test/NavigationShell.test.tsx`, & `src/test/ModalAndOverlayUX.test.tsx`**: Verified mobile document-flow classes, `data-mobile-sheet-open`, desktop-only body overflow locking, background `Dashboard` `max-sm:hidden` toggling, and `data-hide-on-mobile-sheet="true"` attributes.
 
+12. **`48d1942` — `fix(css,ios): scope modal fixed-backdrop selector to exact class tokens so mobile score entry scrolls`**
+   - **`src/index.css`**: Changed `[class*="fixed"][class*="inset-0"][class*="z-"]` to `[class~="fixed"][class~="inset-0"][class*="z-"]` so substring matching on `sm:fixed sm:inset-0 sm:z-100` no longer forces `position: fixed !important; inset: 0 !important;` onto `ScoreEntryModal` on mobile (`< 640px`), restoring native page scrolling.
+   - **`src/test/ScoreEntryUX.test.tsx`**: Added regression assertions confirming `dialog` does not match `[class~="fixed"][class~="inset-0"][class*="z-"]` and verifying `src/index.css` uses exact token matching (`~=`) rather than `[class*="fixed"]`.
+
 ## Why
 
 - Transform `ScoreEntryModal` from a cramped raw subject stack into a focused **student report workspace** complementing `QuickGradebook` (subject-first) with live student readiness, print access, and calm desktop/mobile ergonomics.
-- Eliminate silent data/navigation bugs: disappearing students under active filters, double-`Escape` dismissing the modal behind confirm dialogs, lost SBA components on missing-subject sync, red fail badges on unscored subjects, unimplemented mobile `"Next"` tip behavior, diagonal scroll mis-swipes, blank-name saves, out-of-range attendance entry, iOS Safari `type="number"` selection/WebKit Form Assistant quirks, mobile `< 16px` Safari auto-zoom on SBA/select/remark fields, WebKit `isObscuredElement` hit-test skips caused by `position: fixed; inset: 0; overflow-y: auto` + `body { overflow: hidden }` clipping scrolled inputs past the viewport (`⌄` disabling mid-list and `⌃` reversing/skipping into hidden `Dashboard` controls), layout shifts, touch `.select()`, round-trip blur churn, legacy `promotionStatus` dropdown masking, and harsh auto-generated remarks on unscored students.
+- Eliminate silent data/navigation bugs: disappearing students under active filters, double-`Escape` dismissing the modal behind confirm dialogs, lost SBA components on missing-subject sync, red fail badges on unscored subjects, unimplemented mobile `"Next"` tip behavior, diagonal scroll mis-swipes, blank-name saves, out-of-range attendance entry, iOS Safari `type="number"` selection/WebKit Form Assistant quirks, mobile `< 16px` Safari auto-zoom on SBA/select/remark fields, WebKit `isObscuredElement` hit-test skips caused by `position: fixed; inset: 0; overflow-y: auto` + `body { overflow: hidden }` clipping scrolled inputs past the viewport, legacy `[class*="fixed"][class*="inset-0"][class*="z-"]` CSS substring matching locking `sm:fixed` sheets to a non-scrolling `100vh` fixed box on mobile, layout shifts, touch `.select()`, round-trip blur churn, legacy `promotionStatus` dropdown masking, and harsh auto-generated remarks on unscored students.
 
 ## What Was Verified
 
 - `npm run lint` (`eslint .`): **Passed** (exit code `0`).
 - `npx tsc -b`: **Passed** (exit code `0`).
-- `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  468 passed (468)`, `0` failed (`170.06s`), including all `ScoreEntryUX.test.tsx`, `NavigationShell.test.tsx`, `ModalAndOverlayUX.test.tsx`, `remarkGenerator.test.ts`, `ScoreImportAndGradebook.test.tsx`, and `FunnelAndReliabilityAnalytics.test.tsx` suites.
-- `npm run build` (`tsc -b && vite build`): **Passed** (`built in 34.17s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3311.11 KiB`; verified `data-mobile-sheet-open` and `sm:animate-*` rules compiled in `dist/assets/index-*.css`).
+- `npx vitest run --maxWorkers=2`: **Passed** — `Test Files  48 passed (48)`, `Tests  468 passed (468)`, `0` failed (`157.30s`), including CSS token-matching assertions and all `ScoreEntryUX.test.tsx`, `NavigationShell.test.tsx`, `ModalAndOverlayUX.test.tsx`, `remarkGenerator.test.ts`, `ScoreImportAndGradebook.test.tsx`, and `FunnelAndReliabilityAnalytics.test.tsx` suites.
+- `npm run build` (`tsc -b && vite build`): **Passed** (`built in 32.65s`; `PWA v1.3.0`, `mode generateSW`, `32` precache entries / `3311.18 KiB`; verified `[class~=fixed][class~=inset-0][class*=z-]` present and `[class*=fixed]` absent in `dist/assets/index-*.css`).
 - Privacy & schema boundaries checked: zero changes to `ges_v1_students`, `ges_v1_settings`, `idbStorage.ts`, `backupValidation.ts`, `fileEncryption.ts`, or `analytics.ts`; `data-record="true"` verified strictly on static labels/controls.
 
 ## What Could Not Be Verified
 
-- Physical mobile device ergonomics (real iOS Safari / iOS 27 Form Assistant `⌄`/`⌃` traversal across an entire multi-subject list, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
+- Physical mobile device ergonomics (real iOS Safari / iOS 27 Form Assistant `⌄`/`⌃` traversal across an entire multi-subject list, native vertical scrolling through all subjects, viewport resize when keyboard opens, and physical thumb-swipe feel) outside `happy-dom` unit/integration tests.
 - Interactive live visual browser inspection across Light and Dark modes at desktop and mobile viewports (no browser check was run in this session).
 
 ## Summary for reviewer
 
-- Branched `feat/score-entry-modal-redesign` from `feat/navigation-shell`, resolved `9870c7b` (PR #64) merge conflicts cleanly (`faa71cb`), and hardened mobile/iOS score entry (`2031e0b`, `ebe4241`, `e5ab41b`, `c3e4616`).
+- Branched `feat/score-entry-modal-redesign` from `feat/navigation-shell`, resolved `9870c7b` (PR #64) merge conflicts cleanly (`faa71cb`), and hardened mobile/iOS score entry (`2031e0b`, `ebe4241`, `e5ab41b`, `c3e4616`, `48d1942`).
 - Fixed active-filter roster eviction in `Dashboard.tsx`, nested `ConfirmModal` `Escape` pass-through, diagonal scroll swipe misfires, and SBA component loss on missing-subject hydration.
 - Redesigned `SubjectRow` (`sm:contents` column parity, single-node Totals, honest `Pending`/`Partial`/Grade states, streamlined SBA drawer) and `AcademicTab` (`All`/`Incomplete` pinning, SBA accordion, `Enter`/Arrow keyboard flow).
 - Hardened `SubjectRow`, `AcademicTab`, and `DetailsTab` for iOS Safari (`type="text" inputMode="numeric" pattern="[0-9]*"`, `<form noValidate>`, `text-base` mobile controls, round-trip-clean `examDraft`, fine-pointer `.select()`, fixed-height mobile remark, `scroll-mt-24 scroll-mb-40`).
-- Moved mobile `ScoreEntryModal` (`< 640px`) out of `fixed inset-0` into native document flow (matching `QuickGradebook`), hiding background `Dashboard` (`max-sm:hidden`) and fixed shell chrome (`data-mobile-sheet-open="true"`) while keeping the desktop backdrop modal (`>= 640px`).
+- Moved mobile `ScoreEntryModal` (`< 640px`) out of `fixed inset-0` into native document flow (matching `QuickGradebook`) and fixed `[class~="fixed"][class~="inset-0"][class*="z-"]` in `src/index.css` so responsive `sm:fixed` sheets scroll freely on mobile.
 - Rebuilt `ScoreEntryModal` with a compact switcher header, isolated `ModalSaveStatus` & `MobileModalFooter`, live Student Pulse Strip, tab readiness badges, Print/SBA router slots, and `examType` tracking.
 - Hardened `DetailsTab` with empty-name guards, attendance clamping + live rating, legacy `promotionStatus` fallback option, score-guarded `Smart Generate`, and `Auto-fill Empty`.
 - Verified with `npm run lint` (`0`), `npx tsc -b` (`0`), `npx vitest run --maxWorkers=2` (`48` files / `468` tests passed), and `npm run build` (`0`).
