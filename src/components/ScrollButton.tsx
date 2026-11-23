@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 import { triggerHaptic } from "../utils/iosInteraction";
 
 export interface ScrollButtonProps {
@@ -209,18 +210,22 @@ export function ScrollButton({
     window.scrollTo({ top: destination, behavior });
   };
 
+  const isEditableFocused = useEditableInputFocused();
   const { isVisible, isAtTop, isAtBottom, progress } = scrollState;
   const bottomPositionClass = hasBottomNav
     ? "bottom-safe-nav"
     : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] md:bottom-6";
   const visibilityClass = !isVisible
-    ? "pointer-events-none translate-y-3 opacity-0"
+    ? "pointer-events-none invisible translate-y-3 opacity-0"
     : `translate-y-0 ${isActiveScroll ? "opacity-100" : "opacity-75 hover:opacity-100 focus-within:opacity-100"}`;
+  const mobileKeyboardHiddenClass = isEditableFocused
+    ? "max-md:pointer-events-none max-md:invisible max-md:opacity-0"
+    : "";
 
   return (
     <div
       aria-hidden={!isVisible}
-      className={`fixed right-4 z-30 flex flex-col items-end gap-1.5 transition-all duration-200 md:right-6 print:hidden ${bottomPositionClass} ${visibilityClass}`}
+      className={`fixed right-4 z-30 flex flex-col items-end gap-1.5 transition-all duration-200 md:right-6 print:hidden ${bottomPositionClass} ${visibilityClass} ${mobileKeyboardHiddenClass}`}
     >
       {statusLabel && (
         <div className="text-secondary rounded-full border border-white/80 bg-white/75 px-2.5 py-1 text-[11px] font-bold tracking-tight tabular-nums shadow-[0_6px_20px_rgba(15,23,42,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:bg-[#131926]/75 dark:shadow-[0_8px_24px_rgba(0,0,0,0.55),inset_0_1px_0.5px_rgba(255,255,255,0.18)]">

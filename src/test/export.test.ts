@@ -85,4 +85,57 @@ describe("exportToCSV", () => {
     expect(lines[1]).toBe('"Mensah, Kofi ""Jr""","70",,"70","1st","10"');
     expect(lines[2]).toBe('"\'=CMD|calc",,"60","60","2nd","14"');
   });
+
+  it("sorts exported broadsheet rows by classPosition (1st to last) without mutating input", async () => {
+    let capturedBlob: Blob | null = null;
+    vi.spyOn(URL, "createObjectURL").mockImplementation((obj) => {
+      capturedBlob = obj as Blob;
+      return "blob:mock-ranked-csv";
+    });
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    const makeRankedStudent = (
+      id: string,
+      name: string,
+      total: number,
+      classPosition: string,
+    ): ProcessedStudent => ({
+      id,
+      name,
+      className: "JHS 2",
+      subjects: [
+        {
+          id: `sub-${id}`,
+          name: "Mathematics",
+          classScore: Math.floor(total / 2),
+          examScore: total - Math.floor(total / 2),
+          totalScore: total,
+          grade: 1,
+          remark: "Highest",
+        },
+      ],
+      totalScore: total,
+      averageScore: total,
+      classPosition,
+      aggregate: 6,
+    });
+
+    const rollOrderedStudents: ProcessedStudent[] = [
+      makeRankedStudent("s1", "Student Third", 60, "4th"),
+      makeRankedStudent("s2", "Student Tie A", 90, "1st"),
+      makeRankedStudent("s3", "Student Next", 75, "3rd"),
+      makeRankedStudent("s4", "Student Tie B", 90, "1st"),
+    ];
+
+    expect(exportToCSV(rollOrderedStudents, "Ranked_Broadsheet")).toBe(true);
+    expect(rollOrderedStudents.map((s) => s.id)).toEqual(["s1", "s2", "s3", "s4"]);
+
+    const csvText = await capturedBlob!.text();
+    const lines = csvText.split("\n");
+    expect(lines[1]).toContain('"Student Tie A"');
+    expect(lines[2]).toContain('"Student Tie B"');
+    expect(lines[3]).toContain('"Student Next"');
+    expect(lines[4]).toContain('"Student Third"');
+  });
 });

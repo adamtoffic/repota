@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Download,
   ExternalLink,
   Filter,
   PlusCircle,
+  RefreshCw,
   TableProperties,
   Upload,
 } from "lucide-react";
@@ -25,42 +26,119 @@ import { captureEvent, trackScoreEntrySessionOnce } from "../utils/analytics";
 
 interface QuickGradebookProps {
   students: ProcessedStudent[];
+  /**
+   * Full unfiltered class roster used to keep edited rows mounted with live updated scores
+   * even when a parent Dashboard filter (e.g., Incomplete / No Scores) stops matching mid-edit.
+   */
+  allStudents?: ProcessedStudent[];
+  /**
+   * Opaque key capturing parent search/filter/sort settings (must not depend on student scores).
+   * Changing this key refreshes the frozen row-order snapshot.
+   */
+  sessionKey?: string;
   settings: SchoolSettings;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
-  onOpenStudent?: (student: ProcessedStudent) => void;
+  onOpenStudent?: (student: ProcessedStudent, orderedStudents?: ProcessedStudent[]) => void;
   onOpenScoreImport?: (subject: string, taskName?: string) => void;
+  onClearParentFilters?: () => void;
 }
 
-type FocusColumn = "CLASS_EXAM" | `COMP:${string}`;
+type FocusColumn = "CLASS_EXAM" | "CLASS_ONLY" | "EXAM_ONLY" | `COMP:${string}`;
+
+interface OrderSnapshot {
+  key: string;
+  ids: string[];
+  knownRosterIds: Set<string>;
+}
+
+function syncOrderSnapshot(
+  current: OrderSnapshot,
+  nextKey: string,
+  nextStudents: ProcessedStudent[],
+  rosterStudents: ProcessedStudent[],
+): OrderSnapshot | null {
+  if (current.key !== nextKey) {
+    return {
+      key: nextKey,
+      ids: nextStudents.map((student) => student.id),
+      knownRosterIds: new Set(rosterStudents.map((student) => student.id)),
+    };
+  }
+
+  const unseenIds = new Set<string>();
+  for (const student of rosterStudents) {
+    if (!current.knownRosterIds.has(student.id)) {
+      unseenIds.add(student.id);
+    }
+  }
+  if (unseenIds.size === 0) return null;
+
+  const newlyMatchingIds = nextStudents
+    .filter((student) => unseenIds.has(student.id))
+    .map((student) => student.id);
+  const nextKnown = new Set(current.knownRosterIds);
+  unseenIds.forEach((id) => nextKnown.add(id));
+
+  return {
+    key: nextKey,
+    ids: [...current.ids, ...newlyMatchingIds],
+    knownRosterIds: nextKnown,
+  };
+}
+
+function resolveStudentsFromSnapshot(
+  ids: string[],
+  rosterById: Map<string, ProcessedStudent>,
+): ProcessedStudent[] {
+  const resolved: ProcessedStudent[] = [];
+  for (const id of ids) {
+    const latest = rosterById.get(id);
+    if (latest) resolved.push(latest);
+  }
+  return resolved;
+}
 
 function isStudentUnscoredInGradebook(
   student: ProcessedStudent,
   activeSubject: string,
-  activeComponentName: string | null,
+  activeFocusColumn: FocusColumn,
   isMockExam: boolean,
 ): boolean {
   const sub = student.subjects.find((s) => s.name === activeSubject);
   if (!sub) return true;
-  if (activeComponentName) {
-    const comp = sub.classScoreComponents?.find((c) => c.name === activeComponentName);
+  if (activeFocusColumn.startsWith("COMP:")) {
+    const compName = activeFocusColumn.slice("COMP:".length);
+    const comp = sub.classScoreComponents?.find((c) => c.name === compName);
     return !comp || comp.score === 0;
   }
-  if (isMockExam) {
+  if (isMockExam || activeFocusColumn === "EXAM_ONLY") {
     return sub.examScore === 0;
+  }
+  if (activeFocusColumn === "CLASS_ONLY") {
+    return sub.classScore === 0;
   }
   return sub.classScore === 0 || sub.examScore === 0;
 }
 
 export function QuickGradebook({
   students,
+  allStudents,
+  sessionKey,
   settings,
   onUpdateStudent,
   onOpenStudent,
   onOpenScoreImport,
+  onClearParentFilters,
 }: QuickGradebookProps) {
   const isMockExam = settings.examType === "MOCK";
   const maxClassScore = settings.classScoreMax;
   const maxExamScore = settings.examScoreMax;
+
+  const rosterStudents = allStudents ?? students;
+  const rosterById = useMemo(
+    () => new Map(rosterStudents.map((student) => [student.id, student])),
+    [rosterStudents],
+  );
 
   const availableSubjects = useMemo(() => {
     const ordered: string[] = [];
@@ -73,9 +151,11 @@ export function QuickGradebook({
     };
 
     (settings.defaultSubjects || []).forEach(addSubjectName);
-    students.forEach((student) => student.subjects.forEach((sub) => addSubjectName(sub.name)));
+    rosterStudents.forEach((student) =>
+      student.subjects.forEach((sub) => addSubjectName(sub.name)),
+    );
     return ordered;
-  }, [settings.defaultSubjects, students]);
+  }, [settings.defaultSubjects, rosterStudents]);
 
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const activeSubject = availableSubjects.includes(selectedSubject)
@@ -84,17 +164,34 @@ export function QuickGradebook({
 
   const [focusColumn, setFocusColumn] = useState<FocusColumn>("CLASS_EXAM");
   const [unscoredOnly, setUnscoredOnly] = useState(false);
-  const [pinnedStudentIds, setPinnedStudentIds] = useState<Set<string>>(() => new Set());
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const [examDrafts, setExamDrafts] = useState<Record<string, { baseScore: number; raw: string }>>(
     {},
   );
+  const idPrefix = useId();
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const blurCleanupTimersRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    const timers = blurCleanupTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((timerId) => window.clearTimeout(timerId));
+    };
+  }, []);
+
+  const clearBlurCleanupTimer = (draftKey: string) => {
+    const existingTimer = blurCleanupTimersRef.current[draftKey];
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer);
+      delete blurCleanupTimersRef.current[draftKey];
+    }
+  };
 
   // Discover SBA tasks attached to this subject across the class
   const sbaTaskOptions = useMemo(() => {
     if (isMockExam || !activeSubject) return [] as Array<{ name: string; maxScore: number }>;
     const byName = new Map<string, number>();
-    students.forEach((student) => {
+    rosterStudents.forEach((student) => {
       const subject = student.subjects.find((sub) => sub.name === activeSubject);
       subject?.classScoreComponents?.forEach((comp) => {
         if (!byName.has(comp.name)) {
@@ -103,13 +200,31 @@ export function QuickGradebook({
       });
     });
     return Array.from(byName.entries()).map(([name, maxScore]) => ({ name, maxScore }));
-  }, [isMockExam, activeSubject, students]);
+  }, [isMockExam, activeSubject, rosterStudents]);
 
-  const activeFocusColumn: FocusColumn =
-    focusColumn.startsWith("COMP:") &&
-    sbaTaskOptions.some((task) => `COMP:${task.name}` === focusColumn)
-      ? focusColumn
-      : "CLASS_EXAM";
+  const hasDirectClassEntry = useMemo(
+    () =>
+      !isMockExam &&
+      Boolean(activeSubject) &&
+      rosterStudents.some((student) => {
+        const sub = student.subjects.find((s) => s.name === activeSubject);
+        return Boolean(sub && !sub.classScoreComponents?.length);
+      }),
+    [isMockExam, activeSubject, rosterStudents],
+  );
+
+  const activeFocusColumn: FocusColumn = isMockExam
+    ? "EXAM_ONLY"
+    : focusColumn === "CLASS_ONLY"
+      ? hasDirectClassEntry
+        ? "CLASS_ONLY"
+        : "CLASS_EXAM"
+      : focusColumn === "EXAM_ONLY"
+        ? "EXAM_ONLY"
+        : focusColumn.startsWith("COMP:") &&
+            sbaTaskOptions.some((task) => `COMP:${task.name}` === focusColumn)
+          ? focusColumn
+          : "CLASS_EXAM";
 
   const activeComponentName = activeFocusColumn.startsWith("COMP:")
     ? activeFocusColumn.slice("COMP:".length)
@@ -119,11 +234,76 @@ export function QuickGradebook({
     ? sbaTaskOptions.find((t) => t.name === activeComponentName)
     : undefined;
 
+  // Tier 1: Freeze parent-filtered/sorted student scope & order across score edits
+  const scopeKey = `${sessionKey ?? ""}|${refreshNonce}`;
+  const [scopeSnapshot, setScopeSnapshot] = useState<OrderSnapshot>(() => ({
+    key: scopeKey,
+    ids: students.map((student) => student.id),
+    knownRosterIds: new Set(rosterStudents.map((student) => student.id)),
+  }));
+
+  const nextScopeSnapshot = syncOrderSnapshot(scopeSnapshot, scopeKey, students, rosterStudents);
+  const activeScopeSnapshot = nextScopeSnapshot ?? scopeSnapshot;
+  if (nextScopeSnapshot) {
+    setScopeSnapshot(nextScopeSnapshot);
+  }
+
+  const sessionStudents = useMemo(
+    () => resolveStudentsFromSnapshot(activeScopeSnapshot.ids, rosterById),
+    [activeScopeSnapshot.ids, rosterById],
+  );
+
+  // Tier 2: Freeze gradebook row membership & order while entering scores under Unscored-only
+  const sessionUnscoredFiltered = useMemo(() => {
+    if (!unscoredOnly) return sessionStudents;
+    return sessionStudents.filter((student) =>
+      isStudentUnscoredInGradebook(student, activeSubject, activeFocusColumn, isMockExam),
+    );
+  }, [unscoredOnly, sessionStudents, activeSubject, activeFocusColumn, isMockExam]);
+
+  const visibleKey = `${scopeKey}|${activeSubject}|${activeFocusColumn}|${unscoredOnly ? "unscored" : "all"}`;
+  const [visibleSnapshot, setVisibleSnapshot] = useState<OrderSnapshot>(() => ({
+    key: visibleKey,
+    ids: sessionUnscoredFiltered.map((student) => student.id),
+    knownRosterIds: new Set(rosterStudents.map((student) => student.id)),
+  }));
+
+  const nextVisibleSnapshot = syncOrderSnapshot(
+    visibleSnapshot,
+    visibleKey,
+    sessionUnscoredFiltered,
+    rosterStudents,
+  );
+  const activeVisibleSnapshot = nextVisibleSnapshot ?? visibleSnapshot;
+  if (nextVisibleSnapshot) {
+    setVisibleSnapshot(nextVisibleSnapshot);
+  }
+
+  const visibleStudents = useMemo(
+    () => resolveStudentsFromSnapshot(activeVisibleSnapshot.ids, rosterById),
+    [activeVisibleSnapshot.ids, rosterById],
+  );
+
+  const liveVisibleStudents = useMemo(() => {
+    if (!unscoredOnly) return students;
+    return students.filter((student) =>
+      isStudentUnscoredInGradebook(student, activeSubject, activeFocusColumn, isMockExam),
+    );
+  }, [unscoredOnly, students, activeSubject, activeFocusColumn, isMockExam]);
+
+  const hasPendingOrderOrFilterChanges = useMemo(() => {
+    if (visibleStudents.length !== liveVisibleStudents.length) return true;
+    for (let i = 0; i < visibleStudents.length; i++) {
+      if (visibleStudents[i].id !== liveVisibleStudents[i].id) return true;
+    }
+    return false;
+  }, [visibleStudents, liveVisibleStudents]);
+
   const columnStats = useMemo(() => {
-    if (!activeSubject || students.length === 0) return { scored: 0, avgLabel: "" };
+    if (!activeSubject || sessionStudents.length === 0) return { scored: 0, avgLabel: "" };
     if (activeTaskConfig) {
       const scores: number[] = [];
-      students.forEach((student) => {
+      sessionStudents.forEach((student) => {
         const sub = student.subjects.find((s) => s.name === activeSubject);
         const comp = sub?.classScoreComponents?.find((c) => c.name === activeTaskConfig.name);
         if (comp && comp.score > 0) scores.push(comp.score);
@@ -138,8 +318,42 @@ export function QuickGradebook({
       };
     }
 
+    if (activeFocusColumn === "CLASS_ONLY") {
+      const scores: number[] = [];
+      sessionStudents.forEach((student) => {
+        const sub = student.subjects.find((s) => s.name === activeSubject);
+        if (sub && sub.classScore > 0) scores.push(sub.classScore);
+      });
+      const avg =
+        scores.length > 0
+          ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
+          : "0";
+      return {
+        scored: scores.length,
+        avgLabel: `Avg: ${avg}/${maxClassScore}`,
+      };
+    }
+
+    if (!isMockExam && activeFocusColumn === "EXAM_ONLY") {
+      const rawScores: number[] = [];
+      sessionStudents.forEach((student) => {
+        const sub = student.subjects.find((s) => s.name === activeSubject);
+        if (sub && sub.examScore > 0) {
+          rawScores.push(maxExamScore > 0 ? (sub.examScore / maxExamScore) * 100 : 0);
+        }
+      });
+      const avg =
+        rawScores.length > 0
+          ? (rawScores.reduce((a, b) => a + b, 0) / rawScores.length).toFixed(1)
+          : "0";
+      return {
+        scored: rawScores.length,
+        avgLabel: `Avg: ${avg}/100`,
+      };
+    }
+
     const totals: number[] = [];
-    students.forEach((student) => {
+    sessionStudents.forEach((student) => {
       const sub = student.subjects.find((s) => s.name === activeSubject);
       if (!sub) return;
       const hasAny = isMockExam ? sub.examScore > 0 : sub.classScore > 0 || sub.examScore > 0;
@@ -150,41 +364,45 @@ export function QuickGradebook({
         ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1)
         : "0";
     return { scored: totals.length, avgLabel: `Avg: ${avg}%` };
-  }, [activeSubject, activeTaskConfig, isMockExam, students]);
+  }, [
+    activeSubject,
+    activeTaskConfig,
+    activeFocusColumn,
+    isMockExam,
+    maxClassScore,
+    maxExamScore,
+    sessionStudents,
+  ]);
 
   const unscoredCount = useMemo(() => {
     if (!activeSubject) return 0;
-    return students.filter((student) =>
-      isStudentUnscoredInGradebook(student, activeSubject, activeComponentName, isMockExam),
+    return sessionStudents.filter((student) =>
+      isStudentUnscoredInGradebook(student, activeSubject, activeFocusColumn, isMockExam),
     ).length;
-  }, [students, activeSubject, activeComponentName, isMockExam]);
-
-  const visibleStudents = useMemo(() => {
-    if (!unscoredOnly) return students;
-    return students.filter(
-      (student) =>
-        pinnedStudentIds.has(student.id) ||
-        isStudentUnscoredInGradebook(student, activeSubject, activeComponentName, isMockExam),
-    );
-  }, [unscoredOnly, students, pinnedStudentIds, activeSubject, activeComponentName, isMockExam]);
+  }, [sessionStudents, activeSubject, activeFocusColumn, isMockExam]);
 
   const handleExportCurrentView = () => {
-    if (!activeSubject || students.length === 0) return;
+    if (!activeSubject || sessionStudents.length === 0) return;
     const dateStamp = new Date().toISOString().split("T")[0];
     const safeSub = activeSubject.replace(/\s+/g, "_");
     if (activeTaskConfig) {
-      const csv = buildSingleComponentExportCsv(activeSubject, activeTaskConfig, students, settings);
+      const csv = buildSingleComponentExportCsv(
+        activeSubject,
+        activeTaskConfig,
+        sessionStudents,
+        settings,
+      );
       downloadCsvFile(
         csv,
         `${safeSub}_${activeTaskConfig.name.replace(/\s+/g, "_")}_${dateStamp}.csv`,
       );
     } else {
-      const csv = buildSubjectQuickExportCsv(activeSubject, students, settings);
+      const csv = buildSubjectQuickExportCsv(activeSubject, sessionStudents, settings);
       downloadCsvFile(csv, `${safeSub}_Gradebook_${dateStamp}.csv`);
     }
     captureEvent("Class_Tool_Used", {
       tool: "gradebook_csv_export",
-      students_count: students.length,
+      students_count: sessionStudents.length,
       school_level: settings.level || "unknown",
     });
   };
@@ -193,9 +411,11 @@ export function QuickGradebook({
 
   const focusAdjacentStudentInput = (
     field: "class" | "exam" | "comp",
-    currentIndex: number,
+    currentStudentId: string,
     direction: 1 | -1 = 1,
   ) => {
+    const currentIndex = visibleStudents.findIndex((student) => student.id === currentStudentId);
+    if (currentIndex === -1) return;
     for (
       let nextIndex = currentIndex + direction;
       nextIndex >= 0 && nextIndex < visibleStudents.length;
@@ -212,12 +432,12 @@ export function QuickGradebook({
 
   /**
    * Power-user clipboard paste: pasting a multi-line column of numbers copied from
-   * Excel or Google Sheets fills consecutive students downward from `startIndex`.
+   * Excel or Google Sheets fills consecutive students downward from `startStudentId`.
    */
   const handleColumnPaste = (
     e: React.ClipboardEvent<HTMLInputElement>,
     field: "class" | "exam" | "comp",
-    startIndex: number,
+    startStudentId: string,
   ) => {
     const text = e.clipboardData.getData("text");
     if (!text || !/[\r\n]/.test(text)) return;
@@ -227,6 +447,9 @@ export function QuickGradebook({
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
     if (lines.length <= 1) return;
+
+    const startIndex = visibleStudents.findIndex((student) => student.id === startStudentId);
+    if (startIndex === -1) return;
 
     e.preventDefault();
     let lineOffset = 0;
@@ -283,22 +506,11 @@ export function QuickGradebook({
     }
   };
 
-  const pinStudentWhileFiltering = (studentId: string) => {
-    if (!unscoredOnly) return;
-    setPinnedStudentIds((prev) => {
-      if (prev.has(studentId)) return prev;
-      const next = new Set(prev);
-      next.add(studentId);
-      return next;
-    });
-  };
-
   const commitSubjectUpdate = (
     student: ProcessedStudent,
     updatedSubject: SavedSubject,
     fromPaste = false,
   ) => {
-    pinStudentWhileFiltering(student.id);
     const updatedSubjects = student.subjects.map((sub) =>
       sub.id === updatedSubject.id ? updatedSubject : sub,
     );
@@ -315,7 +527,6 @@ export function QuickGradebook({
 
   const handleAddSubjectToStudent = (student: ProcessedStudent) => {
     if (!activeSubject) return;
-    pinStudentWhileFiltering(student.id);
     const configuredTasks = settings.subjectComponentMap?.[activeSubject];
     const newSubject: SavedSubject = {
       id: crypto.randomUUID(),
@@ -347,7 +558,7 @@ export function QuickGradebook({
   }
 
   return (
-    <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
+    <div className="border-border bg-surface rounded-xl border shadow-sm">
       {/* Header Controls */}
       <div className="border-border-subtle border-b p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -366,14 +577,12 @@ export function QuickGradebook({
               >
                 {isMockExam ? "Mock (0/100)" : `Termly (${maxClassScore}/${maxExamScore})`}
               </span>
-              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                {scoredCount}/{students.length} scored
+              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 tabular-nums dark:bg-blue-950/60 dark:text-blue-300">
+                {scoredCount}/{sessionStudents.length} scored
               </span>
-              {scoredCount > 0 && columnStats.avgLabel && (
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                  {columnStats.avgLabel}
-                </span>
-              )}
+              <span className="min-w-[6.75rem] rounded-full bg-emerald-50 px-2.5 py-0.5 text-center text-xs font-bold text-emerald-700 tabular-nums dark:bg-emerald-950/60 dark:text-emerald-300">
+                {scoredCount > 0 && columnStats.avgLabel ? columnStats.avgLabel : "Avg: —"}
+              </span>
             </div>
             <p className="text-muted mt-0.5 text-xs" data-record="true">
               Enter scores subject-by-subject. Use Enter/Arrows to move or paste a column from Excel.
@@ -384,10 +593,7 @@ export function QuickGradebook({
             <select
               aria-label="Gradebook subject"
               value={activeSubject}
-              onChange={(e) => {
-                setPinnedStudentIds(new Set());
-                setSelectedSubject(e.target.value);
-              }}
+              onChange={(e) => setSelectedSubject(e.target.value)}
               className="border-border-strong bg-input text-main rounded-lg border px-3 py-2 text-sm font-bold shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               {availableSubjects.map((subjectName) => (
@@ -397,17 +603,18 @@ export function QuickGradebook({
               ))}
             </select>
 
-            {sbaTaskOptions.length > 0 && (
+            {!isMockExam && (
               <select
                 aria-label="Gradebook score column"
                 value={activeFocusColumn}
-                onChange={(e) => {
-                  setPinnedStudentIds(new Set());
-                  setFocusColumn(e.target.value as FocusColumn);
-                }}
+                onChange={(e) => setFocusColumn(e.target.value as FocusColumn)}
                 className="rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-800 shadow-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm dark:border-purple-700/70 dark:bg-purple-950/60 dark:text-purple-200"
               >
                 <option value="CLASS_EXAM">Class &amp; Exam (/100)</option>
+                {hasDirectClassEntry && (
+                  <option value="CLASS_ONLY">Class only (/{maxClassScore})</option>
+                )}
+                <option value="EXAM_ONLY">Exam only (/100)</option>
                 {sbaTaskOptions.map((task) => (
                   <option key={task.name} value={`COMP:${task.name}`}>
                     SBA: {task.name} (/{task.maxScore})
@@ -419,10 +626,7 @@ export function QuickGradebook({
             <button
               type="button"
               aria-pressed={unscoredOnly}
-              onClick={() => {
-                setPinnedStudentIds(new Set());
-                setUnscoredOnly((prev) => !prev);
-              }}
+              onClick={() => setUnscoredOnly((prev) => !prev)}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold shadow-xs transition-colors ${
                 unscoredOnly
                   ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
@@ -445,7 +649,20 @@ export function QuickGradebook({
               )}
             </button>
 
-            {students.length > 0 && (
+            {hasPendingOrderOrFilterChanges && (
+              <button
+                type="button"
+                onClick={() => setRefreshNonce((prev) => prev + 1)}
+                title="Row order is locked while entering scores. Click to apply the active sort and filters."
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 shadow-xs transition-colors hover:bg-blue-100 dark:border-blue-700/70 dark:bg-blue-950/60 dark:text-blue-200 dark:hover:bg-blue-950/80"
+                data-record="true"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Order locked · Re-apply</span>
+              </button>
+            )}
+
+            {sessionStudents.length > 0 && (
               <button
                 type="button"
                 onClick={handleExportCurrentView}
@@ -478,26 +695,45 @@ export function QuickGradebook({
       </div>
 
       {/* Gradebook Rows */}
-      <div className="divide-border-subtle divide-y">
-        {unscoredOnly && visibleStudents.length === 0 ? (
-          <div className="px-4 py-10 text-center sm:px-6">
-            <p className="text-main text-sm font-bold" data-record="true">
-              All students have scores entered for this view
-            </p>
-            <p className="text-muted mt-1 text-xs">
-              Switch subjects or turn off the filter to review existing marks.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setPinnedStudentIds(new Set());
-                setUnscoredOnly(false);
-              }}
-              className="text-primary-text hover:text-primary-text/80 mt-3 text-xs font-bold hover:underline"
-            >
-              Show All Students
-            </button>
-          </div>
+      <form onSubmit={(e) => e.preventDefault()} noValidate className="divide-border-subtle divide-y">
+        {visibleStudents.length === 0 ? (
+          unscoredOnly && sessionStudents.length > 0 ? (
+            <div className="px-4 py-10 text-center sm:px-6">
+              <p className="text-main text-sm font-bold" data-record="true">
+                All students have scores entered for this view
+              </p>
+              <p className="text-muted mt-1 text-xs" data-record="true">
+                Switch subjects or turn off the filter to review existing marks.
+              </p>
+              <button
+                type="button"
+                onClick={() => setUnscoredOnly(false)}
+                className="text-primary-text hover:text-primary-text/80 mt-3 text-xs font-bold hover:underline"
+                data-record="true"
+              >
+                Show All Students
+              </button>
+            </div>
+          ) : (
+            <div className="px-4 py-10 text-center sm:px-6">
+              <p className="text-main text-sm font-bold" data-record="true">
+                No students match the current search or filter
+              </p>
+              <p className="text-muted mt-1 text-xs" data-record="true">
+                Clear or adjust the dashboard search and filters to enter scores.
+              </p>
+              {onClearParentFilters && (
+                <button
+                  type="button"
+                  onClick={onClearParentFilters}
+                  className="text-primary-text hover:text-primary-text/80 mt-3 text-xs font-bold hover:underline"
+                  data-record="true"
+                >
+                  Clear Search &amp; Filters
+                </button>
+              )}
+            </div>
+          )
         ) : (
           visibleStudents.map((student, index) => {
           const subject = student.subjects.find((sub) => sub.name === activeSubject);
@@ -541,11 +777,23 @@ export function QuickGradebook({
           const activeComponent = activeComponentName
             ? subject.classScoreComponents?.find((comp) => comp.name === activeComponentName)
             : undefined;
+          const safeStudentId = student.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+          const compInputId = `${idPrefix}-comp-${safeStudentId}`;
+          const classInputId = `${idPrefix}-class-${safeStudentId}`;
+          const examInputId = `${idPrefix}-exam-${safeStudentId}`;
+          const showClassInput =
+            !isMockExam &&
+            !hasComponents &&
+            (activeFocusColumn === "CLASS_EXAM" || activeFocusColumn === "CLASS_ONLY");
+          const showExamInput =
+            isMockExam ||
+            activeFocusColumn === "CLASS_EXAM" ||
+            activeFocusColumn === "EXAM_ONLY";
 
           return (
             <div
               key={student.id}
-              className="hover:bg-subtle/60 flex flex-col gap-2.5 px-4 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              className="hover:bg-subtle/60 flex flex-col gap-2.5 px-4 py-3 transition-colors last:rounded-b-xl sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
               {/* Student Identity */}
               <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
@@ -575,7 +823,7 @@ export function QuickGradebook({
                 {onOpenStudent && (
                   <button
                     type="button"
-                    onClick={() => onOpenStudent(student)}
+                    onClick={() => onOpenStudent(student, visibleStudents)}
                     aria-label={`Open ${student.name} details`}
                     className="text-muted hover:bg-subtle hover:text-main rounded-lg p-2"
                     title="Open full score sheet"
@@ -589,25 +837,35 @@ export function QuickGradebook({
               <div className="flex items-center gap-2 sm:shrink-0">
                 {activeComponentName ? (
                   activeComponent ? (
-                    <label className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold text-purple-700 uppercase dark:text-purple-300">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <label
+                        htmlFor={compInputId}
+                        className="text-[10px] font-bold text-purple-700 uppercase dark:text-purple-300"
+                      >
                         {activeComponent.name} (/{activeComponent.maxScore})
-                      </span>
+                      </label>
                       <input
+                        id={compInputId}
+                        name={compInputId}
                         ref={(el) => {
                           inputRefs.current[`comp:${student.id}`] = el;
                         }}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
                         enterKeyHint="next"
-                        min={0}
-                        max={activeComponent.maxScore}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
                         aria-label={`${student.name} ${activeComponent.name} Score`}
                         value={activeComponent.score === 0 ? "" : activeComponent.score}
                         placeholder={`/${activeComponent.maxScore}`}
                         onChange={(e) => {
                           if (!subject.classScoreComponents) return;
-                          const rawScore = e.target.value === "" ? 0 : Number(e.target.value);
+                          const raw = e.target.value;
+                          if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+                          const rawScore = raw === "" ? 0 : Number(raw);
+                          if (!Number.isFinite(rawScore)) return;
                           const { updatedComponents, classScore } =
                             updateComponentAndRecalculateClassScore(
                               subject.classScoreComponents,
@@ -621,19 +879,19 @@ export function QuickGradebook({
                             classScore,
                           });
                         }}
-                        onPaste={(e) => handleColumnPaste(e, "comp", index)}
+                        onPaste={(e) => handleColumnPaste(e, "comp", student.id)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === "ArrowDown") {
                             e.preventDefault();
-                            focusAdjacentStudentInput("comp", index, 1);
+                            focusAdjacentStudentInput("comp", student.id, 1);
                           } else if (e.key === "ArrowUp") {
                             e.preventDefault();
-                            focusAdjacentStudentInput("comp", index, -1);
+                            focusAdjacentStudentInput("comp", student.id, -1);
                           }
                         }}
-                        className="bg-input text-main placeholder:text-muted w-24 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
+                        className="bg-input text-main placeholder:text-muted w-24 scroll-mt-24 scroll-mb-40 rounded-lg border border-purple-300 px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
                       />
-                    </label>
+                    </div>
                   ) : (
                     <span className="border-border bg-subtle text-muted rounded-lg border px-3 py-2 text-xs">
                       Not configured
@@ -641,116 +899,163 @@ export function QuickGradebook({
                   )
                 ) : (
                   <>
-                    {!isMockExam && !hasComponents && (
-                      <label className="flex flex-col items-center gap-0.5">
-                        <span
+                    {activeFocusColumn === "CLASS_ONLY" && hasComponents && (
+                      <span className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 tabular-nums dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300">
+                        SBA: {subject.classScore}/{maxClassScore}
+                      </span>
+                    )}
+
+                    {showClassInput && (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <label
+                          htmlFor={classInputId}
                           className="text-muted text-[10px] font-bold uppercase"
                           data-record="true"
                         >
                           Class (/{maxClassScore})
-                        </span>
+                        </label>
                         <input
+                          id={classInputId}
+                          name={classInputId}
                           ref={(el) => {
                             inputRefs.current[`class:${student.id}`] = el;
                           }}
-                          type="number"
+                          type="text"
                           inputMode="numeric"
+                          pattern="[0-9]*"
                           enterKeyHint="next"
-                          min={0}
-                          max={maxClassScore}
+                          autoComplete="off"
+                          autoCorrect="off"
+                          spellCheck={false}
                           aria-label={`${student.name} Class Score`}
                           value={subject.classScore === 0 ? "" : subject.classScore}
                           placeholder={`/${maxClassScore}`}
                           onChange={(e) => {
-                            if (e.target.value === "") {
+                            const raw = e.target.value;
+                            if (raw === "") {
                               commitSubjectUpdate(student, { ...subject, classScore: 0 });
                               return;
                             }
-                            const { score } = clampDirectClassScore(
-                              Number(e.target.value),
-                              maxClassScore,
-                            );
+                            if (!/^\d*\.?\d*$/.test(raw)) return;
+                            const numeric = Number(raw);
+                            if (!Number.isFinite(numeric)) return;
+                            const { score } = clampDirectClassScore(numeric, maxClassScore);
                             commitSubjectUpdate(student, { ...subject, classScore: score });
                           }}
-                          onPaste={(e) => handleColumnPaste(e, "class", index)}
+                          onPaste={(e) => handleColumnPaste(e, "class", student.id)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === "ArrowDown") {
                               e.preventDefault();
-                              focusAdjacentStudentInput("class", index, 1);
+                              focusAdjacentStudentInput("class", student.id, 1);
                             } else if (e.key === "ArrowUp") {
                               e.preventDefault();
-                              focusAdjacentStudentInput("class", index, -1);
+                              focusAdjacentStudentInput("class", student.id, -1);
                             }
                           }}
-                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                         />
-                      </label>
+                      </div>
                     )}
 
-                    <label className="flex flex-col items-center gap-0.5">
-                      <span
-                        className="text-muted text-[10px] font-bold uppercase"
-                        data-record="true"
-                      >
-                        {isMockExam ? "Score (/100)" : "Exam (/100)"}
-                      </span>
-                      <input
-                        ref={(el) => {
-                          inputRefs.current[`exam:${student.id}`] = el;
-                        }}
-                        type="number"
-                        inputMode="numeric"
-                        enterKeyHint="next"
-                        min={0}
-                        max={100}
-                        aria-label={`${student.name} Exam Score`}
-                        value={examRawValue}
-                        placeholder="/100"
-                        onChange={(e) => {
-                          const raw = e.target.value;
-                          if (raw === "") {
-                            setExamDrafts((prev) => ({
-                              ...prev,
-                              [draftKey]: { baseScore: 0, raw: "" },
-                            }));
-                            commitSubjectUpdate(student, { ...subject, examScore: 0 });
-                            return;
-                          }
+                    {showExamInput && (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <label
+                          htmlFor={examInputId}
+                          className="text-muted text-[10px] font-bold uppercase"
+                          data-record="true"
+                        >
+                          {isMockExam ? "Score (/100)" : "Exam (/100)"}
+                        </label>
+                        <input
+                          id={examInputId}
+                          name={examInputId}
+                          ref={(el) => {
+                            inputRefs.current[`exam:${student.id}`] = el;
+                          }}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          enterKeyHint="next"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          aria-label={`${student.name} Exam Score`}
+                          value={examRawValue}
+                          placeholder="/100"
+                          onFocus={() => clearBlurCleanupTimer(draftKey)}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            clearBlurCleanupTimer(draftKey);
 
-                          const { clampedRaw, wasClamped, weightedScore } = convertExamRawToWeighted(
-                            Number(raw),
-                            maxExamScore,
-                          );
-                          setExamDrafts((prev) => ({
-                            ...prev,
-                            [draftKey]: {
-                              baseScore: weightedScore,
-                              raw: wasClamped ? String(clampedRaw) : raw,
-                            },
-                          }));
-                          commitSubjectUpdate(student, { ...subject, examScore: weightedScore });
-                        }}
-                        onBlur={() => {
-                          setExamDrafts((prev) => {
-                            if (!(draftKey in prev)) return prev;
-                            const next = { ...prev };
-                            delete next[draftKey];
-                            return next;
-                          });
-                        }}
-                        onPaste={(e) => handleColumnPaste(e, "exam", index)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === "ArrowDown") {
-                            e.preventDefault();
-                            focusAdjacentStudentInput("exam", index, 1);
-                          } else if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            focusAdjacentStudentInput("exam", index, -1);
-                          }
-                        }}
-                        className="border-border-strong bg-input text-main placeholder:text-muted w-20 rounded-lg border px-2 py-2 text-center text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-                      />
-                    </label>
+                            if (raw === "") {
+                              setExamDrafts((prev) => {
+                                if (!(draftKey in prev)) return prev;
+                                const next = { ...prev };
+                                delete next[draftKey];
+                                return next;
+                              });
+                              commitSubjectUpdate(student, { ...subject, examScore: 0 });
+                              return;
+                            }
+
+                            if (!/^\d*\.?\d*$/.test(raw)) return;
+                            const numeric = Number(raw);
+                            if (!Number.isFinite(numeric)) return;
+
+                            const { clampedRaw, wasClamped, weightedScore } =
+                              convertExamRawToWeighted(numeric, maxExamScore);
+                            const normalizedDisplay = wasClamped ? String(clampedRaw) : raw;
+                            const formattedWeighted = formatExamWeightedAsRaw(
+                              weightedScore,
+                              maxExamScore,
+                            );
+
+                            if (normalizedDisplay !== formattedWeighted) {
+                              setExamDrafts((prev) => ({
+                                ...prev,
+                                [draftKey]: {
+                                  baseScore: weightedScore,
+                                  raw: normalizedDisplay,
+                                },
+                              }));
+                            } else if (draftKey in examDrafts) {
+                              setExamDrafts((prev) => {
+                                if (!(draftKey in prev)) return prev;
+                                const next = { ...prev };
+                                delete next[draftKey];
+                                return next;
+                              });
+                            }
+
+                            commitSubjectUpdate(student, { ...subject, examScore: weightedScore });
+                          }}
+                          onBlur={() => {
+                            if (!(draftKey in examDrafts)) return;
+                            clearBlurCleanupTimer(draftKey);
+                            blurCleanupTimersRef.current[draftKey] = window.setTimeout(() => {
+                              delete blurCleanupTimersRef.current[draftKey];
+                              setExamDrafts((prev) => {
+                                if (!(draftKey in prev)) return prev;
+                                const next = { ...prev };
+                                delete next[draftKey];
+                                return next;
+                              });
+                            }, 180);
+                          }}
+                          onPaste={(e) => handleColumnPaste(e, "exam", student.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === "ArrowDown") {
+                              e.preventDefault();
+                              focusAdjacentStudentInput("exam", student.id, 1);
+                            } else if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              focusAdjacentStudentInput("exam", student.id, -1);
+                            }
+                          }}
+                          className="border-border-strong bg-input text-main placeholder:text-muted w-20 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 py-2 text-center text-sm font-bold tabular-nums outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                        />
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -758,7 +1063,7 @@ export function QuickGradebook({
           );
         })
         )}
-      </div>
+      </form>
     </div>
   );
 }
