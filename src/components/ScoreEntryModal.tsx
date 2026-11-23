@@ -139,7 +139,7 @@ function MobileModalFooter({
     <div
       data-testid="mobile-modal-footer"
       aria-hidden={isEditableFocused || undefined}
-      className={`safe-bottom border-border bg-surface fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 border-t px-4 py-2.5 transition-all duration-150 sm:hidden ${
+      className={`safe-bottom border-border bg-surface fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-2 border-t px-4 py-2.5 transition-all duration-150 sm:hidden ${
         isEditableFocused
           ? "pointer-events-none invisible translate-y-4 opacity-0"
           : "pointer-events-auto visible translate-y-0 opacity-100"
@@ -206,7 +206,6 @@ export function ScoreEntryModal({
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [hasNestedModal, setHasNestedModal] = useState(false);
 
-  const dialogScrollRef = useRef<HTMLDivElement>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -234,12 +233,29 @@ export function ScoreEntryModal({
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < totalStudents - 1;
 
-  // Lock background document scroll without shifting Dashboard's scroll offset.
+  // Hide mobile shell chrome (AppShell nav pill, AutoSaveIndicator, PwaInstallPrompt) while sheet is open.
+  useEffect(() => {
+    if (!isOpen) return;
+    document.documentElement.dataset.mobileSheetOpen = "true";
+    return () => {
+      delete document.documentElement.dataset.mobileSheetOpen;
+    };
+  }, [isOpen]);
+
+  // Lock background document scroll only for the desktop modal backdrop; mobile uses native document scroll.
   useEffect(() => {
     if (!isOpen) return;
     const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const mq = window.matchMedia?.("(min-width: 640px)");
+
+    const syncBodyOverflow = () => {
+      document.body.style.overflow = !mq || mq.matches ? "hidden" : prevOverflow;
+    };
+
+    syncBodyOverflow();
+    mq?.addEventListener?.("change", syncBodyOverflow);
     return () => {
+      mq?.removeEventListener?.("change", syncBodyOverflow);
       document.body.style.overflow = prevOverflow;
     };
   }, [isOpen]);
@@ -247,11 +263,11 @@ export function ScoreEntryModal({
   // Reset modal scroll position when switching students or tabs.
   useEffect(() => {
     if (!isOpen) return;
-    if (dialogScrollRef.current) {
-      dialogScrollRef.current.scrollTop = 0;
-    }
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
+    }
+    if (window.matchMedia?.("(max-width: 639px)")?.matches) {
+      window.scrollTo?.(0, 0);
     }
   }, [isOpen, student.id, activeTab]);
 
@@ -328,8 +344,7 @@ export function ScoreEntryModal({
 
   return (
     <div
-      ref={dialogScrollRef}
-      className="animate-fade-in bg-surface fixed inset-0 z-100 overscroll-contain max-sm:overflow-y-auto sm:flex sm:items-center sm:justify-center sm:overflow-hidden sm:bg-black/50 sm:p-4 sm:backdrop-blur-sm dark:sm:bg-black/70"
+      className="bg-surface relative min-h-dvh w-full sm:animate-fade-in sm:fixed sm:inset-0 sm:z-100 sm:flex sm:items-center sm:justify-center sm:overflow-hidden sm:bg-black/50 sm:p-4 sm:backdrop-blur-sm dark:sm:bg-black/70"
       role="dialog"
       aria-modal="true"
       aria-labelledby="score-entry-modal-title"
@@ -337,7 +352,7 @@ export function ScoreEntryModal({
     >
       <div
         ref={modalContentRef}
-        className="animate-sheet-up bg-surface sm:border-border flex min-h-dvh w-full max-w-4xl flex-col shadow-2xl sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border dark:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
+        className="bg-surface sm:border-border sm:animate-sheet-up flex min-h-dvh w-full max-w-4xl flex-col sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:shadow-2xl dark:sm:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="safe-top bg-surface shrink-0 sm:hidden" />
@@ -579,9 +594,9 @@ export function ScoreEntryModal({
         {/* SCROLLABLE WORKSPACE */}
         <div
           ref={scrollContainerRef}
-          className="bg-background/50 flex-1 p-3 pb-56 sm:overflow-y-auto sm:overscroll-contain sm:p-5 sm:pb-5"
+          className="bg-background/50 flex-1 p-3 pb-36 sm:overflow-y-auto sm:overscroll-contain sm:p-5 sm:pb-5"
         >
-          <div key={`${student.id}-${activeTab}`} className="animate-page-enter">
+          <div key={`${student.id}-${activeTab}`} className="sm:animate-page-enter">
             {activeTab === "ACADEMIC" && (
               <AcademicTab
                 key={student.id}

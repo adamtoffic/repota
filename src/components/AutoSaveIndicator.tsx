@@ -73,7 +73,10 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
   if (!isVisible) return null;
 
   return (
-    <div className="animate-fade-in bottom-safe-nav pointer-events-none fixed left-4 z-30 md:left-72 print:hidden">
+    <div
+      data-hide-on-mobile-sheet="true"
+      className="animate-fade-in bottom-safe-nav pointer-events-none fixed left-4 z-30 md:left-72 print:hidden"
+    >
       <div
         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium shadow-lg ${
           error

@@ -138,6 +138,7 @@ export function PwaInstallPrompt() {
     return (
       <div
         aria-hidden={isEditableFocused || undefined}
+        data-hide-on-mobile-sheet="true"
         className={`animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 print:hidden ${keyboardHiddenClass}`}
       >
         <div className="bg-elevated rounded-lg border border-blue-200 p-4 shadow-lg dark:border-blue-800/70">
@@ -194,6 +195,7 @@ export function PwaInstallPrompt() {
   return (
     <div
       aria-hidden={isEditableFocused || undefined}
+      data-hide-on-mobile-sheet="true"
       className={`animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 print:hidden ${keyboardHiddenClass}`}
     >
       <div className="bg-elevated rounded-lg border border-blue-200 p-4 shadow-lg dark:border-blue-800/70">

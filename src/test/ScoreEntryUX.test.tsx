@@ -1012,9 +1012,14 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
           target: { value: "AVG_DESC" },
         });
 
+        const dashboardShell = screen.getByTestId("dashboard-background-shell");
+        expect(dashboardShell).not.toHaveClass("max-sm:hidden");
+
         // Open Student B (index 2 of 3)
         fireEvent.click(screen.getAllByText("Student B")[0]);
         expect(screen.getByText("2 / 3")).toBeInTheDocument();
+        expect(dashboardShell).toHaveClass("max-sm:hidden");
+        expect(document.documentElement.dataset.mobileSheetOpen).toBe("true");
 
         // Update Student B's Mathematics Exam Score so B overtakes A in live AVG_DESC
         fireEvent.change(screen.getByLabelText("Mathematics Exam Score"), {
@@ -1029,6 +1034,8 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
 
         // Close modal, switch to Quick Gradebook (current AVG_DESC order is [B (60), A (30), C (10)])
         fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+        expect(dashboardShell).not.toHaveClass("max-sm:hidden");
+        expect(document.documentElement.dataset.mobileSheetOpen).toBeUndefined();
         fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
 
         expect(screen.getByText("1. Student B")).toBeInTheDocument();
@@ -1771,7 +1778,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       }
     });
 
-    it("uses single top-level dialog scroller on mobile and keeps form inputs with scroll margins", () => {
+    it("renders in native document flow on mobile while preserving desktop backdrop modal semantics", () => {
       const s1 = makeStudent("s1", "Ama Mensah", [
         { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
         { id: "sub-2", name: "English", classScore: 0, examScore: 0 },
@@ -1780,7 +1787,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
       ]);
 
-      render(
+      const { unmount } = render(
         <SchoolContext.Provider value={makeSchoolContext([s1, s2])}>
           <ScoreEntryModal
             student={s1}
@@ -1795,7 +1802,13 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       );
 
       const dialog = screen.getByRole("dialog");
-      expect(dialog).toHaveClass("max-sm:overflow-y-auto");
+      const dialogClasses = dialog.className.split(/\s+/);
+      expect(dialog).toHaveClass("relative", "sm:fixed", "sm:inset-0");
+      expect(dialogClasses).not.toContain("fixed");
+      expect(dialogClasses).not.toContain("overflow-hidden");
+      expect(dialogClasses).not.toContain("overflow-y-auto");
+      expect(dialogClasses).not.toContain("max-sm:overflow-y-auto");
+      expect(document.documentElement.dataset.mobileSheetOpen).toBe("true");
 
       const sheet = dialog.firstElementChild as HTMLElement;
       expect(sheet).toHaveClass("sm:overflow-hidden");
@@ -1813,6 +1826,9 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       const subjectFilterSelect = screen.getByLabelText("Filter by subject");
       expect(switcherSelect).toHaveClass("text-base");
       expect(subjectFilterSelect).toHaveClass("text-base");
+
+      unmount();
+      expect(document.documentElement.dataset.mobileSheetOpen).toBeUndefined();
     });
 
     it("avoids post-blur draft churn on round-trip exam scores and defers rounding normalization by 180ms", () => {
@@ -1884,6 +1900,73 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         setTimeoutSpy.mockRestore();
       } finally {
         vi.useRealTimers();
+      }
+    });
+
+    it("locks body overflow only on desktop modal viewports and leaves mobile document scroll unlocked", () => {
+      const originalMatchMedia = window.matchMedia;
+      const originalOverflow = document.body.style.overflow;
+      const s1 = makeStudent("s1", "Ama Mensah", [
+        { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+      ]);
+
+      const mockViewport = (isDesktop: boolean) => {
+        Object.defineProperty(window, "matchMedia", {
+          writable: true,
+          configurable: true,
+          value: vi.fn((query: string) => ({
+            matches: query === "(min-width: 640px)" ? isDesktop : false,
+            media: query,
+            onchange: null,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+          })),
+        });
+      };
+
+      try {
+        document.body.style.overflow = "";
+        mockViewport(false);
+        const mobileRender = render(
+          <SchoolContext.Provider value={makeSchoolContext([s1])}>
+            <ScoreEntryModal
+              student={s1}
+              level="JHS"
+              isOpen={true}
+              onClose={vi.fn()}
+              onUpdateStudent={vi.fn()}
+            />
+          </SchoolContext.Provider>,
+        );
+        expect(document.body.style.overflow).toBe("");
+        mobileRender.unmount();
+
+        mockViewport(true);
+        const desktopRender = render(
+          <SchoolContext.Provider value={makeSchoolContext([s1])}>
+            <ScoreEntryModal
+              student={s1}
+              level="JHS"
+              isOpen={true}
+              onClose={vi.fn()}
+              onUpdateStudent={vi.fn()}
+            />
+          </SchoolContext.Provider>,
+        );
+        expect(document.body.style.overflow).toBe("hidden");
+        desktopRender.unmount();
+        expect(document.body.style.overflow).toBe("");
+      } finally {
+        Object.defineProperty(window, "matchMedia", {
+          writable: true,
+          configurable: true,
+          value: originalMatchMedia,
+        });
+        document.body.style.overflow = originalOverflow;
+        delete document.documentElement.dataset.mobileSheetOpen;
       }
     });
   });
