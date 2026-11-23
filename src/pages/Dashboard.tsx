@@ -561,6 +561,30 @@ export function Dashboard() {
           allStudents={modalStudents}
           onNavigate={setEditingStudentId}
           initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
+          renderPrintAction={(studentId) => (
+            <Link
+              to="/print"
+              search={{ id: studentId }}
+              onClick={handleCloseStudentModal}
+              aria-label="Print student report"
+              title="Print student report"
+              className="border-border-strong bg-surface text-secondary hover:bg-subtle hover:text-main inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-colors"
+              data-record="true"
+            >
+              <Printer className="text-primary-text h-4 w-4" />
+              <span className="hidden sm:inline">Print</span>
+            </Link>
+          )}
+          renderSbaSetupLink={() => (
+            <Link
+              to="/sba"
+              onClick={handleCloseStudentModal}
+              className="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+              data-record="true"
+            >
+              Manage SBA
+            </Link>
+          )}
         />
       )}
 
