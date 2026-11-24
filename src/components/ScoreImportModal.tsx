@@ -305,6 +305,21 @@ function ScoreImportModalContent({
 
     const nextExamScore =
       row.examRawScore !== undefined ? row.examRawScore.weighted : baseSubject.examScore;
+    const nextExamRawScore =
+      row.examRawScore !== undefined
+        ? nextExamScore > 0
+          ? row.examRawScore.raw
+          : undefined
+        : baseSubject.examRawScore;
+
+    const withExam = (target: SavedSubject): SavedSubject => {
+      if (nextExamRawScore !== undefined) {
+        target.examRawScore = nextExamRawScore;
+      } else {
+        delete target.examRawScore;
+      }
+      return target;
+    };
 
     // Exam-only imports preserve existing SBA components & classScore untouched
     if (
@@ -312,10 +327,10 @@ function ScoreImportModalContent({
       row.componentScores.length === 0 &&
       !row.directClassScore
     ) {
-      return {
+      return withExam({
         ...baseSubject,
         examScore: nextExamScore,
-      };
+      });
     }
 
     let nextComponents: ClassScoreComponent[] | undefined = baseSubject.classScoreComponents
@@ -407,12 +422,12 @@ function ScoreImportModalContent({
         : row.directClassScore.score;
     }
 
-    return {
+    return withExam({
       ...baseSubject,
       classScore: nextClassScore,
       examScore: nextExamScore,
       ...(nextComponents ? { classScoreComponents: nextComponents } : {}),
-    };
+    });
   };
 
   const handleApplyScores = () => {

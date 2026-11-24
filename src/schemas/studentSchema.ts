@@ -23,6 +23,9 @@ export const subjectSchema = z.object({
     .min(0, "Exam score cannot be negative")
     .max(100, "Exam score cannot exceed 100")
     .default(0),
+  examRawScore: z.number().min(0).max(100).optional(),
+  savedDirectClassScore: z.number().min(0).max(100).optional(),
+  savedDirectClassScoreMax: z.number().min(0).max(100).optional(),
 });
 
 /**

@@ -9,6 +9,7 @@
  */
 
 import type { ClassScoreComponentConfig } from "../types";
+import { normalizeTaskKey } from "./sbaReconciliation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Library management
@@ -16,16 +17,15 @@ import type { ClassScoreComponentConfig } from "../types";
 
 /**
  * Add a new component config to the library.
- * Prevents duplicate names (case-insensitive).
- * Returns the updated library; returns `null` if a duplicate was found.
+ * Prevents duplicate names (case-insensitive, whitespace-normalized).
+ * Returns the updated library and an `error` string if a duplicate was found.
  */
 export function addToLibrary(
   library: ClassScoreComponentConfig[],
   config: ClassScoreComponentConfig,
 ): { library: ClassScoreComponentConfig[]; error?: string } {
-  const duplicate = library.find(
-    (c) => c.name.trim().toLowerCase() === config.name.trim().toLowerCase(),
-  );
+  const targetKey = normalizeTaskKey(config.name);
+  const duplicate = library.find((c) => normalizeTaskKey(c.name) === targetKey);
   if (duplicate) {
     return { library, error: `A component named "${config.name}" already exists in the library.` };
   }
@@ -47,11 +47,12 @@ export function removeFromLibrary(
   library: ClassScoreComponentConfig[];
   subjectComponentMap: Record<string, ClassScoreComponentConfig[]>;
 } {
-  const updatedLibrary = library.filter((c) => c.name !== name);
+  const targetKey = normalizeTaskKey(name);
+  const updatedLibrary = library.filter((c) => normalizeTaskKey(c.name) !== targetKey);
 
   const updatedMap: Record<string, ClassScoreComponentConfig[]> = {};
   for (const [subject, components] of Object.entries(subjectComponentMap)) {
-    const filtered = components.filter((c) => c.name !== name);
+    const filtered = components.filter((c) => normalizeTaskKey(c.name) !== targetKey);
     if (filtered.length > 0) {
       updatedMap[subject] = filtered;
     }
@@ -78,12 +79,14 @@ export function updateInLibrary(
   subjectComponentMap: Record<string, ClassScoreComponentConfig[]>;
   error?: string;
 } {
-  // Check for name collision (only if the name actually changed)
-  if (originalName !== updated.name) {
+  const originalKey = normalizeTaskKey(originalName);
+  const updatedKey = normalizeTaskKey(updated.name);
+
+  // Check for name collision (only if the normalized key actually changed)
+  if (originalKey !== updatedKey) {
     const collision = library.find(
       (c) =>
-        c.name !== originalName &&
-        c.name.trim().toLowerCase() === updated.name.trim().toLowerCase(),
+        normalizeTaskKey(c.name) !== originalKey && normalizeTaskKey(c.name) === updatedKey,
     );
     if (collision) {
       return {
@@ -94,11 +97,15 @@ export function updateInLibrary(
     }
   }
 
-  const updatedLibrary = library.map((c) => (c.name === originalName ? updated : c));
+  const updatedLibrary = library.map((c) =>
+    normalizeTaskKey(c.name) === originalKey ? updated : c,
+  );
 
   const updatedMap: Record<string, ClassScoreComponentConfig[]> = {};
   for (const [subject, components] of Object.entries(subjectComponentMap)) {
-    updatedMap[subject] = components.map((c) => (c.name === originalName ? updated : c));
+    updatedMap[subject] = components.map((c) =>
+      normalizeTaskKey(c.name) === originalKey ? updated : c,
+    );
   }
 
   return { library: updatedLibrary, subjectComponentMap: updatedMap };
@@ -158,8 +165,11 @@ export function toggleComponentForSubject(
   config: ClassScoreComponentConfig,
 ): Record<string, ClassScoreComponentConfig[]> {
   const current = getSubjectComponents(subjectComponentMap, subjectName);
-  const isAssigned = current.some((c) => c.name === config.name);
-  const updated = isAssigned ? current.filter((c) => c.name !== config.name) : [...current, config];
+  const configKey = normalizeTaskKey(config.name);
+  const isAssigned = current.some((c) => normalizeTaskKey(c.name) === configKey);
+  const updated = isAssigned
+    ? current.filter((c) => normalizeTaskKey(c.name) !== configKey)
+    : [...current, config];
   return assignToSubject(subjectComponentMap, subjectName, updated);
 }
 
@@ -181,12 +191,12 @@ export function validateMapAgainstLibrary(
   subjectComponentMap: Record<string, ClassScoreComponentConfig[]>,
   library: ClassScoreComponentConfig[],
 ): OrphanedAssignment[] {
-  const libraryNames = new Set(library.map((c) => c.name));
+  const libraryNames = new Set(library.map((c) => normalizeTaskKey(c.name)));
   const orphans: OrphanedAssignment[] = [];
 
   for (const [subjectName, components] of Object.entries(subjectComponentMap)) {
     for (const comp of components) {
-      if (!libraryNames.has(comp.name)) {
+      if (!libraryNames.has(normalizeTaskKey(comp.name))) {
         orphans.push({ subjectName, componentName: comp.name });
       }
     }

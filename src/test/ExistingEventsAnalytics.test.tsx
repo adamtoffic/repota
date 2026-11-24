@@ -37,6 +37,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../utils/idbStorage", () => ({
   IDB_KEYS: { STUDENTS: "ges_v1_students", SETTINGS: "ges_v1_settings" },
   getStorageType: vi.fn(() => "indexeddb"),
+  subscribeToStorageSync: vi.fn(() => () => {}),
   ...storage,
 }));
 

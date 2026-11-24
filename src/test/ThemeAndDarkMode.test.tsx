@@ -29,6 +29,7 @@ vi.mock("../utils/idbStorage", () => ({
     SETTINGS: "ges_v1_settings",
   },
   getStorageType: vi.fn(() => "indexeddb"),
+  subscribeToStorageSync: vi.fn(() => () => {}),
   ...storage,
 }));
 

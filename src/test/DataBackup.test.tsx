@@ -31,6 +31,7 @@ vi.mock("../utils/idbStorage", () => ({
   saveToStorage: storage.saveToStorage,
   saveEntriesToStorage: storage.saveEntriesToStorage,
   deleteFromStorage: vi.fn(),
+  subscribeToStorageSync: vi.fn(() => () => {}),
 }));
 vi.mock("../utils/dataProtection", () => ({ recordBackup }));
 vi.mock("../hooks/useToast", () => ({ useToast: () => ({ showToast }) }));

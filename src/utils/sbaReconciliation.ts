@@ -2,9 +2,11 @@ import type {
   AssessmentCategory,
   ClassScoreComponent,
   ClassScoreComponentConfig,
+  SavedSubject,
   SchoolSettings,
   StudentRecord,
 } from "../types";
+import { convertExamRawToWeighted, resolveExamRawScore } from "./scoreConversion";
 
 export interface SbaPreset {
   id: string;
@@ -87,10 +89,10 @@ export const WEIGHT_PRESETS: readonly WeightPreset[] = [
 ];
 
 /**
- * Normalizes an SBA task name for case-insensitive trimmed comparisons.
+ * Normalizes an SBA task name by collapsing internal whitespace and lowercasing for comparisons.
  */
 export function normalizeTaskKey(name: string): string {
-  return name.trim().toLowerCase();
+  return name.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 /**
@@ -465,6 +467,9 @@ export function rescaleStudentsForWeightChange(
     const updatedSubjects = student.subjects.map((sub) => {
       let nextClassScore = sub.classScore;
       let nextExamScore = sub.examScore;
+      let nextExamRawScore = sub.examRawScore;
+      let nextSavedDirectClassScore = sub.savedDirectClassScore;
+      let nextSavedDirectClassScoreMax = sub.savedDirectClassScoreMax;
 
       if (classChanged) {
         if (sub.classScoreComponents && sub.classScoreComponents.length > 0) {
@@ -472,37 +477,102 @@ export function rescaleStudentsForWeightChange(
           const totalMax = sub.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0);
           nextClassScore =
             nextClassMax > 0 && totalMax > 0 ? Math.round((totalActual / totalMax) * nextClassMax) : 0;
+          nextSavedDirectClassScore = undefined;
+          nextSavedDirectClassScoreMax = undefined;
+        } else if (nextClassMax === 0 && prevClassMax > 0) {
+          if (sub.classScore > 0) {
+            nextSavedDirectClassScore = sub.classScore;
+            nextSavedDirectClassScoreMax = prevClassMax;
+          }
+          nextClassScore = 0;
+        } else if (prevClassMax === 0 && nextClassMax > 0) {
+          if (sub.savedDirectClassScore !== undefined) {
+            const sourceMax =
+              sub.savedDirectClassScoreMax && sub.savedDirectClassScoreMax > 0
+                ? sub.savedDirectClassScoreMax
+                : nextClassMax;
+            nextClassScore =
+              mode === "rescale"
+                ? Math.min(
+                    nextClassMax,
+                    Math.max(0, Math.round((sub.savedDirectClassScore / sourceMax) * nextClassMax)),
+                  )
+                : Math.min(Math.max(sub.savedDirectClassScore, 0), nextClassMax);
+            nextSavedDirectClassScore = undefined;
+            nextSavedDirectClassScoreMax = undefined;
+          } else {
+            nextClassScore = 0;
+          }
         } else if (mode === "rescale" && prevClassMax > 0) {
           nextClassScore = Math.min(
             nextClassMax,
             Math.max(0, Math.round((sub.classScore / prevClassMax) * nextClassMax)),
           );
+          nextSavedDirectClassScore = undefined;
+          nextSavedDirectClassScoreMax = undefined;
         } else {
           nextClassScore = Math.min(Math.max(sub.classScore, 0), nextClassMax);
+          nextSavedDirectClassScore = undefined;
+          nextSavedDirectClassScoreMax = undefined;
         }
       }
 
       if (examChanged) {
-        if (mode === "rescale" && prevExamMax > 0 && nextExamMax > 0) {
-          nextExamScore = Math.min(
-            nextExamMax,
-            Math.max(0, Math.round((sub.examScore / prevExamMax) * nextExamMax)),
-          );
+        if (mode === "rescale") {
+          const rawScore = resolveExamRawScore(sub, prevExamMax);
+          if (rawScore !== undefined && nextExamMax > 0) {
+            nextExamScore = convertExamRawToWeighted(rawScore, nextExamMax).weightedScore;
+            nextExamRawScore = rawScore;
+          } else if (prevExamMax > 0 && nextExamMax > 0) {
+            nextExamScore = Math.min(
+              nextExamMax,
+              Math.max(0, Math.round((sub.examScore / prevExamMax) * nextExamMax)),
+            );
+            nextExamRawScore = undefined;
+          } else {
+            nextExamScore = Math.min(Math.max(sub.examScore, 0), nextExamMax);
+            nextExamRawScore = nextExamScore > 0 ? sub.examRawScore : undefined;
+          }
         } else {
           nextExamScore = Math.min(Math.max(sub.examScore, 0), nextExamMax);
+          if (nextExamScore !== sub.examScore || nextExamScore === 0) {
+            nextExamRawScore = undefined;
+          }
         }
       }
 
-      if (nextClassScore === sub.classScore && nextExamScore === sub.examScore) {
+      if (
+        nextClassScore === sub.classScore &&
+        nextExamScore === sub.examScore &&
+        nextExamRawScore === sub.examRawScore &&
+        nextSavedDirectClassScore === sub.savedDirectClassScore &&
+        nextSavedDirectClassScoreMax === sub.savedDirectClassScoreMax
+      ) {
         return sub;
       }
 
       studentModified = true;
-      return {
+      const updatedSubject: SavedSubject = {
         ...sub,
         classScore: nextClassScore,
         examScore: nextExamScore,
       };
+      if (nextExamRawScore !== undefined) {
+        updatedSubject.examRawScore = nextExamRawScore;
+      } else {
+        delete updatedSubject.examRawScore;
+      }
+      if (nextSavedDirectClassScore !== undefined) {
+        updatedSubject.savedDirectClassScore = nextSavedDirectClassScore;
+      } else {
+        delete updatedSubject.savedDirectClassScore;
+      }
+      if (nextSavedDirectClassScoreMax !== undefined) {
+        updatedSubject.savedDirectClassScoreMax = nextSavedDirectClassScoreMax;
+      } else {
+        delete updatedSubject.savedDirectClassScoreMax;
+      }
+      return updatedSubject;
     });
 
     return studentModified ? { ...student, subjects: updatedSubjects } : student;

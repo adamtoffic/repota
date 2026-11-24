@@ -61,6 +61,7 @@ vi.mock("../router", () => ({
 vi.mock("../utils/idbStorage", () => ({
   IDB_KEYS: { STUDENTS: "ges_v1_students", SETTINGS: "ges_v1_settings" },
   STORAGE_QUOTA_EXCEEDED_EVENT: "repota:storage-quota-exceeded",
+  subscribeToStorageSync: vi.fn(() => () => {}),
   ...storageMock,
 }));
 

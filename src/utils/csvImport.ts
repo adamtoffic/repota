@@ -9,11 +9,12 @@ import type {
   StudentRecord,
 } from "../types";
 import { calculateGrade } from "./gradeCalculator";
-import { calculateSbaPaceStats } from "./sbaReconciliation";
+import { calculateSbaPaceStats, normalizeTaskKey } from "./sbaReconciliation";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
-  formatExamWeightedAsRaw,
+  getExamRawDisplayValue,
+  resolveExamRawScore,
   updateComponentAndRecalculateClassScore,
 } from "./scoreConversion";
 
@@ -557,7 +558,7 @@ export function buildExamOnlyTemplateCsv(
           return [
             escapeCsvCell(student.name),
             escapeCsvCell(
-              subject ? formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax) : "",
+              subject ? getExamRawDisplayValue(subject, settings.examScoreMax) : "",
             ),
           ];
         })
@@ -599,7 +600,7 @@ export function buildSubjectQuickExportCsv(
     return [
       escapeCsvCell(student.name),
       escapeCsvCell(subject.classScore),
-      escapeCsvCell(formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax)),
+      escapeCsvCell(getExamRawDisplayValue(subject, settings.examScoreMax)),
       escapeCsvCell(subject.examScore),
       escapeCsvCell(total),
       escapeCsvCell(grade),
@@ -669,7 +670,7 @@ export function buildSubjectSbaExportCsv(
       escapeCsvCell(pace.gradedTasks > 0 ? pace.rawSum : ""),
       escapeCsvCell(pace.pacePercent !== null ? `${pace.pacePercent}%` : ""),
       escapeCsvCell(subject.classScore),
-      escapeCsvCell(formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax)),
+      escapeCsvCell(getExamRawDisplayValue(subject, settings.examScoreMax)),
       escapeCsvCell(subject.examScore),
       escapeCsvCell(total),
       escapeCsvCell(grade),
@@ -696,8 +697,9 @@ export function resolveSubjectSbaTasks(
   students.forEach((student) => {
     const sub = student.subjects.find((s) => s.name === subjectName);
     sub?.classScoreComponents?.forEach((comp) => {
-      if (!discovered.has(comp.name)) {
-        discovered.set(comp.name, {
+      const key = normalizeTaskKey(comp.name);
+      if (key && !discovered.has(key)) {
+        discovered.set(key, {
           name: comp.name,
           maxScore: comp.maxScore,
           category: comp.category,
@@ -753,7 +755,7 @@ export function buildSbaScoreTemplateCsv(
           }
           cells.push(
             escapeCsvCell(
-              subject ? formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax) : "",
+              subject ? getExamRawDisplayValue(subject, settings.examScoreMax) : "",
             ),
           );
           return cells;
@@ -1376,10 +1378,9 @@ export function parseSbaScoreImport({
           hasOverMaxError = true;
           overMaxCount++;
         }
-        const existingRawStr = existingSubject
-          ? formatExamWeightedAsRaw(existingSubject.examScore, settings.examScoreMax)
-          : "";
-        const existingRaw = existingRawStr ? Number(existingRawStr) : undefined;
+        const existingRaw = existingSubject
+          ? resolveExamRawScore(existingSubject, settings.examScoreMax)
+          : undefined;
         const isConflict =
           existingSubject !== undefined &&
           existingSubject.examScore > 0 &&

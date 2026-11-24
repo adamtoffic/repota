@@ -633,7 +633,7 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
 
     expect(screen.getByText(/Class Score: 43\/50/i)).toBeInTheDocument();
     expect(screen.getByText(/= 45\/50/i)).toBeInTheDocument();
-    expect(screen.getByDisplayValue("90")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("89")).toBeInTheDocument();
     expect(screen.getByText("88")).toBeInTheDocument();
   });
 
