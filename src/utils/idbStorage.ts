@@ -47,9 +47,96 @@ interface RepotaDB extends DBSchema {
 // Track if IndexedDB is available
 let isIndexedDBAvailable = true;
 let db: IDBPDatabase<RepotaDB> | null = null;
+let initPromise: Promise<void> | null = null;
+let writeQueue: Promise<unknown> = Promise.resolve();
 
 // Remember last persisted blob strings per key so routine score/setting writes skip rewriting unchanged photos
 const blobMemoryCache = new Map<string, string>();
+
+const STORAGE_SYNC_CHANNEL = "repota-storage-sync";
+const TAB_SYNC_ID =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `tab-${Math.random().toString(36).slice(2)}`;
+
+interface StorageSyncMessage {
+  type: "storage-updated";
+  keys: string[];
+  senderId: string;
+}
+
+let syncChannel: BroadcastChannel | null = null;
+let syncChannelCtor: typeof BroadcastChannel | null = null;
+
+function getSyncChannel(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === "undefined") {
+    syncChannel = null;
+    syncChannelCtor = null;
+    return null;
+  }
+  if (!syncChannel || syncChannelCtor !== BroadcastChannel) {
+    try {
+      syncChannel?.close();
+    } catch {
+      // ignore close errors on stale handles
+    }
+    try {
+      syncChannel = new BroadcastChannel(STORAGE_SYNC_CHANNEL);
+      syncChannelCtor = BroadcastChannel;
+    } catch {
+      syncChannel = null;
+      syncChannelCtor = null;
+      return null;
+    }
+  }
+  return syncChannel;
+}
+
+function notifyStorageUpdated(keys: string[]): void {
+  if (keys.length === 0) return;
+  const channel = getSyncChannel();
+  if (!channel) return;
+  try {
+    channel.postMessage({
+      type: "storage-updated",
+      keys,
+      senderId: TAB_SYNC_ID,
+    } satisfies StorageSyncMessage);
+  } catch {
+    // Ignore blocked or closed BroadcastChannel errors
+  }
+}
+
+/**
+ * Subscribes to cross-tab storage change notifications emitted on successful writes,
+ * deletes, or clears. Returns an unsubscribe cleanup callback (no-op when unsupported).
+ */
+export function subscribeToStorageSync(listener: (keys: string[]) => void): () => void {
+  const channel = getSyncChannel();
+  if (!channel) return () => {};
+
+  const handler = (event: MessageEvent<StorageSyncMessage>) => {
+    const msg = event.data;
+    if (
+      msg &&
+      msg.type === "storage-updated" &&
+      msg.senderId !== TAB_SYNC_ID &&
+      Array.isArray(msg.keys)
+    ) {
+      listener(msg.keys);
+    }
+  };
+  channel.addEventListener("message", handler);
+  return () => {
+    channel.removeEventListener("message", handler);
+  };
+}
+
+function enqueueWrite<T>(task: () => Promise<T>): Promise<T> {
+  const run = writeQueue.then(task, task);
+  writeQueue = run.catch(() => {});
+  return run;
+}
 
 function ensureStores(database: IDBPDatabase<RepotaDB>): void {
   if (!database.objectStoreNames.contains(STORE_NAME)) {
@@ -60,49 +147,106 @@ function ensureStores(database: IDBPDatabase<RepotaDB>): void {
   }
 }
 
-/**
- * Check if IndexedDB is available (fails in Safari Private Mode)
- */
-const checkIndexedDBAvailability = async (): Promise<boolean> => {
-  try {
-    // Try to open database
-    const testDB = await openDB<RepotaDB>(DB_NAME, DB_VERSION, {
-      upgrade(database) {
-        ensureStores(database);
-      },
-    });
-
-    // Test write and delete
-    await testDB.put(STORE_NAME, "test", "idb_test");
-    await testDB.delete(STORE_NAME, "idb_test");
-    testDB.close();
-
-    return true;
-  } catch (error) {
-    console.warn("IndexedDB not available, falling back to localStorage:", error);
-    return false;
-  }
-};
+function isInvalidStateReconnectable(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "InvalidStateError" || /closing|closed|terminated/i.test(error.message))
+  );
+}
 
 /**
- * Initialize storage system (call on app startup)
+ * Initialize storage system (call on app startup). Coalesces concurrent init calls,
+ * opens `repota-storage` once with lifecycle recovery handlers, and falls back to
+ * `localStorage` when IndexedDB is blocked or unavailable.
  */
 export const initStorage = async (): Promise<void> => {
-  isIndexedDBAvailable = await checkIndexedDBAvailability();
-
-  if (!isIndexedDBAvailable) {
-    console.warn("⚠️ Using localStorage fallback (Safari Private Mode detected)");
-  } else {
-    blobMemoryCache.clear();
-    // Open database connection
-    db = await openDB<RepotaDB>(DB_NAME, DB_VERSION, {
-      upgrade(database) {
-        ensureStores(database);
-      },
-    });
-    console.log("✅ IndexedDB initialized successfully");
+  if (initPromise) {
+    return initPromise;
   }
+
+  initPromise = (async () => {
+    let openedDb: IDBPDatabase<RepotaDB> | null = null;
+    try {
+      openedDb = await openDB<RepotaDB>(DB_NAME, DB_VERSION, {
+        upgrade(database) {
+          ensureStores(database);
+        },
+        blocking() {
+          if (db === openedDb) {
+            try {
+              openedDb?.close();
+            } catch {
+              // ignore close errors
+            }
+            db = null;
+          }
+        },
+        terminated() {
+          if (db === openedDb) {
+            db = null;
+          }
+        },
+      });
+
+      await openedDb.put(STORE_NAME, "test", "idb_test");
+      await openedDb.delete(STORE_NAME, "idb_test");
+
+      isIndexedDBAvailable = true;
+      blobMemoryCache.clear();
+      db = openedDb;
+      console.log("✅ IndexedDB initialized successfully");
+    } catch (error) {
+      try {
+        openedDb?.close();
+      } catch {
+        // ignore close errors
+      }
+      db = null;
+      isIndexedDBAvailable = false;
+      console.warn("IndexedDB not available, falling back to localStorage:", error);
+      console.warn("⚠️ Using localStorage fallback (Safari Private Mode detected)");
+    }
+  })().finally(() => {
+    initPromise = null;
+  });
+
+  return initPromise;
 };
+
+async function ensureDbConnection(): Promise<IDBPDatabase<RepotaDB> | null> {
+  if (!isIndexedDBAvailable) return null;
+  if (db) return db;
+  await initStorage();
+  return isIndexedDBAvailable ? db : null;
+}
+
+async function runWithIdbReconnect<T>(
+  operation: (database: IDBPDatabase<RepotaDB>) => Promise<T>,
+): Promise<T> {
+  const activeDb = await ensureDbConnection();
+  if (!activeDb) {
+    throw new Error("IndexedDB unavailable");
+  }
+  try {
+    return await operation(activeDb);
+  } catch (error) {
+    if (isInvalidStateReconnectable(error)) {
+      try {
+        activeDb.close();
+      } catch {
+        // ignore close error on dead handle
+      }
+      if (db === activeDb) {
+        db = null;
+      }
+      const reopened = await ensureDbConnection();
+      if (reopened) {
+        return await operation(reopened);
+      }
+    }
+    throw error;
+  }
+}
 
 function isExtractableMediaString(value: unknown): value is string {
   return (
@@ -373,26 +517,29 @@ function notifyQuotaExceeded(): void {
 /**
  * Save data to storage (IndexedDB or localStorage fallback)
  */
-export const saveToStorage = async <T>(key: string, value: T): Promise<boolean> => {
-  try {
-    if (isIndexedDBAvailable && db) {
-      await writeEntriesToIdb(db, [{ key, value }]);
-    } else {
-      // localStorage fallback: 5-10MB limit
-      const jsonString = JSON.stringify(value);
-      localStorage.setItem(key, jsonString);
-    }
-    return true;
-  } catch (error: unknown) {
-    if (isQuotaExceededError(error)) {
-      notifyQuotaExceeded();
+export const saveToStorage = <T>(key: string, value: T): Promise<boolean> =>
+  enqueueWrite(async () => {
+    try {
+      const activeDb = await ensureDbConnection();
+      if (activeDb) {
+        await runWithIdbReconnect((database) => writeEntriesToIdb(database, [{ key, value }]));
+      } else {
+        // localStorage fallback: 5-10MB limit
+        const jsonString = JSON.stringify(value);
+        localStorage.setItem(key, jsonString);
+      }
+      notifyStorageUpdated([key]);
+      return true;
+    } catch (error: unknown) {
+      if (isQuotaExceededError(error)) {
+        notifyQuotaExceeded();
+        return false;
+      }
+
+      console.error("Storage save error:", error);
       return false;
     }
-
-    console.error("Storage save error:", error);
-    return false;
-  }
-};
+  });
 
 export class StorageBatchRollbackError extends Error {
   constructor(
@@ -407,69 +554,70 @@ export class StorageBatchRollbackError extends Error {
 /**
  * Save multiple entries atomically in a single readwrite transaction
  */
-export const saveEntriesToStorage = async (
+export const saveEntriesToStorage = (
   entries: Array<{ key: string; value: unknown }>,
-): Promise<boolean> => {
-  try {
-    if (isIndexedDBAvailable && !db) {
-      await initStorage();
-    }
-    if (isIndexedDBAvailable && db) {
-      try {
-        await writeEntriesToIdb(db, entries);
-        return true;
-      } catch (error) {
-        if (isQuotaExceededError(error)) {
-          notifyQuotaExceeded();
-        } else {
-          console.error("Storage batch write error:", error);
+): Promise<boolean> =>
+  enqueueWrite(async () => {
+    try {
+      const activeDb = await ensureDbConnection();
+      if (activeDb) {
+        try {
+          await runWithIdbReconnect((database) => writeEntriesToIdb(database, entries));
+          notifyStorageUpdated(entries.map((entry) => entry.key));
+          return true;
+        } catch (error) {
+          if (isQuotaExceededError(error)) {
+            notifyQuotaExceeded();
+          } else {
+            console.error("Storage batch write error:", error);
+          }
+          return false;
         }
+      } else {
+        const snapshots: Array<{ key: string; value: string | null }> = entries.map((e) => ({
+          key: e.key,
+          value: localStorage.getItem(e.key),
+        }));
+
+        try {
+          for (const entry of entries) {
+            const jsonString = JSON.stringify(entry.value);
+            localStorage.setItem(entry.key, jsonString);
+          }
+        } catch (writeError) {
+          let rollbackFailed = false;
+          for (const snapshot of snapshots) {
+            try {
+              if (snapshot.value !== null) {
+                localStorage.setItem(snapshot.key, snapshot.value);
+              } else {
+                localStorage.removeItem(snapshot.key);
+              }
+            } catch {
+              rollbackFailed = true;
+            }
+          }
+          if (rollbackFailed) {
+            throw new StorageBatchRollbackError(undefined, { cause: writeError });
+          }
+          throw writeError;
+        }
+        notifyStorageUpdated(entries.map((entry) => entry.key));
+      }
+      return true;
+    } catch (error: unknown) {
+      if (error instanceof StorageBatchRollbackError) {
+        throw error;
+      }
+      if (isQuotaExceededError(error)) {
+        notifyQuotaExceeded();
         return false;
       }
-    } else {
-      const snapshots: Array<{ key: string; value: string | null }> = entries.map((e) => ({
-        key: e.key,
-        value: localStorage.getItem(e.key),
-      }));
 
-      try {
-        for (const entry of entries) {
-          const jsonString = JSON.stringify(entry.value);
-          localStorage.setItem(entry.key, jsonString);
-        }
-      } catch (writeError) {
-        let rollbackFailed = false;
-        for (const snapshot of snapshots) {
-          try {
-            if (snapshot.value !== null) {
-              localStorage.setItem(snapshot.key, snapshot.value);
-            } else {
-              localStorage.removeItem(snapshot.key);
-            }
-          } catch {
-            rollbackFailed = true;
-          }
-        }
-        if (rollbackFailed) {
-          throw new StorageBatchRollbackError(undefined, { cause: writeError });
-        }
-        throw writeError;
-      }
-    }
-    return true;
-  } catch (error: unknown) {
-    if (error instanceof StorageBatchRollbackError) {
-      throw error;
-    }
-    if (isQuotaExceededError(error)) {
-      notifyQuotaExceeded();
+      console.error("Storage save entries error:", error);
       return false;
     }
-
-    console.error("Storage save entries error:", error);
-    return false;
-  }
-};
+  });
 
 export type StorageLoadResult<T> =
   | { status: "found"; value: T }
@@ -481,14 +629,16 @@ export type StorageLoadResult<T> =
  */
 export const loadFromStorageResult = async <T>(key: string): Promise<StorageLoadResult<T>> => {
   try {
-    if (isIndexedDBAvailable && db) {
-      // IndexedDB
-      const rawValue = await db.get(STORE_NAME, key);
-      if (rawValue == null) {
-        return { status: "empty" };
-      }
-      const value = await hydrateValueFromIdb(db, key, rawValue);
-      return { status: "found", value: value as T };
+    const activeDb = await ensureDbConnection();
+    if (activeDb) {
+      return await runWithIdbReconnect(async (database) => {
+        const rawValue = await database.get(STORE_NAME, key);
+        if (rawValue == null) {
+          return { status: "empty" } as const;
+        }
+        const value = await hydrateValueFromIdb(database, key, rawValue);
+        return { status: "found", value: value as T } as const;
+      });
     } else {
       // localStorage fallback
       const jsonString = localStorage.getItem(key);
@@ -515,61 +665,71 @@ export const loadFromStorage = async <T>(key: string): Promise<T | null> => {
 /**
  * Delete specific key from storage
  */
-export const deleteFromStorage = async (key: string): Promise<boolean> => {
-  try {
-    if (isIndexedDBAvailable && db) {
-      const cleanupPrefix =
-        key === IDB_KEYS.STUDENTS
-          ? STUDENT_PHOTO_PREFIX
-          : key === IDB_KEYS.SETTINGS
-            ? SETTINGS_MEDIA_PREFIX
-            : null;
+export const deleteFromStorage = (key: string): Promise<boolean> =>
+  enqueueWrite(async () => {
+    try {
+      const activeDb = await ensureDbConnection();
+      if (activeDb) {
+        await runWithIdbReconnect(async (database) => {
+          const cleanupPrefix =
+            key === IDB_KEYS.STUDENTS
+              ? STUDENT_PHOTO_PREFIX
+              : key === IDB_KEYS.SETTINGS
+                ? SETTINGS_MEDIA_PREFIX
+                : null;
 
-      if (cleanupPrefix && db.objectStoreNames.contains(MEDIA_STORE_NAME)) {
-        const tx = db.transaction([STORE_NAME, MEDIA_STORE_NAME], "readwrite");
-        const mediaStore = tx.objectStore(MEDIA_STORE_NAME);
-        const mediaKeys = await mediaStore.getAllKeys();
-        for (const mediaKey of mediaKeys) {
-          if (typeof mediaKey === "string" && mediaKey.startsWith(cleanupPrefix)) {
-            await mediaStore.delete(mediaKey);
-            blobMemoryCache.delete(mediaKey);
+          if (cleanupPrefix && database.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+            const tx = database.transaction([STORE_NAME, MEDIA_STORE_NAME], "readwrite");
+            const mediaStore = tx.objectStore(MEDIA_STORE_NAME);
+            const mediaKeys = await mediaStore.getAllKeys();
+            for (const mediaKey of mediaKeys) {
+              if (typeof mediaKey === "string" && mediaKey.startsWith(cleanupPrefix)) {
+                await mediaStore.delete(mediaKey);
+                blobMemoryCache.delete(mediaKey);
+              }
+            }
+            await tx.objectStore(STORE_NAME).delete(key);
+            await tx.done;
+          } else {
+            await database.delete(STORE_NAME, key);
           }
-        }
-        await tx.objectStore(STORE_NAME).delete(key);
-        await tx.done;
+        });
       } else {
-        await db.delete(STORE_NAME, key);
+        localStorage.removeItem(key);
       }
-    } else {
-      localStorage.removeItem(key);
+      notifyStorageUpdated([key]);
+      return true;
+    } catch (error) {
+      console.error("Storage delete error:", error);
+      return false;
     }
-    return true;
-  } catch (error) {
-    console.error("Storage delete error:", error);
-    return false;
-  }
-};
+  });
 
 /**
  * Clear all data from storage (use with caution!)
  */
-export const clearAllStorage = async (): Promise<boolean> => {
-  try {
-    blobMemoryCache.clear();
-    if (isIndexedDBAvailable && db) {
-      await db.clear(STORE_NAME);
-      if (db.objectStoreNames.contains(MEDIA_STORE_NAME)) {
-        await db.clear(MEDIA_STORE_NAME);
+export const clearAllStorage = (): Promise<boolean> =>
+  enqueueWrite(async () => {
+    try {
+      blobMemoryCache.clear();
+      const activeDb = await ensureDbConnection();
+      if (activeDb) {
+        await runWithIdbReconnect(async (database) => {
+          await database.clear(STORE_NAME);
+          if (database.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+            await database.clear(MEDIA_STORE_NAME);
+          }
+        });
+      } else {
+        localStorage.clear();
       }
-    } else {
-      localStorage.clear();
+      notifyStorageUpdated([IDB_KEYS.STUDENTS, IDB_KEYS.SETTINGS]);
+      return true;
+    } catch (error) {
+      console.error("Storage clear error:", error);
+      return false;
     }
-    return true;
-  } catch (error) {
-    console.error("Storage clear error:", error);
-    return false;
-  }
-};
+  });
 
 /**
  * Get storage type being used
@@ -582,27 +742,68 @@ export const getStorageType = (): "indexeddb" | "localstorage" => {
  * Migrate data from localStorage to IndexedDB
  * Call this once when switching from localStorage to IndexedDB
  */
-export const migrateFromLocalStorage = async (): Promise<{
+export const migrateFromLocalStorage = (): Promise<{
   success: boolean;
   studentsCount?: number;
   settingsMigrated?: boolean;
   error?: string;
-}> => {
-  try {
-    // Check if IndexedDB is available
-    if (!isIndexedDBAvailable || !db) {
-      return {
-        success: false,
-        error: "IndexedDB not available - using localStorage fallback",
-      };
-    }
+}> =>
+  enqueueWrite(async () => {
+    try {
+      // Check if IndexedDB is available
+      const activeDb = await ensureDbConnection();
+      if (!activeDb) {
+        return {
+          success: false,
+          error: "IndexedDB not available - using localStorage fallback",
+        };
+      }
 
-    // Check if already migrated (check both students & settings so settings-only state isn't orphaned)
-    const [existingStudents, existingSettings] = await Promise.all([
-      db.get(STORE_NAME, IDB_KEYS.STUDENTS),
-      db.get(STORE_NAME, IDB_KEYS.SETTINGS),
-    ]);
-    if (existingStudents !== undefined || existingSettings !== undefined) {
+      // Check if already migrated (check both students & settings so settings-only state isn't orphaned)
+      const [existingStudents, existingSettings] = await runWithIdbReconnect((database) =>
+        Promise.all([
+          database.get(STORE_NAME, IDB_KEYS.STUDENTS),
+          database.get(STORE_NAME, IDB_KEYS.SETTINGS),
+        ]),
+      );
+      if (existingStudents !== undefined || existingSettings !== undefined) {
+        try {
+          localStorage.removeItem(IDB_KEYS.STUDENTS);
+          localStorage.removeItem(IDB_KEYS.SETTINGS);
+          localStorage.setItem(IDB_MIGRATED_MARKER_KEY, "v2");
+        } catch {
+          // ignore localStorage cleanup errors
+        }
+        return {
+          success: true,
+          studentsCount: Array.isArray(existingStudents) ? existingStudents.length : 0,
+          settingsMigrated: existingSettings !== undefined,
+          error: "Data already in IndexedDB",
+        };
+      }
+
+      // Migrate students
+      const studentsJSON = localStorage.getItem(IDB_KEYS.STUDENTS);
+      const students = studentsJSON ? JSON.parse(studentsJSON) : [];
+
+      const migrationEntries: Array<{ key: string; value: unknown }> = [];
+      if (students.length > 0) {
+        migrationEntries.push({ key: IDB_KEYS.STUDENTS, value: students });
+      }
+
+      // Migrate settings
+      const settingsJSON = localStorage.getItem(IDB_KEYS.SETTINGS);
+      const settings = settingsJSON ? JSON.parse(settingsJSON) : null;
+
+      if (settings) {
+        migrationEntries.push({ key: IDB_KEYS.SETTINGS, value: settings });
+      }
+
+      if (migrationEntries.length > 0) {
+        await runWithIdbReconnect((database) => writeEntriesToIdb(database, migrationEntries));
+        notifyStorageUpdated(migrationEntries.map((entry) => entry.key));
+      }
+
       try {
         localStorage.removeItem(IDB_KEYS.STUDENTS);
         localStorage.removeItem(IDB_KEYS.SETTINGS);
@@ -610,56 +811,20 @@ export const migrateFromLocalStorage = async (): Promise<{
       } catch {
         // ignore localStorage cleanup errors
       }
+
+      // Success!
+      console.log(`✅ Migrated ${students.length} students to IndexedDB`);
+
       return {
         success: true,
-        studentsCount: Array.isArray(existingStudents) ? existingStudents.length : 0,
-        settingsMigrated: existingSettings !== undefined,
-        error: "Data already in IndexedDB",
+        studentsCount: students.length,
+        settingsMigrated: !!settings,
+      };
+    } catch (error) {
+      console.error("Migration error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
-
-    // Migrate students
-    const studentsJSON = localStorage.getItem(IDB_KEYS.STUDENTS);
-    const students = studentsJSON ? JSON.parse(studentsJSON) : [];
-
-    const migrationEntries: Array<{ key: string; value: unknown }> = [];
-    if (students.length > 0) {
-      migrationEntries.push({ key: IDB_KEYS.STUDENTS, value: students });
-    }
-
-    // Migrate settings
-    const settingsJSON = localStorage.getItem(IDB_KEYS.SETTINGS);
-    const settings = settingsJSON ? JSON.parse(settingsJSON) : null;
-
-    if (settings) {
-      migrationEntries.push({ key: IDB_KEYS.SETTINGS, value: settings });
-    }
-
-    if (migrationEntries.length > 0) {
-      await writeEntriesToIdb(db, migrationEntries);
-    }
-
-    try {
-      localStorage.removeItem(IDB_KEYS.STUDENTS);
-      localStorage.removeItem(IDB_KEYS.SETTINGS);
-      localStorage.setItem(IDB_MIGRATED_MARKER_KEY, "v2");
-    } catch {
-      // ignore localStorage cleanup errors
-    }
-
-    // Success!
-    console.log(`✅ Migrated ${students.length} students to IndexedDB`);
-
-    return {
-      success: true,
-      studentsCount: students.length,
-      settingsMigrated: !!settings,
-    };
-  } catch (error) {
-    console.error("Migration error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
+  });

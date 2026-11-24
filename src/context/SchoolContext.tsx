@@ -47,6 +47,7 @@ import {
   IDB_KEYS,
   migrateFromLocalStorage,
   getStorageType,
+  subscribeToStorageSync,
 } from "../utils/idbStorage";
 import { ConfirmModal } from "../components/ConfirmModal";
 import {
@@ -384,6 +385,84 @@ export function SchoolProvider({
     initializeStorage();
     return () => window.clearTimeout(timeoutId);
   }, [loadAttempt]); // Run on mount and explicit retry
+
+  // Cross-tab BroadcastChannel sync after initial hydration settles
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    let isCancelled = false;
+
+    const unsubscribe = subscribeToStorageSync((keys) => {
+      if (persistenceSuspendedRef.current) return;
+      const syncStudents = keys.includes(IDB_KEYS.STUDENTS);
+      const syncSettings = keys.includes(IDB_KEYS.SETTINGS);
+      if (!syncStudents && !syncSettings) return;
+
+      void (async () => {
+        if (syncStudents) {
+          const studentsResult = await loadFromStorageResult<StudentRecord[]>(IDB_KEYS.STUDENTS);
+          if (isCancelled || persistenceSuspendedRef.current) return;
+          if (studentsResult.status === "found") {
+            const parsed = z.array(compatibleStudentSchema).safeParse(studentsResult.value);
+            if (parsed.success) {
+              const nextStudents = (parsed.data as StudentRecord[]).map(stripDerivedStudentFields);
+              ++studentsWriteSeqRef.current;
+              lastPersistedStudentsRef.current = nextStudents;
+              studentsRef.current = nextStudents;
+              setStudents(nextStudents);
+              setStudentsSaveError(null);
+              setUnsavedChanges("school-context-students-write", false);
+            }
+          } else if (studentsResult.status === "empty") {
+            const emptyStudents: StudentRecord[] = [];
+            ++studentsWriteSeqRef.current;
+            lastPersistedStudentsRef.current = emptyStudents;
+            studentsRef.current = emptyStudents;
+            setStudents(emptyStudents);
+            setStudentsSaveError(null);
+            setUnsavedChanges("school-context-students-write", false);
+          }
+        }
+
+        if (syncSettings) {
+          const settingsResult = await loadFromStorageResult<SchoolSettings>(IDB_KEYS.SETTINGS);
+          if (isCancelled || persistenceSuspendedRef.current) return;
+          if (
+            settingsResult.status === "found" &&
+            settingsResult.value &&
+            typeof settingsResult.value === "object" &&
+            !Array.isArray(settingsResult.value)
+          ) {
+            try {
+              const validated = mergeSettings(
+                settingsResult.value as unknown as Record<string, unknown>,
+              );
+              const nextSettings = validated as unknown as SchoolSettings;
+              ++settingsWriteSeqRef.current;
+              lastPersistedSettingsRef.current = nextSettings;
+              settingsRef.current = nextSettings;
+              setSettings(nextSettings);
+              setSettingsSaveError(null);
+              setUnsavedChanges("school-context-settings-write", false);
+            } catch (err) {
+              console.error("Failed to sync settings from another tab:", err);
+            }
+          } else if (settingsResult.status === "empty") {
+            ++settingsWriteSeqRef.current;
+            lastPersistedSettingsRef.current = DEFAULT_FACTORY_SETTINGS;
+            settingsRef.current = DEFAULT_FACTORY_SETTINGS;
+            setSettings(DEFAULT_FACTORY_SETTINGS);
+            setSettingsSaveError(null);
+            setUnsavedChanges("school-context-settings-write", false);
+          }
+        }
+      })();
+    });
+
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
+  }, [isDataLoaded]);
 
   const hasLoadError = loadStatus.students === "error" || loadStatus.settings === "error";
 
@@ -1220,10 +1299,7 @@ export function SchoolProvider({
         prevSettings.classScoreMax !== clampedClass ||
         prevSettings.examScoreMax !== clampedExam;
 
-      if (
-        (nextExamType !== "MOCK" && (weightsChanged || prevSettings.examType === "MOCK")) ||
-        (options?.scoreMode !== undefined && weightsChanged)
-      ) {
+      if (weightsChanged || prevSettings.examType !== nextExamType) {
         handleSetStudents((prev) =>
           rescaleStudentsForWeightChange(
             prev,

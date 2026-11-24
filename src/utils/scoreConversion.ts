@@ -1,4 +1,4 @@
-import type { ClassScoreComponent } from "../types";
+import type { ClassScoreComponent, SavedSubject } from "../types";
 
 /**
  * Clamps a raw `0–100` exam score and converts it into the weighted `0..maxExamScore` scale.
@@ -23,6 +23,40 @@ export function convertExamRawToWeighted(
 export function formatExamWeightedAsRaw(examScore: number, maxExamScore: number): string {
   if (!examScore || maxExamScore <= 0) return "";
   return Math.round((examScore / maxExamScore) * 100).toString();
+}
+
+/**
+ * Resolves the exact `0–100` raw exam score for a subject. Uses `subject.examRawScore` when it
+ * agrees with the stored weighted `examScore` under `maxExamScore`, avoiding rounding loss across
+ * inputs like `89` at `/50`; falls back to deriving from weighted `examScore` otherwise.
+ */
+export function resolveExamRawScore(
+  subject: Pick<SavedSubject, "examScore" | "examRawScore">,
+  maxExamScore: number,
+): number | undefined {
+  if (!subject.examScore || maxExamScore <= 0) return undefined;
+  if (typeof subject.examRawScore === "number" && Number.isFinite(subject.examRawScore)) {
+    const { clampedRaw, weightedScore } = convertExamRawToWeighted(
+      subject.examRawScore,
+      maxExamScore,
+    );
+    if (weightedScore === subject.examScore) {
+      return clampedRaw;
+    }
+  }
+  return Math.round((subject.examScore / maxExamScore) * 100);
+}
+
+/**
+ * Returns the UI/CSV display string (`0–100`) for a subject's exam score, preferring exact
+ * persisted `examRawScore` when consistent with `examScore`, or `""` when unscored.
+ */
+export function getExamRawDisplayValue(
+  subject: Pick<SavedSubject, "examScore" | "examRawScore">,
+  maxExamScore: number,
+): string {
+  const raw = resolveExamRawScore(subject, maxExamScore);
+  return raw !== undefined ? String(raw) : "";
 }
 
 /**

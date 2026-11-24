@@ -5,7 +5,7 @@ import { calculateGrade } from "../utils/gradeCalculator";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
-  formatExamWeightedAsRaw,
+  getExamRawDisplayValue,
   updateComponentAndRecalculateClassScore,
 } from "../utils/scoreConversion";
 import { getSubjectScoreStatus } from "../utils/studentValidation";
@@ -95,7 +95,7 @@ export function SubjectRow({
   const examRawInput =
     examDraft !== null && examDraft.baseScore === subject.examScore
       ? examDraft.raw
-      : formatExamWeightedAsRaw(subject.examScore, maxExamScore);
+      : getExamRawDisplayValue(subject, maxExamScore);
 
   useEffect(() => {
     const timers = timersRef.current;
@@ -120,7 +120,9 @@ export function SubjectRow({
     clearTimer("examBlur");
     if (value === "") {
       if (examDraft !== null) setExamDraft(null);
-      onChange({ ...subject, examScore: 0 });
+      const cleared = { ...subject, examScore: 0 };
+      delete cleared.examRawScore;
+      onChange(cleared);
       setExamScoreError(null);
       return;
     }
@@ -141,15 +143,25 @@ export function SubjectRow({
       setExamScoreError(null);
     }
 
+    const nextExamRaw = weightedScore > 0 ? clampedRaw : undefined;
     const normalizedDisplay = wasClamped ? String(clampedRaw) : value;
-    const formattedWeighted = formatExamWeightedAsRaw(weightedScore, maxExamScore);
+    const formattedWeighted = getExamRawDisplayValue(
+      { examScore: weightedScore, examRawScore: nextExamRaw },
+      maxExamScore,
+    );
     if (normalizedDisplay !== formattedWeighted) {
       setExamDraft({ baseScore: weightedScore, raw: normalizedDisplay });
     } else if (examDraft !== null) {
       setExamDraft(null);
     }
 
-    onChange({ ...subject, examScore: weightedScore });
+    const nextSubject: SavedSubject = { ...subject, examScore: weightedScore };
+    if (nextExamRaw !== undefined) {
+      nextSubject.examRawScore = nextExamRaw;
+    } else {
+      delete nextSubject.examRawScore;
+    }
+    onChange(nextSubject);
   };
 
   const handleClassChange = (value: string) => {

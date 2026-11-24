@@ -44,6 +44,7 @@ vi.mock("../hooks/useToast", () => ({
 
 vi.mock("../utils/idbStorage", () => ({
   IDB_KEYS: { STUDENTS: "ges_v1_students", SETTINGS: "ges_v1_settings" },
+  subscribeToStorageSync: vi.fn(() => () => {}),
   ...storageMock,
 }));
 

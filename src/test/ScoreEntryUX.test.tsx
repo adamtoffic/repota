@@ -778,20 +778,30 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         fireEvent.change(sAClass, { target: { value: "20abc" } });
         expect(sAClass.value).toBe("20");
 
-        // 89/100 converts to 45/50 (which formats back as 90); blur must NOT mutate across 180ms WebKit settle window
+        // 89/100 converts to 45/50 while preserving exact raw "89"
         fireEvent.change(sAExam, { target: { value: "89" } });
         expect(sAExam.value).toBe("89");
+        fireEvent.blur(sAExam);
+        act(() => {
+          vi.advanceTimersByTime(190);
+        });
+        expect(sAExam.value).toBe("89");
+
+        // Non-canonical numeric draft "89." is held across the 180ms WebKit settle window before normalizing
+        fireEvent.focus(sAExam);
+        fireEvent.change(sAExam, { target: { value: "89." } });
+        expect(sAExam.value).toBe("89.");
 
         fireEvent.blur(sAExam);
         act(() => {
           vi.advanceTimersByTime(150);
         });
-        expect(sAExam.value).toBe("89");
+        expect(sAExam.value).toBe("89.");
 
         act(() => {
           vi.advanceTimersByTime(40);
         });
-        expect(sAExam.value).toBe("90");
+        expect(sAExam.value).toBe("89");
       } finally {
         vi.useRealTimers();
       }
@@ -1871,17 +1881,26 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         fireEvent.blur(examInput);
         expect(setTimeoutSpy).not.toHaveBeenCalled();
 
-        // Odd raw score "89" (weighted 45 -> formats to "90"): keeps "89" until 180ms after blur
+        // Exact raw "89" (weighted 45 with persisted examRawScore 89): zero blur timer churn
         fireEvent.focus(examInput);
         fireEvent.change(examInput, { target: { value: "89" } });
         expect(examInput.value).toBe("89");
+        setTimeoutSpy.mockClear();
+
+        fireEvent.blur(examInput);
+        expect(setTimeoutSpy).not.toHaveBeenCalled();
+
+        // Non-canonical numeric draft "89.": keeps "89." until 180ms after blur
+        fireEvent.focus(examInput);
+        fireEvent.change(examInput, { target: { value: "89." } });
+        expect(examInput.value).toBe("89.");
 
         fireEvent.blur(examInput);
         expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
         expect(setTimeoutSpy.mock.calls[0]?.[1]).toBe(180);
-        expect(examInput.value).toBe("89");
+        expect(examInput.value).toBe("89.");
 
-        // Refocusing within 180ms cancels normalization so "89" stays intact
+        // Refocusing within 180ms cancels normalization so "89." stays intact
         act(() => {
           vi.advanceTimersByTime(100);
         });
@@ -1889,19 +1908,19 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         act(() => {
           vi.advanceTimersByTime(150);
         });
-        expect(examInput.value).toBe("89");
+        expect(examInput.value).toBe("89.");
 
-        // Blurring for the full 180ms normalizes "89" -> "90"
+        // Blurring for the full 180ms normalizes "89." -> "89"
         fireEvent.blur(examInput);
         act(() => {
           vi.advanceTimersByTime(179);
         });
-        expect(examInput.value).toBe("89");
+        expect(examInput.value).toBe("89.");
 
         act(() => {
           vi.advanceTimersByTime(1);
         });
-        expect(examInput.value).toBe("90");
+        expect(examInput.value).toBe("89");
 
         setTimeoutSpy.mockRestore();
       } finally {

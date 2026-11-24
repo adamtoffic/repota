@@ -21,7 +21,7 @@ import { calculateGrade } from "../utils/gradeCalculator";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
-  formatExamWeightedAsRaw,
+  getExamRawDisplayValue,
   updateComponentAndRecalculateClassScore,
 } from "../utils/scoreConversion";
 import { captureEvent, trackScoreEntrySessionOnce } from "../utils/analytics";
@@ -485,10 +485,16 @@ export function QuickGradebook({
         const { score } = clampDirectClassScore(numeric, maxClassScore);
         patches.push({ student: targetStudent, updatedSubject: { ...sub, classScore: score } });
       } else if (field === "exam") {
-        const { weightedScore } = convertExamRawToWeighted(numeric, maxExamScore);
+        const { clampedRaw, weightedScore } = convertExamRawToWeighted(numeric, maxExamScore);
+        const updatedSub: SavedSubject = { ...sub, examScore: weightedScore };
+        if (weightedScore > 0) {
+          updatedSub.examRawScore = clampedRaw;
+        } else {
+          delete updatedSub.examRawScore;
+        }
         patches.push({
           student: targetStudent,
-          updatedSubject: { ...sub, examScore: weightedScore },
+          updatedSubject: updatedSub,
         });
       }
     }
@@ -804,7 +810,7 @@ export function QuickGradebook({
           const examRawValue =
             draft !== undefined && draft.baseScore === subject.examScore
               ? draft.raw
-              : formatExamWeightedAsRaw(subject.examScore, maxExamScore);
+              : getExamRawDisplayValue(subject, maxExamScore);
 
           const activeComponent = activeComponentName
             ? subject.classScoreComponents?.find((comp) => comp.name === activeComponentName)
@@ -1056,7 +1062,9 @@ export function QuickGradebook({
                                 delete next[draftKey];
                                 return next;
                               });
-                              commitSubjectUpdate(student, { ...subject, examScore: 0 });
+                              const cleared = { ...subject, examScore: 0 };
+                              delete cleared.examRawScore;
+                              commitSubjectUpdate(student, cleared);
                               return;
                             }
 
@@ -1066,9 +1074,10 @@ export function QuickGradebook({
 
                             const { clampedRaw, wasClamped, weightedScore } =
                               convertExamRawToWeighted(numeric, maxExamScore);
+                            const nextExamRaw = weightedScore > 0 ? clampedRaw : undefined;
                             const normalizedDisplay = wasClamped ? String(clampedRaw) : raw;
-                            const formattedWeighted = formatExamWeightedAsRaw(
-                              weightedScore,
+                            const formattedWeighted = getExamRawDisplayValue(
+                              { examScore: weightedScore, examRawScore: nextExamRaw },
                               maxExamScore,
                             );
 
@@ -1089,7 +1098,13 @@ export function QuickGradebook({
                               });
                             }
 
-                            commitSubjectUpdate(student, { ...subject, examScore: weightedScore });
+                            const nextSub: SavedSubject = { ...subject, examScore: weightedScore };
+                            if (nextExamRaw !== undefined) {
+                              nextSub.examRawScore = nextExamRaw;
+                            } else {
+                              delete nextSub.examRawScore;
+                            }
+                            commitSubjectUpdate(student, nextSub);
                           }}
                           onBlur={() => {
                             if (!(draftKey in examDrafts)) return;

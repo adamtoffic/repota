@@ -16,6 +16,7 @@ vi.mock("../utils/idbStorage", () => ({
   saveToStorage: vi.fn().mockResolvedValue(true),
   saveEntriesToStorage: vi.fn().mockResolvedValue(true),
   getStorageType: vi.fn(() => "indexeddb"),
+  subscribeToStorageSync: vi.fn(() => () => {}),
 }));
 
 vi.mock("../utils/dataProtection", () => ({

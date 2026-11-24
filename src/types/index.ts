@@ -39,9 +39,21 @@ export interface SavedSubject {
   classScore: number;
   /**
    * Stored weighted on `0..SchoolSettings.examScoreMax` (not raw `0..100`).
-   * Convert UI/CSV inputs via `convertExamRawToWeighted` and `formatExamWeightedAsRaw`.
+   * Convert UI/CSV inputs via `convertExamRawToWeighted`, `resolveExamRawScore`, and `getExamRawDisplayValue`.
    */
   examScore: number;
+  /**
+   * Optional raw `0..100` exam mark preserved alongside weighted `examScore` so rounding
+   * (e.g., `89/100` at `50` max -> `45`) and weight changes remain lossless.
+   */
+  examRawScore?: number;
+  /**
+   * Direct `classScore` temporarily stashed when entering `MOCK` mode (`classScoreMax === 0`)
+   * on subjects without SBA components, and restored on return to `TERMLY`.
+   */
+  savedDirectClassScore?: number;
+  /** Prior `classScoreMax` denominator captured alongside `savedDirectClassScore`. */
+  savedDirectClassScoreMax?: number;
   /** Optional subject-specific SBA breakdown; when present, drives `classScore` proportionally. */
   classScoreComponents?: ClassScoreComponent[];
 }
