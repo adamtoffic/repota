@@ -281,4 +281,69 @@ describe("SchoolContext live actions", () => {
 
     expect(result.current.students.every((s) => s.className === "Basic 6")).toBe(true);
   });
+
+  it("applySbaConfig, updateAssessmentWeights, and loadDemoData keep SBA metadata and scores consistent", async () => {
+    const { result } = await renderLoadedSchoolHook();
+
+    // 1. Atomic SBA config update reconciles students and derives componentLibrary
+    act(() => {
+      result.current.applySbaConfig((prev) => ({
+        settings: {
+          ...prev,
+          subjectComponentMap: {
+            ...prev.subjectComponentMap,
+            Mathematics: [
+              { name: "CAT 1", maxScore: 10, category: "CAT" },
+              { name: "Project Work", maxScore: 20, category: "PROJECT" },
+            ],
+          },
+        },
+        renamedTasks: { "Class Test 1": "CAT 1" },
+      }));
+    });
+
+    expect(result.current.settings.componentLibrary).toEqual([
+      { name: "CAT 1", maxScore: 10, category: "CAT" },
+      { name: "Project Work", maxScore: 20, category: "PROJECT" },
+    ]);
+    const stu1Math = result.current.students
+      .find((s) => s.id === "stu-1")
+      ?.subjects.find((s) => s.name === "Mathematics");
+    // "Class Test 1" (15/20) renamed to "CAT 1" (/10) -> clamped to 10; Project Work 0/20 -> 10/30 * 50 = 17
+    expect(stu1Math?.classScoreComponents?.[0]).toMatchObject({
+      name: "CAT 1",
+      score: 10,
+      maxScore: 10,
+      category: "CAT",
+    });
+    expect(stu1Math?.classScore).toBe(17);
+
+    // 2. Proportional weight change 50/50 -> 30/70
+    act(() => {
+      result.current.updateAssessmentWeights(30, 70, {
+        examType: "TERMLY",
+        scoreMode: "rescale",
+      });
+    });
+
+    expect(result.current.settings.classScoreMax).toBe(30);
+    expect(result.current.settings.examScoreMax).toBe(70);
+    const rescaledMath = result.current.students
+      .find((s) => s.id === "stu-1")
+      ?.subjects.find((s) => s.name === "Mathematics");
+    // 10/30 raw * 30 = 10 classScore; 40/50 * 70 = 56 examScore
+    expect(rescaledMath?.classScore).toBe(10);
+    expect(rescaledMath?.examScore).toBe(56);
+
+    // 3. loadDemoData preserves category on demo student SBA components
+    act(() => {
+      result.current.loadDemoData();
+    });
+    const demoWithComp = result.current.students.find((s) =>
+      s.subjects.some((sub) => (sub.classScoreComponents?.length ?? 0) > 0),
+    );
+    const demoComp = demoWithComp?.subjects.find((sub) => sub.classScoreComponents?.length)
+      ?.classScoreComponents?.[0];
+    expect(demoComp?.category).toBeDefined();
+  });
 });

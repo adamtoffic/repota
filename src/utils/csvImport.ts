@@ -9,6 +9,7 @@ import type {
   StudentRecord,
 } from "../types";
 import { calculateGrade } from "./gradeCalculator";
+import { calculateSbaPaceStats } from "./sbaReconciliation";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
@@ -208,6 +209,8 @@ function normalizeHeader(header: string): string {
 
 const DERIVED_EXPORT_HEADERS = new Set([
   "taskscore",
+  "rawtotal",
+  "sbapace",
   "subjectclassscore",
   "weightedexam",
   "total",
@@ -595,6 +598,76 @@ export function buildSubjectQuickExportCsv(
     }
     return [
       escapeCsvCell(student.name),
+      escapeCsvCell(subject.classScore),
+      escapeCsvCell(formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax)),
+      escapeCsvCell(subject.examScore),
+      escapeCsvCell(total),
+      escapeCsvCell(grade),
+    ];
+  });
+
+  return [headers.map(escapeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+/**
+ * Exports a subject's full SBA markbook CSV (`Name`, each SBA task, `Raw Total`, `SBA Pace`,
+ * `Class Score`, `Exam`, `Weighted Exam`, `Total`, `Grade`). Falls back to `buildSubjectQuickExportCsv`
+ * when no SBA tasks are configured for `subjectName` (or in `MOCK` mode).
+ */
+export function buildSubjectSbaExportCsv(
+  subjectName: string,
+  students: Pick<StudentRecord, "name" | "subjects">[],
+  settings: Pick<
+    SchoolSettings,
+    "level" | "examType" | "classScoreMax" | "examScoreMax" | "subjectComponentMap"
+  >,
+): string {
+  const tasks = resolveSubjectSbaTasks(subjectName, students, settings);
+  if (tasks.length === 0) {
+    return buildSubjectQuickExportCsv(subjectName, students, settings);
+  }
+
+  const rawMax = tasks.reduce((sum, task) => sum + task.maxScore, 0);
+  const headers = [
+    "Name",
+    ...tasks.map((task) => `${task.name} (/${task.maxScore})`),
+    `Raw Total (/${rawMax})`,
+    "SBA Pace (%)",
+    `Class Score (/${settings.classScoreMax})`,
+    "Exam (/100)",
+    `Weighted Exam (/${settings.examScoreMax})`,
+    "Total (/100)",
+    "Grade",
+  ];
+
+  const rows = students.map((student) => {
+    const subject = student.subjects.find((s) => s.name === subjectName);
+    if (!subject) {
+      return [escapeCsvCell(student.name), ...headers.slice(1).map(() => escapeCsvCell(""))];
+    }
+
+    const matchedComponents: ClassScoreComponent[] = tasks.map((task) => {
+      const comp = subject.classScoreComponents?.find(
+        (c) => normalizeComponentNameKey(c.name) === normalizeComponentNameKey(task.name),
+      );
+      return {
+        id: comp?.id ?? task.name,
+        name: task.name,
+        score: comp?.score ?? 0,
+        maxScore: task.maxScore,
+        category: task.category ?? comp?.category,
+      };
+    });
+
+    const pace = calculateSbaPaceStats(matchedComponents, settings.classScoreMax);
+    const total = (subject.classScore || 0) + (subject.examScore || 0);
+    const { grade } = calculateGrade(total, settings.level);
+
+    return [
+      escapeCsvCell(student.name),
+      ...matchedComponents.map((comp) => escapeCsvCell(comp.score > 0 ? comp.score : "")),
+      escapeCsvCell(pace.gradedTasks > 0 ? pace.rawSum : ""),
+      escapeCsvCell(pace.pacePercent !== null ? `${pace.pacePercent}%` : ""),
       escapeCsvCell(subject.classScore),
       escapeCsvCell(formatExamWeightedAsRaw(subject.examScore, settings.examScoreMax)),
       escapeCsvCell(subject.examScore),

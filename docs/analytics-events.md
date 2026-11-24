@@ -83,8 +83,8 @@ This repo uses PostHog via `posthog-js`, initialized in `src/main.tsx` alongside
 - Properties: `mode`, `students_updated`, `students_created`, `new_tasks_created`, `school_level`, `exam_type`.
 
 #### 11) Score_Entry_Session
-- Trigger: session-deduped (`trackScoreEntrySessionOnce` in `src/utils/analytics.ts`) on first edit per mode + paste style in `src/components/QuickGradebook.tsx` and `src/components/ScoreEntryModal.tsx`.
-- Properties: `entry_mode` (`"quick_gradebook" | "score_modal"`), `used_column_paste`, `school_level`, `exam_type`.
+- Trigger: session-deduped (`trackScoreEntrySessionOnce` in `src/utils/analytics.ts`) on first edit per mode + paste style in `src/components/QuickGradebook.tsx`, `src/components/ScoreEntryModal.tsx`, and `src/components/sba/SbaMarkbookGrid.tsx`.
+- Properties: `entry_mode` (`"quick_gradebook" | "score_modal" | "sba_markbook"`), `used_column_paste`, `school_level`, `exam_type`.
 
 #### 12) Data_Loss_Detected
 - Trigger: `SchoolContext` (`src/context/SchoolContext.tsx`) when `detectDataLoss()` returns `true` on startup.
@@ -120,7 +120,7 @@ This repo uses PostHog via `posthog-js`, initialized in `src/main.tsx` alongside
 
 #### 19) Class_Tool_Used
 - Trigger: unified event across class management & export utilities (`BulkAttendanceModal.tsx`, `BulkPromotionModal.tsx`, `Dashboard.tsx`, `SbaPage.tsx`, `QuickGradebook.tsx`, `Analytics.tsx`).
-- Properties: `tool` (`"bulk_attendance" | "bulk_promotion" | "broadsheet_csv_export" | "detailed_broadsheet_csv_export" | "gradebook_csv_export" | "analytics_csv_export" | "analytics_pdf_export" | "class_story_copied"`), `students_count`, `school_level`.
+- Properties: `tool` (`"bulk_attendance" | "bulk_promotion" | "broadsheet_csv_export" | "detailed_broadsheet_csv_export" | "gradebook_csv_export" | "sba_sheet_csv_export" | "analytics_csv_export" | "analytics_pdf_export" | "class_story_copied"`), `students_count`, `school_level`.
 
 #### 20) Pin_Lock_Configured
 - Trigger: `PinSetup` (`src/components/PinSetup.tsx`) when `setupPin` succeeds.

@@ -207,12 +207,12 @@ describe("NavigationShell and route exclusions", () => {
     expect(screen.getByRole("menuitem", { name: /Auto-Fill Teacher Remarks/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Export Broadsheet \(CSV\)/i })).toBeInTheDocument();
 
-    // Navigate to SBA
+    // Navigate to SBA Markbook
     await navigateTo("/sba");
     expect(
-      await screen.findByRole("heading", { name: /SBA & Continuous Assessment/i }),
+      await screen.findByRole("heading", { name: /SBA Markbook/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Sync Tasks to Students/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Manage Tasks/i })).toBeInTheDocument();
 
     // Navigate to Analytics
     await navigateTo("/analytics");

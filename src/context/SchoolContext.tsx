@@ -4,7 +4,13 @@ import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { captureEvent } from "../utils/analytics";
 import { isDemoStudent } from "../utils/reportAnalytics";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
-import type { StudentRecord, SchoolSettings, SavedSubject } from "../types";
+import {
+  deriveLibraryFromSubjectMap,
+  normalizeTaskKey,
+  reconcileStudentsWithSbaConfig,
+  rescaleStudentsForWeightChange,
+} from "../utils/sbaReconciliation";
+import type { ExamType, StudentRecord, SchoolSettings, SavedSubject } from "../types";
 import { useToast } from "../hooks/useToast";
 import { useDebounce } from "../hooks/useDebounce";
 // ✅ Import definition
@@ -676,18 +682,19 @@ export function SchoolProvider({
 
   // 5B. DETECT COMPONENT MISMATCHES
   const detectComponentMismatches = useCallback(() => {
-    const { subjectComponentMap } = settingsRef.current;
+    const { subjectComponentMap, examType } = settingsRef.current;
 
-    if (!subjectComponentMap || Object.keys(subjectComponentMap).length === 0) {
+    if (examType === "MOCK") {
       return { hasOutdated: false, hasMissing: false };
     }
 
+    const map = subjectComponentMap ?? {};
     let hasOutdated = false;
     let hasMissing = false;
 
     for (const student of studentsRef.current) {
       for (const subject of student.subjects) {
-        const settingsComponents = subjectComponentMap[subject.name] || [];
+        const settingsComponents = map[subject.name] || [];
         const currentComponents = subject.classScoreComponents || [];
 
         if (settingsComponents.length > 0 && currentComponents.length === 0) {
@@ -695,16 +702,25 @@ export function SchoolProvider({
         }
 
         for (const config of settingsComponents) {
-          const existing = currentComponents.find((c) => c.name === config.name);
+          const existing = currentComponents.find(
+            (c) => normalizeTaskKey(c.name) === normalizeTaskKey(config.name),
+          );
           if (!existing) {
             hasMissing = true;
-          } else if (existing.maxScore !== config.maxScore) {
+          } else if (
+            existing.maxScore !== config.maxScore ||
+            (config.category !== undefined && existing.category !== config.category)
+          ) {
             hasOutdated = true;
           }
         }
 
         for (const current of currentComponents) {
-          if (!settingsComponents.some((config) => config.name === current.name)) {
+          if (
+            !settingsComponents.some(
+              (config) => normalizeTaskKey(config.name) === normalizeTaskKey(current.name),
+            )
+          ) {
             hasOutdated = true;
           }
         }
@@ -721,106 +737,132 @@ export function SchoolProvider({
   // 5C. SYNC SUBJECT COMPONENTS FROM SETTINGS (MANUAL)
   const syncSubjectComponentsFromSettings = useCallback(() => {
     const currentSettings = settingsRef.current;
-    const { subjectComponentMap } = currentSettings;
+    const map = currentSettings.subjectComponentMap ?? {};
+    const hasConfigured = Object.values(map).some((list) => list.length > 0);
+    const hasStudentComponents = studentsRef.current.some((student) =>
+      student.subjects.some((sub) => Boolean(sub.classScoreComponents?.length)),
+    );
 
-    if (!subjectComponentMap || Object.keys(subjectComponentMap).length === 0) {
+    if (!hasConfigured && !hasStudentComponents) {
       showToast("No components configured in Settings", "info");
       return;
     }
 
-    let syncedCount = 0;
-
-    handleSetStudents((prev) =>
-      prev.map((student) => {
-        let studentModified = false;
-
-        const updatedSubjects = student.subjects.map((subject) => {
-          const settingsComponents = subjectComponentMap[subject.name];
-
-          if (!settingsComponents || settingsComponents.length === 0) {
-            if (subject.classScoreComponents && subject.classScoreComponents.length > 0) {
-              studentModified = true;
-              return {
-                ...subject,
-                classScoreComponents: undefined,
-                classScore: 0,
-              };
-            }
-            return subject;
-          }
-
-          const currentComponents = subject.classScoreComponents || [];
-
-          const syncedComponents = settingsComponents.map((config) => {
-            const existing = currentComponents.find((c) => c.name === config.name);
-
-            if (existing) {
-              if (existing.maxScore !== config.maxScore) {
-                studentModified = true;
-                return {
-                  ...existing,
-                  maxScore: config.maxScore,
-                  score: Math.min(existing.score, config.maxScore),
-                };
-              }
-              return existing;
-            }
-
-            studentModified = true;
-            return {
-              id: crypto.randomUUID(),
-              name: config.name,
-              score: 0,
-              maxScore: config.maxScore,
-              category: config.category,
-            };
-          });
-
-          const removedComponents = currentComponents.filter(
-            (current) => !settingsComponents.some((config) => config.name === current.name),
-          );
-
-          if (removedComponents.length > 0) {
-            studentModified = true;
-          }
-
-          if (studentModified) {
-            const totalScore = syncedComponents.reduce((sum, c) => sum + c.score, 0);
-            const totalMax = syncedComponents.reduce((sum, c) => sum + c.maxScore, 0);
-            const percentage = totalMax > 0 ? totalScore / totalMax : 0;
-            const convertedClassScore = Math.round(percentage * currentSettings.classScoreMax);
-
-            return {
-              ...subject,
-              classScoreComponents: syncedComponents,
-              classScore: convertedClassScore,
-            };
-          }
-
-          return {
-            ...subject,
-            classScoreComponents: syncedComponents,
-          };
-        });
-
-        if (studentModified) syncedCount++;
-
-        return {
-          ...student,
-          subjects: updatedSubjects,
-        };
-      }),
+    const { students: nextStudents, modifiedStudentCount } = reconcileStudentsWithSbaConfig(
+      studentsRef.current,
+      currentSettings,
+      { onClearTasks: "preserve_class_score" },
     );
 
-    if (syncedCount > 0) {
+    if (modifiedStudentCount > 0) {
+      handleSetStudents(nextStudents);
       showToast(
-        `Synced components for ${syncedCount} student${syncedCount > 1 ? "s" : ""}`,
+        `Synced components for ${modifiedStudentCount} student${modifiedStudentCount > 1 ? "s" : ""}`,
         "success",
       );
     } else {
       showToast("All students already up to date", "info");
     }
   }, [handleSetStudents, showToast]);
+
+  // 5D. ATOMIC SBA CONFIGURATION + STUDENT RECONCILIATION
+  const applySbaConfig = useCallback(
+    (
+      updater: (prev: SchoolSettings) => {
+        settings: SchoolSettings;
+        renamedTasks?: Record<string, string>;
+        onClearTasks?: "preserve_class_score" | "zero";
+      },
+      options?: { silent?: boolean; toastMessage?: string },
+    ): SchoolSettings => {
+      const currentSettings = settingsRef.current;
+      const { settings: rawNext, renamedTasks, onClearTasks } = updater(currentSettings);
+      const nextMap = rawNext.subjectComponentMap ?? {};
+      const nextSettings: SchoolSettings = {
+        ...rawNext,
+        subjectComponentMap: nextMap,
+        componentLibrary: deriveLibraryFromSubjectMap(nextMap, rawNext.componentLibrary),
+      };
+
+      handleSetSettings(nextSettings);
+      handleSetStudents(
+        (prev) =>
+          reconcileStudentsWithSbaConfig(prev, nextSettings, {
+            renamedTasks,
+            onClearTasks,
+          }).students,
+      );
+
+      if (!options?.silent && options?.toastMessage) {
+        showToast(options.toastMessage, "success");
+      }
+
+      return nextSettings;
+    },
+    [handleSetSettings, handleSetStudents, showToast],
+  );
+
+  // 5E. ATOMIC ASSESSMENT WEIGHT / EXAM MODE UPDATE + SCORE RESCALING
+  const updateAssessmentWeights = useCallback(
+    (
+      nextClassScoreMax: number,
+      nextExamScoreMax: number,
+      options?: { examType?: ExamType; scoreMode?: "rescale" | "clamp"; silent?: boolean },
+    ): SchoolSettings => {
+      const prevSettings = settingsRef.current;
+      const nextExamType = options?.examType ?? prevSettings.examType ?? "TERMLY";
+
+      const clampedClass =
+        nextExamType === "MOCK"
+          ? 0
+          : Math.min(100, Math.max(0, Math.round(nextClassScoreMax)));
+      const clampedExam =
+        nextExamType === "MOCK"
+          ? 100
+          : Math.min(100, Math.max(0, Math.round(nextExamScoreMax)));
+
+      const nextSettings: SchoolSettings = {
+        ...prevSettings,
+        examType: nextExamType,
+        classScoreMax: clampedClass,
+        examScoreMax: clampedExam,
+      };
+
+      handleSetSettings(nextSettings);
+
+      const weightsChanged =
+        prevSettings.classScoreMax !== clampedClass ||
+        prevSettings.examScoreMax !== clampedExam;
+
+      if (
+        (nextExamType !== "MOCK" && (weightsChanged || prevSettings.examType === "MOCK")) ||
+        (options?.scoreMode !== undefined && weightsChanged)
+      ) {
+        handleSetStudents((prev) =>
+          rescaleStudentsForWeightChange(
+            prev,
+            prevSettings.classScoreMax,
+            prevSettings.examScoreMax,
+            clampedClass,
+            clampedExam,
+            options?.scoreMode ?? "rescale",
+          ),
+        );
+      }
+
+      if (!options?.silent) {
+        showToast(
+          nextExamType === "MOCK"
+            ? "Switched to Mock Exam mode (0/100)"
+            : `Updated grading weights to ${clampedClass}/${clampedExam}`,
+          "success",
+        );
+      }
+
+      return nextSettings;
+    },
+    [handleSetSettings, handleSetStudents, showToast],
+  );
 
   // 6. DEMO DATA
   const loadDemoData = useCallback(() => {
@@ -867,6 +909,7 @@ export function SchoolProvider({
             name: config.name,
             score,
             maxScore: config.maxScore,
+            ...(config.category !== undefined ? { category: config.category } : {}),
           };
         });
 
@@ -1145,6 +1188,8 @@ export function SchoolProvider({
       updateClassNameForAll,
       detectComponentMismatches,
       syncSubjectComponentsFromSettings,
+      applySbaConfig,
+      updateAssessmentWeights,
       checkDuplicateName,
       restoreDefaults,
       autoGenerateRemarks,
@@ -1159,6 +1204,7 @@ export function SchoolProvider({
     }),
     [
       addStudent,
+      applySbaConfig,
       autoGenerateRemarks,
       checkDuplicateName,
       clearAllScores,
@@ -1178,6 +1224,7 @@ export function SchoolProvider({
       retryLoad,
       suspendPersistence,
       syncSubjectComponentsFromSettings,
+      updateAssessmentWeights,
       updateClassNameForAll,
       updateStudent,
       waitForMigration,

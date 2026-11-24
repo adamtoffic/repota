@@ -43,7 +43,7 @@ export interface SettingsFormContextType {
   handleClassNameBlur: () => void;
   handleKeepOldClassName: () => void;
   finalizeSave: (shouldUpdateStudents?: boolean) => void;
-  flushPendingSave: () => void;
+  flushPendingSave: () => SchoolSettings;
   syncCommittedSettings: (nextSettings: SchoolSettings) => void;
   handleLevelChange: (newLevel: SchoolLevel) => void;
   applyLevelChange: (newLevel: SchoolLevel) => void;

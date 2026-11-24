@@ -247,6 +247,34 @@ describe("analyticsCalculator", () => {
     expect(coreElective.aggregateBands.length).toBeGreaterThan(0);
   });
 
+  it("skips ungraded (score === 0) SBA components in calculateSbaCategoryMastery", () => {
+    const midTermStudent: StudentRecord = {
+      id: "mid-1",
+      name: "Kojo Antwi",
+      className: "JHS 2",
+      gender: "Male",
+      subjects: [
+        {
+          id: "sub-math",
+          name: "Mathematics",
+          classScore: 10,
+          examScore: 0,
+          classScoreComponents: [
+            { id: "c1", name: "CAT 1", score: 12, maxScore: 15, category: "CAT" },
+            { id: "c2", name: "CAT 2", score: 0, maxScore: 15, category: "CAT" },
+            { id: "p1", name: "Project", score: 0, maxScore: 15, category: "PROJECT" },
+          ],
+        },
+      ],
+    };
+
+    const { graded } = partitionGradedStudents([midTermStudent]);
+    const mastery = calculateSbaCategoryMastery(graded);
+    // Only CAT 1 (12/15 = 80%) is graded; ungraded CAT 2 (0) and Project (0) must be skipped
+    expect(mastery.map((m) => m.category)).toEqual(["CAT"]);
+    expect(mastery[0].averagePercent).toBe(80);
+  });
+
   it("summarizes private school fee statuses and arrears", () => {
     const privateStudents: StudentRecord[] = [
       { ...makeStudent("p1", "Paid Stu", [["Math", 40, 40]]), feeStatus: "PAID" },

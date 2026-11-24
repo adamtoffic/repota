@@ -298,8 +298,11 @@ describe("Settings sub-routes shared state and invariants", () => {
       await vi.dynamicImportSettled();
       await Promise.resolve();
     });
-    expect(screen.getByRole("button", { name: /Sync Tasks to Students/i })).toBeDisabled();
-    expect(screen.getByDisplayValue("60")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Grading weights and exam mode/i }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Manage Tasks/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Import CSV/i })).toBeDisabled();
 
     // Check /settings/security: Security & Privacy controls disabled, DataBackup file input enabled
     await act(async () => {
@@ -313,19 +316,13 @@ describe("Settings sub-routes shared state and invariants", () => {
     expect(backupFileInput).not.toBeDisabled();
   });
 
-  it("assigns all SBA component library tasks to every default subject in one click", async () => {
+  it("applies the active subject SBA tasks to every default subject in one click", async () => {
     renderSubRouteApp("/sba");
     await flushHydrationAndImports();
 
-    expect(screen.getByText("No tasks assigned")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Manage Tasks/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Apply to all subjects/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Assign All Tasks to All Subjects" }));
-
-    expect(screen.queryByText("No tasks assigned")).not.toBeInTheDocument();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(500);
-    });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(500);
     });

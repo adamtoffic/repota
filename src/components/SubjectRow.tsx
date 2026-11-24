@@ -9,6 +9,7 @@ import {
   updateComponentAndRecalculateClassScore,
 } from "../utils/scoreConversion";
 import { getSubjectScoreStatus } from "../utils/studentValidation";
+import { calculateSbaPaceStats } from "../utils/sbaReconciliation";
 
 export type FieldNavigationDirection = "next" | "prev" | "down" | "up";
 
@@ -82,6 +83,7 @@ export function SubjectRow({
   const sbaScoredCount = components.filter((comp) => comp.score > 0).length;
   const sbaRawTotal = components.reduce((sum, comp) => sum + comp.score, 0);
   const sbaRawMax = components.reduce((sum, comp) => sum + comp.maxScore, 0);
+  const sbaPace = calculateSbaPaceStats(components, maxClassScore);
 
   const [classScoreError, setClassScoreError] = useState<string | null>(null);
   const [examScoreError, setExamScoreError] = useState<string | null>(null);
@@ -509,10 +511,18 @@ export function SubjectRow({
             >
               SBA Breakdown
             </span>
-            <div className="flex items-center gap-2 text-[11px] tabular-nums">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] tabular-nums">
               <span className="text-purple-700 dark:text-purple-300">
                 Raw {sbaRawTotal}/{sbaRawMax}
               </span>
+              {sbaPace.isPartialMidTerm && sbaPace.pacePercent !== null && (
+                <>
+                  <span className="text-purple-300 dark:text-purple-700">·</span>
+                  <span className="rounded bg-amber-100/80 px-1.5 py-0.5 font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                    {sbaPace.gradedTasks}/{sbaPace.totalTasks} graded · {sbaPace.pacePercent}% pace
+                  </span>
+                </>
+              )}
               <span className="text-purple-300 dark:text-purple-700">·</span>
               <span className="font-semibold text-purple-900 dark:text-purple-200">
                 Class Score: {subject.classScore}/{maxClassScore}

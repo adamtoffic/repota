@@ -904,7 +904,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 /**
- * Aggregates recorded SBA component scores by assessment category.
+ * Aggregates recorded (`score > 0`) SBA component scores by assessment category,
+ * ignoring unentered/unstarted `0` tasks so mid-term progress doesn't drag averages down.
  */
 export function calculateSbaCategoryMastery(students: StudentRecord[]): SbaCategoryMastery[] {
   const map = new Map<string, { pctSum: number; count: number }>();
@@ -912,7 +913,7 @@ export function calculateSbaCategoryMastery(students: StudentRecord[]): SbaCateg
   for (const student of students) {
     for (const sub of student.subjects) {
       for (const comp of sub.classScoreComponents ?? []) {
-        if (comp.maxScore <= 0) continue;
+        if (comp.maxScore <= 0 || comp.score <= 0) continue;
         const cat = comp.category || "OTHER";
         const pct = (comp.score / comp.maxScore) * 100;
         const cur = map.get(cat) ?? { pctSum: 0, count: 0 };

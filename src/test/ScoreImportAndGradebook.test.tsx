@@ -675,4 +675,60 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     expect(updatedSub.examScore).toBe(45);
     expect(updatedSub.classScoreComponents).toBeUndefined();
   });
+
+  it("discovers tasks from subjectComponentMap, copies category on Add Subject, and focuses SBA task on pill click", async () => {
+    const user = userEvent.setup();
+    const onUpdateStudent = vi.fn();
+    const studentWithMissingMath: ProcessedStudent = {
+      ...studentOne,
+      id: "s-missing",
+      name: "Kojo Asante",
+      subjects: [],
+    };
+    const settingsFromMap: SchoolSettings = {
+      ...testSettings,
+      componentLibrary: [],
+      subjectComponentMap: {
+        Mathematics: [
+          { name: "CAT 1", maxScore: 15, category: "CAT" },
+          { name: "Project", maxScore: 35, category: "PROJECT" },
+        ],
+      },
+    };
+
+    const { rerender } = render(
+      <QuickGradebook
+        students={[studentOne, studentWithMissingMath]}
+        settings={settingsFromMap}
+        onUpdateStudent={onUpdateStudent}
+      />,
+    );
+
+    // Dropdown exposes tasks configured in settings.subjectComponentMap
+    expect(screen.getByRole("option", { name: "SBA: CAT 1 (/15)" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "SBA: Project (/35)" })).toBeInTheDocument();
+
+    // Add Subject copies configured tasks including category metadata
+    await user.click(screen.getByRole("button", { name: /Add Subject/i }));
+    expect(onUpdateStudent).toHaveBeenCalledTimes(1);
+    const addedSubject = onUpdateStudent.mock.calls[0][0].subjects[0];
+    expect(addedSubject.classScoreComponents).toHaveLength(2);
+    expect(addedSubject.classScoreComponents[0]).toMatchObject({
+      name: "CAT 1",
+      maxScore: 15,
+      score: 0,
+      category: "CAT",
+    });
+
+    // Clicking the Class SBA pill in CLASS_EXAM mode switches focusColumn to COMP:CAT 1
+    rerender(
+      <QuickGradebook
+        students={[studentOne]}
+        settings={settingsFromMap}
+        onUpdateStudent={onUpdateStudent}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /· SBA/i }));
+    expect(screen.getByLabelText("Kwame Mensah CAT 1 Score")).toBeInTheDocument();
+  });
 });
