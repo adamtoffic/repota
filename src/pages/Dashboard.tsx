@@ -620,7 +620,7 @@ export function Dashboard() {
               className="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
               data-record="true"
             >
-              Manage SBA
+              SBA Markbook
             </Link>
           )}
         />
@@ -700,7 +700,7 @@ export function Dashboard() {
           {
             title: "Step 1: Configure Your School & SBA ⚙️",
             description:
-              "Before adding students, use the Settings tab in the navigation bar to set up your school details, academic year, term, class name, and subjects — and use the SBA tab to configure Continuous Assessment tasks.",
+              "Before adding students, use the Settings tab in the navigation bar to set up your school details, academic year, term, class name, and subjects — and use the SBA Markbook tab to configure Continuous Assessment tasks.",
           },
           {
             title: "Step 2: Add Your Students 👨‍🎓",

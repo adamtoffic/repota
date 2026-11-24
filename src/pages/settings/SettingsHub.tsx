@@ -20,6 +20,7 @@ import { TEMPLATE_REGISTRY } from "../../templates/registry";
 import { getTimeSinceBackup } from "../../utils/dataProtection";
 import { isPinConfigured } from "../../utils/pinSecurity";
 import { resolvePositionVisibility } from "../../utils/privateSchoolFees";
+import { deriveLibraryFromSubjectMap } from "../../utils/sbaReconciliation";
 
 const APPEARANCE_OPTIONS = [
   { value: "system" as const, label: "System", icon: Monitor },
@@ -77,13 +78,22 @@ function SettingsHubContent() {
     {
       to: "/sba" as const,
       title: "SBA & Grading",
-      description: "Continuous assessment weights, SBA task library, and subject task mapping.",
+      description:
+        "Open the SBA Markbook to record continuous assessment tasks, presets, and grading weights.",
       icon: Calculator,
       iconBg: "bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400",
       meta:
         formData.examType === "MOCK"
           ? "Mock (0/100)"
-          : `${formData.classScoreMax}/${formData.examScoreMax} • ${(formData.componentLibrary || []).length} tasks`,
+          : (() => {
+              const sbaTasks = deriveLibraryFromSubjectMap(
+                formData.subjectComponentMap ?? {},
+                formData.componentLibrary,
+              );
+              return sbaTasks.length > 0
+                ? `${formData.classScoreMax}/${formData.examScoreMax} • ${sbaTasks.length} tasks`
+                : `${formData.classScoreMax}/${formData.examScoreMax} • Direct`;
+            })(),
     },
     {
       to: "/settings/templates" as const,

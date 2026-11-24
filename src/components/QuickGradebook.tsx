@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   BookOpen,
   Download,
@@ -14,6 +15,7 @@ import {
   buildSingleComponentExportCsv,
   buildSubjectQuickExportCsv,
   downloadCsvFile,
+  resolveSubjectSbaTasks,
 } from "../utils/csvImport";
 import { calculateGrade } from "../utils/gradeCalculator";
 import {
@@ -187,20 +189,11 @@ export function QuickGradebook({
     }
   };
 
-  // Discover SBA tasks attached to this subject across the class
+  // Discover SBA tasks configured for this subject (falling back to student records)
   const sbaTaskOptions = useMemo(() => {
-    if (isMockExam || !activeSubject) return [] as Array<{ name: string; maxScore: number }>;
-    const byName = new Map<string, number>();
-    rosterStudents.forEach((student) => {
-      const subject = student.subjects.find((sub) => sub.name === activeSubject);
-      subject?.classScoreComponents?.forEach((comp) => {
-        if (!byName.has(comp.name)) {
-          byName.set(comp.name, comp.maxScore);
-        }
-      });
-    });
-    return Array.from(byName.entries()).map(([name, maxScore]) => ({ name, maxScore }));
-  }, [isMockExam, activeSubject, rosterStudents]);
+    if (!activeSubject) return [];
+    return resolveSubjectSbaTasks(activeSubject, rosterStudents, settings);
+  }, [activeSubject, rosterStudents, settings]);
 
   const hasDirectClassEntry = useMemo(
     () =>
@@ -533,11 +526,12 @@ export function QuickGradebook({
       name: activeSubject,
       classScore: 0,
       examScore: 0,
-      classScoreComponents: configuredTasks?.map((task, idx) => ({
-        id: `${Date.now()}-${idx}-${task.name}`,
+      classScoreComponents: configuredTasks?.map((task) => ({
+        id: crypto.randomUUID(),
         name: task.name,
         maxScore: task.maxScore,
         score: 0,
+        category: task.category,
       })),
     };
     onUpdateStudent({ ...student, subjects: [...student.subjects, newSubject] }, true);
@@ -689,6 +683,16 @@ export function QuickGradebook({
                 <Upload className="h-3.5 w-3.5" />
                 <span>Import</span>
               </button>
+            )}
+            {!isMockExam && sbaTaskOptions.length > 0 && (
+              <Link
+                to="/sba"
+                className="bg-surface inline-flex items-center gap-1.5 rounded-lg border border-purple-200 px-3 py-2 text-xs font-semibold text-purple-700 shadow-xs transition-colors hover:bg-purple-50 dark:border-purple-800/70 dark:text-purple-300 dark:hover:bg-purple-950/50"
+                data-record="true"
+              >
+                <TableProperties className="h-3.5 w-3.5" />
+                <span>SBA Markbook</span>
+              </Link>
             )}
           </div>
         </div>
@@ -903,6 +907,36 @@ export function QuickGradebook({
                       <span className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 tabular-nums dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300">
                         SBA: {subject.classScore}/{maxClassScore}
                       </span>
+                    )}
+
+                    {!isMockExam && hasComponents && activeFocusColumn === "CLASS_EXAM" && (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span
+                          className="text-muted text-[10px] font-bold uppercase"
+                          data-record="true"
+                        >
+                          Class (/{maxClassScore})
+                        </span>
+                        {sbaTaskOptions.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFocusColumn(`COMP:${sbaTaskOptions[0].name}`);
+                              requestAnimationFrame(() => {
+                                inputRefs.current[`comp:${student.id}`]?.focus();
+                              });
+                            }}
+                            title="Open SBA task scores"
+                            className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-2 text-xs font-semibold text-purple-700 tabular-nums transition-colors hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-900/60"
+                          >
+                            {subject.classScore}/{maxClassScore} · SBA
+                          </button>
+                        ) : (
+                          <span className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-2 text-xs font-semibold text-purple-700 tabular-nums dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300">
+                            {subject.classScore}/{maxClassScore} · SBA
+                          </span>
+                        )}
+                      </div>
                     )}
 
                     {showClassInput && (

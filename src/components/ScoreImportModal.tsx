@@ -35,6 +35,7 @@ import {
   type SbaImportMode,
 } from "../utils/csvImport";
 import { updateComponentAndRecalculateClassScore } from "../utils/scoreConversion";
+import { deriveLibraryFromSubjectMap } from "../utils/sbaReconciliation";
 import { captureEvent } from "../utils/analytics";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
@@ -447,15 +448,6 @@ function ScoreImportModalContent({
 
     let effectiveSettings = settings;
     if (enabledNewTasks.length > 0 && typeof setSettings === "function") {
-      const currentLib = settings.componentLibrary ?? [];
-      const nextLib = [...currentLib];
-      for (const task of enabledNewTasks) {
-        const taskKey = normalizeComponentNameKey(task.name);
-        if (!nextLib.some((t) => normalizeComponentNameKey(t.name) === taskKey)) {
-          nextLib.push(task);
-        }
-      }
-
       const currentMap = settings.subjectComponentMap ?? {};
       const currentSubTasks = currentMap[activeSubject] ?? [];
       const nextSubTasks = [...currentSubTasks];
@@ -466,13 +458,15 @@ function ScoreImportModalContent({
         }
       }
 
+      const nextMap = {
+        ...currentMap,
+        [activeSubject]: nextSubTasks,
+      };
+
       effectiveSettings = {
         ...settings,
-        componentLibrary: nextLib,
-        subjectComponentMap: {
-          ...currentMap,
-          [activeSubject]: nextSubTasks,
-        },
+        componentLibrary: deriveLibraryFromSubjectMap(nextMap, settings.componentLibrary),
+        subjectComponentMap: nextMap,
       };
       setSettings(effectiveSettings);
       onSettingsUpdated?.(effectiveSettings);
@@ -736,8 +730,8 @@ function ScoreImportModalContent({
                     </p>
                   ) : (
                     <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
-                      No SBA components assigned to <strong>{activeSubject}</strong> yet. Add
-                      tasks on the SBA page or use <strong>Single SBA Task</strong> →{" "}
+                      No SBA components assigned to <strong>{activeSubject}</strong> yet. Open
+                      the SBA Markbook or use <strong>Single SBA Task</strong> →{" "}
                       <strong>+ Create New SBA Task...</strong> to import component scores.
                     </p>
                   )

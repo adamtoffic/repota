@@ -720,7 +720,7 @@ export function SbaMarkbookGrid({
                         focusMobileRow(studentIdx, -1);
                       }
                     }}
-                    className={`bg-input text-main placeholder:text-muted h-11 w-22 rounded-lg border px-2 text-center text-base font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${NUMBER_INPUT_RESET_CLASSES} ${
+                    className={`bg-input text-main placeholder:text-muted h-11 w-22 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${NUMBER_INPUT_RESET_CLASSES} ${
                       cellError
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                         : "border-purple-300 focus:border-purple-500 focus:ring-purple-500/25 dark:border-purple-700"
