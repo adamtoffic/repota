@@ -17,6 +17,7 @@ const storage = vi.hoisted(() => ({
   initStorage: vi.fn(),
   loadFromStorageResult: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
   createBackupHeartbeat: vi.fn(),
 }));
@@ -92,6 +93,7 @@ describe("Hardened existing PostHog events", () => {
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: true });
     storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
     storage.loadFromStorageResult.mockImplementation(async (key: string) => {
       if (key === "ges_v1_students") return { status: "found", value: [] };
       if (key === "ges_v1_settings") return { status: "found", value: BASE_SETTINGS };

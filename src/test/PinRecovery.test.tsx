@@ -109,7 +109,8 @@ describe("PinRecovery", () => {
     await user.type(newPinInput, "4321");
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
-    const confirmInput = await screen.findByPlaceholderText("••••");
+    expect(await screen.findByText("Confirm New PIN")).toBeInTheDocument();
+    const confirmInput = screen.getByPlaceholderText("••••");
     await user.type(confirmInput, "4321");
     await user.click(screen.getByRole("button", { name: "Reset PIN" }));
 

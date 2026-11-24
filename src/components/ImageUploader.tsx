@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Upload, Image as ImageIcon, X } from "lucide-react";
 import { compressImage } from "../utils/imageCompressor"; // ✅ Import utility
 import { useToast } from "../hooks/useToast"; // ✅ Import Toast
-import { getStorageWarningLevel } from "../utils/storageMonitor";
+import { getAsyncStorageWarningLevel } from "../utils/storageMonitor";
 import { ConfirmModal } from "./ConfirmModal";
 
 interface ImageUploaderProps {
@@ -44,7 +44,7 @@ export function ImageUploader({
     if (!file) return;
 
     // 0. Check storage before allowing upload
-    const storageLevel = getStorageWarningLevel();
+    const storageLevel = await getAsyncStorageWarningLevel();
     if (storageLevel === "critical") {
       showToast(
         "Storage full! Please export data and clear old students before uploading images.",

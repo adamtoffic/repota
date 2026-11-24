@@ -70,6 +70,8 @@ export interface SchoolActionsType {
   setActiveRecoveryAction?: (action: RecoveryAction) => void;
   /** Waits for startup `localStorage` to IndexedDB migration to settle; rejects after `MIGRATION_WAIT_TIMEOUT_MS`. */
   waitForMigration?: () => Promise<void>;
+  /** Immediately persists any debounced student/settings edits to storage. */
+  flushPendingWrites?: () => Promise<boolean>;
 }
 
 export interface SchoolLifecycleType {
@@ -85,6 +87,8 @@ export interface SchoolLifecycleType {
   isRollbackIncomplete: boolean;
   /** `true` while local state differs from the 500ms debounced snapshot queued for storage persistence. */
   isSaving: boolean;
+  /** Non-null when the most recent storage persistence attempt failed. */
+  saveError?: string | null;
   lastSaved?: Date;
   activeRecoveryAction?: RecoveryAction;
 }

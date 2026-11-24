@@ -48,8 +48,8 @@ function SidebarStudentCountBadge() {
 }
 
 function ConnectedAutoSaveIndicator() {
-  const { isSaving, lastSaved } = useSchoolLifecycle();
-  return <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />;
+  const { isSaving, lastSaved, saveError } = useSchoolLifecycle();
+  return <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} error={saveError ?? undefined} />;
 }
 
 interface PrimaryNavItem {

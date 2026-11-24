@@ -44,12 +44,17 @@ import {
   initStorage,
   loadFromStorageResult,
   saveToStorage,
+  saveEntriesToStorage,
   IDB_KEYS,
   migrateFromLocalStorage,
   getStorageType,
 } from "../utils/idbStorage";
 import { ConfirmModal } from "../components/ConfirmModal";
-import { CHUNK_RELOAD_KEY, setUnsavedChanges } from "../utils/preloadErrorHandler";
+import {
+  CHUNK_RELOAD_KEY,
+  hasUnsavedChanges as hasGlobalUnsavedChanges,
+  setUnsavedChanges,
+} from "../utils/preloadErrorHandler";
 import { disablePinLock } from "../utils/pinSecurity";
 import {
   THEME_CHANGE_EVENT,
@@ -109,6 +114,8 @@ export function SchoolProvider({
   const freshWritesStartedRef = useRef(false);
   const studentsWriteSeqRef = useRef(0);
   const settingsWriteSeqRef = useRef(0);
+  const lastPersistedStudentsRef = useRef<StudentRecord[] | null>(null);
+  const lastPersistedSettingsRef = useRef<SchoolSettings | null>(null);
   const [resumeGeneration, setResumeGeneration] = useState(0);
 
   const [prevIsLocked, setPrevIsLocked] = useState(isLocked);
@@ -140,6 +147,10 @@ export function SchoolProvider({
   }, [settings]);
 
   const { showToast } = useToast();
+  const showToastRef = useRef(showToast);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
 
   // ✅ PERFORMANCE: Debounce storage writes to prevent UI blocking
   const debouncedStudents = useDebounce(students, 500);
@@ -147,6 +158,9 @@ export function SchoolProvider({
 
   // ✅ AUTO-SAVE STATE TRACKING
   const [lastSaved, setLastSaved] = useState<Date>();
+  const [studentsSaveError, setStudentsSaveError] = useState<string | null>(null);
+  const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
+  const saveError = studentsSaveError ?? settingsSaveError;
 
   // Track if we're in the debounce period (data changed but not yet saved)
   const isSaving = students !== debouncedStudents || settings !== debouncedSettings;
@@ -261,13 +275,21 @@ export function SchoolProvider({
         if (studentsResult.status === "found") {
           const parsed = z.array(compatibleStudentSchema).safeParse(studentsResult.value);
           if (parsed.success) {
-            setStudents(parsed.data as StudentRecord[]);
+            const hydratedStudents = parsed.data as StudentRecord[];
+            lastPersistedStudentsRef.current = hydratedStudents;
+            studentsRef.current = hydratedStudents;
+            setStudents(hydratedStudents);
+            setStudentsSaveError(null);
           } else {
             console.error("Corrupted student records in storage:", parsed.error);
             studentsLoadStatus = "error";
           }
         } else if (studentsResult.status === "empty") {
-          setStudents([]);
+          const emptyStudents: StudentRecord[] = [];
+          lastPersistedStudentsRef.current = emptyStudents;
+          studentsRef.current = emptyStudents;
+          setStudents(emptyStudents);
+          setStudentsSaveError(null);
         } else {
           studentsLoadStatus = "error";
         }
@@ -284,7 +306,11 @@ export function SchoolProvider({
           ) {
             try {
               const validated = mergeSettings(settingsResult.value as unknown as Record<string, unknown>);
-              setSettings(validated as unknown as SchoolSettings);
+              const hydratedSettings = validated as unknown as SchoolSettings;
+              lastPersistedSettingsRef.current = hydratedSettings;
+              settingsRef.current = hydratedSettings;
+              setSettings(hydratedSettings);
+              setSettingsSaveError(null);
             } catch (err) {
               console.error("Corrupted settings in storage:", err);
               settingsLoadStatus = "error";
@@ -294,7 +320,10 @@ export function SchoolProvider({
             settingsLoadStatus = "error";
           }
         } else if (settingsResult.status === "empty") {
+          lastPersistedSettingsRef.current = DEFAULT_FACTORY_SETTINGS;
+          settingsRef.current = DEFAULT_FACTORY_SETTINGS;
           setSettings(DEFAULT_FACTORY_SETTINGS);
+          setSettingsSaveError(null);
         } else {
           settingsLoadStatus = "error";
         }
@@ -306,6 +335,22 @@ export function SchoolProvider({
         });
 
         if (hasNoErrors) {
+          const dataLossChecked = sessionStorage.getItem("data_loss_checked");
+          if (
+            !dataLossChecked &&
+            detectDataLoss({
+              studentsEmpty: studentsResult.status === "empty",
+              settingsEmpty: settingsResult.status === "empty",
+            })
+          ) {
+            showToastRef.current(
+              "⚠️ Data may have been cleared. Please restore from backup if needed.",
+              "error",
+            );
+            sessionStorage.setItem("data_loss_checked", "true");
+            captureEvent("Data_Loss_Detected", { storage_type: getStorageType() });
+          }
+
           const hasIncompleteRollback = (() => {
             try {
               return localStorage.getItem("repota_incomplete_rollback") === "true";
@@ -348,18 +393,29 @@ export function SchoolProvider({
     if (persistenceSuspendedRef.current) return;
     if (loadStatus.students === "error") return;
     if (debouncedStudents !== students) return; // Wait for the hydrated snapshot to settle
+    if (Object.is(debouncedStudents, lastPersistedStudentsRef.current)) return; // Skip redundant cold-boot rewrites
 
     const seq = ++studentsWriteSeqRef.current;
+    const snapshot = debouncedStudents;
     setUnsavedChanges("school-context-students-write", true);
-    Promise.resolve(saveToStorage(IDB_KEYS.STUDENTS, debouncedStudents))
+    Promise.resolve(saveToStorage(IDB_KEYS.STUDENTS, snapshot))
       .then((saved) => {
-        if (studentsWriteSeqRef.current === seq && saved !== false) {
+        if (studentsWriteSeqRef.current !== seq) return;
+        if (saved !== false) {
+          lastPersistedStudentsRef.current = snapshot;
           setUnsavedChanges("school-context-students-write", false);
+          setStudentsSaveError(null);
+          if (!hasLoadError) createBackupHeartbeat();
+          setLastSaved(new Date());
+        } else {
+          setStudentsSaveError("Changes couldn't be saved. Check device storage.");
         }
       })
-      .catch(() => {});
-    if (!hasLoadError) createBackupHeartbeat();
-    queueMicrotask(() => setLastSaved(new Date()));
+      .catch(() => {
+        if (studentsWriteSeqRef.current === seq) {
+          setStudentsSaveError("Changes couldn't be saved. Check device storage.");
+        }
+      });
   }, [debouncedStudents, hasLoadError, isDataLoaded, loadStatus.students, resumeGeneration, students]);
 
   useEffect(() => {
@@ -367,19 +423,137 @@ export function SchoolProvider({
     if (persistenceSuspendedRef.current) return;
     if (loadStatus.settings === "error") return;
     if (debouncedSettings !== settings) return; // Wait for the hydrated snapshot to settle
+    if (Object.is(debouncedSettings, lastPersistedSettingsRef.current)) return; // Skip redundant cold-boot rewrites
 
     const seq = ++settingsWriteSeqRef.current;
+    const snapshot = debouncedSettings;
     setUnsavedChanges("school-context-settings-write", true);
-    Promise.resolve(saveToStorage(IDB_KEYS.SETTINGS, debouncedSettings))
+    Promise.resolve(saveToStorage(IDB_KEYS.SETTINGS, snapshot))
       .then((saved) => {
-        if (settingsWriteSeqRef.current === seq && saved !== false) {
+        if (settingsWriteSeqRef.current !== seq) return;
+        if (saved !== false) {
+          lastPersistedSettingsRef.current = snapshot;
           setUnsavedChanges("school-context-settings-write", false);
+          setSettingsSaveError(null);
+          if (!hasLoadError) createBackupHeartbeat();
+          setLastSaved(new Date());
+        } else {
+          setSettingsSaveError("Changes couldn't be saved. Check device storage.");
         }
       })
-      .catch(() => {});
-    if (!hasLoadError) createBackupHeartbeat();
-    queueMicrotask(() => setLastSaved(new Date()));
+      .catch(() => {
+        if (settingsWriteSeqRef.current === seq) {
+          setSettingsSaveError("Changes couldn't be saved. Check device storage.");
+        }
+      });
   }, [debouncedSettings, hasLoadError, isDataLoaded, loadStatus.settings, resumeGeneration, settings]);
+
+  const flushPendingWrites = useCallback(async (): Promise<boolean> => {
+    if (!isDataLoaded || persistenceSuspendedRef.current) {
+      return false;
+    }
+
+    const studentsSnapshot = studentsRef.current;
+    const settingsSnapshot = settingsRef.current;
+    const flushStudents =
+      loadStatus.students !== "error" &&
+      !Object.is(studentsSnapshot, lastPersistedStudentsRef.current);
+    const flushSettings =
+      loadStatus.settings !== "error" &&
+      !Object.is(settingsSnapshot, lastPersistedSettingsRef.current);
+
+    if (!flushStudents && !flushSettings) {
+      return true;
+    }
+
+    const entries: Array<{ key: string; value: unknown }> = [];
+    const sSeq = flushStudents ? ++studentsWriteSeqRef.current : studentsWriteSeqRef.current;
+    const cfgSeq = flushSettings ? ++settingsWriteSeqRef.current : settingsWriteSeqRef.current;
+
+    if (flushStudents) {
+      setUnsavedChanges("school-context-students-write", true);
+      entries.push({ key: IDB_KEYS.STUDENTS, value: studentsSnapshot });
+    }
+    if (flushSettings) {
+      setUnsavedChanges("school-context-settings-write", true);
+      entries.push({ key: IDB_KEYS.SETTINGS, value: settingsSnapshot });
+    }
+
+    try {
+      const saved =
+        entries.length === 1
+          ? await saveToStorage(entries[0].key, entries[0].value)
+          : await saveEntriesToStorage(entries);
+
+      if (saved !== false) {
+        if (flushStudents && studentsWriteSeqRef.current === sSeq) {
+          lastPersistedStudentsRef.current = studentsSnapshot;
+          setUnsavedChanges("school-context-students-write", false);
+          setStudentsSaveError(null);
+        }
+        if (flushSettings && settingsWriteSeqRef.current === cfgSeq) {
+          lastPersistedSettingsRef.current = settingsSnapshot;
+          setUnsavedChanges("school-context-settings-write", false);
+          setSettingsSaveError(null);
+        }
+        if (!hasLoadError) createBackupHeartbeat();
+        setLastSaved(new Date());
+        return true;
+      }
+
+      if (flushStudents && studentsWriteSeqRef.current === sSeq) {
+        setStudentsSaveError("Changes couldn't be saved. Check device storage.");
+      }
+      if (flushSettings && settingsWriteSeqRef.current === cfgSeq) {
+        setSettingsSaveError("Changes couldn't be saved. Check device storage.");
+      }
+      return false;
+    } catch {
+      if (flushStudents && studentsWriteSeqRef.current === sSeq) {
+        setStudentsSaveError("Changes couldn't be saved. Check device storage.");
+      }
+      if (flushSettings && settingsWriteSeqRef.current === cfgSeq) {
+        setSettingsSaveError("Changes couldn't be saved. Check device storage.");
+      }
+      return false;
+    }
+  }, [hasLoadError, isDataLoaded, loadStatus.settings, loadStatus.students]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hasDirtyState = () =>
+      (lastPersistedStudentsRef.current !== null &&
+        !Object.is(studentsRef.current, lastPersistedStudentsRef.current)) ||
+      (lastPersistedSettingsRef.current !== null &&
+        !Object.is(settingsRef.current, lastPersistedSettingsRef.current));
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasGlobalUnsavedChanges() || hasDirtyState()) {
+        void flushPendingWrites();
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    const handlePageHide = () => {
+      if (hasDirtyState()) {
+        void flushPendingWrites();
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && hasDirtyState()) {
+        void flushPendingWrites();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [flushPendingWrites]);
 
   const retryLoad = useCallback(() => {
     if (freshWritesStartedRef.current) return;
@@ -474,19 +648,26 @@ export function SchoolProvider({
       freshWritesStartedRef.current = true;
       setIsFreshWriting(true);
       const defaultSettings = DEFAULT_FACTORY_SETTINGS;
+      const emptyStudents: StudentRecord[] = [];
       persistenceSuspendedRef.current = true;
       setIsPersistenceSuspended(true);
-      setStudents([]);
+      studentsRef.current = emptyStudents;
+      settingsRef.current = defaultSettings;
+      setStudents(emptyStudents);
       setSettings(defaultSettings);
-      const [studentsSaved, settingsSaved] = await Promise.all([
-        saveToStorage(IDB_KEYS.STUDENTS, []),
-        saveToStorage(IDB_KEYS.SETTINGS, defaultSettings),
+      const saved = await saveEntriesToStorage([
+        { key: IDB_KEYS.STUDENTS, value: [] },
+        { key: IDB_KEYS.SETTINGS, value: defaultSettings },
       ]);
-      if (!studentsSaved || !settingsSaved) {
+      if (!saved) {
         markIncompleteRollback();
         showToast("Could not save fresh data. Recovery remains active.", "error");
         return;
       }
+      lastPersistedStudentsRef.current = emptyStudents;
+      lastPersistedSettingsRef.current = defaultSettings;
+      setStudentsSaveError(null);
+      setSettingsSaveError(null);
       try {
         localStorage.removeItem("repota_incomplete_rollback");
       } catch {
@@ -521,16 +702,6 @@ export function SchoolProvider({
   // Request persistent storage on mount (Android protection)
   useEffect(() => {
     requestPersistentStorage();
-
-    // Check for data loss (cleared by cleaner apps)
-    // Only check once per session to avoid false positives on unlock/remount
-    const dataLossChecked = sessionStorage.getItem("data_loss_checked");
-    if (!dataLossChecked && detectDataLoss()) {
-      showToast("⚠️ Data may have been cleared. Please restore from backup if needed.", "error");
-      sessionStorage.setItem("data_loss_checked", "true");
-      captureEvent("Data_Loss_Detected", { storage_type: getStorageType() });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
   // --- ACTIONS ---
@@ -708,12 +879,12 @@ export function SchoolProvider({
       persistenceSuspendedRef.current = true;
       setIsPersistenceSuspended(true);
 
-      const [studentsSaved, settingsSaved] = await Promise.all([
-        saveToStorage(IDB_KEYS.STUDENTS, []),
-        saveToStorage(IDB_KEYS.SETTINGS, DEFAULT_FACTORY_SETTINGS),
+      const saved = await saveEntriesToStorage([
+        { key: IDB_KEYS.STUDENTS, value: [] },
+        { key: IDB_KEYS.SETTINGS, value: DEFAULT_FACTORY_SETTINGS },
       ]);
 
-      if (!studentsSaved || !settingsSaved) {
+      if (!saved) {
         persistenceSuspendedRef.current = false;
         setIsPersistenceSuspended(false);
         showToast("Could not reset app data. Please try again.", "error");
@@ -732,7 +903,9 @@ export function SchoolProvider({
         "repota_last_backup",
         "repota_had_data",
         "repota_incomplete_rollback",
+        "repota_idb_migrated",
         "welcome_tour_completed",
+        "repota_welcome_tour_v2",
         "pwa-install-dismissed",
         THEME_STORAGE_KEY,
         REPORT_LEDGER_STORAGE_KEY,
@@ -748,6 +921,8 @@ export function SchoolProvider({
 
       try {
         sessionStorage.removeItem("repota_backup_reminder_shown");
+        sessionStorage.removeItem("repota_dismiss_photo_warning");
+        sessionStorage.removeItem("data_loss_checked");
         sessionStorage.removeItem(CHUNK_RELOAD_KEY);
       } catch {
         // ignore storage access errors
@@ -763,12 +938,17 @@ export function SchoolProvider({
         );
       }
 
+      const emptyStudents: StudentRecord[] = [];
       ++studentsWriteSeqRef.current;
       ++settingsWriteSeqRef.current;
-      studentsRef.current = [];
+      lastPersistedStudentsRef.current = emptyStudents;
+      lastPersistedSettingsRef.current = DEFAULT_FACTORY_SETTINGS;
+      studentsRef.current = emptyStudents;
       settingsRef.current = DEFAULT_FACTORY_SETTINGS;
       isSavingRef.current = false;
-      setStudents([]);
+      setStudentsSaveError(null);
+      setSettingsSaveError(null);
+      setStudents(emptyStudents);
       setSettings(DEFAULT_FACTORY_SETTINGS);
       setLoadStatus({ students: "ok", settings: "ok" });
       setIsRollbackIncomplete(false);
@@ -1326,6 +1506,7 @@ export function SchoolProvider({
       clearIncompleteRollback,
       setActiveRecoveryAction: handleSetActiveRecoveryAction,
       waitForMigration,
+      flushPendingWrites,
     }),
     [
       addStudent,
@@ -1339,6 +1520,7 @@ export function SchoolProvider({
       deletePendingStudents,
       deleteStudent,
       detectComponentMismatches,
+      flushPendingWrites,
       handleSetActiveRecoveryAction,
       handleSetSettings,
       loadDemoData,
@@ -1367,6 +1549,7 @@ export function SchoolProvider({
       isPersistenceSuspended,
       isRollbackIncomplete,
       isSaving,
+      saveError,
       lastSaved,
       activeRecoveryAction,
     }),
@@ -1380,6 +1563,7 @@ export function SchoolProvider({
       isStorageReady,
       lastSaved,
       loadStatus,
+      saveError,
     ],
   );
 

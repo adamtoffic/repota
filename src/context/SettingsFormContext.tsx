@@ -132,6 +132,49 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     studentsCountRef.current = students.length;
   }, [students.length]);
 
+  const latestFormDataRef = useRef(formData);
+  const latestLastSavedClassNameRef = useRef(lastSavedSettings.className);
+  const latestIsPersistenceSuspendedRef = useRef(isPersistenceSuspended);
+  const setSettingsRef = useRef(setSettings);
+
+  useEffect(() => {
+    latestFormDataRef.current = formData;
+  }, [formData]);
+
+  useEffect(() => {
+    latestLastSavedClassNameRef.current = lastSavedSettings.className;
+  }, [lastSavedSettings.className]);
+
+  useEffect(() => {
+    latestIsPersistenceSuspendedRef.current = isPersistenceSuspended;
+  }, [isPersistenceSuspended]);
+
+  useEffect(() => {
+    setSettingsRef.current = setSettings;
+  }, [setSettings]);
+
+  useEffect(() => {
+    return () => {
+      if (latestIsPersistenceSuspendedRef.current) return;
+      const latestForm = latestFormDataRef.current;
+      const savedClassName = latestLastSavedClassNameRef.current;
+      const classNameChanged = latestForm.className !== savedClassName;
+      const isClassNameEmpty = !(latestForm.className ?? "").trim();
+      const toSave =
+        (classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty
+          ? { ...latestForm, className: savedClassName }
+          : latestForm;
+
+      if (Object.is(toSave, lastAutoSaveSettingsRef.current)) return;
+      const toSaveString = JSON.stringify(toSave);
+      if (toSaveString === getLastAutoSaveString()) return;
+
+      lastAutoSaveSettingsRef.current = toSave;
+      lastAutoSaveRef.current = toSaveString;
+      setSettingsRef.current(toSave);
+    };
+  }, [getLastAutoSaveString]);
+
   const hasUnsavedChanges = useMemo(() => {
     if (Object.is(formData, lastSavedSettings)) return false;
     return JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
@@ -474,6 +517,8 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     formGenerationRef.current += 1;
     const nextGen = formGenerationRef.current;
     immediateSaveGenRef.current = nextGen;
+    latestFormDataRef.current = nextSettings;
+    latestLastSavedClassNameRef.current = nextSettings.className;
     lastAutoSaveSettingsRef.current = nextSettings;
     lastAutoSaveRef.current = JSON.stringify(nextSettings);
     ++baselineSeqRef.current;

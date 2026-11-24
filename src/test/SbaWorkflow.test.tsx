@@ -18,6 +18,7 @@ const storage = vi.hoisted(() => ({
   loadFromStorageResult: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
   createBackupHeartbeat: vi.fn(),
 }));
 
@@ -166,6 +167,7 @@ describe("SBA Markbook workflow end-to-end", () => {
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: true });
     storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
     storage.createBackupHeartbeat.mockResolvedValue(undefined);
     seedStorage(baseStudents, baseSettings);
   });

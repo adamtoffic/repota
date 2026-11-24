@@ -23,11 +23,14 @@ const SETTINGS_MEDIA_FIELDS = [
 ] as const;
 const INLINE_BLOB_MIN_LENGTH = 512;
 
-// Storage keys (same as localStorage for compatibility)
+/**
+ * Storage keys (same as localStorage for compatibility)
+ */
 export const IDB_KEYS = {
   STUDENTS: "ges_v1_students",
   SETTINGS: "ges_v1_settings",
 };
+const IDB_MIGRATED_MARKER_KEY = "repota_idb_migrated";
 
 // Database schema
 interface RepotaDB extends DBSchema {
@@ -594,13 +597,23 @@ export const migrateFromLocalStorage = async (): Promise<{
       };
     }
 
-    // Check if already migrated
-    const existingStudents = await db.get(STORE_NAME, IDB_KEYS.STUDENTS);
-    if (existingStudents) {
+    // Check if already migrated (check both students & settings so settings-only state isn't orphaned)
+    const [existingStudents, existingSettings] = await Promise.all([
+      db.get(STORE_NAME, IDB_KEYS.STUDENTS),
+      db.get(STORE_NAME, IDB_KEYS.SETTINGS),
+    ]);
+    if (existingStudents !== undefined || existingSettings !== undefined) {
+      try {
+        localStorage.removeItem(IDB_KEYS.STUDENTS);
+        localStorage.removeItem(IDB_KEYS.SETTINGS);
+        localStorage.setItem(IDB_MIGRATED_MARKER_KEY, "v2");
+      } catch {
+        // ignore localStorage cleanup errors
+      }
       return {
         success: true,
         studentsCount: Array.isArray(existingStudents) ? existingStudents.length : 0,
-        settingsMigrated: true,
+        settingsMigrated: existingSettings !== undefined,
         error: "Data already in IndexedDB",
       };
     }
@@ -624,6 +637,14 @@ export const migrateFromLocalStorage = async (): Promise<{
 
     if (migrationEntries.length > 0) {
       await writeEntriesToIdb(db, migrationEntries);
+    }
+
+    try {
+      localStorage.removeItem(IDB_KEYS.STUDENTS);
+      localStorage.removeItem(IDB_KEYS.SETTINGS);
+      localStorage.setItem(IDB_MIGRATED_MARKER_KEY, "v2");
+    } catch {
+      // ignore localStorage cleanup errors
     }
 
     // Success!

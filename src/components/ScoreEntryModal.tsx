@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  AlertTriangle,
   BookOpen,
   Check,
   ChevronLeft,
@@ -43,7 +44,7 @@ function getStudentInitials(name: string): string {
  * or its score/detail tabs.
  */
 function ModalSaveStatus() {
-  const { isSaving, lastSaved } = useSchoolLifecycle();
+  const { isSaving, lastSaved, saveError } = useSchoolLifecycle();
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
@@ -58,6 +59,21 @@ function ModalSaveStatus() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  if (saveError) {
+    return (
+      <span
+        className="inline-flex h-8 items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300"
+        title={saveError}
+        role="status"
+      >
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        <span className="hidden md:inline" data-record="true">
+          Save failed
+        </span>
+      </span>
+    );
+  }
 
   if (!isOnline) {
     return (
