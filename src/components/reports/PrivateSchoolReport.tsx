@@ -3,6 +3,7 @@
 // - Includes fees section
 // - Optimized for A4 printing
 
+import { memo } from "react";
 import type { ProcessedStudent, SchoolSettings } from "../../types";
 import {
   DEFAULT_PAYMENT_NOTE,
@@ -18,8 +19,16 @@ interface Props {
   settings: SchoolSettings;
 }
 
-export function PrivateSchoolReport({ student, settings }: Props) {
-  const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
+export const PrivateSchoolReport = memo(function PrivateSchoolReport({
+  student,
+  settings,
+}: Props) {
+  const headmasterRemark = generateHeadmasterRemark(
+    student.averageScore,
+    settings.term,
+    [],
+    `${student.id}|${settings.term}|${student.averageScore}`,
+  );
   const showAggregate = settings.level !== "KG" && student.aggregate !== null;
   const isMock = settings.examType === "MOCK";
   const activeFees = getActivePrivateFeeItems(settings);
@@ -352,4 +361,4 @@ export function PrivateSchoolReport({ student, settings }: Props) {
       </div>
     </div>
   );
-}
+});

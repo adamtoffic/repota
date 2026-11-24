@@ -1,6 +1,37 @@
 // src/utils/analyticsCalculator.ts
-import type { StudentRecord, SchoolSettings, Grade, SchoolLevel } from "../types";
-import { processStudent, assignPositions, calculateGrade } from "./gradeCalculator";
+import type {
+  Grade,
+  ProcessedStudent,
+  SchoolLevel,
+  SchoolSettings,
+  StudentRecord,
+} from "../types";
+import {
+  assignPositions,
+  calculateAgeFromDob,
+  calculateGrade,
+  processStudent,
+} from "./gradeCalculator";
+
+function isProcessedStudent(
+  student: StudentRecord | ProcessedStudent,
+): student is ProcessedStudent {
+  return (
+    "averageScore" in student &&
+    typeof student.averageScore === "number" &&
+    "totalScore" in student &&
+    typeof student.totalScore === "number" &&
+    "subjects" in student &&
+    student.subjects.every((sub) => "totalScore" in sub && typeof sub.totalScore === "number")
+  );
+}
+
+function toProcessedStudent(
+  student: StudentRecord | ProcessedStudent,
+  level: SchoolLevel,
+): ProcessedStudent {
+  return isProcessedStudent(student) ? student : processStudent(student, level);
+}
 
 export interface SubjectPerformance {
   subjectName: string;
@@ -71,7 +102,7 @@ export function calculateClassMetrics(
     };
   }
 
-  const processed = assignPositions(students.map((s) => processStudent(s, settings.level)));
+  const processed = assignPositions(students.map((s) => toProcessedStudent(s, settings.level)));
   const scores = processed.map((s) => s.averageScore).sort((a, b) => a - b);
 
   const totalScore = scores.reduce((sum, score) => sum + score, 0);
@@ -145,25 +176,25 @@ export function calculateSubjectPerformance(
   return subjectPerformance.sort((a, b) => b.averageScore - a.averageScore);
 }
 
-// Calculate score distribution
+// Calculate score distribution using half-open intervals so decimals (e.g. 79.5) are never dropped
 export function calculateScoreDistribution(
   students: StudentRecord[],
   settings: SchoolSettings,
 ): ScoreDistribution[] {
   if (students.length === 0) return [];
 
-  const processed = students.map((s) => processStudent(s, settings.level));
+  const processed = students.map((s) => toProcessedStudent(s, settings.level));
   const ranges = [
-    { range: "0-39 (Fail)", min: 0, max: 39 },
-    { range: "40-49 (Pass)", min: 40, max: 49 },
-    { range: "50-59 (Credit)", min: 50, max: 59 },
-    { range: "60-69 (Good)", min: 60, max: 69 },
-    { range: "70-79 (Very Good)", min: 70, max: 79 },
-    { range: "80-100 (Excellent)", min: 80, max: 100 },
+    { range: "0-39 (Fail)", min: -Infinity, max: 40 },
+    { range: "40-49 (Pass)", min: 40, max: 50 },
+    { range: "50-59 (Credit)", min: 50, max: 60 },
+    { range: "60-69 (Good)", min: 60, max: 70 },
+    { range: "70-79 (Very Good)", min: 70, max: 80 },
+    { range: "80-100 (Excellent)", min: 80, max: Infinity },
   ];
 
   return ranges.map(({ range, min, max }) => {
-    const count = processed.filter((s) => s.averageScore >= min && s.averageScore <= max).length;
+    const count = processed.filter((s) => s.averageScore >= min && s.averageScore < max).length;
     return {
       range,
       count,
@@ -182,7 +213,7 @@ export function calculateGenderAnalysis(
 
   const calculateAverage = (studentList: StudentRecord[]) => {
     if (studentList.length === 0) return 0;
-    const processed = studentList.map((s) => processStudent(s, settings.level));
+    const processed = studentList.map((s) => toProcessedStudent(s, settings.level));
     const total = processed.reduce((sum, s) => sum + s.averageScore, 0);
     return Math.round((total / studentList.length) * 10) / 10;
   };
@@ -204,7 +235,7 @@ export function getTopPerformers(
 ): TopPerformer[] {
   if (students.length === 0) return [];
 
-  const processed = assignPositions(students.map((s) => processStudent(s, settings.level)));
+  const processed = assignPositions(students.map((s) => toProcessedStudent(s, settings.level)));
 
   return processed
     .sort((a, b) => b.averageScore - a.averageScore)
@@ -241,7 +272,7 @@ export function calculateClassComparison(
 
     const calculateAvg = (list: StudentRecord[]) => {
       if (list.length === 0) return 0;
-      const processed = list.map((s) => processStudent(s, settings.level));
+      const processed = list.map((s) => toProcessedStudent(s, settings.level));
       return (
         Math.round((processed.reduce((sum, s) => sum + s.averageScore, 0) / list.length) * 10) / 10
       );
@@ -265,15 +296,8 @@ export function calculateAgeDistribution(students: StudentRecord[]): Demographic
   const ageMap = new Map<string, StudentRecord[]>();
 
   students.forEach((student) => {
-    if (!student.dateOfBirth) return;
-
-    const birthDate = new Date(student.dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
+    const age = calculateAgeFromDob(student.dateOfBirth);
+    if (age === undefined) return;
 
     const ageRange = `${Math.floor(age / 2) * 2}-${Math.floor(age / 2) * 2 + 1} years`;
     if (!ageMap.has(ageRange)) {
@@ -381,7 +405,7 @@ export function calculatePerformanceQuartiles(
   }
 
   const processed = students
-    .map((s) => processStudent(s, settings.level))
+    .map((s) => toProcessedStudent(s, settings.level))
     .sort((a, b) => a.averageScore - b.averageScore);
 
   const q1Index = Math.floor(processed.length * 0.25);
@@ -415,7 +439,7 @@ export function calculateGradeDistribution(
   if (students.length === 0) return [];
 
   const gradeMap = new Map<string, number>();
-  const processed = students.map((s) => processStudent(s, settings.level));
+  const processed = students.map((s) => toProcessedStudent(s, settings.level));
 
   // Define grade order based on school level
   const gradeOrder: Record<SchoolLevel, Grade[]> = {
@@ -487,7 +511,7 @@ export function calculateAttendanceInsights(
   // Calculate Pearson correlation coefficient (r in [-1, 1])
   const processed = studentsWithAttendance.map((s) => ({
     attendance: (s.attendancePresent || 0) / totalDays,
-    score: processStudent(s, settings.level).averageScore,
+    score: toProcessedStudent(s, settings.level).averageScore,
   }));
 
   const avgAttendanceRatio = avgAttendance / totalDays;
@@ -533,7 +557,7 @@ export function calculateAtRiskStudents(
 
   return students
     .map((student) => {
-      const processed = processStudent(student, settings.level);
+      const processed = toProcessedStudent(student, settings.level);
       const attendanceRecorded =
         student.attendancePresent !== undefined &&
         student.attendancePresent !== null &&
@@ -587,8 +611,9 @@ export function calculatePerformanceByAge(
   const ageGroups = new Map<string, number[]>();
 
   studentsWithAge.forEach((student) => {
-    const age = new Date().getFullYear() - new Date(student.dateOfBirth!).getFullYear();
-    const processed = processStudent(student, settings.level);
+    const age = calculateAgeFromDob(student.dateOfBirth);
+    if (age === undefined) return;
+    const processed = toProcessedStudent(student, settings.level);
 
     let ageRange: string;
     if (age <= 5) ageRange = "≤ 5 years";
@@ -706,23 +731,21 @@ export function calculateAttendanceByGender(
   };
 
   const ranges = [
-    { range: "90-100%", min: 0.9, max: 1.0 },
-    { range: "80-89%", min: 0.8, max: 0.89 },
-    { range: "70-79%", min: 0.7, max: 0.79 },
-    { range: "Below 70%", min: 0, max: 0.69 },
+    { range: "90-100%", min: 0.9, max: Infinity },
+    { range: "80-89%", min: 0.8, max: 0.9 },
+    { range: "70-79%", min: 0.7, max: 0.8 },
+    { range: "Below 70%", min: -Infinity, max: 0.7 },
   ];
 
   const attendanceRanges = ranges.map(({ range, min, max }) => {
-    const maleCount = maleStudents.filter(
-      (s) =>
-        (s.attendancePresent || 0) / totalDays >= min &&
-        (s.attendancePresent || 0) / totalDays <= max,
-    ).length;
-    const femaleCount = femaleStudents.filter(
-      (s) =>
-        (s.attendancePresent || 0) / totalDays >= min &&
-        (s.attendancePresent || 0) / totalDays <= max,
-    ).length;
+    const maleCount = maleStudents.filter((s) => {
+      const ratio = (s.attendancePresent || 0) / totalDays;
+      return ratio >= min && ratio < max;
+    }).length;
+    const femaleCount = femaleStudents.filter((s) => {
+      const ratio = (s.attendancePresent || 0) / totalDays;
+      return ratio >= min && ratio < max;
+    }).length;
 
     return {
       range,
@@ -952,7 +975,7 @@ export function calculateBorderlineStudents(
 ): BorderlineStudent[] {
   return students
     .map((student) => {
-      const processed = processStudent(student, settings.level);
+      const processed = toProcessedStudent(student, settings.level);
       const weakestSubjects = [...processed.subjects]
         .sort((a, b) => a.totalScore - b.totalScore)
         .slice(0, 2)

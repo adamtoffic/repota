@@ -1,10 +1,14 @@
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import type { ReportTemplateProps } from "../types";
 import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
-export function OriginalTemplate({ student, settings, printMode }: ReportTemplateProps) {
+export const OriginalTemplate = memo(function OriginalTemplate({
+  student,
+  settings,
+  printMode,
+}: ReportTemplateProps) {
   const isIslamic = settings.schoolType === "ISLAMIC";
   const isPrivate = settings.schoolType === "PRIVATE";
   const isKG = settings.level === "KG";
@@ -18,7 +22,12 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
     student.feeArrears > 0;
   const { showClassPositionHeader, showClassPositionSummary, showSubjectPosition } =
     resolvePositionVisibility(settings);
-  const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
+  const headmasterRemark = generateHeadmasterRemark(
+    student.averageScore,
+    settings.term,
+    [],
+    `${student.id}|${settings.term}|${student.averageScore}`,
+  );
 
   // Logic to hide aggregate for KG
   const showAggregate = !isKG && student.aggregate !== null;
@@ -537,4 +546,4 @@ export function OriginalTemplate({ student, settings, printMode }: ReportTemplat
       </footer>
     </div>
   );
-}
+});

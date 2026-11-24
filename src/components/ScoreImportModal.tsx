@@ -67,7 +67,7 @@ function ScoreImportModalContent({
 }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
-  const { addStudent, updateStudent, setSettings } = useSchoolActions();
+  const { addStudent, updateStudent, batchUpdateStudents, setSettings } = useSchoolActions();
   const { showToast } = useToast();
 
   const isMock = settings.examType === "MOCK";
@@ -472,8 +472,10 @@ function ScoreImportModalContent({
       onSettingsUpdated?.(effectiveSettings);
     }
 
-    // 2. Apply scores to matched students & create new students if enabled
+    // 2. Collect matched updates & new students, plus new-task sync patches, before committing atomically
     const studentMap = new Map<string, StudentRecord>(students.map((s) => [s.id, s]));
+    const updatedRecords = new Map<string, StudentRecord>();
+    const newRecords: StudentRecord[] = [];
     const touchedStudentIds = new Set<string>();
     let updatedCount = 0;
     let createdCount = 0;
@@ -494,7 +496,7 @@ function ScoreImportModalContent({
         const nextRecord: StudentRecord = { ...student, subjects: nextSubjects };
         studentMap.set(student.id, nextRecord);
         touchedStudentIds.add(student.id);
-        updateStudent(nextRecord, true);
+        updatedRecords.set(student.id, nextRecord);
         updatedCount++;
         return;
       }
@@ -520,7 +522,7 @@ function ScoreImportModalContent({
           subjects: nextSubjects,
           attendancePresent: 0,
         };
-        addStudent(newStudent, true);
+        newRecords.push(newStudent);
         createdCount++;
       }
     });
@@ -557,18 +559,30 @@ function ScoreImportModalContent({
         const nextClassScore =
           totalMax > 0 ? Math.round((totalActual / totalMax) * settings.classScoreMax) : 0;
 
-        updateStudent(
-          {
-            ...student,
-            subjects: student.subjects.map((s) =>
-              s === existingSub || (existingSub.id && s.id === existingSub.id)
-                ? { ...s, classScoreComponents: nextComps, classScore: nextClassScore }
-                : s,
-            ),
-          },
-          true,
-        );
+        updatedRecords.set(student.id, {
+          ...student,
+          subjects: student.subjects.map((s) =>
+            s === existingSub || (existingSub.id && s.id === existingSub.id)
+              ? { ...s, classScoreComponents: nextComps, classScore: nextClassScore }
+              : s,
+          ),
+        });
       });
+    }
+
+    if (updatedRecords.size + newRecords.length > 0) {
+      if (batchUpdateStudents) {
+        batchUpdateStudents(
+          (prev) => [
+            ...prev.map((student) => updatedRecords.get(student.id) ?? student),
+            ...newRecords,
+          ],
+          { silent: true },
+        );
+      } else {
+        updatedRecords.forEach((rec) => updateStudent(rec, true));
+        newRecords.forEach((rec) => addStudent(rec, true));
+      }
     }
 
     const summary: string[] = [];

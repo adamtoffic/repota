@@ -206,6 +206,25 @@ const calculateAggregate = (subjects: ProcessedSubject[], level: SchoolLevel): n
 };
 
 /**
+ * Computes exact birthday-adjusted age in whole years from an ISO/parseable `dateOfBirth`,
+ * returning `undefined` when missing or unparseable.
+ */
+export function calculateAgeFromDob(
+  dateOfBirth?: string,
+  referenceDate: Date = new Date(),
+): number | undefined {
+  if (!dateOfBirth) return undefined;
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return undefined;
+  let age = referenceDate.getFullYear() - birthDate.getFullYear();
+  const m = referenceDate.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && referenceDate.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+}
+
+/**
  * Enriches a raw `StudentRecord` with per-subject totals/grades, rounded 2-decimal `averageScore`,
  * computed `aggregate`, and `age` derived from `dateOfBirth` against today's date.
  * Initializes `classPosition` to `"pending..."` until `assignPositions` runs across the class.
@@ -232,17 +251,7 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
       : 0;
 
   const aggregate = calculateAggregate(processedSubjects, level);
-
-  let age = 0;
-  if (student.dateOfBirth) {
-    const birthDate = new Date(student.dateOfBirth);
-    const today = new Date();
-    age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-  }
+  const age = calculateAgeFromDob(student.dateOfBirth) ?? 0;
   return {
     ...student,
     age,

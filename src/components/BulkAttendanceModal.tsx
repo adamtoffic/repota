@@ -19,7 +19,7 @@ export function BulkAttendanceModal({ isOpen, onClose }: Props) {
 function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
   const students = useSchoolStudents();
   const settings = useSchoolSettings();
-  const { updateStudent } = useSchoolActions();
+  const { updateStudent, batchUpdateStudents } = useSchoolActions();
   const { showToast } = useToast();
 
   const maxDays = settings.totalAttendanceDays || 70;
@@ -41,17 +41,38 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
   };
 
   const handleSaveAll = () => {
-    let updatedCount = 0;
+    const patchesById = new Map<string, number>();
     students.forEach((student) => {
       const nextDays = Math.min(
         Math.max(Math.round(getValue(student.id, student.attendancePresent ?? 0)), 0),
         maxDays,
       );
       if (nextDays !== (student.attendancePresent ?? 0)) {
-        updateStudent({ ...student, attendancePresent: nextDays }, true);
-        updatedCount++;
+        patchesById.set(student.id, nextDays);
       }
     });
+
+    const updatedCount = patchesById.size;
+    if (updatedCount > 0) {
+      if (batchUpdateStudents) {
+        batchUpdateStudents(
+          (prev) =>
+            prev.map((student) =>
+              patchesById.has(student.id)
+                ? { ...student, attendancePresent: patchesById.get(student.id)! }
+                : student,
+            ),
+          { silent: true },
+        );
+      } else {
+        students.forEach((student) => {
+          const nextDays = patchesById.get(student.id);
+          if (nextDays !== undefined) {
+            updateStudent({ ...student, attendancePresent: nextDays }, true);
+          }
+        });
+      }
+    }
 
     showToast(
       updatedCount > 0

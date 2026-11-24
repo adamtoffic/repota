@@ -26,12 +26,11 @@ import {
   type SchoolLifecycleType,
 } from "./SchoolContextDefinition";
 import {
-  generateHeadmasterRemark,
   generateTeacherRemark,
-  generateAttendanceRating,
   getRandomConductTrait,
   getRandomInterest,
 } from "../utils/remarkGenerator";
+import { stripDerivedStudentFields } from "../utils/studentSanitizer";
 import {
   createBackupHeartbeat,
   requestPersistentStorage,
@@ -197,12 +196,12 @@ export function SchoolProvider({
 
   const handleSetStudents: React.Dispatch<React.SetStateAction<StudentRecord[]>> = useCallback(
     (value) => {
+      const prev = studentsRef.current;
+      const rawNext = typeof value === "function" ? value(prev) : value;
+      const next = rawNext.map(stripDerivedStudentFields);
+      studentsRef.current = next;
       setUnsavedChanges("school-context-debounce", true);
-      setStudents((prev) => {
-        const next = typeof value === "function" ? value(prev) : value;
-        studentsRef.current = next;
-        return next;
-      });
+      setStudents(next);
     },
     [],
   );
@@ -1068,6 +1067,90 @@ export function SchoolProvider({
     }
   }, [handleSetStudents, showToast]);
 
+  const batchUpdateStudents = useCallback(
+    (updater: (prev: StudentRecord[]) => StudentRecord[], options?: { silent?: boolean }) => {
+      handleSetStudents(updater);
+      if (!options?.silent) {
+        showToast("Changes saved successfully!", "success");
+      }
+    },
+    [handleSetStudents, showToast],
+  );
+
+  const syncClassSubjectsAndSba = useCallback(() => {
+    const currentSettings = settingsRef.current;
+    const masterList = currentSettings.defaultSubjects || [];
+    const currentStudents = studentsRef.current;
+    let subjectsAddedCount = 0;
+
+    const withAddedSubjects = currentStudents.map((student) => {
+      const missing = masterList.filter(
+        (name) => !student.subjects.some((sub) => sub.name === name),
+      );
+      if (missing.length === 0) return student;
+      subjectsAddedCount += missing.length;
+      const additions: SavedSubject[] = missing.map((name) => ({
+        id: crypto.randomUUID(),
+        name,
+        classScore: 0,
+        examScore: 0,
+        ...(currentSettings.examType !== "MOCK" &&
+        currentSettings.subjectComponentMap?.[name]?.length
+          ? {
+              classScoreComponents: currentSettings.subjectComponentMap[name].map((task) => ({
+                id: crypto.randomUUID(),
+                name: task.name,
+                score: 0,
+                maxScore: task.maxScore,
+                category: task.category,
+              })),
+            }
+          : {}),
+      }));
+      return { ...student, subjects: [...student.subjects, ...additions] };
+    });
+
+    const { students: reconciled, modifiedStudentCount } = reconcileStudentsWithSbaConfig(
+      withAddedSubjects,
+      currentSettings,
+      { onClearTasks: "preserve_class_score" },
+    );
+
+    if (subjectsAddedCount > 0 || modifiedStudentCount > 0) {
+      handleSetStudents(reconciled);
+    }
+
+    if (subjectsAddedCount > 0 && modifiedStudentCount > 0) {
+      showToast(
+        `Added ${subjectsAddedCount} missing subject entries and synced SBA components!`,
+        "success",
+      );
+    } else if (subjectsAddedCount > 0) {
+      showToast(
+        `Added ${subjectsAddedCount} missing subject entries across the class.`,
+        "success",
+      );
+    } else if (modifiedStudentCount > 0) {
+      showToast(
+        `Synced components for ${modifiedStudentCount} student${modifiedStudentCount > 1 ? "s" : ""}`,
+        "success",
+      );
+    } else {
+      const map = currentSettings.subjectComponentMap ?? {};
+      const hasConfigured = Object.values(map).some((list) => list.length > 0);
+      const hasStudentComponents = withAddedSubjects.some((student) =>
+        student.subjects.some((sub) => Boolean(sub.classScoreComponents?.length)),
+      );
+      if (!hasConfigured && !hasStudentComponents) {
+        showToast("No components configured in Settings", "info");
+      } else {
+        showToast("All students already up to date", "info");
+      }
+    }
+
+    return { subjectsAddedCount, sbaSyncedCount: modifiedStudentCount };
+  }, [handleSetStudents, showToast]);
+
   // 5D. ATOMIC SBA CONFIGURATION + STUDENT RECONCILIATION
   const applySbaConfig = useCallback(
     (
@@ -1406,20 +1489,12 @@ export function SchoolProvider({
     (onProgress?: (current: number, total: number) => void) => {
       const currentStudents = studentsRef.current;
       const currentSettings = settingsRef.current;
-      const usedHeadmasterRemarks: string[] = [];
       const usedTeacherRemarks: string[] = [];
 
       const total = currentStudents.length;
 
       const updatedStudents = currentStudents.map((student, index) => {
         const processed = processStudent(student, currentSettings.level);
-
-        const hRemark = generateHeadmasterRemark(
-          processed.averageScore,
-          currentSettings.term,
-          usedHeadmasterRemarks,
-        );
-        usedHeadmasterRemarks.push(hRemark);
 
         const tRemark = generateTeacherRemark(
           processed,
@@ -1430,12 +1505,6 @@ export function SchoolProvider({
         );
         usedTeacherRemarks.push(tRemark);
 
-        const attendancePercent =
-          (currentSettings.totalAttendanceDays ?? 0) > 0
-            ? ((student.attendancePresent ?? 0) / (currentSettings.totalAttendanceDays ?? 0)) * 100
-            : 100;
-        const attRating = generateAttendanceRating(attendancePercent);
-
         const conduct = student.conduct || getRandomConductTrait();
         const interest = student.interest || getRandomInterest();
 
@@ -1445,9 +1514,7 @@ export function SchoolProvider({
 
         return {
           ...student,
-          headMasterRemark: hRemark,
           teacherRemark: tRemark,
-          attendanceRemark: attRating,
           conduct,
           interest,
         };
@@ -1484,6 +1551,7 @@ export function SchoolProvider({
       deleteStudent,
       deletePendingStudents,
       updateStudent,
+      batchUpdateStudents,
       clearAllScores,
       clearAllStudents,
       clearStudentScores,
@@ -1493,6 +1561,7 @@ export function SchoolProvider({
       updateClassNameForAll,
       detectComponentMismatches,
       syncSubjectComponentsFromSettings,
+      syncClassSubjectsAndSba,
       applySbaConfig,
       updateAssessmentWeights,
       checkDuplicateName,
@@ -1512,6 +1581,7 @@ export function SchoolProvider({
       addStudent,
       applySbaConfig,
       autoGenerateRemarks,
+      batchUpdateStudents,
       checkDuplicateName,
       clearAllScores,
       clearAllStudents,
@@ -1532,6 +1602,7 @@ export function SchoolProvider({
       resumePersistence,
       retryLoad,
       suspendPersistence,
+      syncClassSubjectsAndSba,
       syncSubjectComponentsFromSettings,
       updateAssessmentWeights,
       updateClassNameForAll,

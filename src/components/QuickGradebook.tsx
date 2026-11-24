@@ -40,6 +40,10 @@ interface QuickGradebookProps {
   sessionKey?: string;
   settings: SchoolSettings;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
+  onBatchUpdateStudents?: (
+    updater: (prev: StudentRecord[]) => StudentRecord[],
+    options?: { silent?: boolean },
+  ) => void;
   onOpenStudent?: (student: ProcessedStudent, orderedStudents?: ProcessedStudent[]) => void;
   onOpenScoreImport?: (subject: string, taskName?: string) => void;
   onClearParentFilters?: () => void;
@@ -128,6 +132,7 @@ export function QuickGradebook({
   sessionKey,
   settings,
   onUpdateStudent,
+  onBatchUpdateStudents,
   onOpenStudent,
   onOpenScoreImport,
   onClearParentFilters,
@@ -446,7 +451,7 @@ export function QuickGradebook({
 
     e.preventDefault();
     let lineOffset = 0;
-    let updatedAny = false;
+    const patches: Array<{ student: ProcessedStudent; updatedSubject: SavedSubject }> = [];
 
     for (let idx = startIndex; idx < visibleStudents.length && lineOffset < lines.length; idx++) {
       const targetStudent = visibleStudents[idx];
@@ -467,29 +472,52 @@ export function QuickGradebook({
           numeric,
           maxClassScore,
         );
-        commitSubjectUpdate(
-          targetStudent,
-          {
+        patches.push({
+          student: targetStudent,
+          updatedSubject: {
             ...sub,
             classScoreComponents: updatedComponents,
             classScore,
           },
-          true,
-        );
-        updatedAny = true;
+        });
       } else if (field === "class") {
         if (!isMockExam && sub.classScoreComponents?.length) continue;
         const { score } = clampDirectClassScore(numeric, maxClassScore);
-        commitSubjectUpdate(targetStudent, { ...sub, classScore: score }, true);
-        updatedAny = true;
+        patches.push({ student: targetStudent, updatedSubject: { ...sub, classScore: score } });
       } else if (field === "exam") {
         const { weightedScore } = convertExamRawToWeighted(numeric, maxExamScore);
-        commitSubjectUpdate(targetStudent, { ...sub, examScore: weightedScore }, true);
-        updatedAny = true;
+        patches.push({
+          student: targetStudent,
+          updatedSubject: { ...sub, examScore: weightedScore },
+        });
       }
     }
 
-    if (updatedAny) {
+    if (patches.length > 0) {
+      if (onBatchUpdateStudents) {
+        const subjectByStudentId = new Map(
+          patches.map((p) => [p.student.id, p.updatedSubject]),
+        );
+        onBatchUpdateStudents(
+          (prev) =>
+            prev.map((student) => {
+              const updatedSub = subjectByStudentId.get(student.id);
+              if (!updatedSub) return student;
+              return {
+                ...student,
+                subjects: student.subjects.map((sub) =>
+                  sub.id === updatedSub.id ? updatedSub : sub,
+                ),
+              };
+            }),
+          { silent: true },
+        );
+      } else {
+        for (const patch of patches) {
+          commitSubjectUpdate(patch.student, patch.updatedSubject, true);
+        }
+      }
+
       trackScoreEntrySessionOnce({
         entryMode: "quick_gradebook",
         usedColumnPaste: true,

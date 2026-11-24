@@ -19,6 +19,11 @@ export interface SchoolActionsType {
   deletePendingStudents: () => void;
   /** @param silent - Suppresses the save confirmation toast for inline/auto-save edits. */
   updateStudent: (updatedStudent: StudentRecord, silent?: boolean) => void;
+  /** Atomically applies a multi-student state transition in a single render and persistence cycle. */
+  batchUpdateStudents?: (
+    updater: (prev: StudentRecord[]) => StudentRecord[],
+    options?: { silent?: boolean },
+  ) => void;
   clearAllScores: () => void;
   clearStudentScores: (id: string) => void;
   removeAllStudentPhotos: () => void;
@@ -32,6 +37,8 @@ export interface SchoolActionsType {
   detectComponentMismatches: () => { hasOutdated: boolean; hasMissing: boolean };
   /** Reconciles every student's `classScoreComponents` (and weighted `classScore`) with `settings.subjectComponentMap`. */
   syncSubjectComponentsFromSettings: () => void;
+  /** Atomically appends missing default subjects and reconciles SBA components in one state update. */
+  syncClassSubjectsAndSba?: () => { subjectsAddedCount: number; sbaSyncedCount: number };
   /**
    * Atomically updates SBA settings (`subjectComponentMap` and derived `componentLibrary`) and immediately
    * reconciles all student records in one step without a manual Sync step.

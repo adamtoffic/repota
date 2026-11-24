@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
 import {
   DEFAULT_PAYMENT_NOTE,
@@ -7,7 +8,11 @@ import {
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
-export function ExecutiveTemplate({ student, settings, printMode }: ReportTemplateProps) {
+export const ExecutiveTemplate = memo(function ExecutiveTemplate({
+  student,
+  settings,
+  printMode,
+}: ReportTemplateProps) {
   const isIslamic = settings.schoolType === "ISLAMIC";
   const isPrivate = settings.schoolType === "PRIVATE";
   const isKG = settings.level === "KG";
@@ -26,7 +31,12 @@ export function ExecutiveTemplate({ student, settings, printMode }: ReportTempla
   const { showClassPositionHeader, showClassPositionSummary, showSubjectPosition } =
     resolvePositionVisibility(settings);
   const showAggregate = !isKG && student.aggregate !== null;
-  const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
+  const headmasterRemark = generateHeadmasterRemark(
+    student.averageScore,
+    settings.term,
+    [],
+    `${student.id}|${settings.term}|${student.averageScore}`,
+  );
 
   const isBW = printMode === "bw";
   const imgFilter = isBW ? "grayscale" : "";
@@ -517,4 +527,4 @@ export function ExecutiveTemplate({ student, settings, printMode }: ReportTempla
       </footer>
     </div>
   );
-}
+});

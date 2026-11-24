@@ -19,7 +19,7 @@ export function BulkPromotionModal({ isOpen, onClose }: Props) {
 function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
   const students = useSchoolStudents();
   const settings = useSchoolSettings();
-  const { updateStudent } = useSchoolActions();
+  const { updateStudent, batchUpdateStudents } = useSchoolActions();
   const { showToast } = useToast();
 
   const [threshold, setThreshold] = useState(50);
@@ -40,7 +40,7 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
   };
 
   const handleApply = () => {
-    let updated = 0;
+    const patchesById = new Map<string, string>();
     students.forEach((student) => {
       const nextStatus = getEffectiveStatus(
         student.id,
@@ -49,10 +49,31 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
         student.promotionStatus,
       );
       if (nextStatus !== student.promotionStatus) {
-        updateStudent({ ...student, promotionStatus: nextStatus }, true);
-        updated++;
+        patchesById.set(student.id, nextStatus);
       }
     });
+
+    const updated = patchesById.size;
+    if (updated > 0) {
+      if (batchUpdateStudents) {
+        batchUpdateStudents(
+          (prev) =>
+            prev.map((student) =>
+              patchesById.has(student.id)
+                ? { ...student, promotionStatus: patchesById.get(student.id)! }
+                : student,
+            ),
+          { silent: true },
+        );
+      } else {
+        students.forEach((student) => {
+          const nextStatus = patchesById.get(student.id);
+          if (nextStatus !== undefined) {
+            updateStudent({ ...student, promotionStatus: nextStatus }, true);
+          }
+        });
+      }
+    }
 
     showToast(
       updated > 0
