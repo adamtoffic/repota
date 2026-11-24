@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Plus, Users, X } from "lucide-react";
 import type { AcademicPeriod, ExamType, SchoolLevel } from "../../types";
 import { IconButton, Input } from "../ui";
+import { SbaWeightsModal } from "../sba/SbaWeightsModal";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
+import { useSchoolActions, useSchoolStudents } from "../../hooks/useSchoolData";
 
 export function AcademicSessionSection() {
   const {
@@ -11,14 +14,37 @@ export function AcademicSessionSection() {
     isPersistenceSuspended,
     handleLevelChange,
     handleClassNameBlur,
+    flushPendingSave,
+    syncCommittedSettings,
     newSubject,
     setNewSubject,
     addSubject,
     removeSubject,
   } = useSettingsForm();
+  const students = useSchoolStudents();
+  const { updateAssessmentWeights } = useSchoolActions();
+  const [pendingExamType, setPendingExamType] = useState<ExamType | null>(null);
+
+  const handleExamTypeSelect = (type: ExamType) => {
+    if (isPersistenceSuspended) return;
+    if ((formData.examType ?? "TERMLY") === type) return;
+    if (students.length === 0) {
+      const targetClassMax = type === "MOCK" ? 0 : formData.level === "SHS" ? 30 : 50;
+      const targetExamMax = 100 - targetClassMax;
+      flushPendingSave();
+      const updated = updateAssessmentWeights(targetClassMax, targetExamMax, {
+        examType: type,
+        scoreMode: "rescale",
+      });
+      syncCommittedSettings(updated);
+      return;
+    }
+    setPendingExamType(type);
+  };
 
   return (
-    <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
+    <>
+      <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 2: ACADEMIC SESSION */}
       <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-6 flex items-center gap-3">
@@ -165,15 +191,7 @@ export function AcademicSessionSection() {
                 <button
                   key={type}
                   type="button"
-                  onClick={() => {
-                    const isMock = type === "MOCK";
-                    setFormData({
-                      ...formData,
-                      examType: type,
-                      classScoreMax: isMock ? 0 : 50,
-                      examScoreMax: isMock ? 100 : 50,
-                    });
-                  }}
+                  onClick={() => handleExamTypeSelect(type)}
                   className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
                     (formData.examType ?? "TERMLY") === type
                       ? type === "MOCK"
@@ -259,6 +277,21 @@ export function AcademicSessionSection() {
           ))}
         </div>
       </div>
-    </fieldset>
+      </fieldset>
+
+      <SbaWeightsModal
+        isOpen={pendingExamType !== null}
+        onClose={() => setPendingExamType(null)}
+        students={students}
+        settings={formData}
+        initialExamType={pendingExamType ?? undefined}
+        disabled={isPersistenceSuspended}
+        onApplyWeights={(nextClass, nextExam, options) => {
+          flushPendingSave();
+          const updated = updateAssessmentWeights(nextClass, nextExam, options);
+          syncCommittedSettings(updated);
+        }}
+      />
+    </>
   );
 }

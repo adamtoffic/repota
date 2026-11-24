@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useContext, useMemo } from "react";
-import type { MouseEvent, ReactNode, SetStateAction } from "react";
+import type { ReactNode, SetStateAction } from "react";
 import { captureEvent } from "../utils/analytics";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { useDebounce } from "../hooks/useDebounce";
@@ -7,6 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { PinSetup } from "../components/PinSetup";
 import { PinRecovery } from "../components/PinRecovery";
+import { DEFAULT_FACTORY_SETTINGS } from "../constants/defaultSettings";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
 import type {
@@ -48,7 +49,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setSettings,
     updateClassNameForAll,
     students,
+    clearAllStudents,
     restoreDefaults,
+    resetAllAppData,
     isSaving,
     lastSaved,
     isPersistenceSuspended,
@@ -81,10 +84,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     }
     return lastAutoSaveRef.current;
   }, []);
-  const suppressClassBlurRef = useRef(false);
-  const resetModalOpenRef = useRef(false);
-  const resetBaselineRef = useRef<SchoolSettings | null>(null);
-  const pendingSavedBaselineRef = useRef<SchoolSettings | null>(null);
 
   // Form inputs
   const [newSubject, setNewSubject] = useState("");
@@ -94,8 +93,10 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
 
   // Modal states
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
-  const [showResetModal, setShowResetModal] = useState(false);
+  const [showClearStudentsModal, setShowClearStudentsModal] = useState(false);
   const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+  const [showFullAppResetModal, setShowFullAppResetModal] = useState(false);
+  const [isResettingApp, setIsResettingApp] = useState(false);
   const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState<{ index: number; name: string } | null>(
     null,
@@ -142,7 +143,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
-    if (showResetModal || resetModalOpenRef.current) return;
     if (debouncedPayload.generation < immediateSaveGenRef.current) return;
     if (Object.is(debouncedFormData, lastAutoSaveSettingsRef.current)) return;
     const debouncedString = JSON.stringify(debouncedFormData);
@@ -160,11 +160,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       lastAutoSaveSettingsRef.current = savedFormData;
       lastAutoSaveRef.current = savedString;
 
-      pendingSavedBaselineRef.current = savedFormData;
       const seq = ++baselineSeqRef.current;
       requestAnimationFrame(() => {
-        if (baselineSeqRef.current === seq && !resetModalOpenRef.current) {
-          pendingSavedBaselineRef.current = null;
+        if (baselineSeqRef.current === seq) {
           setLastSavedSettings(savedFormData);
         }
       });
@@ -175,11 +173,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     lastAutoSaveSettingsRef.current = debouncedFormData;
     lastAutoSaveRef.current = debouncedString;
 
-    pendingSavedBaselineRef.current = debouncedFormData;
     const seq = ++baselineSeqRef.current;
     requestAnimationFrame(() => {
-      if (baselineSeqRef.current === seq && !resetModalOpenRef.current) {
-        pendingSavedBaselineRef.current = null;
+      if (baselineSeqRef.current === seq) {
         setLastSavedSettings(debouncedFormData);
       }
     });
@@ -188,12 +184,10 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     debouncedPayload.generation,
     getLastAutoSaveString,
     lastSavedSettings.className,
-    showResetModal,
     setSettings,
   ]);
 
   const handleClassNameBlur = () => {
-    if (suppressClassBlurRef.current) return;
     const trimmed = (formData.className ?? "").trim();
     const oldName = (lastSavedSettings.className ?? "").trim();
 
@@ -444,7 +438,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     immediateSaveGenRef.current = formGenerationRef.current;
     setSettings(updated);
     ++baselineSeqRef.current;
-    pendingSavedBaselineRef.current = null;
     setLastSavedSettings(updated);
     lastAutoSaveSettingsRef.current = updated;
     lastAutoSaveRef.current = JSON.stringify(updated);
@@ -473,7 +466,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     lastAutoSaveSettingsRef.current = toSave;
     lastAutoSaveRef.current = toSaveString;
     ++baselineSeqRef.current;
-    pendingSavedBaselineRef.current = null;
     setLastSavedSettings(toSave);
     return toSave;
   }, [formData, getLastAutoSaveString, lastSavedSettings.className, setSettings]);
@@ -485,62 +477,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     lastAutoSaveSettingsRef.current = nextSettings;
     lastAutoSaveRef.current = JSON.stringify(nextSettings);
     ++baselineSeqRef.current;
-    pendingSavedBaselineRef.current = null;
     setFormPayload({ data: nextSettings, generation: nextGen });
     setLastSavedSettings(nextSettings);
   }, []);
-
-  const openResetModal = useCallback(() => {
-    resetBaselineRef.current = pendingSavedBaselineRef.current ?? lastSavedSettings;
-    ++baselineSeqRef.current;
-    suppressClassBlurRef.current = true;
-    resetModalOpenRef.current = true;
-    setShowResetModal(true);
-  }, [lastSavedSettings]);
-
-  const handleResetMouseDown = useCallback((e: MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    suppressClassBlurRef.current = true;
-    const handleRelease = () => {
-      window.removeEventListener("pointerup", handleRelease);
-      window.removeEventListener("mouseup", handleRelease);
-      setTimeout(() => {
-        if (!resetModalOpenRef.current) {
-          suppressClassBlurRef.current = false;
-        }
-      }, 0);
-    };
-    window.addEventListener("pointerup", handleRelease, { once: true });
-    window.addEventListener("mouseup", handleRelease, { once: true });
-  }, []);
-
-  const closeResetModal = useCallback(() => {
-    if (pendingSavedBaselineRef.current) {
-      setLastSavedSettings(pendingSavedBaselineRef.current);
-      pendingSavedBaselineRef.current = null;
-    }
-    resetBaselineRef.current = null;
-    suppressClassBlurRef.current = false;
-    resetModalOpenRef.current = false;
-    setShowResetModal(false);
-  }, []);
-
-  const handleReset = () => {
-    const baseline = resetBaselineRef.current ?? lastSavedSettings;
-    setFormData(baseline);
-    immediateSaveGenRef.current = formGenerationRef.current;
-    setSettings(baseline);
-    ++baselineSeqRef.current;
-    pendingSavedBaselineRef.current = null;
-    setLastSavedSettings(baseline);
-    lastAutoSaveSettingsRef.current = baseline;
-    lastAutoSaveRef.current = JSON.stringify(baseline);
-    resetBaselineRef.current = null;
-    suppressClassBlurRef.current = false;
-    resetModalOpenRef.current = false;
-    setShowResetModal(false);
-    showToast("Changes discarded", "info");
-  };
 
   return (
     <SettingsFormContext.Provider
@@ -578,10 +517,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         syncCommittedSettings,
         handleLevelChange,
         applyLevelChange,
-        openResetModal,
-        handleResetMouseDown,
-        closeResetModal,
-        handleReset,
         biometricAvailable,
         biometricType,
         enrollingBiometric,
@@ -591,7 +526,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         setShowPinSetup,
         setShowPinRecovery,
         setShowDisablePinModal,
+        setShowClearStudentsModal,
         setShowFactoryResetModal,
+        setShowFullAppResetModal,
       }}
     >
       {children}
@@ -612,17 +549,66 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       />
 
       <ConfirmModal
+        isOpen={showClearStudentsModal}
+        title="Remove All Students?"
+        message={`This will permanently remove all ${students.length} student${students.length === 1 ? "" : "s"}, their scores, and student photos while keeping your school settings, subjects, SBA tasks, and report style intact. Save a .repota backup first if you may need this class later.`}
+        confirmText="Yes, Remove All Students"
+        isDangerous={true}
+        onClose={() => setShowClearStudentsModal(false)}
+        onConfirm={() => {
+          if (isPersistenceSuspended) return;
+          clearAllStudents();
+          setShowClearStudentsModal(false);
+        }}
+      />
+
+      <ConfirmModal
         isOpen={showFactoryResetModal}
         title="Restore Default Settings?"
-        message="Are you sure? This will overwrite your School Name, Logo, and Default Subjects."
+        message="This will restore default school details, subjects, and report style. Your students and saved scores will remain untouched."
         confirmText="Yes, Restore Defaults"
         isDangerous={true}
         onClose={() => setShowFactoryResetModal(false)}
         onConfirm={() => {
           if (isPersistenceSuspended) return;
           restoreDefaults();
+          syncCommittedSettings(DEFAULT_FACTORY_SETTINGS);
           setShowFactoryResetModal(false);
-          setTimeout(() => window.location.reload(), 1000);
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={showFullAppResetModal}
+        title="Reset Entire App?"
+        message="This permanently wipes all students, school settings, logo, signatures, SBA tasks, PIN/biometric locks, and device preferences back to a first-visit state. Save a .repota backup first — this cannot be undone."
+        confirmText={isResettingApp ? "Resetting..." : "Yes, Wipe Everything"}
+        confirmKeyword="RESET"
+        isDangerous={true}
+        isLoading={isResettingApp}
+        keepOpenOnConfirm={true}
+        onClose={() => {
+          if (!isResettingApp) {
+            setShowFullAppResetModal(false);
+          }
+        }}
+        onConfirm={async () => {
+          if (isPersistenceSuspended || isResettingApp) return;
+          setIsResettingApp(true);
+          try {
+            const ok = await resetAllAppData();
+            if (ok) {
+              syncCommittedSettings(DEFAULT_FACTORY_SETTINGS);
+              setShowFullAppResetModal(false);
+              showToast("App reset to a fresh start.", "info");
+              try {
+                window.location.assign("/");
+              } catch {
+                // ignore navigation errors in test environments
+              }
+            }
+          } finally {
+            setIsResettingApp(false);
+          }
         }}
       />
 
@@ -652,16 +638,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
           setShowDisablePinModal(false);
           showToast("PIN lock has been disabled", "success");
         }}
-      />
-
-      <ConfirmModal
-        isOpen={showResetModal}
-        title="Discard Changes?"
-        message="This will reset all fields to their last saved state. Any unsaved changes will be lost."
-        confirmText="Yes, Discard Changes"
-        isDangerous={true}
-        onClose={closeResetModal}
-        onConfirm={handleReset}
       />
 
       <ConfirmModal

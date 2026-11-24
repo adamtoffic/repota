@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Briefcase, RotateCcw, School } from "lucide-react";
+import { ConfirmModal } from "../ConfirmModal";
 import { ImageUploader } from "../ImageUploader";
 import { Input } from "../ui";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
+import { useToast } from "../../hooks/useToast";
 import type { PrivateFeeItem, SchoolSettings } from "../../types";
 import { captureEvent } from "../../utils/analytics";
 import {
@@ -13,8 +16,36 @@ import {
 
 export function SchoolIdentitySection() {
   const { formData, setFormData, isPersistenceSuspended } = useSettingsForm();
+  const { showToast } = useToast();
+  const [showResetFeeLabelsModal, setShowResetFeeLabelsModal] = useState(false);
   const feeSlots = resolveEditablePrivateFeeItems(formData);
   const showFeeSchedule = formData.showFeeSchedule !== false;
+
+  const handleResetFeeLabelsClick = () => {
+    if (isPersistenceSuspended) return;
+    const hasCustomLabels = feeSlots.some(
+      (slot, index) => slot.label !== DEFAULT_PRIVATE_FEE_SLOTS[index].label,
+    );
+    if (!hasCustomLabels) {
+      showToast("Fee labels are already set to defaults.", "info");
+      return;
+    }
+    setShowResetFeeLabelsModal(true);
+  };
+
+  const confirmResetFeeLabels = () => {
+    const resetSlots = feeSlots.map((slot, index) => ({
+      ...slot,
+      label: DEFAULT_PRIVATE_FEE_SLOTS[index].label,
+    }));
+    setFormData({
+      ...formData,
+      privateFeeItems: resetSlots,
+      ...syncLegacyFeesFromItems(resetSlots),
+    });
+    setShowResetFeeLabelsModal(false);
+    showToast("Fee labels restored to defaults. Amounts kept.", "success");
+  };
 
   const handleSchoolTypeChange = (nextType: SchoolSettings["schoolType"]) => {
     if (formData.schoolType === nextType) return;
@@ -38,7 +69,8 @@ export function SchoolIdentitySection() {
   };
 
   return (
-    <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
+    <>
+      <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 1: IDENTITY */}
       <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-6 flex items-center gap-3">
@@ -178,14 +210,7 @@ export function SchoolIdentitySection() {
 
               <button
                 type="button"
-                onClick={() => {
-                  const resetSlots = DEFAULT_PRIVATE_FEE_SLOTS.map((s) => ({ ...s }));
-                  setFormData({
-                    ...formData,
-                    privateFeeItems: resetSlots,
-                    ...syncLegacyFeesFromItems(resetSlots),
-                  });
-                }}
+                onClick={handleResetFeeLabelsClick}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline dark:text-purple-300"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -332,6 +357,17 @@ export function SchoolIdentitySection() {
           </div>
         </div>
       </div>
-    </fieldset>
+      </fieldset>
+
+      <ConfirmModal
+        isOpen={showResetFeeLabelsModal}
+        title="Reset Fee Labels?"
+        message="This will restore the 3 fee slot names to their defaults (School Fees, Canteen Fees, First Aid Fees). Your entered GH₵ amounts and cycles will be kept."
+        confirmText="Yes, Reset Labels"
+        isDangerous={false}
+        onClose={() => setShowResetFeeLabelsModal(false)}
+        onConfirm={confirmResetFeeLabels}
+      />
+    </>
   );
 }

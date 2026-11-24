@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Fingerprint, Key, Lock, RotateCcw } from "lucide-react";
+import { AlertTriangle, Fingerprint, Key, Lock, RotateCcw, Trash2, Users } from "lucide-react";
 import { DataBackup } from "../DataBackup";
 import { StorageMonitor } from "../StorageMonitor";
 import { Alert, Button } from "../ui";
@@ -12,6 +12,7 @@ export function SecurityBackupSection() {
     formData,
     setFormData,
     isPersistenceSuspended,
+    studentsCount,
     biometricAvailable,
     biometricType,
     enrollingBiometric,
@@ -21,7 +22,9 @@ export function SecurityBackupSection() {
     setShowPinSetup,
     setShowPinRecovery,
     setShowDisablePinModal,
+    setShowClearStudentsModal,
     setShowFactoryResetModal,
+    setShowFullAppResetModal,
   } = useSettingsForm();
 
   useEffect(() => {
@@ -202,27 +205,98 @@ export function SecurityBackupSection() {
       {/* BACKUP & DANGER ZONE */}
       <DataBackup />
 
-      <Alert
-        variant="error"
-        title={
-          <>
-            <RotateCcw className="inline h-5 w-5" /> Reset Configuration
-          </>
-        }
-      >
-        <p className="mb-4">
-          This will restore default subject lists and settings. Your student data will remain safe.
-        </p>
-        <Button
-          onClick={() => setShowFactoryResetModal(true)}
-          variant="danger"
-          size="sm"
-          disabled={isPersistenceSuspended}
-          className="w-full sm:w-auto"
-        >
-          Restore Factory Defaults
-        </Button>
-      </Alert>
+      {/* RESET & CLEANUP */}
+      <div className="bg-surface rounded-xl border border-red-200 p-5 shadow-sm sm:p-6 dark:border-red-900/70">
+        <div className="mb-1 flex items-center gap-3">
+          <div className="rounded-lg bg-red-100 p-2.5 dark:bg-red-950/60">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          </div>
+          <div>
+            <h2 className="text-main text-lg font-bold" data-record="true">
+              Reset &amp; Cleanup
+            </h2>
+            <p className="text-muted text-xs">
+              Tip: Save a .repota backup above before clearing class or app data.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {/* Tier 1: New Class, Same School */}
+          <div className="border-border bg-subtle flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="text-main flex items-center gap-2 text-sm font-bold" data-record="true">
+                <Users className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400" />
+                <span>Remove All Students (New Class, Same School)</span>
+              </h3>
+              <p className="text-muted mt-1 text-xs leading-relaxed">
+                Clears all students, scores, and photos while keeping your school identity, subjects,
+                SBA tasks, and report style.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setShowClearStudentsModal(true)}
+              variant="danger"
+              size="sm"
+              disabled={isPersistenceSuspended || studentsCount === 0}
+              className="w-full shrink-0 sm:w-auto"
+            >
+              {studentsCount > 0 ? `Remove All Students (${studentsCount})` : "Remove All Students"}
+            </Button>
+          </div>
+
+          {/* Tier 2: Restore Default Settings */}
+          <div className="border-border bg-subtle flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="text-main flex items-center gap-2 text-sm font-bold" data-record="true">
+                <RotateCcw className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>Restore Default Settings (Keep Students)</span>
+              </h3>
+              <p className="text-muted mt-1 text-xs leading-relaxed">
+                Resets school name, logo, signatures, subjects, SBA setup, and report style back to
+                defaults while keeping all student records safe.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setShowFactoryResetModal(true)}
+              variant="danger"
+              size="sm"
+              disabled={isPersistenceSuspended}
+              className="w-full shrink-0 sm:w-auto"
+            >
+              Restore Factory Defaults
+            </Button>
+          </div>
+
+          {/* Tier 3: Full App Reset */}
+          <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-900/70 dark:bg-red-950/35">
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-red-900 dark:text-red-200" data-record="true">
+                <span className="inline-flex items-center gap-2">
+                  <Trash2 className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+                  <span>Reset Entire App (Start Completely Fresh)</span>
+                </span>
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-red-800/90 dark:text-red-300/90">
+                Permanently wipes all students, settings, photos, PIN/biometric lock, and preferences
+                back to a first-visit state. Requires typing <strong>RESET</strong>.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setShowFullAppResetModal(true)}
+              variant="danger"
+              size="sm"
+              disabled={isPersistenceSuspended}
+              className="w-full shrink-0 sm:w-auto"
+            >
+              Reset Entire App
+            </Button>
+          </div>
+        </div>
+      </div>
     </>
   );
 }

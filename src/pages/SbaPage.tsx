@@ -37,7 +37,6 @@ import {
 import { PageHeader } from "../components/ui/PageHeader";
 import { Button } from "../components/ui";
 import { ScoreImportModal } from "../components/ScoreImportModal";
-import { SettingsHeaderActions } from "../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../components/settings/SettingsStatusBanners";
 import { SbaMarkbookGrid } from "../components/sba/SbaMarkbookGrid";
 import { SbaPresetOnboardingCard } from "../components/sba/SbaPresetOnboardingCard";
@@ -319,7 +318,6 @@ function SbaPageContent() {
         hideOnDesktop
         sticky={!isEditableFocused}
         schoolName={committedSchoolName}
-        actions={<SettingsHeaderActions showBack={false} />}
       />
 
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-5 sm:px-6 sm:py-6">

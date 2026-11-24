@@ -495,4 +495,44 @@ describe("NavigationShell and route exclusions", () => {
       }
     }
   });
+
+  it("prompts confirmation before Auto-Fill Teacher Remarks overwrites existing remarks, and skips modal when empty", async () => {
+    const { unmount } = renderAppAt("/");
+    await screen.findByPlaceholderText("Search students...");
+
+    // Seeded demoStudent has no remarks -> runs immediately without modal
+    fireEvent.click(screen.getByRole("button", { name: /Class Tools/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Auto-Fill Teacher Remarks/i }));
+    expect(screen.queryByText("Overwrite Existing Remarks?")).not.toBeInTheDocument();
+    unmount();
+
+    // With an existing remark -> asks before overwriting
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return {
+          status: "found",
+          value: [
+            {
+              ...demoStudents[0],
+              teacherRemark: "Custom teacher remark",
+            },
+          ],
+        };
+      }
+      if (key === "ges_v1_settings") {
+        return { status: "found", value: demoSettings };
+      }
+      return { status: "empty" };
+    });
+
+    renderAppAt("/");
+    await screen.findByPlaceholderText("Search students...");
+
+    fireEvent.click(screen.getByRole("button", { name: /Class Tools/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Auto-Fill Teacher Remarks/i }));
+    expect(screen.getByText("Overwrite Existing Remarks?")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Overwrite Remarks" }));
+    expect(screen.queryByText("Overwrite Existing Remarks?")).not.toBeInTheDocument();
+  });
 });

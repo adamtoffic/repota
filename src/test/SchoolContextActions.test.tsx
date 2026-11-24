@@ -346,4 +346,70 @@ describe("SchoolContext live actions", () => {
       ?.classScoreComponents?.[0];
     expect(demoComp?.category).toBeDefined();
   });
+
+  it("clearAllStudents removes all student records while keeping settings intact", async () => {
+    const { result } = await renderLoadedSchoolHook();
+    expect(result.current.students.length).toBeGreaterThan(0);
+    const originalSchoolName = result.current.settings.schoolName;
+
+    act(() => {
+      result.current.clearAllStudents();
+    });
+
+    expect(result.current.students).toEqual([]);
+    expect(result.current.settings.schoolName).toBe(originalSchoolName);
+    expect(toastMock.showToast).toHaveBeenCalledWith(
+      expect.stringContaining("School settings were kept."),
+      "success",
+    );
+  });
+
+  it("resetAllAppData resets students, settings, PIN/biometrics, tour, and theme keys", async () => {
+    const { result } = await renderLoadedSchoolHook();
+
+    localStorage.setItem("app_pin_hash", "v2:pbkdf2$hash");
+    localStorage.setItem("recovery_code_hash", "v2:pbkdf2$rec");
+    localStorage.setItem("security_questions", "[]");
+    localStorage.setItem("app_pin_lockout", "{}");
+    localStorage.setItem("biometric_credential_id", "cred-1");
+    localStorage.setItem("biometric_enabled", "true");
+    localStorage.setItem("repota_had_data", "true");
+    localStorage.setItem("repota_backup_check", "123");
+    localStorage.setItem("welcome_tour_completed", "true");
+    localStorage.setItem("repota_theme", "dark");
+    localStorage.setItem("repota_analytics_report_ledger_v1", "{}");
+    sessionStorage.setItem("repota_backup_reminder_shown", "true");
+    document.documentElement.classList.add("dark");
+
+    storage.createBackupHeartbeat.mockClear();
+
+    let resetResult = false;
+    await act(async () => {
+      resetResult = await result.current.resetAllAppData();
+    });
+
+    expect(resetResult).toBe(true);
+    expect(result.current.students).toEqual([]);
+    expect(result.current.settings.schoolName).toBe(DEFAULT_SETTINGS.schoolName);
+    expect(result.current.settings.componentLibrary).toEqual([]);
+    expect(result.current.settings.subjectComponentMap).toEqual({});
+    expect(localStorage.getItem("app_pin_hash")).toBeNull();
+    expect(localStorage.getItem("recovery_code_hash")).toBeNull();
+    expect(localStorage.getItem("biometric_enabled")).toBeNull();
+    expect(localStorage.getItem("repota_had_data")).toBeNull();
+    expect(localStorage.getItem("welcome_tour_completed")).toBeNull();
+    expect(localStorage.getItem("repota_theme")).toBeNull();
+    expect(localStorage.getItem("repota_analytics_report_ledger_v1")).toBeNull();
+    expect(sessionStorage.getItem("repota_backup_reminder_shown")).toBeNull();
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    expect(storage.createBackupHeartbeat).not.toHaveBeenCalled();
+    expect(storage.saveToStorage).toHaveBeenCalledWith("ges_v1_students", []);
+    expect(storage.saveToStorage).toHaveBeenCalledWith(
+      "ges_v1_settings",
+      expect.objectContaining({
+        schoolName: DEFAULT_SETTINGS.schoolName,
+        examType: "TERMLY",
+      }),
+    );
+  });
 });

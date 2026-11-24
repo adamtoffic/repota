@@ -14,6 +14,8 @@ interface SbaWeightsModalProps {
   students: StudentRecord[];
   settings: SchoolSettings;
   disabled?: boolean;
+  /** Optional exam mode to preselect when opened directly from an exam-mode toggle. */
+  initialExamType?: ExamType;
   onApplyWeights: (
     nextClassScoreMax: number,
     nextExamScoreMax: number,
@@ -32,10 +34,13 @@ function SbaWeightsModalContent({
   students,
   settings,
   disabled = false,
+  initialExamType,
   onApplyWeights,
 }: SbaWeightsModalProps) {
   const defaultTermlyClassMax = settings.level === "SHS" ? 30 : 50;
-  const [examType, setExamType] = useState<ExamType>(settings.examType ?? "TERMLY");
+  const [examType, setExamType] = useState<ExamType>(
+    initialExamType ?? settings.examType ?? "TERMLY",
+  );
   const [classMax, setClassMax] = useState<number>(
     settings.examType === "MOCK" ? defaultTermlyClassMax : settings.classScoreMax,
   );

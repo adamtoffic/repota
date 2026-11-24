@@ -246,7 +246,7 @@ describe("Settings sub-routes shared state and invariants", () => {
     expect(savedStudents?.[0]?.className).toBe("JHS 3");
   });
 
-  it("discards cross-route unsaved edits back to saved baseline when Reset is confirmed", async () => {
+  it("does not render a header Reset button while auto-saving edits across Settings sub-routes", async () => {
     const { router } = renderSubRouteApp("/settings/school");
     await flushHydrationAndImports();
 
@@ -258,29 +258,35 @@ describe("Settings sub-routes shared state and invariants", () => {
     });
 
     fireEvent.change(screen.getByDisplayValue("Learn and Lead"), {
-      target: { value: "Transient Motto" },
+      target: { value: "Updated Motto" },
     });
 
-    // Navigate to another sub-route before 500ms autosave settles
+    expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
+
+    // Navigate to another sub-route while 500ms autosave settles
     await act(async () => {
       await router.navigate({ to: "/settings/templates" });
       await vi.dynamicImportSettled();
       await Promise.resolve();
     });
 
-    // Reset action remains accessible across sub-routes
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    expect(screen.getByText("Discard Changes?")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
+    expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
 
-    // Navigate back to /settings/school and confirm baseline was restored
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    // Navigate back to /settings/school and confirm edit auto-saved cleanly
     await act(async () => {
       await router.navigate({ to: "/settings/school" });
       await vi.dynamicImportSettled();
       await Promise.resolve();
     });
 
-    expect(screen.getByDisplayValue("Learn and Lead")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Updated Motto")).toBeInTheDocument();
   });
 
   it("enforces read-only locks when persistence is suspended while keeping DataBackup usable", async () => {
@@ -391,5 +397,205 @@ describe("Settings sub-routes shared state and invariants", () => {
       "aria-current",
       "page",
     );
+  });
+
+  it("protects /settings/academic Exam Type toggle with SbaWeightsModal and uses SHS 30/70 default", async () => {
+    const shsSettings: SchoolSettings = {
+      ...seededSettings,
+      level: "SHS",
+      classScoreMax: 30,
+      examScoreMax: 70,
+    };
+    const shsStudents: StudentRecord[] = [
+      {
+        id: "student-1",
+        name: "Student One",
+        className: "SHS 1",
+        gender: "Female",
+        subjects: [
+          {
+            id: "sub-eng",
+            name: "English",
+            classScore: 24,
+            examScore: 56, // 80 raw / 100 * 70
+          },
+        ],
+      },
+    ];
+
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return { status: "found", value: shsStudents };
+      }
+      if (key === "ges_v1_settings") {
+        return { status: "found", value: shsSettings };
+      }
+      return { status: "empty" };
+    });
+
+    renderSubRouteApp("/settings/academic");
+    await flushHydrationAndImports();
+
+    fireEvent.click(screen.getByRole("button", { name: /Mock Exam/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/Grading Weights & Exam Mode/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/1 student has existing scores affected/i)).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /Apply Grading Split/i }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    let savedSettings = storage.saveToStorage.mock.calls
+      .filter(([key]) => key === "ges_v1_settings")
+      .map(([, val]) => val as SchoolSettings)
+      .at(-1);
+    expect(savedSettings).toMatchObject({
+      examType: "MOCK",
+      classScoreMax: 0,
+      examScoreMax: 100,
+    });
+
+    // Resuming Termly for SHS opens SbaWeightsModal pre-set to 30/70
+    fireEvent.click(screen.getByRole("button", { name: /Termly/i }));
+    const resumeDialog = screen.getByRole("dialog");
+    fireEvent.click(within(resumeDialog).getByRole("button", { name: /Apply Grading Split/i }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    savedSettings = storage.saveToStorage.mock.calls
+      .filter(([key]) => key === "ges_v1_settings")
+      .map(([, val]) => val as SchoolSettings)
+      .at(-1);
+    expect(savedSettings).toMatchObject({
+      examType: "TERMLY",
+      classScoreMax: 30,
+      examScoreMax: 70,
+    });
+  });
+
+  it("supports 3-tier Reset & Cleanup options on /settings/security with typed RESET safeguard", async () => {
+    const { router } = renderSubRouteApp("/settings/security");
+    await flushHydrationAndImports();
+
+    // 1. Restore Factory Defaults immediately syncs settings inputs while keeping student records
+    fireEvent.click(screen.getByRole("button", { name: "Restore Factory Defaults" }));
+    expect(screen.getByText("Restore Default Settings?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Restore Defaults" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    await act(async () => {
+      await router.navigate({ to: "/settings/school" });
+      await vi.dynamicImportSettled();
+      await Promise.resolve();
+    });
+    expect(screen.getByDisplayValue("My School Name")).toBeInTheDocument();
+
+    // 2. Remove All Students clears students while preserving school identity
+    await act(async () => {
+      await router.navigate({ to: "/settings/security" });
+      await vi.dynamicImportSettled();
+      await Promise.resolve();
+    });
+
+    const removeAllBtn = screen.getByRole("button", { name: /Remove All Students \(1\)/i });
+    fireEvent.click(removeAllBtn);
+    expect(screen.getByText("Remove All Students?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Remove All Students" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    const savedStudents = storage.saveToStorage.mock.calls
+      .filter(([key]) => key === "ges_v1_students")
+      .map(([, val]) => val as StudentRecord[])
+      .at(-1);
+    expect(savedStudents).toEqual([]);
+    expect(screen.getByRole("button", { name: "Remove All Students" })).toBeDisabled();
+
+    // 3. Reset Entire App requires typing RESET before confirmation is enabled
+    fireEvent.click(screen.getByRole("button", { name: "Reset Entire App" }));
+    expect(screen.getByText("Reset Entire App?")).toBeInTheDocument();
+
+    const wipeBtn = screen.getByRole("button", { name: "Yes, Wipe Everything" });
+    expect(wipeBtn).toBeDisabled();
+
+    const keywordInput = screen.getByLabelText(/Type RESET to confirm/i);
+    fireEvent.change(keywordInput, { target: { value: "reset" } });
+    expect(wipeBtn).toBeEnabled();
+
+    await act(async () => {
+      fireEvent.click(wipeBtn);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText("Reset Entire App?")).not.toBeInTheDocument();
+  });
+
+  it("prompts before Reset Labels and preserves entered Private School fee amounts", async () => {
+    const privateSettings: SchoolSettings = {
+      ...seededSettings,
+      schoolType: "PRIVATE",
+      privateFeeItems: [
+        { id: "school-fees", label: "Tuition Levies", amount: 450, cycle: "Per Term", enabled: true },
+        { id: "canteen-fees", label: "Feeding", amount: 120, cycle: "Daily", enabled: true },
+        { id: "first-aid-fees", label: "Health Fund", amount: 30, cycle: "Per Term", enabled: false },
+      ],
+    };
+
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return { status: "found", value: seededStudents };
+      }
+      if (key === "ges_v1_settings") {
+        return { status: "found", value: privateSettings };
+      }
+      return { status: "empty" };
+    });
+
+    renderSubRouteApp("/settings/school");
+    await flushHydrationAndImports();
+
+    fireEvent.click(screen.getByRole("button", { name: /Reset Labels/i }));
+    expect(screen.getByText("Reset Fee Labels?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Reset Labels" }));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    const savedSettings = storage.saveToStorage.mock.calls
+      .filter(([key]) => key === "ges_v1_settings")
+      .map(([, val]) => val as SchoolSettings)
+      .at(-1);
+
+    expect(savedSettings?.privateFeeItems).toEqual([
+      { id: "school-fees", label: "School Fees", amount: 450, cycle: "Per Term", enabled: true },
+      { id: "canteen-fees", label: "Canteen Fees", amount: 120, cycle: "Daily", enabled: true },
+      { id: "first-aid-fees", label: "First Aid Fees", amount: 30, cycle: "Per Term", enabled: false },
+    ]);
   });
 });
