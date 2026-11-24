@@ -67,6 +67,7 @@ function SbaPageContent() {
   const isEditableFocused = useEditableInputFocused();
   const {
     updateStudent,
+    batchUpdateStudents,
     applySbaConfig,
     updateAssessmentWeights,
     detectComponentMismatches,
@@ -714,6 +715,7 @@ function SbaPageContent() {
                     }
                     onClearUnscoredFilter={() => setUnscoredOnly(false)}
                     onUpdateStudent={updateStudent}
+                    onBatchUpdateStudents={batchUpdateStudents}
                     onOpenTaskManager={() => setTaskManagerAction({ mode: "manage" })}
                     disabled={isPersistenceSuspended}
                     isHeaderSticky={!isEditableFocused}

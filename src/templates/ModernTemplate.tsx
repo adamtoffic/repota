@@ -1,9 +1,14 @@
+import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
 import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
-export function ModernTemplate({ student, settings, printMode }: ReportTemplateProps) {
+export const ModernTemplate = memo(function ModernTemplate({
+  student,
+  settings,
+  printMode,
+}: ReportTemplateProps) {
   const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
@@ -16,7 +21,12 @@ export function ModernTemplate({ student, settings, printMode }: ReportTemplateP
     typeof student.feeArrears === "number" &&
     student.feeArrears > 0;
   const { showClassPositionSummary, showSubjectPosition } = resolvePositionVisibility(settings);
-  const headmasterRemark = generateHeadmasterRemark(student.averageScore, settings.term);
+  const headmasterRemark = generateHeadmasterRemark(
+    student.averageScore,
+    settings.term,
+    [],
+    `${student.id}|${settings.term}|${student.averageScore}`,
+  );
 
   // ---------------------------------------------------------------------------
   // 🎨 PRINT MODE & CUSTOM SCHOOL COLOR LOGIC
@@ -483,4 +493,4 @@ export function ModernTemplate({ student, settings, printMode }: ReportTemplateP
       </footer>
     </div>
   );
-}
+});

@@ -28,7 +28,7 @@ export function BulkImportModal(props: Props) {
 function BulkImportModalContent({ isOpen, onClose }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
-  const { addStudent, updateStudent } = useSchoolActions();
+  const { addStudent, updateStudent, batchUpdateStudents } = useSchoolActions();
   const { showToast } = useToast();
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<ParsedRosterRow[]>([]);
@@ -78,8 +78,8 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
   };
 
   const handleImport = () => {
-    let addedCount = 0;
-    let updatedCount = 0;
+    const updatedRecords = new Map<string, StudentRecord>();
+    const newRecords: StudentRecord[] = [];
     const studentById = new Map(students.map((s) => [s.id, s]));
 
     preview.forEach((row, index) => {
@@ -98,8 +98,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
           feeArrears: row.feeArrears ?? existing.feeArrears,
           guardianPhone: row.guardianPhone ?? existing.guardianPhone,
         };
-        updateStudent(updatedRecord, true);
-        updatedCount++;
+        updatedRecords.set(updatedRecord.id, updatedRecord);
         return;
       }
 
@@ -122,9 +121,26 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
         ...(row.guardianPhone ? { guardianPhone: row.guardianPhone } : {}),
       };
 
-      addStudent(newStudent, true);
-      addedCount++;
+      newRecords.push(newStudent);
     });
+
+    const addedCount = newRecords.length;
+    const updatedCount = updatedRecords.size;
+
+    if (addedCount + updatedCount > 0) {
+      if (batchUpdateStudents) {
+        batchUpdateStudents(
+          (prev) => [
+            ...prev.map((student) => updatedRecords.get(student.id) ?? student),
+            ...newRecords,
+          ],
+          { silent: true },
+        );
+      } else {
+        updatedRecords.forEach((rec) => updateStudent(rec, true));
+        newRecords.forEach((rec) => addStudent(rec, true));
+      }
+    }
 
     const totalTouched = addedCount + updatedCount;
     if (totalTouched > 0) {

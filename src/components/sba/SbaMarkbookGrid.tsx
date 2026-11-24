@@ -34,6 +34,10 @@ interface SbaMarkbookGridProps {
   onPasteSummary?: (summary: { cells: number; students: number; clamped: number }) => void;
   onClearUnscoredFilter: () => void;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
+  onBatchUpdateStudents?: (
+    updater: (prev: StudentRecord[]) => StudentRecord[],
+    options?: { silent?: boolean },
+  ) => void;
   onOpenTaskManager: () => void;
   disabled?: boolean;
   isHeaderSticky?: boolean;
@@ -93,6 +97,7 @@ export function SbaMarkbookGrid({
   onPasteSummary,
   onClearUnscoredFilter,
   onUpdateStudent,
+  onBatchUpdateStudents,
   onOpenTaskManager,
   disabled = false,
   isHeaderSticky = true,
@@ -360,10 +365,10 @@ export function SbaMarkbookGrid({
     if (pastedRows.length === 1 && pastedRows[0].length <= 1) return;
 
     e.preventDefault();
-    let updatedAny = false;
     let cellsUpdated = 0;
     let studentsUpdated = 0;
     let clampedCount = 0;
+    const patches: Array<{ student: ProcessedStudent; updatedSubjects: SavedSubject[] }> = [];
 
     for (
       let rowOffset = 0;
@@ -417,13 +422,29 @@ export function SbaMarkbookGrid({
             ? { ...item, classScoreComponents: workingComponents, classScore: nextClassScore }
             : item,
         );
-        onUpdateStudent({ ...student, subjects: updatedSubjects }, true);
-        updatedAny = true;
+        patches.push({ student, updatedSubjects });
         studentsUpdated++;
       }
     }
 
-    if (updatedAny) {
+    if (patches.length > 0) {
+      if (onBatchUpdateStudents) {
+        const subjectsById = new Map(patches.map((p) => [p.student.id, p.updatedSubjects]));
+        onBatchUpdateStudents(
+          (prev) =>
+            prev.map((student) =>
+              subjectsById.has(student.id)
+                ? { ...student, subjects: subjectsById.get(student.id)! }
+                : student,
+            ),
+          { silent: true },
+        );
+      } else {
+        for (const patch of patches) {
+          onUpdateStudent({ ...patch.student, subjects: patch.updatedSubjects }, true);
+        }
+      }
+
       if (tasks[startTaskIdx]) {
         onTaskTouched?.(tasks[startTaskIdx].name);
       }

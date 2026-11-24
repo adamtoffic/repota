@@ -2,20 +2,30 @@
 import type { ProcessedStudent, SchoolLevel, AcademicPeriod } from "../types";
 import { REMARK_BANK, HEADMASTER_BANK, CONDUCT_TRAITS, INTERESTS } from "../constants/remarks";
 
-// Helper: smart random picker avoiding recently used entries until exhausted
-const getSmartRandom = (pool: string[], excludeList: string[] = []): string => {
+function hashSeedToIndex(seed: string, length: number): number {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % length;
+}
+
+// Helper: smart picker avoiding recently used entries until exhausted (deterministic when seed provided)
+const getSmartRandom = (pool: string[], excludeList: string[] = [], seed?: string): string => {
   if (!pool || pool.length === 0) return "Good effort.";
 
   // A. Find remarks we haven't used yet
   const available = pool.filter((r) => !excludeList.includes(r));
+  const choices = available.length > 0 ? available : pool;
 
-  // B. If we have fresh ones, pick one!
-  if (available.length > 0) {
-    return available[Math.floor(Math.random() * available.length)];
+  // B. Deterministic selection when an explicit seed is supplied (prevents render jitter)
+  if (seed) {
+    return choices[hashSeedToIndex(seed, choices.length)];
   }
 
-  // C. If deck is empty (all used), reshuffle and pick any
-  return pool[Math.floor(Math.random() * pool.length)];
+  // C. Fallback random pick for interactive shuffling
+  return choices[Math.floor(Math.random() * choices.length)];
 };
 
 // 1. TEACHER REMARK
@@ -52,11 +62,13 @@ export const generateTeacherRemark = (
  * Selects a headteacher remark using promotional pools when `term` contains `"third"` or `"3rd"`.
  * Students below passing (`< 50` in promotional terms, `< 45` in normal terms) receive encouraging remarks
  * rather than promotion wording; avoids `excludeList` until the pool is exhausted.
+ * When `seed` is provided, selection is deterministic for render/scroll stability.
  */
 export const generateHeadmasterRemark = (
   averageScore: number,
   term: AcademicPeriod,
   excludeList: string[] = [],
+  seed?: string,
 ): string => {
   const isPromotionalTerm =
     term.toLowerCase().includes("third") || term.toLowerCase().includes("3rd");
@@ -77,7 +89,7 @@ export const generateHeadmasterRemark = (
     else pool = HEADMASTER_BANK.PROMOTIONAL.Encouraging; // Use encouraging remarks even in normal terms
   }
 
-  return getSmartRandom(pool, excludeList);
+  return getSmartRandom(pool, excludeList, seed);
 };
 
 // 3. ATTENDANCE RATING (For the "Attendance" box on the report)

@@ -49,11 +49,13 @@ export function Dashboard() {
     addStudent,
     deleteStudent,
     updateStudent,
+    batchUpdateStudents,
     loadDemoData,
     deletePendingStudents,
     autoGenerateRemarks,
     clearAllScores,
     syncSubjectComponentsFromSettings,
+    syncClassSubjectsAndSba,
   } = useSchoolActions();
 
   const { showToast } = useToast();
@@ -234,6 +236,11 @@ export function Dashboard() {
   };
 
   const handleSyncClassSubjectsAndTasks = () => {
+    if (syncClassSubjectsAndSba) {
+      syncClassSubjectsAndSba();
+      return;
+    }
+
     const masterList = settings.defaultSubjects || [];
     let addedSubjectsCount = 0;
 
@@ -525,6 +532,7 @@ export function Dashboard() {
                   sessionKey={gradebookSessionKey}
                   settings={settings}
                   onUpdateStudent={updateStudent}
+                  onBatchUpdateStudents={batchUpdateStudents}
                   onOpenStudent={(s, ordered) => handleOpenStudentModal(s, ordered)}
                   onOpenScoreImport={(subject, taskName) => {
                     setScoreImportPreset({ subject, taskName });

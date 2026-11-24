@@ -38,16 +38,20 @@ export function hasNoScoresEntered(student: StudentRecord): boolean {
 /**
  * Returns `true` when a student record is incomplete for report generation:
  * has no subjects, has fewer subjects than `settings.defaultSubjects.length` (when provided),
- * or has `classScore === 0 || examScore === 0` on any subject (`0` is treated as unentered).
+ * or is missing required scores (`examScore === 0` in `MOCK` mode; `classScore === 0 || examScore === 0`
+ * in `TERMLY` mode).
  */
 export function isStudentPending(
   student: StudentRecord,
-  settings?: Pick<SchoolSettings, "defaultSubjects">,
+  settings?: Pick<SchoolSettings, "defaultSubjects"> & Partial<Pick<SchoolSettings, "examType">>,
 ): boolean {
   const expectedCount = settings?.defaultSubjects?.length ?? 0;
   if (student.subjects.length === 0) return true;
   if (expectedCount > 0 && student.subjects.length < expectedCount) return true;
-  return student.subjects.some((sub) => sub.classScore === 0 || sub.examScore === 0);
+  const isMockExam = settings?.examType === "MOCK";
+  return student.subjects.some((sub) =>
+    isMockExam ? sub.examScore === 0 : sub.classScore === 0 || sub.examScore === 0,
+  );
 }
 
 /**
@@ -56,7 +60,7 @@ export function isStudentPending(
  */
 export function hasPartialScores(
   student: StudentRecord,
-  settings?: Pick<SchoolSettings, "defaultSubjects">,
+  settings?: Pick<SchoolSettings, "defaultSubjects"> & Partial<Pick<SchoolSettings, "examType">>,
 ): boolean {
   return isStudentPending(student, settings) && !hasNoScoresEntered(student);
 }
@@ -71,7 +75,7 @@ export function hasMissingPhoto(student: StudentRecord): boolean {
  */
 export function isStudentFailing(
   student: ProcessedStudent,
-  settings?: Pick<SchoolSettings, "defaultSubjects">,
+  settings?: Pick<SchoolSettings, "defaultSubjects"> & Partial<Pick<SchoolSettings, "examType">>,
 ): boolean {
   return !isStudentPending(student, settings) && student.averageScore < 50;
 }
@@ -110,7 +114,7 @@ export function getScoredSubjectCounts(
 export function sortStudents(
   students: ProcessedStudent[],
   sortBy: StudentSortOption,
-  settings?: Pick<SchoolSettings, "defaultSubjects">,
+  settings?: Pick<SchoolSettings, "defaultSubjects"> & Partial<Pick<SchoolSettings, "examType">>,
 ): ProcessedStudent[] {
   if (sortBy === "DEFAULT") return students;
 

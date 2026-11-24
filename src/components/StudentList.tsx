@@ -30,6 +30,7 @@ const observeMobileElementRect = (
 
 interface MobileStudentCardProps {
   student: ProcessedStudent;
+  isMockExam: boolean;
   onEditStudent: (student: ProcessedStudent) => void;
   onDeleteRequest: (studentId: string) => void;
   virtualIndex?: number;
@@ -39,6 +40,7 @@ interface MobileStudentCardProps {
 
 function MobileStudentCard({
   student,
+  isMockExam,
   onEditStudent,
   onDeleteRequest,
   virtualIndex,
@@ -76,7 +78,7 @@ function MobileStudentCard({
             {student.gender ? ` • ${student.gender}` : ""}
           </p>
         </div>
-        {student.classPosition !== "Pending..." && (
+        {student.classPosition.toLowerCase() !== "pending..." && (
           <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
             {student.classPosition}
           </span>
@@ -84,7 +86,7 @@ function MobileStudentCard({
       </button>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <ScoreProgressBadge student={student} />
+        <ScoreProgressBadge student={student} isMockExam={isMockExam} />
         {!student.pictureUrl && (
           <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
             <CameraOff className="h-3 w-3" /> No Photo
@@ -132,8 +134,14 @@ function MobileStudentCard({
   );
 }
 
-function ScoreProgressBadge({ student }: { student: ProcessedStudent }) {
-  const { scored, completed, total } = getScoredSubjectCounts(student);
+function ScoreProgressBadge({
+  student,
+  isMockExam,
+}: {
+  student: ProcessedStudent;
+  isMockExam: boolean;
+}) {
+  const { scored, completed, total } = getScoredSubjectCounts(student, isMockExam);
   const toneClass =
     completed === total && total > 0
       ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300"
@@ -173,6 +181,7 @@ export function StudentList({
   const [internalAddOpen, setInternalAddOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const settings = useSchoolSettings();
+  const isMockExam = settings.examType === "MOCK";
 
   const isAddOpen = isAddModalOpen ?? internalAddOpen;
   const setIsAddOpen = onOpenAddModalChange ?? setInternalAddOpen;
@@ -254,6 +263,7 @@ export function StudentList({
             <MobileStudentCard
               key={student.id}
               student={student}
+              isMockExam={isMockExam}
               onEditStudent={onEditStudent}
               onDeleteRequest={setStudentToDelete}
             />
@@ -275,6 +285,7 @@ export function StudentList({
                 <MobileStudentCard
                   key={student.id}
                   student={student}
+                  isMockExam={isMockExam}
                   onEditStudent={onEditStudent}
                   onDeleteRequest={setStudentToDelete}
                   virtualIndex={virtualCard.index}
@@ -360,14 +371,14 @@ export function StudentList({
                           <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
                             {student.subjects.length} Subjects
                           </span>
-                          <ScoreProgressBadge student={student} />
+                          <ScoreProgressBadge student={student} isMockExam={isMockExam} />
                         </div>
                       </td>
                       <td className="text-main px-4 py-3 font-bold tabular-nums sm:px-6 sm:py-4">
                         {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
-                        {student.classPosition !== "Pending..." && (
+                        {student.classPosition.toLowerCase() !== "pending..." && (
                           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
                             {student.classPosition}
                           </span>
