@@ -166,8 +166,8 @@ body.modal-open {
   width: 100%;
 }
 
-/* Ensure modals are always positioned correctly */
-[class*="fixed"][class*="inset-0"][class*="z-"] {
+/* Ensure unprefixed fixed-backdrop modals stay positioned cleanly without hijacking responsive sm:fixed sheets */
+[class~="fixed"][class~="inset-0"][class*="z-"] {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -244,6 +244,15 @@ body.modal-open {
 
   .gradient-gold {
     background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  }
+}
+
+@media (max-width: 639px) {
+  html[data-mobile-sheet-open="true"] [data-hide-on-mobile-sheet="true"] {
+    display: none !important;
+  }
+  html[data-mobile-sheet-open="true"] .pb-safe-nav {
+    padding-bottom: 0;
   }
 }
 
@@ -370,7 +379,7 @@ body.modal-open {
   animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-.animate-fade-in {
+@utility animate-fade-in {
   animation: fadeIn 0.16s ease-out;
 }
 
@@ -382,11 +391,11 @@ body.modal-open {
   animation: shimmer 2s linear infinite;
 }
 
-.animate-page-enter {
+@utility animate-page-enter {
   animation: pageEnter 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.animate-sheet-up {
+@utility animate-sheet-up {
   animation: sheetUp 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

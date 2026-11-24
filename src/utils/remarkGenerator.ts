@@ -2,10 +2,7 @@
 import type { ProcessedStudent, SchoolLevel, AcademicPeriod } from "../types";
 import { REMARK_BANK, HEADMASTER_BANK, CONDUCT_TRAITS, INTERESTS } from "../constants/remarks";
 
-// Helper: safe random picker
-const getRandom = (arr: string[]) =>
-  arr && arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : "Good effort.";
-
+// Helper: smart random picker avoiding recently used entries until exhausted
 const getSmartRandom = (pool: string[], excludeList: string[] = []): string => {
   if (!pool || pool.length === 0) return "Good effort.";
 
@@ -96,11 +93,11 @@ export const generateAttendanceRating = (attendancePercentage: number): string =
 };
 
 // 4. NEW: CONDUCT TRAIT SHUFFLER
-export const getRandomConductTrait = (): string => {
-  return getRandom(CONDUCT_TRAITS);
+export const getRandomConductTrait = (exclude?: string): string => {
+  return getSmartRandom(CONDUCT_TRAITS, exclude ? [exclude] : []);
 };
 
 // 5. NEW: INTEREST SHUFFLER
-export const getRandomInterest = (): string => {
-  return getRandom(INTERESTS);
+export const getRandomInterest = (exclude?: string): string => {
+  return getSmartRandom(INTERESTS, exclude ? [exclude] : []);
 };

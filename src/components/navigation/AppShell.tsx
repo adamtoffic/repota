@@ -73,6 +73,7 @@ function MobileBottomNav({
     <nav
       aria-label="Mobile bottom navigation"
       aria-hidden={isEditableFocused || undefined}
+      data-hide-on-mobile-sheet="true"
       className={`safe-bottom safe-bottom-floating pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 transition-all duration-150 md:hidden print:hidden ${
         isEditableFocused ? "invisible translate-y-6 opacity-0" : "translate-y-0 opacity-100"
       }`}

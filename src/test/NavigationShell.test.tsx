@@ -431,6 +431,7 @@ describe("NavigationShell and route exclusions", () => {
 
       const mobileBar = screen.getByLabelText("Mobile bottom navigation");
       const mobilePill = mobileBar.firstElementChild as HTMLElement;
+      expect(mobileBar).toHaveAttribute("data-hide-on-mobile-sheet", "true");
 
       expect(mobileBar.className).not.toContain("invisible");
       expect(mobilePill.className).toContain("pointer-events-auto");

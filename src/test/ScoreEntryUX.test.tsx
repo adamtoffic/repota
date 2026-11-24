@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import posthog from "posthog-js";
 import { SubjectRow } from "../components/SubjectRow";
 import { AcademicTab } from "../components/tabs/AcademicTab";
 import { DetailsTab } from "../components/tabs/DetailsTab";
@@ -10,14 +11,17 @@ import { DashboardStats } from "../components/DashboardStats";
 import { Dashboard } from "../pages/Dashboard";
 import { PrintPreview } from "../pages/PrintPreview";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
+import { ToastContext } from "../context/ToastContextDefinition";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
+import { resetSessionAnalyticsGuards } from "../utils/analytics";
 import {
   assignPositions,
   assignSubjectPositions,
   processStudent,
 } from "../utils/gradeCalculator";
 import { hasNoScoresEntered, sortStudents } from "../utils/studentValidation";
+import indexCss from "../index.css?raw";
 
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -99,6 +103,13 @@ function makeSchoolContext(students: ProcessedStudent[], settings = testSettings
 }
 
 describe("Phase 3 Teacher UX & Score Entry", () => {
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    resetSessionAnalyticsGuards();
+    vi.clearAllMocks();
+  });
+
   describe("SubjectRow input sync", () => {
     it("clears displayed exam input immediately when examScore is reset externally to 0", () => {
       const subject: SavedSubject = {
@@ -1002,25 +1013,30 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
           target: { value: "AVG_DESC" },
         });
 
+        const dashboardShell = screen.getByTestId("dashboard-background-shell");
+        expect(dashboardShell).not.toHaveClass("max-sm:hidden");
+
         // Open Student B (index 2 of 3)
         fireEvent.click(screen.getAllByText("Student B")[0]);
-        expect(screen.getByText("(2 of 3)")).toBeInTheDocument();
+        expect(screen.getByText("2 / 3")).toBeInTheDocument();
+        expect(dashboardShell).toHaveClass("max-sm:hidden");
+        expect(document.documentElement.dataset.mobileSheetOpen).toBe("true");
 
         // Update Student B's Mathematics Exam Score so B overtakes A in live AVG_DESC
         fireEvent.change(screen.getByLabelText("Mathematics Exam Score"), {
           target: { value: "100" },
         });
 
-        // Clicking Next must advance to Student C (3 of 3), NOT jump back to Student A
+        // Clicking Next must advance to Student C (3 / 3), NOT jump back to Student A
         const footer = screen.getByTestId("mobile-modal-footer");
         fireEvent.click(within(footer).getByRole("button", { name: "Next student" }));
-        expect(screen.getByText("(3 of 3)")).toBeInTheDocument();
-        expect((screen.getByRole("dialog").querySelector("select") as HTMLSelectElement).value).toBe(
-          "sC",
-        );
+        expect(screen.getByText("3 / 3")).toBeInTheDocument();
+        expect(screen.getByLabelText("Switch student")).toHaveValue("sC");
 
         // Close modal, switch to Quick Gradebook (current AVG_DESC order is [B (60), A (30), C (10)])
         fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+        expect(dashboardShell).not.toHaveClass("max-sm:hidden");
+        expect(document.documentElement.dataset.mobileSheetOpen).toBeUndefined();
         fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
 
         expect(screen.getByText("1. Student B")).toBeInTheDocument();
@@ -1140,6 +1156,822 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         }),
         true,
       );
+    });
+  });
+
+  describe("ScoreEntryModal Redesign UX & Guardrails", () => {
+    it("displays live student pulse metrics, omits aggregate for KG, shows readiness badges, and tracks MOCK telemetry", () => {
+      const scoredStudent: ProcessedStudent = {
+        ...makeStudent(
+          "s1",
+          "Ama Mensah",
+          [
+            { id: "sub-1", name: "Mathematics", classScore: 40, examScore: 40 },
+            { id: "sub-2", name: "English", classScore: 35, examScore: 35 },
+          ],
+          75,
+        ),
+        classPosition: "2nd",
+        aggregate: 10,
+      };
+      const ctx = makeSchoolContext([scoredStudent]);
+
+      const { rerender } = render(
+        <SchoolContext.Provider value={ctx}>
+          <ScoreEntryModal
+            student={scoredStudent}
+            level="JHS"
+            isOpen={true}
+            onClose={vi.fn()}
+            onUpdateStudent={vi.fn()}
+          />
+        </SchoolContext.Provider>,
+      );
+
+      const pulse = screen.getByTestId("student-pulse-strip");
+      expect(within(pulse).getByText("75%")).toBeInTheDocument();
+      expect(within(pulse).getByText("10")).toBeInTheDocument();
+      expect(within(pulse).getByText("2nd")).toBeInTheDocument();
+      expect(within(pulse).getByText(/2\/2/)).toBeInTheDocument();
+      expect(screen.getByText("3 missing")).toBeInTheDocument();
+      expect(screen.getByLabelText("All subjects complete")).toBeInTheDocument();
+
+      // KG hides Aggregate and Mock mode treats examScore > 0 as complete + reports examType: "MOCK"
+      const mockSettings: SchoolSettings = {
+        ...testSettings,
+        level: "KG",
+        examType: "MOCK",
+        classScoreMax: 0,
+        examScoreMax: 100,
+      };
+      const mockStudent: ProcessedStudent = {
+        ...makeStudent("s1", "Ama Mensah", [
+          { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 70 },
+        ], 70),
+        attendancePresent: 50,
+        teacherRemark: "Great progress.",
+        pictureUrl: "data:image/png;base64,abc",
+      };
+      const mockCtx = makeSchoolContext([mockStudent], mockSettings);
+      const onUpdateStudent = vi.fn();
+
+      rerender(
+        <SchoolContext.Provider value={mockCtx}>
+          <ScoreEntryModal
+            student={mockStudent}
+            level="KG"
+            isOpen={true}
+            onClose={vi.fn()}
+            onUpdateStudent={onUpdateStudent}
+          />
+        </SchoolContext.Provider>,
+      );
+
+      expect(within(screen.getByTestId("student-pulse-strip")).queryByText("Aggregate:")).not.toBeInTheDocument();
+      expect(within(screen.getByTestId("student-pulse-strip")).getByText(/1\/1/)).toBeInTheDocument();
+      expect(screen.getByLabelText("Details complete")).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText("Mathematics Exam Score"), { target: { value: "82" } });
+      expect(posthog.capture).toHaveBeenCalledWith(
+        "Score_Entry_Session",
+        expect.objectContaining({
+          entry_mode: "score_modal",
+          exam_type: "MOCK",
+          school_level: "KG",
+        }),
+      );
+    });
+
+    it("isolates Escape so pressing Escape closes nested ConfirmModal before ScoreEntryModal", () => {
+      const student = makeStudent("s1", "Student One", [
+        { id: "sub-1", name: "Mathematics", classScore: 25, examScore: 35 },
+      ]);
+      const ctx = makeSchoolContext([student]);
+      const onClose = vi.fn();
+
+      render(
+        <SchoolContext.Provider value={ctx}>
+          <ScoreEntryModal
+            student={student}
+            level="JHS"
+            isOpen={true}
+            onClose={onClose}
+            onUpdateStudent={vi.fn()}
+          />
+        </SchoolContext.Provider>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Clear all scores/i }));
+      expect(screen.getByText("Clear All Scores?")).toBeInTheDocument();
+
+      // First Escape dismisses only ConfirmModal
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(screen.queryByText("Clear All Scores?")).not.toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+
+      // Second Escape closes ScoreEntryModal
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects diagonal scroll swipes while honoring deliberate horizontal swipes", () => {
+      const students = [
+        makeStudent("s1", "Student One", [
+          { id: "sub-1", name: "Mathematics", classScore: 25, examScore: 35 },
+        ]),
+        makeStudent("s2", "Student Two", [
+          { id: "sub-2", name: "Mathematics", classScore: 30, examScore: 40 },
+        ]),
+      ];
+      const ctx = makeSchoolContext(students);
+      const onNavigate = vi.fn();
+
+      render(
+        <SchoolContext.Provider value={ctx}>
+          <ScoreEntryModal
+            student={students[0]}
+            level="JHS"
+            isOpen={true}
+            onClose={vi.fn()}
+            onUpdateStudent={vi.fn()}
+            allStudents={students}
+            onNavigate={onNavigate}
+          />
+        </SchoolContext.Provider>,
+      );
+
+      const dialogSheet = screen.getByRole("dialog").firstElementChild as HTMLElement;
+
+      // 45-degree diagonal thumb scroll must NOT navigate
+      fireEvent.touchStart(dialogSheet, { touches: [{ clientX: 200, clientY: 200 }] });
+      fireEvent.touchEnd(dialogSheet, { changedTouches: [{ clientX: 140, clientY: 140 }] });
+      expect(onNavigate).not.toHaveBeenCalled();
+
+      // Deliberate horizontal swipe left navigates to s2
+      fireEvent.touchStart(dialogSheet, { touches: [{ clientX: 300, clientY: 100 }] });
+      fireEvent.touchEnd(dialogSheet, { changedTouches: [{ clientX: 140, clientY: 110 }] });
+      expect(onNavigate).toHaveBeenCalledWith("s2");
+    });
+
+    it("keeps modal navigation roster stable under active Dashboard filters until modal closes", () => {
+      localStorage.setItem("repota_welcome_tour_v2", "true");
+      const initialRecords: StudentRecord[] = [
+        {
+          id: "s1",
+          name: "Alice Mensah",
+          className: "Basic 6",
+          gender: "Female",
+          subjects: [
+            { id: "a1", name: "Mathematics", classScore: 0, examScore: 0 },
+            { id: "a2", name: "English", classScore: 0, examScore: 0 },
+          ],
+        },
+        {
+          id: "s2",
+          name: "Bob Owusu",
+          className: "Basic 6",
+          gender: "Male",
+          subjects: [
+            { id: "b1", name: "Mathematics", classScore: 0, examScore: 0 },
+            { id: "b2", name: "English", classScore: 0, examScore: 0 },
+          ],
+        },
+      ];
+
+      function ControlledDashboard() {
+        const [records, setRecords] = useState<StudentRecord[]>(initialRecords);
+        const processed = records.map((rec) => processStudent(rec, testSettings.level));
+        const ctx: SchoolContextType = {
+          ...makeSchoolContext(processed, testSettings),
+          updateStudent: (updated) => {
+            setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+          },
+        };
+
+        return (
+          <ToastContext.Provider value={{ showToast: vi.fn() }}>
+            <SchoolContext.Provider value={ctx}>
+              <Dashboard />
+            </SchoolContext.Provider>
+          </ToastContext.Provider>
+        );
+      }
+
+      render(<ControlledDashboard />);
+
+      // Activate NO_SCORES filter from ValidationWarnings
+      fireEvent.click(screen.getByRole("button", { name: /2 students have no scores entered/i }));
+
+      // Open Alice in ScoreEntryModal
+      fireEvent.click(screen.getAllByText("Alice Mensah")[0]);
+      const dialog = screen.getByRole("dialog");
+      expect(within(dialog).getByText("1 / 2")).toBeInTheDocument();
+
+      // Enter Mathematics scores for Alice -> Alice no longer matches NO_SCORES in Dashboard!
+      fireEvent.change(within(dialog).getByLabelText("Mathematics Class Score"), {
+        target: { value: "35" },
+      });
+      fireEvent.change(within(dialog).getByLabelText("Mathematics Exam Score"), {
+        target: { value: "80" },
+      });
+
+      // Modal roster stays locked at 1 / 2 and Next navigates cleanly to Bob Owusu
+      expect(within(dialog).getByText("1 / 2")).toBeInTheDocument();
+      fireEvent.click(within(dialog).getAllByRole("button", { name: "Next student" })[0]);
+      expect(within(dialog).getByText("2 / 2")).toBeInTheDocument();
+      expect(within(dialog).getByLabelText("Switch student")).toHaveValue("s2");
+
+      // Close modal -> Dashboard now reflects only Bob Owusu under NO_SCORES
+      fireEvent.click(within(dialog).getByRole("button", { name: "Close modal" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByText("Alice Mensah")).not.toBeInTheDocument();
+      expect(screen.getAllByText("Bob Owusu").length).toBeGreaterThan(0);
+    });
+
+    it("shows honest SubjectRow status badges, single total node, and SBA component clamping", () => {
+      const onChange = vi.fn();
+      const unscored: SavedSubject = {
+        id: "sub-1",
+        name: "Mathematics",
+        classScore: 0,
+        examScore: 0,
+        classScoreComponents: [
+          { id: "c1", name: "CAT 1", score: 0, maxScore: 10 },
+          { id: "c2", name: "Project", score: 0, maxScore: 20 },
+        ],
+      };
+
+      const { rerender } = render(
+        <SubjectRow
+          subject={unscored}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onChange}
+        />,
+      );
+
+      expect(screen.getByText("Pending")).toBeInTheDocument();
+      expect(screen.getByText("—")).toBeInTheDocument();
+
+      // Over-max SBA component clamps to maxScore and reports Max 10
+      const catInput = screen.getByLabelText("Mathematics CAT 1 Score");
+      fireEvent.change(catInput, { target: { value: "15" } });
+      expect(screen.getByText("Max 10")).toBeInTheDocument();
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          classScoreComponents: expect.arrayContaining([
+            expect.objectContaining({ id: "c1", score: 10 }),
+          ]),
+        }),
+      );
+
+      // Partial state shows Partial + Need exam
+      rerender(
+        <SubjectRow
+          subject={{ ...unscored, classScore: 30, examScore: 0 }}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onChange}
+        />,
+      );
+      expect(screen.getByText("Partial")).toBeInTheDocument();
+      expect(screen.getByText("Need exam")).toBeInTheDocument();
+
+      // Complete state renders exactly one Total node ("75")
+      rerender(
+        <SubjectRow
+          subject={{ ...unscored, classScore: 35, examScore: 40 }}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onChange}
+        />,
+      );
+      expect(screen.getAllByText("75")).toHaveLength(1);
+    });
+
+    it("supports AcademicTab keyboard navigation, SBA hydration, Incomplete pinning, Focus Mode add, and SBA accordion", () => {
+      const sbaSettings: SchoolSettings = {
+        ...testSettings,
+        defaultSubjects: ["Mathematics", "English", "Science"],
+        subjectComponentMap: {
+          Mathematics: [{ name: "CAT 1", maxScore: 15, category: "CAT" }],
+          English: [{ name: "Quiz", maxScore: 10, category: "CAT" }],
+          Science: [{ name: "Lab", maxScore: 20, category: "PROJECT" }],
+        },
+      };
+
+      // 1. Direct keyboard navigation + Add Missing SBA hydration
+      const studentDirect = makeStudent("s1", "Student One", [
+        { id: "m1", name: "Mathematics", classScore: 20, examScore: 0 },
+        { id: "e1", name: "English", classScore: 0, examScore: 0 },
+      ]);
+      const onUpdateDirect = vi.fn();
+
+      const { unmount } = render(
+        <SchoolContext.Provider value={makeSchoolContext([studentDirect], sbaSettings)}>
+          <AcademicTab student={studentDirect} level="JHS" onUpdate={onUpdateDirect} />
+        </SchoolContext.Provider>,
+      );
+
+      const mathClass = screen.getByLabelText("Mathematics Class Score");
+      const mathExam = screen.getByLabelText("Mathematics Exam Score");
+      const engClass = screen.getByLabelText("English Class Score");
+
+      mathClass.focus();
+      fireEvent.keyDown(mathClass, { key: "Enter" });
+      expect(document.activeElement).toBe(mathExam);
+
+      fireEvent.keyDown(mathExam, { key: "Enter" });
+      expect(document.activeElement).toBe(engClass);
+
+      fireEvent.keyDown(engClass, { key: "ArrowUp" });
+      expect(document.activeElement).toBe(mathClass);
+
+      fireEvent.keyDown(mathClass, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(engClass);
+
+      // Add Missing attaches configured SBA components
+      fireEvent.click(screen.getByRole("button", { name: "Add Missing" }));
+      expect(onUpdateDirect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subjects: expect.arrayContaining([
+            expect.objectContaining({
+              name: "Science",
+              classScoreComponents: expect.arrayContaining([
+                expect.objectContaining({ name: "Lab", maxScore: 20 }),
+              ]),
+            }),
+          ]),
+        }),
+      );
+      unmount();
+
+      // 2. Multi-subject SBA accordion defaults collapsed + Incomplete pinning + Focus add
+      function ControlledAcademic() {
+        const [studentState, setStudentState] = useState<ProcessedStudent>(
+          makeStudent("s2", "Student Two", [
+            {
+              id: "m2",
+              name: "Mathematics",
+              classScore: 40,
+              examScore: 40,
+              classScoreComponents: [{ id: "mc1", name: "CAT 1", score: 12, maxScore: 15 }],
+            },
+            {
+              id: "e2",
+              name: "English",
+              classScore: 0,
+              examScore: 0,
+              classScoreComponents: [{ id: "ec1", name: "Quiz", score: 0, maxScore: 10 }],
+            },
+          ]),
+        );
+        const [focusSub, setFocusSub] = useState<string | null>(null);
+
+        return (
+          <SchoolContext.Provider value={makeSchoolContext([studentState], sbaSettings)}>
+            <AcademicTab
+              student={studentState}
+              level="JHS"
+              filterSubject={focusSub}
+              availableSubjects={sbaSettings.defaultSubjects}
+              onFilterSubjectChange={setFocusSub}
+              onUpdate={(updated) => setStudentState({ ...studentState, subjects: updated.subjects })}
+            />
+          </SchoolContext.Provider>
+        );
+      }
+
+      render(<ControlledAcademic />);
+
+      // Multi-subject SBA rows start collapsed; Expand SBA opens both
+      expect(screen.queryByLabelText("Mathematics CAT 1 Score")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Expand SBA/i }));
+      expect(screen.getByLabelText("Mathematics CAT 1 Score")).toBeInTheDocument();
+      expect(screen.getByLabelText("English Quiz Score")).toBeInTheDocument();
+
+      // Incomplete filter shows only English and pins it while scoring
+      fireEvent.click(screen.getByRole("button", { name: /Incomplete \(1\)/i }));
+      expect(screen.queryByLabelText("Mathematics Exam Score")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("English Exam Score")).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText("English Quiz Score"), { target: { value: "8" } });
+      fireEvent.change(screen.getByLabelText("English Exam Score"), { target: { value: "80" } });
+      expect(screen.getByLabelText("English Exam Score")).toBeInTheDocument();
+
+      // Focus Mode on missing subject ("Science") offers + Add Science and hydrates Lab SBA task
+      fireEvent.change(screen.getByLabelText("Filter by subject"), {
+        target: { value: "Science" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /Add Science/i }));
+      expect(screen.getByLabelText("Science Lab Score")).toBeInTheDocument();
+    });
+
+    it("enforces DetailsTab validation guardrails, attendance clamping, remark guards, and one-tap autofill", () => {
+      const unscored = makeStudent("s1", "Kofi Mensah", [
+        { id: "m1", name: "Mathematics", classScore: 0, examScore: 0 },
+      ]);
+      const onUpdateUnscored = vi.fn();
+      const customSettings: SchoolSettings = { ...testSettings, totalAttendanceDays: 60 };
+
+      const { rerender } = render(
+        <SchoolContext.Provider value={makeSchoolContext([unscored], customSettings)}>
+          <DetailsTab student={unscored} onUpdate={onUpdateUnscored} />
+        </SchoolContext.Provider>,
+      );
+
+      // Smart Generate is disabled when unscored
+      const smartGenBtn = screen.getByRole("button", { name: /Smart Generate/i });
+      expect(smartGenBtn).toBeDisabled();
+      expect(
+        screen.getByText(/Enter at least one score to auto-generate a performance-matched remark/i),
+      ).toBeInTheDocument();
+
+      // Empty name blocks blank save and restores original on blur
+      const nameInput = screen.getByPlaceholderText("e.g. Kwame Mensah") as HTMLInputElement;
+      fireEvent.change(nameInput, { target: { value: "   " } });
+      expect(screen.getByText("Student name cannot be empty")).toBeInTheDocument();
+      expect(onUpdateUnscored).not.toHaveBeenCalled();
+      fireEvent.blur(nameInput);
+      expect(nameInput.value).toBe("Kofi Mensah");
+      expect(screen.queryByText("Student name cannot be empty")).not.toBeInTheDocument();
+
+      // Attendance > totalAttendanceDays clamps to 60 and displays live rating
+      const attendanceInput = screen.getByLabelText("Days Present") as HTMLInputElement;
+      fireEvent.change(attendanceInput, { target: { value: "95" } });
+      expect(screen.getByText("Max 60 days")).toBeInTheDocument();
+      expect(screen.getByText("100% · Exemplary")).toBeInTheDocument();
+      expect(onUpdateUnscored).toHaveBeenLastCalledWith(
+        expect.objectContaining({ attendancePresent: 60 }),
+        true,
+      );
+
+      // Scored student: Auto-fill Empty populates conduct, interest, and remark in one call; Smart Generate avoids current remark
+      const scored: ProcessedStudent = {
+        ...makeStudent(
+          "s2",
+          "Abena Boateng",
+          [{ id: "m2", name: "Mathematics", classScore: 40, examScore: 40 }],
+          80,
+        ),
+        attendancePresent: 55,
+      };
+      const onUpdateScored = vi.fn();
+
+      rerender(
+        <SchoolContext.Provider value={makeSchoolContext([scored], customSettings)}>
+          <DetailsTab student={scored} onUpdate={onUpdateScored} />
+        </SchoolContext.Provider>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Auto-fill Empty/i }));
+      const autoFilledRecord = onUpdateScored.mock.calls.at(-1)?.[0] as StudentRecord;
+      expect(autoFilledRecord.conduct).toBeTruthy();
+      expect(autoFilledRecord.interest).toBeTruthy();
+      expect(autoFilledRecord.teacherRemark).toBeTruthy();
+
+      const firstRemark = autoFilledRecord.teacherRemark;
+      fireEvent.click(screen.getByRole("button", { name: /Smart Generate/i }));
+      const regeneratedRecord = onUpdateScored.mock.calls.at(-1)?.[0] as StudentRecord;
+      expect(regeneratedRecord.teacherRemark).not.toBe(firstRemark);
+    });
+
+    it("uses iOS-safe text numeric inputs across SubjectRow and preserves legacy promotionStatus in DetailsTab", () => {
+      const onSubjectChange = vi.fn();
+      const sbaSubject: SavedSubject = {
+        id: "sub-1",
+        name: "Mathematics",
+        classScore: 0,
+        examScore: 0,
+        classScoreComponents: [{ id: "c1", name: "CAT 1", score: 0, maxScore: 10 }],
+      };
+
+      const { rerender } = render(
+        <SubjectRow
+          subject={sbaSubject}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onSubjectChange}
+        />,
+      );
+
+      const sbaInput = screen.getByLabelText("Mathematics CAT 1 Score") as HTMLInputElement;
+      const examInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
+      for (const input of [sbaInput, examInput]) {
+        expect(input).toHaveAttribute("type", "text");
+        expect(input).toHaveAttribute("inputmode", "numeric");
+        expect(input).toHaveAttribute("pattern", "[0-9]*");
+        expect(input).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
+      }
+
+      fireEvent.change(sbaInput, { target: { value: "abc" } });
+      fireEvent.change(examInput, { target: { value: "abc" } });
+      expect(onSubjectChange).not.toHaveBeenCalled();
+
+      // Direct class input (no SBA components) also uses text numeric attributes and guards non-numeric input
+      rerender(
+        <SubjectRow
+          subject={{ id: "sub-2", name: "English", classScore: 0, examScore: 0 }}
+          level="JHS"
+          maxClassScore={50}
+          maxExamScore={50}
+          onChange={onSubjectChange}
+        />,
+      );
+      const classInput = screen.getByLabelText("English Class Score") as HTMLInputElement;
+      expect(classInput).toHaveAttribute("type", "text");
+      expect(classInput).toHaveAttribute("inputmode", "numeric");
+      expect(classInput).toHaveAttribute("pattern", "[0-9]*");
+      expect(classInput).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
+      fireEvent.change(classInput, { target: { value: "abc" } });
+      expect(onSubjectChange).not.toHaveBeenCalled();
+
+      // DetailsTab preserves legacy/renamed promotionStatus (e.g. "Repeated Basic 4" on a "Basic 5" student)
+      const legacyStudent: ProcessedStudent = {
+        ...makeStudent("s-legacy", "Kojo Mensah", []),
+        className: "Basic 5",
+        promotionStatus: "Repeated Basic 4",
+      };
+      render(
+        <SchoolContext.Provider value={makeSchoolContext([legacyStudent])}>
+          <DetailsTab student={legacyStudent} onUpdate={vi.fn()} />
+        </SchoolContext.Provider>,
+      );
+
+      const promoSelect = screen.getByLabelText("Promotion Status") as HTMLSelectElement;
+      const daysPresentInput = screen.getByLabelText("Days Present") as HTMLInputElement;
+      const teacherRemarkTextarea = screen.getByLabelText("Teacher's Remark") as HTMLTextAreaElement;
+      expect(promoSelect.value).toBe("Repeated Basic 4");
+      expect(within(promoSelect).getByRole("option", { name: "Repeated Basic 4" })).toBeInTheDocument();
+      expect(promoSelect).toHaveClass("text-base");
+      expect(daysPresentInput).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
+      expect(teacherRemarkTextarea).toHaveClass("text-base");
+    });
+
+    it("hides mobile modal footer on focus, stays hidden across quick hops, and restores after 180ms blur", () => {
+      vi.useFakeTimers();
+      try {
+        const s1 = makeStudent("s1", "Ama Mensah", [
+          { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+          { id: "sub-2", name: "English", classScore: 0, examScore: 0 },
+        ]);
+        const s2 = makeStudent("s2", "Kofi Boateng", [
+          { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+        ]);
+        const students = [s1, s2];
+
+        render(
+          <SchoolContext.Provider value={makeSchoolContext(students)}>
+            <ScoreEntryModal
+              student={s1}
+              level="JHS"
+              isOpen={true}
+              onClose={vi.fn()}
+              onUpdateStudent={vi.fn()}
+              allStudents={students}
+              onNavigate={vi.fn()}
+            />
+          </SchoolContext.Provider>,
+        );
+
+        const footer = screen.getByTestId("mobile-modal-footer");
+        expect(footer).toHaveClass("pointer-events-auto", "visible", "opacity-100");
+        expect(footer).not.toHaveAttribute("aria-hidden");
+
+        const mathClassInput = screen.getByLabelText("Mathematics Class Score") as HTMLInputElement;
+        const mathExamInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
+
+        // Focusing an input hides the mobile footer so it cannot obscure scrolled inputs on iOS
+        fireEvent.focusIn(mathClassInput);
+        expect(footer).toHaveClass("pointer-events-none", "invisible", "opacity-0");
+        expect(footer).toHaveAttribute("aria-hidden", "true");
+
+        // Rapid hops (< 180ms) keep the footer hidden continuously
+        fireEvent.focusOut(mathClassInput, { relatedTarget: mathExamInput });
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+        fireEvent.focusIn(mathExamInput);
+        act(() => {
+          vi.advanceTimersByTime(120);
+        });
+        expect(footer).toHaveClass("pointer-events-none", "invisible", "opacity-0");
+        expect(footer).toHaveAttribute("aria-hidden", "true");
+
+        // Blurring completely restores the footer only after the 180ms debounce window
+        fireEvent.focusOut(mathExamInput, { relatedTarget: null });
+        act(() => {
+          vi.advanceTimersByTime(179);
+        });
+        expect(footer).toHaveClass("pointer-events-none", "invisible", "opacity-0");
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(footer).toHaveClass("pointer-events-auto", "visible", "opacity-100");
+        expect(footer).not.toHaveAttribute("aria-hidden");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("renders in native document flow on mobile while preserving desktop backdrop modal semantics", () => {
+      const s1 = makeStudent("s1", "Ama Mensah", [
+        { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+        { id: "sub-2", name: "English", classScore: 0, examScore: 0 },
+      ]);
+      const s2 = makeStudent("s2", "Kofi Boateng", [
+        { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+      ]);
+
+      const { unmount } = render(
+        <SchoolContext.Provider value={makeSchoolContext([s1, s2])}>
+          <ScoreEntryModal
+            student={s1}
+            level="JHS"
+            isOpen={true}
+            onClose={vi.fn()}
+            onUpdateStudent={vi.fn()}
+            allStudents={[s1, s2]}
+            onNavigate={vi.fn()}
+          />
+        </SchoolContext.Provider>,
+      );
+
+      const dialog = screen.getByRole("dialog");
+      const dialogClasses = dialog.className.split(/\s+/);
+      expect(dialog).toHaveClass("relative", "sm:fixed", "sm:inset-0");
+      expect(dialogClasses).not.toContain("fixed");
+      expect(dialogClasses).not.toContain("overflow-hidden");
+      expect(dialogClasses).not.toContain("overflow-y-auto");
+      expect(dialogClasses).not.toContain("max-sm:overflow-y-auto");
+      expect(dialog.matches('[class~="fixed"][class~="inset-0"][class*="z-"]')).toBe(false);
+      expect(indexCss).not.toContain('[class*="fixed"]');
+      expect(indexCss).toContain('[class~="fixed"][class~="inset-0"][class*="z-"]');
+      expect(document.documentElement.dataset.mobileSheetOpen).toBe("true");
+
+      const sheet = dialog.firstElementChild as HTMLElement;
+      expect(sheet).toHaveClass("sm:overflow-hidden");
+      expect(sheet.className.split(/\s+/)).not.toContain("overflow-hidden");
+
+      const mathClassInput = screen.getByLabelText("Mathematics Class Score");
+      const mathExamInput = screen.getByLabelText("Mathematics Exam Score");
+      const form = mathClassInput.closest("form");
+      expect(form).not.toBeNull();
+      expect(form).toHaveAttribute("novalidate");
+      expect(mathClassInput).toHaveClass("scroll-mt-24", "scroll-mb-40", "text-base");
+      expect(mathExamInput).toHaveClass("scroll-mt-24", "scroll-mb-40", "text-base");
+
+      const switcherSelect = screen.getByLabelText("Switch student");
+      const subjectFilterSelect = screen.getByLabelText("Filter by subject");
+      expect(switcherSelect).toHaveClass("text-base");
+      expect(subjectFilterSelect).toHaveClass("text-base");
+
+      unmount();
+      expect(document.documentElement.dataset.mobileSheetOpen).toBeUndefined();
+    });
+
+    it("avoids post-blur draft churn on round-trip exam scores and defers rounding normalization by 180ms", () => {
+      vi.useFakeTimers();
+      try {
+        function ControlledSubjectRow() {
+          const [subject, setSubject] = useState<SavedSubject>({
+            id: "sub-1",
+            name: "Mathematics",
+            classScore: 40,
+            examScore: 0,
+          });
+          return (
+            <SubjectRow
+              subject={subject}
+              level="JHS"
+              maxClassScore={50}
+              maxExamScore={50}
+              onChange={setSubject}
+            />
+          );
+        }
+
+        render(<ControlledSubjectRow />);
+        const examInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
+        const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+
+        // Round-trip score "80" (weighted 40 -> formats to "80"): zero blur timer churn
+        fireEvent.focus(examInput);
+        fireEvent.change(examInput, { target: { value: "80" } });
+        expect(examInput.value).toBe("80");
+        setTimeoutSpy.mockClear();
+
+        fireEvent.blur(examInput);
+        expect(setTimeoutSpy).not.toHaveBeenCalled();
+
+        // Odd raw score "89" (weighted 45 -> formats to "90"): keeps "89" until 180ms after blur
+        fireEvent.focus(examInput);
+        fireEvent.change(examInput, { target: { value: "89" } });
+        expect(examInput.value).toBe("89");
+
+        fireEvent.blur(examInput);
+        expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+        expect(setTimeoutSpy.mock.calls[0]?.[1]).toBe(180);
+        expect(examInput.value).toBe("89");
+
+        // Refocusing within 180ms cancels normalization so "89" stays intact
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+        fireEvent.focus(examInput);
+        act(() => {
+          vi.advanceTimersByTime(150);
+        });
+        expect(examInput.value).toBe("89");
+
+        // Blurring for the full 180ms normalizes "89" -> "90"
+        fireEvent.blur(examInput);
+        act(() => {
+          vi.advanceTimersByTime(179);
+        });
+        expect(examInput.value).toBe("89");
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(examInput.value).toBe("90");
+
+        setTimeoutSpy.mockRestore();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("locks body overflow only on desktop modal viewports and leaves mobile document scroll unlocked", () => {
+      const originalMatchMedia = window.matchMedia;
+      const originalOverflow = document.body.style.overflow;
+      const s1 = makeStudent("s1", "Ama Mensah", [
+        { id: "sub-1", name: "Mathematics", classScore: 0, examScore: 0 },
+      ]);
+
+      const mockViewport = (isDesktop: boolean) => {
+        Object.defineProperty(window, "matchMedia", {
+          writable: true,
+          configurable: true,
+          value: vi.fn((query: string) => ({
+            matches: query === "(min-width: 640px)" ? isDesktop : false,
+            media: query,
+            onchange: null,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+          })),
+        });
+      };
+
+      try {
+        document.body.style.overflow = "";
+        mockViewport(false);
+        const mobileRender = render(
+          <SchoolContext.Provider value={makeSchoolContext([s1])}>
+            <ScoreEntryModal
+              student={s1}
+              level="JHS"
+              isOpen={true}
+              onClose={vi.fn()}
+              onUpdateStudent={vi.fn()}
+            />
+          </SchoolContext.Provider>,
+        );
+        expect(document.body.style.overflow).toBe("");
+        mobileRender.unmount();
+
+        mockViewport(true);
+        const desktopRender = render(
+          <SchoolContext.Provider value={makeSchoolContext([s1])}>
+            <ScoreEntryModal
+              student={s1}
+              level="JHS"
+              isOpen={true}
+              onClose={vi.fn()}
+              onUpdateStudent={vi.fn()}
+            />
+          </SchoolContext.Provider>,
+        );
+        expect(document.body.style.overflow).toBe("hidden");
+        desktopRender.unmount();
+        expect(document.body.style.overflow).toBe("");
+      } finally {
+        Object.defineProperty(window, "matchMedia", {
+          writable: true,
+          configurable: true,
+          value: originalMatchMedia,
+        });
+        document.body.style.overflow = originalOverflow;
+        delete document.documentElement.dataset.mobileSheetOpen;
+      }
     });
   });
 });

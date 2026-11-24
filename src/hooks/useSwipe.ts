@@ -9,13 +9,18 @@ interface SwipeHandlers {
   targetRef?: RefObject<HTMLElement | null>;
 }
 
-const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
+const SWIPE_THRESHOLD = 72; // Minimum distance for swipe
 const SWIPE_VELOCITY = 0.3; // Minimum velocity
 
 function isFormInputElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
+
+function isSwipeIgnoredElement(target: EventTarget | null): boolean {
+  if (isFormInputElement(target)) return true;
+  return target instanceof HTMLElement && Boolean(target.closest('[data-swipe-ignore="true"]'));
 }
 
 export function useSwipe(handlers: SwipeHandlers) {
@@ -34,7 +39,7 @@ export function useSwipe(handlers: SwipeHandlers) {
 
     const handleTouchStart = (e: Event) => {
       const touchEvent = e as TouchEvent;
-      if (isFormInputElement(touchEvent.target)) {
+      if (isSwipeIgnoredElement(touchEvent.target)) {
         touchStart.current = null;
         return;
       }
@@ -65,7 +70,8 @@ export function useSwipe(handlers: SwipeHandlers) {
       const velocityX = Math.abs(deltaX) / deltaTime;
       const velocityY = Math.abs(deltaY) / deltaTime;
 
-      const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY);
+      const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY) * 1.8;
+      const isVerticalSwipe = Math.abs(deltaY) > Math.abs(deltaX) * 1.8;
 
       if (isHorizontalSwipe) {
         if (Math.abs(deltaX) > SWIPE_THRESHOLD && velocityX > SWIPE_VELOCITY) {
@@ -75,7 +81,7 @@ export function useSwipe(handlers: SwipeHandlers) {
             handlersRef.current.onSwipeLeft?.();
           }
         }
-      } else if (Math.abs(deltaY) > SWIPE_THRESHOLD && velocityY > SWIPE_VELOCITY) {
+      } else if (isVerticalSwipe && Math.abs(deltaY) > SWIPE_THRESHOLD && velocityY > SWIPE_VELOCITY) {
         if (deltaY > 0) {
           handlersRef.current.onSwipeDown?.();
         } else {

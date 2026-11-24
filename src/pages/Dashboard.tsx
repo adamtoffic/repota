@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HelpCircle, X, Printer, Plus, List, TableProperties, Upload } from "lucide-react";
 import type { ProcessedStudent } from "../types";
 import {
@@ -156,11 +156,24 @@ export function Dashboard() {
 
   const editingStudent = editingStudentId ? studentsById.get(editingStudentId) : undefined;
   const gradebookSessionKey = `${debounceSearch}|${activeFilter}|${sortBy}`;
+  const mobileSavedScrollYRef = useRef<number | null>(null);
+  const isScoreModalOpen = Boolean(editingStudent);
+
+  useEffect(() => {
+    if (!isScoreModalOpen && mobileSavedScrollYRef.current !== null) {
+      const savedY = mobileSavedScrollYRef.current;
+      mobileSavedScrollYRef.current = null;
+      requestAnimationFrame(() => window.scrollTo?.(0, savedY));
+    }
+  }, [isScoreModalOpen]);
 
   const handleOpenStudentModal = (
     student: ProcessedStudent,
     orderedQueue?: ProcessedStudent[],
   ) => {
+    if (window.matchMedia?.("(max-width: 639px)")?.matches) {
+      mobileSavedScrollYRef.current = window.scrollY;
+    }
     const queue = orderedQueue ?? filteredStudents;
     const ids = queue.map((item) => item.id);
     if (!ids.includes(student.id)) {
@@ -275,8 +288,12 @@ export function Dashboard() {
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
-      {/* NAV */}
-      <PageHeader
+      <div
+        data-testid="dashboard-background-shell"
+        className={editingStudent ? "flex flex-1 flex-col max-sm:hidden" : "flex flex-1 flex-col"}
+      >
+        {/* NAV */}
+        <PageHeader
         hideOnDesktop
         sticky={entryViewMode !== "GRADEBOOK"}
         schoolName={settings.schoolName}
@@ -546,6 +563,9 @@ export function Dashboard() {
         )}
       </main>
 
+      <Footer />
+      </div>
+
       {(students.length === 0 || filteredStudents.length === 0 || entryViewMode === "GRADEBOOK") && (
         <AddStudentModal
           isOpen={isAddModalOpen}
@@ -554,8 +574,6 @@ export function Dashboard() {
           settings={settings}
         />
       )}
-
-      <Footer />
 
       {/* DEMO MODAL */}
       <ConfirmModal
@@ -581,6 +599,30 @@ export function Dashboard() {
           allStudents={modalNavigationStudents}
           onNavigate={setEditingStudentId}
           initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
+          renderPrintAction={(studentId) => (
+            <Link
+              to="/print"
+              search={{ id: studentId }}
+              onClick={handleCloseStudentModal}
+              aria-label="Print student report"
+              title="Print student report"
+              className="border-border-strong bg-surface text-secondary hover:bg-subtle hover:text-main inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-colors"
+              data-record="true"
+            >
+              <Printer className="text-primary-text h-4 w-4" />
+              <span className="hidden sm:inline">Print</span>
+            </Link>
+          )}
+          renderSbaSetupLink={() => (
+            <Link
+              to="/sba"
+              onClick={handleCloseStudentModal}
+              className="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+              data-record="true"
+            >
+              Manage SBA
+            </Link>
+          )}
         />
       )}
 
@@ -643,7 +685,9 @@ export function Dashboard() {
       />
 
       {/* ✅ SCROLL TO TOP/BOTTOM BUTTON */}
-      {students.length >= 10 && <ScrollButton scrollTargetSelector='[data-scroll-region="student-list"]' />}
+      {students.length >= 10 && !editingStudent && (
+        <ScrollButton scrollTargetSelector='[data-scroll-region="student-list"]' />
+      )}
 
       {/* ✅ WELCOME TOUR for first-time users */}
       <WelcomeTour

@@ -67,7 +67,8 @@ describe("Modal and Overlay UX", () => {
     const originalOnLine = navigator.onLine;
     Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
     try {
-      render(<AutoSaveIndicator isSaving={false} />);
+      const { container } = render(<AutoSaveIndicator isSaving={false} />);
+      expect(container.firstElementChild).toHaveAttribute("data-hide-on-mobile-sheet", "true");
       expect(screen.getByText("Offline · Saved locally")).toBeInTheDocument();
       expect(screen.queryByText(/changes will sync/i)).not.toBeInTheDocument();
     } finally {
@@ -89,6 +90,7 @@ describe("Modal and Overlay UX", () => {
       window.dispatchEvent(promptEvent);
     });
 
+    expect(container.firstElementChild).toHaveAttribute("data-hide-on-mobile-sheet", "true");
     expect(screen.getByText("Install Repota")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dismiss install prompt" })).toBeInTheDocument();
     expect(container.innerHTML).toContain("bg-elevated");

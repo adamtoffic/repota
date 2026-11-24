@@ -1,8 +1,6 @@
-// src/components/SubjectRow.tsx - MOBILE OPTIMIZED WITH AUTO-CONVERSION
-import { useState, useEffect, useRef } from "react";
-import { Link } from "@tanstack/react-router";
-import { Trash2, Check, ChevronDown, ChevronUp } from "lucide-react";
-import type { SavedSubject, SchoolLevel, ClassScoreComponentConfig } from "../types";
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import type { ClassScoreComponentConfig, SavedSubject, SchoolLevel } from "../types";
 import { calculateGrade } from "../utils/gradeCalculator";
 import {
   clampDirectClassScore,
@@ -10,16 +8,35 @@ import {
   formatExamWeightedAsRaw,
   updateComponentAndRecalculateClassScore,
 } from "../utils/scoreConversion";
+import { getSubjectScoreStatus } from "../utils/studentValidation";
+
+export type FieldNavigationDirection = "next" | "prev" | "down" | "up";
 
 interface Props {
   subject: SavedSubject;
   level: SchoolLevel;
   maxClassScore: number;
   maxExamScore: number;
-  componentLibrary?: ClassScoreComponentConfig[]; // Available component templates
-  isMockExam?: boolean; // When true, only exam score entry is shown
+  componentLibrary?: ClassScoreComponentConfig[];
+  isMockExam?: boolean;
+  isObsolete?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  isLastRow?: boolean;
+  registerInputRef?: (fieldKey: string, el: HTMLInputElement | null) => void;
+  onNavigateField?: (fieldKey: string, direction: FieldNavigationDirection) => void;
   onChange: (updated: SavedSubject) => void;
   onDelete?: () => void;
+}
+
+/**
+ * Auto-selects score text on fine-pointer desktops while skipping touch/iOS selection
+ * so Form Assistant (⌄ / ⌃) focus jumps do not trigger WebKit selection/scroll glitches.
+ */
+function selectOnDesktopFocus(input: HTMLInputElement) {
+  if (window.matchMedia?.("(pointer: fine)")?.matches) {
+    input.select();
+  }
 }
 
 export function SubjectRow({
@@ -27,34 +44,57 @@ export function SubjectRow({
   level,
   maxClassScore,
   maxExamScore,
-  componentLibrary,
   isMockExam = false,
+  isObsolete = false,
+  isExpanded,
+  onToggleExpand,
+  isLastRow = false,
+  registerInputRef,
+  onNavigateField,
   onChange,
   onDelete,
 }: Props) {
-  const hasComponents =
-    !isMockExam && subject.classScoreComponents && subject.classScoreComponents.length > 0;
-  const hasLibrary = !isMockExam && componentLibrary && componentLibrary.length > 0;
-  // Auto-expand components when they exist
-  const [showComponents, setShowComponents] = useState(hasComponents);
+  const inputIdPrefix = useId();
+  const classInputId = `${inputIdPrefix}-class`;
+  const examInputId = `${inputIdPrefix}-exam`;
 
+  const components = subject.classScoreComponents ?? [];
+  const hasComponents = !isMockExam && components.length > 0;
+
+  // Standalone callers without controlled `isExpanded` default expanded when SBA tasks exist.
+  const [internalExpanded, setInternalExpanded] = useState(hasComponents);
+  const showComponents = isExpanded !== undefined ? isExpanded : internalExpanded;
+
+  const toggleComponents = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setInternalExpanded((prev) => !prev);
+    }
+  };
+
+  const status = getSubjectScoreStatus(subject, isMockExam);
+  const hasAnyScore = status !== "unscored";
   const total = (subject.classScore || 0) + (subject.examScore || 0);
   const { grade, remark } = calculateGrade(total, level);
 
-  const [showClassSaved, setShowClassSaved] = useState(false);
-  const [showExamSaved, setShowExamSaved] = useState(false);
+  const sbaTotalCount = components.length;
+  const sbaScoredCount = components.filter((comp) => comp.score > 0).length;
+  const sbaRawTotal = components.reduce((sum, comp) => sum + comp.score, 0);
+  const sbaRawMax = components.reduce((sum, comp) => sum + comp.maxScore, 0);
+
   const [classScoreError, setClassScoreError] = useState<string | null>(null);
   const [examScoreError, setExamScoreError] = useState<string | null>(null);
+  const [componentErrors, setComponentErrors] = useState<Record<string, string | null>>({});
   const timersRef = useRef<Record<string, number>>({});
 
-  // Track active typing draft paired with the score it committed, so external clears (e.g. Clear Scores) resync immediately
+  // Pair active typing draft with committed examScore so external clears resync immediately.
   const [examDraft, setExamDraft] = useState<{ baseScore: number; raw: string } | null>(null);
   const examRawInput =
     examDraft !== null && examDraft.baseScore === subject.examScore
       ? examDraft.raw
       : formatExamWeightedAsRaw(subject.examScore, maxExamScore);
 
-  // Cleanup timers on unmount
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
@@ -67,36 +107,51 @@ export function SubjectRow({
     timersRef.current[key] = window.setTimeout(fn, ms);
   };
 
-  // Update component score (read-only management - components managed in Settings)
+  const clearTimer = (key: string) => {
+    if (timersRef.current[key]) {
+      clearTimeout(timersRef.current[key]);
+      delete timersRef.current[key];
+    }
+  };
+
   const handleExamChange = (value: string) => {
+    clearTimer("examBlur");
     if (value === "") {
-      setExamDraft({ baseScore: 0, raw: "" });
+      if (examDraft !== null) setExamDraft(null);
       onChange({ ...subject, examScore: 0 });
       setExamScoreError(null);
       return;
     }
 
+    if (!/^\d*\.?\d*$/.test(value)) return;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+
     const { clampedRaw, wasClamped, weightedScore } = convertExamRawToWeighted(
-      Number(value),
+      numeric,
       maxExamScore,
     );
 
     if (wasClamped) {
-      setExamScoreError(`Auto-clamped to 100`);
-      setExamDraft({ baseScore: weightedScore, raw: String(clampedRaw) });
-      onChange({ ...subject, examScore: weightedScore });
+      setExamScoreError("Max 100");
       scheduleTimer("examError", () => setExamScoreError(null), 2000);
-      return;
+    } else {
+      setExamScoreError(null);
     }
 
-    setExamScoreError(null);
-    setExamDraft({ baseScore: weightedScore, raw: value });
+    const normalizedDisplay = wasClamped ? String(clampedRaw) : value;
+    const formattedWeighted = formatExamWeightedAsRaw(weightedScore, maxExamScore);
+    if (normalizedDisplay !== formattedWeighted) {
+      setExamDraft({ baseScore: weightedScore, raw: normalizedDisplay });
+    } else if (examDraft !== null) {
+      setExamDraft(null);
+    }
+
     onChange({ ...subject, examScore: weightedScore });
   };
 
-  // Handle class score - direct entry when no components
   const handleClassChange = (value: string) => {
-    if (hasComponents) return; // Don't allow direct entry if components exist
+    if (hasComponents) return;
 
     if (value === "") {
       onChange({ ...subject, classScore: 0 });
@@ -104,10 +159,14 @@ export function SubjectRow({
       return;
     }
 
-    const { score, wasClamped } = clampDirectClassScore(Number(value), maxClassScore);
+    if (!/^\d*\.?\d*$/.test(value)) return;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+
+    const { score, wasClamped } = clampDirectClassScore(numeric, maxClassScore);
 
     if (wasClamped) {
-      setClassScoreError(`Auto-clamped to max (${maxClassScore})`);
+      setClassScoreError(`Max ${maxClassScore}`);
       onChange({ ...subject, classScore: score });
       scheduleTimer("classError", () => setClassScoreError(null), 2000);
       return;
@@ -117,17 +176,34 @@ export function SubjectRow({
     onChange({ ...subject, classScore: score });
   };
 
-  // Handle individual component score change
-  const handleComponentChange = (componentId: string, value: string) => {
+  const handleComponentChange = (componentId: string, maxScore: number, value: string) => {
     if (!subject.classScoreComponents) return;
+    if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
 
     const rawScore = value === "" ? 0 : Number(value);
-    const { updatedComponents, classScore } = updateComponentAndRecalculateClassScore(
+    if (!Number.isFinite(rawScore)) return;
+
+    const { updatedComponents, classScore, wasClamped } = updateComponentAndRecalculateClassScore(
       subject.classScoreComponents,
       componentId,
       rawScore,
       maxClassScore,
     );
+
+    if (wasClamped) {
+      setComponentErrors((prev) => ({ ...prev, [componentId]: `Max ${maxScore}` }));
+      scheduleTimer(
+        `compError:${componentId}`,
+        () =>
+          setComponentErrors((prev) => ({
+            ...prev,
+            [componentId]: null,
+          })),
+        2000,
+      );
+    } else if (componentErrors[componentId]) {
+      setComponentErrors((prev) => ({ ...prev, [componentId]: null }));
+    }
 
     onChange({
       ...subject,
@@ -136,306 +212,366 @@ export function SubjectRow({
     });
   };
 
-  // Save on blur with instant visual feedback
-  const handleBlur = (field: "classScore" | "examScore") => {
-    if (field === "examScore") {
-      setExamDraft(null);
+  const handleFieldKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    fieldKey: string,
+  ) => {
+    if (!onNavigateField) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onNavigateField(fieldKey, e.shiftKey ? "prev" : "next");
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      onNavigateField(fieldKey, "down");
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      onNavigateField(fieldKey, "up");
     }
-    const setShow = field === "classScore" ? setShowClassSaved : setShowExamSaved;
-
-    // Show checkmark and auto-hide after 2 seconds
-    setShow(true);
-    scheduleTimer(field, () => setShow(false), 2000);
   };
 
-  return (
-    <div className="group border-border bg-surface rounded-lg border shadow-sm transition-all duration-200 hover:border-blue-300 hover:shadow-md dark:hover:border-blue-500/60">
-      {/* Main Row */}
-      <div className="p-3 sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          {/* 1. SUBJECT NAME */}
-          <div className="flex flex-1 items-center justify-between">
-            <div className="flex-1 overflow-hidden">
-              <div className="flex items-center gap-2">
-                <span className="text-main truncate text-sm font-bold sm:text-base">
-                  {subject.name}
-                </span>
-                {!isMockExam && (hasComponents || hasLibrary) && (
-                  <button
-                    onClick={() => setShowComponents(!showComponents)}
-                    className="flex shrink-0 items-center gap-1 rounded bg-purple-100 px-1.5 py-0.5 text-purple-700 hover:bg-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:hover:bg-purple-950/90"
-                    title="Toggle class score components"
-                  >
-                    <span className="text-[10px] font-bold">
-                      {showComponents ? "Hide" : "Show"}
-                    </span>
-                    {showComponents ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                  </button>
-                )}
-              </div>
-              <div className="mt-0.5 flex items-center gap-2 text-[10px] sm:hidden">
-                <span className="text-secondary font-bold">{total} pts</span>
-                <span
-                  className={`rounded px-1.5 py-0.5 font-bold ${
-                    total < 50
-                      ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                      : "bg-green-100 text-green-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                  }`}
-                >
-                  {grade}
-                </span>
-                <span className="text-muted">{remark}</span>
-              </div>
-              {hasComponents &&
-                subject.classScoreComponents &&
-                subject.classScoreComponents.length > 0 && (
-                  <p className="mt-0.5 text-[10px] font-medium text-purple-600 dark:text-purple-400">
-                    {subject.classScoreComponents.length} component
-                    {subject.classScoreComponents.length !== 1 ? "s" : ""} configured
-                  </p>
-                )}
-            </div>
+  const statusDotClass =
+    status === "complete"
+      ? "bg-emerald-500"
+      : status === "partial"
+        ? "bg-amber-500"
+        : "bg-border-strong";
 
-            {onDelete && (
-              <button
-                onClick={onDelete}
-                className="text-muted flex h-11 w-11 items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 active:scale-95 sm:hidden dark:hover:bg-red-950/50 dark:hover:text-red-400"
+  const gradeBadgeClass =
+    total < 50
+      ? "bg-red-100 text-red-700 ring-1 ring-red-200 dark:bg-red-950/60 dark:text-red-300 dark:ring-red-800/70"
+      : level === "KG" && grade === "BRONZE"
+        ? "bg-amber-100 text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-800/70"
+        : "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800/70";
+
+  const desktopGridColumns = isMockExam
+    ? onDelete
+      ? "sm:grid-cols-[minmax(0,1fr)_6.75rem_3.75rem_7rem_auto]"
+      : "sm:grid-cols-[minmax(0,1fr)_6.75rem_3.75rem_7rem]"
+    : onDelete
+      ? "sm:grid-cols-[minmax(0,1fr)_6.25rem_6.75rem_3.75rem_7rem_auto]"
+      : "sm:grid-cols-[minmax(0,1fr)_6.25rem_6.75rem_3.75rem_7rem]";
+
+  return (
+    <div
+      className={`border-border bg-surface rounded-xl border shadow-xs transition-colors focus-within:border-blue-400/80 dark:focus-within:border-blue-500/70 ${
+        isObsolete ? "opacity-75" : ""
+      }`}
+    >
+      {/* Main Responsive Row */}
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2.5 p-3 sm:items-center sm:gap-3 sm:px-4 sm:py-3 ${desktopGridColumns}`}
+      >
+        {/* 1. Subject Identity & SBA Pill */}
+        <div className="min-w-0 max-sm:col-start-1 max-sm:row-start-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${statusDotClass}`} aria-hidden="true" />
+            <span className="text-main truncate text-sm font-semibold">{subject.name}</span>
+            {isObsolete && (
+              <span
+                className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-950/60 dark:text-red-300"
+                data-record="true"
               >
-                <Trash2 className="h-5 w-5" />
+                Not in Settings
+              </span>
+            )}
+            {hasComponents && (
+              <button
+                type="button"
+                onClick={toggleComponents}
+                aria-expanded={showComponents}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                  sbaScoredCount === sbaTotalCount
+                    ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:hover:bg-purple-950/90"
+                    : "bg-amber-100/90 text-amber-800 hover:bg-amber-200/80 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
+                }`}
+                title="Toggle SBA component breakdown"
+              >
+                <span className="tabular-nums">
+                  SBA {sbaScoredCount}/{sbaTotalCount}
+                </span>
+                {showComponents ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
               </button>
             )}
           </div>
+          <p className="text-muted mt-0.5 h-4 truncate pl-4 text-[11px] leading-4 sm:hidden">
+            {status === "complete" ? remark : "\u00A0"}
+          </p>
+        </div>
 
-          {/* 2. INPUTS AREA */}
-          <div
-            className={`grid gap-2 sm:flex sm:w-auto sm:items-center ${isMockExam ? "grid-cols-4" : "grid-cols-6"}`}
-          >
-            {/* Class Score Input — hidden in mock exam mode */}
-            {!isMockExam && (
-              <div className="col-span-2 sm:w-20">
-                <label className="text-muted mb-1 block text-center text-[10px] font-bold uppercase">
-                  Class (/{maxClassScore})
-                </label>
-                <div className="relative">
+        {/* 2. Score Inputs */}
+        <div
+          className={`grid gap-2.5 max-sm:col-span-2 max-sm:row-start-2 sm:contents ${
+            isMockExam ? "grid-cols-1" : "grid-cols-2"
+          }`}
+        >
+          {/* Class Score — omitted in Mock mode */}
+          {!isMockExam && (
+            <div className="min-w-0">
+              {hasComponents ? (
+                <>
+                  <span
+                    className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
+                    data-record="true"
+                  >
+                    Class (/{maxClassScore})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggleComponents}
+                    aria-expanded={showComponents}
+                    title={`Auto-calculated from SBA tasks (${subject.classScore}/${maxClassScore})`}
+                    className="flex h-10 w-full items-center justify-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2 text-sm font-bold text-purple-700 tabular-nums transition-colors hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
+                  >
+                    <span>{subject.classScore}</span>
+                    <span className="text-[11px] font-medium text-purple-500 dark:text-purple-400">
+                      /{maxClassScore}
+                    </span>
+                    {showComponents ? (
+                      <ChevronUp className="h-3.5 w-3.5 opacity-75" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 opacity-75" />
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <label
+                    htmlFor={classInputId}
+                    className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
+                    data-record="true"
+                  >
+                    Class (/{maxClassScore})
+                  </label>
                   <input
-                    type="number"
+                    id={classInputId}
+                    name={classInputId}
+                    ref={(el) => registerInputRef?.("class", el)}
+                    type="text"
                     inputMode="numeric"
-                    min="0"
-                    max={maxClassScore}
+                    pattern="[0-9]*"
+                    enterKeyHint="next"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     aria-label={`${subject.name} Class Score`}
                     value={subject.classScore === 0 ? "" : subject.classScore}
                     onChange={(e) => handleClassChange(e.target.value)}
-                    onBlur={() => handleBlur("classScore")}
-                    disabled={hasComponents}
-                    className={`placeholder:text-muted w-full rounded-lg border px-2 py-2 text-center text-base font-bold transition-all outline-none focus:ring-2 sm:p-2.5 ${
-                      hasComponents
-                        ? "cursor-not-allowed border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300"
-                        : classScoreError
-                          ? "bg-input text-main border-red-500 focus:border-red-500 focus:ring-red-500/25"
-                          : "border-border-strong bg-input text-main hover:border-muted focus:border-blue-500 focus:ring-blue-500/25"
+                    onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
+                    onKeyDown={(e) => handleFieldKeyDown(e, "class")}
+                    className={`placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
+                      classScoreError
+                        ? "bg-input text-main border-red-500 focus:border-red-500 focus:ring-red-500/25"
+                        : "border-border-strong bg-input text-main hover:border-muted focus:border-blue-500 focus:ring-blue-500/25"
                     }`}
-                    placeholder={hasComponents ? "Auto" : `/${maxClassScore}`}
-                    title={
-                      hasComponents
-                        ? `Auto-calculated: ${subject.classScore}/${maxClassScore}`
-                        : `Enter class score (0-${maxClassScore})`
-                    }
+                    placeholder={`/${maxClassScore}`}
+                    title={`Enter class score (0-${maxClassScore})`}
                   />
-                  {showClassSaved && !hasComponents && (
-                    <div className="animate-scale-in absolute top-1/2 right-2 -translate-y-1/2">
-                      <Check size={16} className="text-green-600 dark:text-emerald-400" strokeWidth={3} />
-                    </div>
+                  {classScoreError && (
+                    <p className="mt-0.5 text-center text-[10px] font-semibold whitespace-nowrap text-red-600 dark:text-red-400">
+                      {classScoreError}
+                    </p>
                   )}
-                </div>
-                {hasComponents && (
-                  <p className="mt-1 text-center text-[10px] text-purple-600 dark:text-purple-400">
-                    = {subject.classScore}/{maxClassScore}
-                  </p>
-                )}
-                {classScoreError && (
-                  <p className="mt-1 text-center text-[10px] font-bold text-red-600 dark:text-red-400">
-                    ⚠️ {classScoreError}
-                  </p>
-                )}
-              </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Exam Score */}
+          <div className="min-w-0">
+            <label
+              htmlFor={examInputId}
+              className="text-muted mb-1 block text-center text-[10px] font-bold tracking-wide uppercase sm:hidden"
+              data-record="true"
+            >
+              {isMockExam ? "Score (/100)" : "Exam (/100)"}
+            </label>
+            <input
+              id={examInputId}
+              name={examInputId}
+              ref={(el) => registerInputRef?.("exam", el)}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              enterKeyHint={isLastRow ? "done" : "next"}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label={`${subject.name} Exam Score`}
+              value={examRawInput}
+              onChange={(e) => handleExamChange(e.target.value)}
+              onBlur={() => {
+                if (examDraft === null) return;
+                scheduleTimer("examBlur", () => setExamDraft(null), 180);
+              }}
+              onFocus={(e) => {
+                clearTimer("examBlur");
+                selectOnDesktopFocus(e.currentTarget);
+              }}
+              onKeyDown={(e) => handleFieldKeyDown(e, "exam")}
+              className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
+                examScoreError
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
+                  : "border-border-strong focus:border-blue-500 focus:ring-blue-500/25"
+              }`}
+              placeholder="/100"
+              title={
+                isMockExam
+                  ? "Enter exam score (0-100)"
+                  : `Enter raw score (0-100). Converts to ${maxExamScore}%`
+              }
+            />
+            {!isMockExam && (
+              <p className="text-muted mt-0.5 text-center text-[10px] font-medium tabular-nums">
+                = {subject.examScore}/{maxExamScore}
+              </p>
             )}
-
-            {/* Exam Score Input */}
-            <div className="col-span-2 sm:w-20">
-              <label className="text-muted mb-1 block text-center text-[10px] font-bold uppercase">
-                {isMockExam ? "Score (/100)" : "Exam (/100)"}
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="100"
-                  aria-label={`${subject.name} Exam Score`}
-                  value={examRawInput}
-                  onChange={(e) => handleExamChange(e.target.value)}
-                  onBlur={() => handleBlur("examScore")}
-                  className={`bg-input text-main placeholder:text-muted hover:border-muted w-full rounded-lg border px-2 py-2 text-center text-base font-bold transition-all outline-none focus:ring-2 sm:p-2.5 ${
-                    examScoreError
-                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
-                      : "border-border-strong focus:border-blue-500 focus:ring-blue-500/25"
-                  }`}
-                  placeholder="/100"
-                  title={
-                    isMockExam
-                      ? "Enter exam score (0-100)"
-                      : `Enter raw score (0-100). Converts to ${maxExamScore}%`
-                  }
-                />
-                {showExamSaved && (
-                  <div className="animate-scale-in absolute top-1/2 right-2 -translate-y-1/2">
-                    <Check size={16} className="text-green-600 dark:text-emerald-400" strokeWidth={3} />
-                  </div>
-                )}
-              </div>
-              {!isMockExam && (
-                <p className="mt-1 text-center text-[10px] text-blue-600 dark:text-blue-400">
-                  = {subject.examScore}/{maxExamScore}
-                </p>
-              )}
-              {examScoreError && (
-                <p className="mt-1 text-center text-[10px] font-bold text-red-600 dark:text-red-400">
-                  ⚠️ {examScoreError}
-                </p>
-              )}
-            </div>
-
-            {/* Total Score - Mobile */}
-            <div className="col-span-2 flex flex-col items-center justify-center sm:hidden">
-              <label className="text-muted mb-1 block text-[10px] font-bold uppercase">
-                Total
-              </label>
-              <div className="text-main text-base font-bold">{total}</div>
-            </div>
-
-            {/* Grade Badge - Desktop */}
-            <div className="hidden justify-center sm:flex sm:w-16">
-              <span
-                className={`rounded-lg px-2 py-1 text-xs font-bold shadow-sm ${
-                  total < 50
-                    ? "bg-red-100 text-red-700 ring-1 ring-red-200 dark:bg-red-950/60 dark:text-red-300 dark:ring-red-800/70"
-                    : "bg-green-100 text-green-700 ring-1 ring-green-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800/70"
-                }`}
-              >
-                {grade}
-              </span>
-            </div>
-
-            {/* Desktop Delete */}
-            {onDelete && (
-              <button
-                onClick={onDelete}
-                className="text-muted hidden rounded-lg p-2.5 transition-all hover:bg-red-50 hover:text-red-500 active:scale-95 sm:block dark:hover:bg-red-950/50 dark:hover:text-red-400"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+            {examScoreError && (
+              <p className="mt-0.5 text-center text-[10px] font-semibold whitespace-nowrap text-red-600 dark:text-red-400">
+                {examScoreError}
+              </p>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Class Score Components Section — hidden in mock exam mode */}
-      {!isMockExam && (hasComponents || hasLibrary) && showComponents && (
-        <div className="border-t border-purple-200 bg-purple-50/50 p-4 dark:border-purple-800/70 dark:bg-purple-950/35">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-bold text-purple-900 dark:text-purple-200">
-              Component Breakdown
-            </p>
-            {hasComponents && subject.classScoreComponents && (
-              <p className="text-[10px] font-medium text-purple-700 dark:text-purple-300">
-                Total: {subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0)}/
-                {subject.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0)} marks
-              </p>
+        {/* 3. Single-DOM Outcome (Total + Status/Grade + Optional Delete) */}
+        <div className="flex items-center justify-end gap-2 max-sm:col-start-2 max-sm:row-start-1 sm:contents">
+          {/* Single Total Node */}
+          <div className="flex items-baseline justify-end sm:justify-center">
+            <span
+              className={`text-sm font-bold tabular-nums ${
+                hasAnyScore ? "text-main" : "text-muted"
+              }`}
+            >
+              {hasAnyScore ? total : "—"}
+            </span>
+          </div>
+
+          {/* Honest Status / Grade + Remark */}
+          <div className="flex flex-col items-end sm:items-center">
+            {status === "unscored" ? (
+              <span
+                className="bg-subtle text-muted rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                data-record="true"
+              >
+                Pending
+              </span>
+            ) : status === "partial" ? (
+              <>
+                <span
+                  className="rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-800/70"
+                  data-record="true"
+                >
+                  Partial
+                </span>
+                <span
+                  className="text-muted mt-0.5 hidden text-[10px] sm:block"
+                  data-record="true"
+                >
+                  {subject.classScore === 0 ? "Need class" : "Need exam"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${gradeBadgeClass}`}>
+                  {grade}
+                </span>
+                <span className="text-muted mt-0.5 hidden max-w-full truncate text-[10px] sm:block">
+                  {remark}
+                </span>
+              </>
             )}
           </div>
 
-          {/* Existing Components */}
-          {hasComponents && subject.classScoreComponents && (
-            <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {subject.classScoreComponents.map((component) => (
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label={`Remove ${subject.name}`}
+              className="text-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 active:scale-95 dark:hover:bg-red-950/50 dark:hover:text-red-400"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Streamlined SBA Component Breakdown Drawer */}
+      {hasComponents && showComponents && (
+        <div className="rounded-b-xl border-t border-purple-200/80 bg-purple-50/45 px-3 py-3 sm:px-4 dark:border-purple-800/60 dark:bg-purple-950/30">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span
+              className="font-semibold text-purple-900 dark:text-purple-200"
+              data-record="true"
+            >
+              SBA Breakdown
+            </span>
+            <div className="flex items-center gap-2 text-[11px] tabular-nums">
+              <span className="text-purple-700 dark:text-purple-300">
+                Raw {sbaRawTotal}/{sbaRawMax}
+              </span>
+              <span className="text-purple-300 dark:text-purple-700">·</span>
+              <span className="font-semibold text-purple-900 dark:text-purple-200">
+                Class Score: {subject.classScore}/{maxClassScore}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+            {components.map((component) => {
+              const compInputId = `${inputIdPrefix}-sba-${component.id}`;
+              const compError = componentErrors[component.id];
+              return (
                 <div
                   key={component.id}
-                  className="bg-surface relative rounded-lg border border-purple-300 p-3 shadow-sm dark:border-purple-800/70"
+                  className="bg-surface rounded-lg border border-purple-200 p-2.5 shadow-2xs dark:border-purple-800/60"
                 >
-                  <label className="mb-1.5 block text-xs font-bold text-purple-800 dark:text-purple-200">
-                    {component.name}
-                    <span className="ml-1 text-purple-500 dark:text-purple-400">
-                      (/{component.maxScore})
+                  <label
+                    htmlFor={compInputId}
+                    className="mb-1 flex items-center justify-between gap-1 text-[11px] font-semibold text-purple-900 dark:text-purple-200"
+                  >
+                    <span className="truncate">{component.name}</span>
+                    <span className="shrink-0 text-purple-500 tabular-nums dark:text-purple-400">
+                      /{component.maxScore}
                     </span>
                   </label>
                   <input
-                    type="number"
+                    id={compInputId}
+                    name={compInputId}
+                    ref={(el) => registerInputRef?.(`comp:${component.id}`, el)}
+                    type="text"
                     inputMode="numeric"
-                    min="0"
-                    max={component.maxScore}
+                    pattern="[0-9]*"
+                    enterKeyHint="next"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    aria-label={`${subject.name} ${component.name} Score`}
                     value={component.score === 0 ? "" : component.score}
-                    onChange={(e) => handleComponentChange(component.id, e.target.value)}
-                    className="bg-input text-main placeholder:text-muted w-full rounded-lg border border-purple-300 p-2.5 text-center text-base font-bold transition-all outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-purple-700/70"
+                    onChange={(e) =>
+                      handleComponentChange(component.id, component.maxScore, e.target.value)
+                    }
+                    onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
+                    onKeyDown={(e) => handleFieldKeyDown(e, `comp:${component.id}`)}
+                    className={`bg-input text-main placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-md border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:h-9 sm:text-sm ${
+                      compError
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
+                        : "border-purple-200 focus:border-purple-500 focus:ring-purple-500/30 dark:border-purple-700/70"
+                    }`}
                     placeholder={`/${component.maxScore}`}
                   />
-                  <p className="mt-1 text-center text-[10px] text-purple-600 dark:text-purple-400">
-                    {component.score > 0
-                      ? ((component.score / component.maxScore) * 100).toFixed(0)
-                      : 0}
-                    %
-                  </p>
+                  {compError && (
+                    <p className="mt-1 text-center text-[10px] font-semibold whitespace-nowrap text-red-600 dark:text-red-400">
+                      {compError}
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Class Score Summary */}
-          {hasComponents && subject.classScoreComponents && (
-            <div className="mt-3 rounded-lg bg-purple-100 p-2 text-center dark:bg-purple-950/60">
-              <p className="text-xs font-bold text-purple-900 dark:text-purple-200">
-                Class Score: {subject.classScore}/{maxClassScore}
-                <span className="ml-2 text-purple-600 dark:text-purple-300">
-                  (
-                  {subject.classScoreComponents.length > 0
-                    ? Math.round(
-                        (subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0) /
-                          subject.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0)) *
-                          100,
-                      )
-                    : 0}
-                  % achieved)
-                </span>
-              </p>
-            </div>
-          )}
-
-          {/* Info: Components are managed in the SBA tab */}
-          {hasComponents && (
-            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800/70 dark:bg-blue-950/45">
-              <p className="text-xs text-blue-700 dark:text-blue-200">
-                ℹ️ <strong>Components are configured in the SBA tab.</strong>{" "}
-                <Link
-                  to="/sba"
-                  className="font-bold underline hover:text-blue-900 dark:hover:text-blue-100"
-                >
-                  Open SBA Setup →
-                </Link>
-              </p>
-            </div>
-          )}
-
-          {/* Empty State when no components */}
-          {!hasComponents && (
-            <div className="bg-surface mt-3 rounded-lg border-2 border-dashed border-purple-200 p-4 text-center text-xs text-purple-600 dark:border-purple-800/70 dark:text-purple-300">
-              No components configured for this subject yet.{" "}
-              <Link
-                to="/sba"
-                className="font-bold underline hover:text-purple-900 dark:hover:text-purple-100"
-              >
-                Configure in SBA Setup →
-              </Link>
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
