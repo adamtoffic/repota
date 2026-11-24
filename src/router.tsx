@@ -13,7 +13,6 @@ import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { SbaPage } from "./pages/SbaPage";
 import { SettingsHub } from "./pages/settings/SettingsHub";
-import { Analytics } from "./pages/Analytics";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
 import { SettingsFormProvider } from "./context/SettingsFormContext";
@@ -141,6 +140,9 @@ export function RouteNotFound() {
 }
 
 // Code-split heavy secondary pages with auto-reload retry on chunk failures
+const Analytics = lazyWithRetry(() =>
+  import("./pages/Analytics").then((module) => ({ default: module.Analytics })),
+);
 const SettingsSchoolPage = lazyWithRetry(() => import("./pages/settings/SettingsSchoolPage"));
 const SettingsAcademicPage = lazyWithRetry(() => import("./pages/settings/SettingsAcademicPage"));
 const SettingsTemplatesPage = lazyWithRetry(() => import("./pages/settings/SettingsTemplatesPage"));

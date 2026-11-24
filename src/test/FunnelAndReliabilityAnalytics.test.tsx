@@ -80,7 +80,6 @@ import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { ScoreImportModal } from "../components/ScoreImportModal";
 import { SchoolProvider } from "../context/SchoolContext";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import { useSchoolData } from "../hooks/useSchoolData";
 import { resetSessionAnalyticsGuards } from "../utils/analytics";
 import { createBackupPayload } from "../utils/backupValidation";
@@ -207,17 +206,15 @@ describe("Tier 1 Funnel & Reliability Analytics", () => {
     const ctx = makeSchoolContext([makeProcessedStudent("s1", "Kwame Mensah")]);
 
     render(
-      <ToastContext.Provider value={toastMock}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal
-            isOpen={true}
-            onClose={vi.fn()}
-            initialSubject="Mathematics"
-            initialMode="SINGLE_COMPONENT"
-            initialTaskName="CAT 1"
-          />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal
+          isOpen={true}
+          onClose={vi.fn()}
+          initialSubject="Mathematics"
+          initialMode="SINGLE_COMPONENT"
+          initialTaskName="CAT 1"
+        />
+      </SchoolContext.Provider>,
     );
 
     const textarea = screen

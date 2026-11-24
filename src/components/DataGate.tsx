@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useSchoolActions, useSchoolLifecycle } from "../hooks/useSchoolData";
 import { Alert, Button } from "./ui";
 import { PageLoader } from "./PageLoader";
@@ -17,6 +17,23 @@ export function DataGate({ children }: DataGateProps) {
   const { isDataLoaded, loadError, isRollbackIncomplete, activeRecoveryAction } =
     useSchoolLifecycle();
   const { retryLoad, startFresh, setActiveRecoveryAction } = useSchoolActions();
+
+  useEffect(() => {
+    if (!isDataLoaded || loadError || isRollbackIncomplete) return;
+    if (import.meta.env.MODE === "test") return;
+
+    const preload = () => {
+      void import("../pages/Analytics").catch(() => {});
+    };
+
+    if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+      const idleId = window.requestIdleCallback(preload);
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timerId = window.setTimeout(preload, 1500);
+    return () => window.clearTimeout(timerId);
+  }, [isDataLoaded, isRollbackIncomplete, loadError]);
 
   if (!isDataLoaded) {
     return <PageLoader />;

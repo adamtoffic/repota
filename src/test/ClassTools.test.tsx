@@ -6,7 +6,6 @@ import { BulkPromotionModal } from "../components/BulkPromotionModal";
 import { DashboardToolbar } from "../components/DashboardToolbar";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { exportDetailedBroadsheetCSV } from "../utils/export";
 
@@ -126,11 +125,9 @@ describe("Class Tools Expansion", () => {
     } as unknown as SchoolContextType;
 
     render(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={ctx}>
-          <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
+      </SchoolContext.Provider>,
     );
 
     const setAllInput = screen.getByLabelText("Set all attendance days");
@@ -153,11 +150,9 @@ describe("Class Tools Expansion", () => {
     } as unknown as SchoolContextType;
 
     render(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={ctx}>
-          <BulkPromotionModal isOpen={true} onClose={vi.fn()} />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <BulkPromotionModal isOpen={true} onClose={vi.fn()} />
+      </SchoolContext.Provider>,
     );
 
     await user.click(screen.getByRole("button", { name: /Auto-Assign by Average/i }));

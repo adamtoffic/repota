@@ -19,7 +19,6 @@ import type {
   SchoolLevel,
   SchoolSettings,
   ClassScoreComponentConfig,
-  AssessmentCategory,
 } from "../types";
 import { disablePinLock } from "../utils/pinSecurity";
 import {
@@ -29,7 +28,7 @@ import {
   getBiometricName,
 } from "../utils/biometricAuth";
 import { setUnsavedChanges } from "../utils/preloadErrorHandler";
-import { removeFromLibrary, unassignFromSubject } from "../utils/componentRegistry";
+import { unassignFromSubject } from "../utils/componentRegistry";
 import { areSettingsEqual } from "../utils/settingsEquality";
 import { SettingsFormContext, type SettingsFormContextType } from "./SettingsFormContextDefinition";
 
@@ -84,9 +83,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
 
   // Form inputs
   const [newSubject, setNewSubject] = useState("");
-  const [newComponentName, setNewComponentName] = useState("");
-  const [newComponentMax, setNewComponentMax] = useState("");
-  const [newComponentCategory, setNewComponentCategory] = useState<AssessmentCategory>("CAT");
 
   // Modal states
   const [showClassUpdateModal, setShowClassUpdateModal] = useState(false);
@@ -98,8 +94,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   const [subjectToDelete, setSubjectToDelete] = useState<{ index: number; name: string } | null>(
     null,
   );
-  const [showDeleteComponentModal, setShowDeleteComponentModal] = useState(false);
-  const [componentToDelete, setComponentToDelete] = useState<string | null>(null);
   const [showLevelChangeModal, setShowLevelChangeModal] = useState(false);
   const [pendingLevel, setPendingLevel] = useState<SchoolLevel | null>(null);
   const [showPinSetup, setShowPinSetup] = useState(false);
@@ -358,129 +352,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setSubjectToDelete(null);
   }, [setFormData, showToast, subjectToDelete]);
 
-  const addComponent = useCallback(() => {
-    const trimmed = newComponentName.trim();
-    const maxScore = parseInt(newComponentMax);
-
-    if (!trimmed) {
-      showToast("Please enter a task name!", "error");
-      return;
-    }
-
-    if (!maxScore || maxScore <= 0 || maxScore > 100) {
-      showToast("Please enter a valid max score (1-100)!", "error");
-      return;
-    }
-
-    const current = formData.componentLibrary || [];
-    if (current.some((c) => c.name === trimmed)) {
-      showToast("This task already exists!", "error");
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      componentLibrary: [
-        ...(prev.componentLibrary || []),
-        {
-          name: trimmed,
-          maxScore,
-          category: newComponentCategory,
-        },
-      ],
-    }));
-
-    setNewComponentName("");
-    setNewComponentMax("");
-    setNewComponentCategory("CAT");
-    showToast("SBA task added to library!", "success");
-  }, [
-    formData.componentLibrary,
-    newComponentCategory,
-    newComponentMax,
-    newComponentName,
-    setFormData,
-    showToast,
-  ]);
-
-  const removeComponent = useCallback((componentName: string) => {
-    setComponentToDelete(componentName);
-    setShowDeleteComponentModal(true);
-  }, []);
-
-  const confirmDeleteComponent = useCallback(() => {
-    if (!componentToDelete) return;
-    setFormData((prev) => {
-      const { library, subjectComponentMap } = removeFromLibrary(
-        prev.componentLibrary || [],
-        prev.subjectComponentMap || {},
-        componentToDelete,
-      );
-      return {
-        ...prev,
-        componentLibrary: library,
-        subjectComponentMap,
-      };
-    });
-    showToast(`Deleted task: ${componentToDelete}`, "info");
-    setShowDeleteComponentModal(false);
-    setComponentToDelete(null);
-  }, [componentToDelete, setFormData, showToast]);
-
-  const addComponentToSubject = useCallback(
-    (subjectName: string, component: ClassScoreComponentConfig) => {
-      setFormData((prev) => ({
-        ...prev,
-        subjectComponentMap: {
-          ...(prev.subjectComponentMap || {}),
-          [subjectName]: [...(prev.subjectComponentMap?.[subjectName] || []), component],
-        },
-      }));
-    },
-    [setFormData],
-  );
-
-  const removeComponentFromSubject = useCallback(
-    (subjectName: string, componentName: string) => {
-      setFormData((prev) => {
-        const currentComponents = prev.subjectComponentMap?.[subjectName] || [];
-        const updatedComponents = currentComponents.filter((c) => c.name !== componentName);
-        return {
-          ...prev,
-          subjectComponentMap: {
-            ...(prev.subjectComponentMap || {}),
-            [subjectName]: updatedComponents,
-          },
-        };
-      });
-    },
-    [setFormData],
-  );
-
-  const assignAllComponentsToAllSubjects = useCallback(() => {
-    const library = formData.componentLibrary || [];
-    const subjects = formData.defaultSubjects || [];
-    if (library.length === 0 || subjects.length === 0) return;
-
-    setFormData((prev) => {
-      const nextLibrary = prev.componentLibrary || [];
-      const nextSubjects = prev.defaultSubjects || [];
-      const nextMap: Record<string, ClassScoreComponentConfig[]> = {
-        ...(prev.subjectComponentMap || {}),
-      };
-
-      for (const subject of nextSubjects) {
-        nextMap[subject] = nextLibrary.map((comp) => ({ ...comp }));
-      }
-
-      return {
-        ...prev,
-        subjectComponentMap: nextMap,
-      };
-    });
-    showToast(`Assigned ${library.length} tasks to all ${subjects.length} subjects!`, "success");
-  }, [formData.componentLibrary, formData.defaultSubjects, setFormData, showToast]);
-
   const finalizeSave = useCallback(
     (shouldUpdateStudents = false) => {
       const trimmed = (formData.className ?? "").trim();
@@ -552,18 +423,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       addSubject,
       removeSubject,
       confirmDeleteSubject,
-      newComponentName,
-      setNewComponentName,
-      newComponentMax,
-      setNewComponentMax,
-      newComponentCategory,
-      setNewComponentCategory,
-      addComponent,
-      removeComponent,
-      confirmDeleteComponent,
-      addComponentToSubject,
-      removeComponentFromSubject,
-      assignAllComponentsToAllSubjects,
       handleClassNameBlur,
       handleKeepOldClassName,
       finalizeSave,
@@ -585,15 +444,11 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       setShowFullAppResetModal,
     }),
     [
-      addComponent,
-      addComponentToSubject,
       addSubject,
       applyLevelChange,
-      assignAllComponentsToAllSubjects,
       biometricAvailable,
       biometricType,
       checkBiometric,
-      confirmDeleteComponent,
       confirmDeleteSubject,
       enrollingBiometric,
       finalizeSave,
@@ -609,12 +464,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       isSaving,
       lastSaved,
       lastSavedSettings,
-      newComponentCategory,
-      newComponentMax,
-      newComponentName,
       newSubject,
-      removeComponent,
-      removeComponentFromSubject,
       removeSubject,
       setFormData,
       settings.schoolName,
@@ -745,19 +595,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
           setSubjectToDelete(null);
         }}
         onConfirm={confirmDeleteSubject}
-      />
-
-      <ConfirmModal
-        isOpen={showDeleteComponentModal}
-        title="Delete Task?"
-        message={`Are you sure you want to remove the "${componentToDelete}" task? Any subjects using this will lose their score configuration.`}
-        confirmText="Yes, Delete Task"
-        isDangerous={true}
-        onClose={() => {
-          setShowDeleteComponentModal(false);
-          setComponentToDelete(null);
-        }}
-        onConfirm={confirmDeleteComponent}
       />
 
       <ConfirmModal

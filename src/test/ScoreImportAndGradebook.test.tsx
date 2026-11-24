@@ -9,7 +9,6 @@ import * as csvImportUtils from "../utils/csvImport";
 import { processStudent } from "../utils/gradeCalculator";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -89,7 +88,6 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     const updateStudent = vi.fn();
     const addStudent = vi.fn();
     const setSettings = vi.fn();
-    const showToast = vi.fn();
     const ctx = {
       students: studentList,
       settings: testSettings,
@@ -97,14 +95,13 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
       addStudent,
       setSettings,
     } as unknown as SchoolContextType;
-    return { ctx, updateStudent, addStudent, setSettings, toastCtx: { showToast } };
+    return { ctx, updateStudent, addStudent, setSettings };
   };
 
   it("parses and applies scored SBA components and exam scores to matched students", async () => {
     const user = userEvent.setup();
     const updateStudent = vi.fn();
     const addStudent = vi.fn();
-    const showToast = vi.fn();
 
     const ctx = {
       students: [studentOne, studentTwo],
@@ -114,11 +111,9 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     } as unknown as SchoolContextType;
 
     render(
-      <ToastContext.Provider value={{ showToast }}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal isOpen={true} onClose={vi.fn()} />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal isOpen={true} onClose={vi.fn()} />
+      </SchoolContext.Provider>,
     );
 
     const textarea = screen
@@ -169,7 +164,6 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     const user = userEvent.setup();
     const updateStudent = vi.fn();
     const setSettings = vi.fn();
-    const showToast = vi.fn();
 
     const scienceSettings: SchoolSettings = {
       ...testSettings,
@@ -225,11 +219,9 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     } as unknown as SchoolContextType;
 
     render(
-      <ToastContext.Provider value={{ showToast }}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Science" />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Science" />
+      </SchoolContext.Provider>,
     );
 
     const textarea = screen
@@ -270,13 +262,11 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
   });
 
   it("renders ScoreImportModal at desktop max-w-3xl width without max-w-md override", () => {
-    const { ctx, toastCtx } = createContexts();
+    const { ctx } = createContexts();
     render(
-      <ToastContext.Provider value={toastCtx}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
+      </SchoolContext.Provider>,
     );
 
     const dialog = screen.getByRole("dialog");
@@ -294,21 +284,19 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
 
   it("supports creating and importing a Single SBA Task and exporting an existing SBA component", async () => {
     const user = userEvent.setup();
-    const { ctx, updateStudent, setSettings, toastCtx } = createContexts();
+    const { ctx, updateStudent, setSettings } = createContexts();
     const downloadSpy = vi.spyOn(csvImportUtils, "downloadCsvFile").mockImplementation(() => {});
 
     render(
-      <ToastContext.Provider value={toastCtx}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal
-            isOpen={true}
-            onClose={vi.fn()}
-            initialSubject="Mathematics"
-            initialMode="SINGLE_COMPONENT"
-            initialTaskName="CAT 1"
-          />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal
+          isOpen={true}
+          onClose={vi.fn()}
+          initialSubject="Mathematics"
+          initialMode="SINGLE_COMPONENT"
+          initialTaskName="CAT 1"
+        />
+      </SchoolContext.Provider>,
     );
 
     // Export existing SBA task CSV
@@ -376,14 +364,12 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
       ],
     };
 
-    const { ctx, updateStudent, toastCtx } = createContexts([seededKwame, studentTwo]);
+    const { ctx, updateStudent } = createContexts([seededKwame, studentTwo]);
 
     render(
-      <ToastContext.Provider value={toastCtx}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
+      </SchoolContext.Provider>,
     );
 
     await user.click(screen.getByRole("tab", { name: /Final Exam/i }));
@@ -434,20 +420,18 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
 
   it("blocks over-max scores in preview until clamping is allowed and validates new task max score", async () => {
     const user = userEvent.setup();
-    const { ctx, updateStudent, toastCtx } = createContexts();
+    const { ctx, updateStudent } = createContexts();
 
     render(
-      <ToastContext.Provider value={toastCtx}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal
-            isOpen={true}
-            onClose={vi.fn()}
-            initialSubject="Mathematics"
-            initialMode="SINGLE_COMPONENT"
-            initialTaskName="__CREATE_NEW_TASK__"
-          />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal
+          isOpen={true}
+          onClose={vi.fn()}
+          initialSubject="Mathematics"
+          initialMode="SINGLE_COMPONENT"
+          initialTaskName="__CREATE_NEW_TASK__"
+        />
+      </SchoolContext.Provider>,
     );
 
     await user.type(screen.getByLabelText("New SBA Task Name"), "Quiz 2");
@@ -488,20 +472,18 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
 
   it("blocks applying when 0 rows match existing students so empty components are not synced", async () => {
     const user = userEvent.setup();
-    const { ctx, updateStudent, setSettings, toastCtx } = createContexts();
+    const { ctx, updateStudent, setSettings } = createContexts();
 
     render(
-      <ToastContext.Provider value={toastCtx}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal
-            isOpen={true}
-            onClose={vi.fn()}
-            initialSubject="Mathematics"
-            initialMode="SINGLE_COMPONENT"
-            initialTaskName="__CREATE_NEW_TASK__"
-          />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal
+          isOpen={true}
+          onClose={vi.fn()}
+          initialSubject="Mathematics"
+          initialMode="SINGLE_COMPONENT"
+          initialTaskName="__CREATE_NEW_TASK__"
+        />
+      </SchoolContext.Provider>,
     );
 
     await user.type(screen.getByLabelText("New SBA Task Name"), "Oral Drill");
@@ -574,19 +556,17 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
       const engSubject = processed[0].subjects.find((s) => s.name === "English")!;
 
       return (
-        <ToastContext.Provider value={{ showToast: vi.fn() }}>
-          <SchoolContext.Provider value={ctx}>
-            <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
-            <SubjectRow
-              key={engSubject.classScoreComponents?.length ?? 0}
-              subject={engSubject}
-              level={settings.level}
-              maxClassScore={settings.classScoreMax}
-              maxExamScore={settings.examScoreMax}
-              onChange={vi.fn()}
-            />
-          </SchoolContext.Provider>
-        </ToastContext.Provider>
+        <SchoolContext.Provider value={ctx}>
+          <ScoreImportModal isOpen={true} onClose={vi.fn()} initialSubject="Mathematics" />
+          <SubjectRow
+            key={engSubject.classScoreComponents?.length ?? 0}
+            subject={engSubject}
+            level={settings.level}
+            maxClassScore={settings.classScoreMax}
+            maxExamScore={settings.examScoreMax}
+            onChange={vi.fn()}
+          />
+        </SchoolContext.Provider>
       );
     }
 
@@ -639,7 +619,7 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
 
   it("keeps Mathematics without classScoreComponents untouched during EXAM_ONLY import", async () => {
     const user = userEvent.setup();
-    const { ctx, updateStudent, toastCtx } = createContexts([
+    const { ctx, updateStudent } = createContexts([
       {
         ...studentOne,
         subjects: [{ id: "sub-raw", name: "Mathematics", classScore: 30, examScore: 0, totalScore: 30, grade: 9, remark: "Lowest" }],
@@ -647,16 +627,14 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
     ]);
 
     render(
-      <ToastContext.Provider value={toastCtx}>
-        <SchoolContext.Provider value={ctx}>
-          <ScoreImportModal
-            isOpen={true}
-            onClose={vi.fn()}
-            initialSubject="Mathematics"
-            initialMode="EXAM_ONLY"
-          />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <ScoreImportModal
+          isOpen={true}
+          onClose={vi.fn()}
+          initialSubject="Mathematics"
+          initialMode="EXAM_ONLY"
+        />
+      </SchoolContext.Provider>,
     );
 
     const textarea = screen
