@@ -24,3 +24,11 @@ export const DEFAULT_SETTINGS: SchoolSettings = {
   teacherSignature: "",
   schoolType: "STANDARD",
 };
+
+/** Complete factory-reset settings baseline shared by `SchoolContext` and `SettingsFormContext`. */
+export const DEFAULT_FACTORY_SETTINGS: SchoolSettings = {
+  ...DEFAULT_SETTINGS,
+  examType: "TERMLY",
+  componentLibrary: [],
+  subjectComponentMap: {},
+};

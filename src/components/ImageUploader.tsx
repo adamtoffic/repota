@@ -1,19 +1,43 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Upload, Image as ImageIcon, X } from "lucide-react";
 import { compressImage } from "../utils/imageCompressor"; // ✅ Import utility
 import { useToast } from "../hooks/useToast"; // ✅ Import Toast
 import { getStorageWarningLevel } from "../utils/storageMonitor";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface ImageUploaderProps {
   label: string;
   value?: string;
   onChange: (base64: string | undefined) => void;
   maxHeight?: string; // e.g. "h-32" for logos, "h-16" for signatures
+  onConfirmOpenChange?: (open: boolean) => void;
 }
 
-export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: ImageUploaderProps) {
+export function ImageUploader({
+  label,
+  value,
+  onChange,
+  maxHeight = "h-32",
+  onConfirmOpenChange,
+}: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast(); // ✅ Hook
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+
+  const onConfirmOpenChangeRef = useRef(onConfirmOpenChange);
+  useEffect(() => {
+    onConfirmOpenChangeRef.current = onConfirmOpenChange;
+  });
+  useEffect(() => {
+    return () => {
+      onConfirmOpenChangeRef.current?.(false);
+    };
+  }, []);
+
+  const setRemoveConfirmOpen = (open: boolean) => {
+    setShowRemoveConfirm(open);
+    onConfirmOpenChangeRef.current?.(open);
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,6 +74,10 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
   // Helper to remove image
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the file picker
+    setRemoveConfirmOpen(true);
+  };
+
+  const confirmRemove = () => {
     onChange(undefined);
     if (inputRef.current) inputRef.current.value = ""; // Reset input
   };
@@ -110,11 +138,21 @@ export function ImageUploader({ label, value, onChange, maxHeight = "h-32" }: Im
         <button
           type="button"
           onClick={handleRemove}
-          className="flex items-center gap-1 self-start text-[10px] font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+          className="inline-flex items-center gap-1 self-start rounded-md px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
         >
-          <X className="h-3 w-3" /> Remove Image
+          <X className="h-3.5 w-3.5" /> Remove Image
         </button>
       )}
+
+      <ConfirmModal
+        isOpen={showRemoveConfirm}
+        title={`Remove ${label}?`}
+        message={`This will remove the uploaded ${label.toLowerCase()}. You can upload a new image at any time.`}
+        confirmText="Yes, Remove"
+        isDangerous={true}
+        onClose={() => setRemoveConfirmOpen(false)}
+        onConfirm={confirmRemove}
+      />
     </div>
   );
 }

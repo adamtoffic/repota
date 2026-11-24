@@ -4,7 +4,6 @@ import { ArrowLeft, BookOpen, LayoutTemplate, School, ShieldCheck } from "lucide
 import { SettingsFormProvider } from "../../context/SettingsFormContext";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 
 const MOBILE_SETTINGS_TABS = [
@@ -31,7 +30,7 @@ export function SettingsSubPageLayout({ title, subtitle, children }: SettingsSub
 }
 
 function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPageLayoutProps) {
-  const { committedSchoolName, hasUnsavedChanges } = useSettingsForm();
+  const { committedSchoolName } = useSettingsForm();
   const pathname = useLocation({ select: (location) => location.pathname });
   const navRef = useRef<HTMLElement>(null);
 
@@ -48,10 +47,7 @@ function SettingsSubPageLayoutInner({ title, subtitle, children }: SettingsSubPa
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
-      <PageHeader
-        schoolName={committedSchoolName}
-        actions={hasUnsavedChanges ? <SettingsHeaderActions showBack={false} /> : undefined}
-      />
+      <PageHeader schoolName={committedSchoolName} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
         <div>

@@ -22,6 +22,10 @@ export interface SchoolActionsType {
   clearAllScores: () => void;
   clearStudentScores: (id: string) => void;
   removeAllStudentPhotos: () => void;
+  /** Removes every student record while keeping `SchoolSettings` intact. */
+  clearAllStudents: () => void;
+  /** Atomically wipes students, settings, media blobs, PIN/biometric locks, and device preferences back to a first-visit state. */
+  resetAllAppData: () => Promise<boolean>;
   loadDemoData: () => void;
   updateClassNameForAll: (newClassName: string) => void;
   /** Compares `settings.subjectComponentMap` against existing students' `classScoreComponents` to flag missing, extra, or outdated task definitions. */

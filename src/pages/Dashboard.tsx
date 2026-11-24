@@ -60,6 +60,7 @@ export function Dashboard() {
 
   const [confirmCleanModal, setConfirmCleanModal] = useState(false);
   const [confirmClearScoresModal, setConfirmClearScoresModal] = useState(false);
+  const [confirmAutoRemarksModal, setConfirmAutoRemarksModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [modalStudentQueueIds, setModalStudentQueueIds] = useState<string[] | null>(null);
@@ -269,6 +270,11 @@ export function Dashboard() {
     }
   };
 
+  const studentsWithExistingRemarksCount = useMemo(
+    () => students.filter((s) => Boolean(s.teacherRemark?.trim())).length,
+    [students],
+  );
+
   const handleAutoFillRemarks = () => {
     setRemarksProgress({ isOpen: true, current: 0, total: students.length });
     // Use setTimeout to allow modal to render first
@@ -284,6 +290,14 @@ export function Dashboard() {
         }
       });
     }, 100);
+  };
+
+  const handleAutoRemarksAction = () => {
+    if (studentsWithExistingRemarksCount > 0) {
+      setConfirmAutoRemarksModal(true);
+      return;
+    }
+    handleAutoFillRemarks();
   };
 
   return (
@@ -447,7 +461,7 @@ export function Dashboard() {
               onSyncClassSubjects={handleSyncClassSubjectsAndTasks}
               onBulkPromotion={() => setShowBulkPromotionModal(true)}
               onDeletePending={() => setConfirmCleanModal(true)}
-              onAutoRemarks={handleAutoFillRemarks}
+              onAutoRemarks={handleAutoRemarksAction}
               onClearScores={() => setConfirmClearScoresModal(true)}
               onExportStudentList={() => {
                 // Export simple student names list as text file
@@ -681,6 +695,21 @@ export function Dashboard() {
           triggerHaptic("heavy");
           clearAllScores();
           setConfirmClearScoresModal(false);
+        }}
+      />
+
+      {/* CONFIRM AUTO-REMARKS OVERWRITE MODAL */}
+      <ConfirmModal
+        isOpen={confirmAutoRemarksModal}
+        title="Overwrite Existing Remarks?"
+        message={`${studentsWithExistingRemarksCount} student${studentsWithExistingRemarksCount === 1 ? " already has a" : "s already have"} teacher remark entered. Generating new remarks will replace existing teacher remarks across the class.`}
+        confirmText="Yes, Overwrite Remarks"
+        isDangerous={true}
+        onClose={() => setConfirmAutoRemarksModal(false)}
+        onConfirm={() => {
+          triggerHaptic("heavy");
+          setConfirmAutoRemarksModal(false);
+          handleAutoFillRemarks();
         }}
       />
 

@@ -3,6 +3,7 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
+import { ImageUploader } from "../components/ImageUploader";
 import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
 import { ScoreEntryModal } from "../components/ScoreEntryModal";
 import { WelcomeTour } from "../components/WelcomeTour";
@@ -225,5 +226,30 @@ describe("Modal and Overlay UX", () => {
 
     expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Back to Home/i })).toHaveAttribute("href", "/");
+  });
+
+  it("ImageUploader opens ConfirmModal before removing an uploaded image", () => {
+    const onChange = vi.fn();
+
+    render(
+      <ToastContext.Provider value={{ showToast: vi.fn() }}>
+        <ImageUploader
+          label="School Crest"
+          value="data:image/png;base64,fake"
+          onChange={onChange}
+        />
+      </ToastContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Remove Image/i }));
+    expect(screen.getByText("Remove School Crest?")).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Remove Image/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, Remove" }));
+    expect(onChange).toHaveBeenCalledWith(undefined);
   });
 });

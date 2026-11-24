@@ -14,7 +14,6 @@ import { SettingsFormProvider } from "../../context/SettingsFormContext";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { useTheme } from "../../hooks/useTheme";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { SettingsHeaderActions } from "../../components/settings/SettingsHeaderActions";
 import { SettingsStatusBanners } from "../../components/settings/SettingsStatusBanners";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
 import { getTimeSinceBackup } from "../../utils/dataProtection";
@@ -106,7 +105,7 @@ function SettingsHubContent() {
     {
       to: "/settings/security" as const,
       title: "Security & Backup",
-      description: "PIN lock, device biometrics, storage usage, backups, and factory reset.",
+      description: "PIN lock, device biometrics, storage usage, backups, and reset options.",
       icon: ShieldCheck,
       iconBg: "bg-green-100 text-green-600 dark:bg-emerald-950/60 dark:text-emerald-400",
       meta: securityMeta,
@@ -115,10 +114,7 @@ function SettingsHubContent() {
 
   return (
     <div className="bg-background flex min-h-screen flex-col font-sans">
-      <PageHeader
-        schoolName={committedSchoolName}
-        actions={<SettingsHeaderActions showBack={false} />}
-      />
+      <PageHeader schoolName={committedSchoolName} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
         <SettingsStatusBanners />

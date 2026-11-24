@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
-import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
+import { DEFAULT_FACTORY_SETTINGS, DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { captureEvent } from "../utils/analytics";
-import { isDemoStudent } from "../utils/reportAnalytics";
+import { isDemoStudent, REPORT_LEDGER_STORAGE_KEY } from "../utils/reportAnalytics";
 import { processStudent, assignPositions, assignSubjectPositions } from "../utils/gradeCalculator";
 import {
   deriveLibraryFromSubjectMap,
@@ -49,7 +49,14 @@ import {
   getStorageType,
 } from "../utils/idbStorage";
 import { ConfirmModal } from "../components/ConfirmModal";
-import { setUnsavedChanges } from "../utils/preloadErrorHandler";
+import { CHUNK_RELOAD_KEY, setUnsavedChanges } from "../utils/preloadErrorHandler";
+import { disablePinLock } from "../utils/pinSecurity";
+import {
+  THEME_CHANGE_EVENT,
+  THEME_STORAGE_KEY,
+  applyThemeToDocument,
+  resolveTheme,
+} from "../utils/theme";
 
 /** Maximum wait before startup storage hydration fails over to recovery UI. */
 export const LOAD_TIMEOUT_MS = 10_000;
@@ -57,13 +64,6 @@ export const LOAD_TIMEOUT_MS = 10_000;
 export const MIGRATION_WAIT_TIMEOUT_MS = 10_000;
 type LoadKeyStatus = "ok" | "error";
 type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
-
-const DEFAULT_FACTORY_SETTINGS: SchoolSettings = {
-  ...DEFAULT_SETTINGS,
-  examType: "TERMLY",
-  componentLibrary: [],
-  subjectComponentMap: {},
-};
 
 /**
  * Root school state provider that hydrates students and settings from IndexedDB (running
@@ -672,6 +672,129 @@ export function SchoolProvider({
     }
   }, [handleSetStudents, showToast]);
 
+  // 4E. CLEAR ALL STUDENTS (keeps SchoolSettings for a new class in the same school)
+  const clearAllStudents = useCallback(() => {
+    const count = studentsRef.current.length;
+    if (count === 0) {
+      showToast("No students to remove.", "info");
+      return;
+    }
+    handleSetStudents([]);
+    showToast(
+      `Removed all ${count} student${count === 1 ? "" : "s"}. School settings were kept.`,
+      "success",
+    );
+  }, [handleSetStudents, showToast]);
+
+  // 4F. FULL APP RESET (wipes students, settings, media blobs, locks, and device prefs)
+  const resetAllAppData = useCallback(async (): Promise<boolean> => {
+    if (isLockedRef.current || freshWritesStartedRef.current) {
+      return false;
+    }
+    if (!storageReadyRef.current) {
+      showToast("Storage is not ready. Try again shortly.", "error");
+      return false;
+    }
+
+    let startedWrites = false;
+    try {
+      await waitForMigration();
+      if (isLockedRef.current || freshWritesStartedRef.current) {
+        return false;
+      }
+
+      startedWrites = true;
+      freshWritesStartedRef.current = true;
+      persistenceSuspendedRef.current = true;
+      setIsPersistenceSuspended(true);
+
+      const [studentsSaved, settingsSaved] = await Promise.all([
+        saveToStorage(IDB_KEYS.STUDENTS, []),
+        saveToStorage(IDB_KEYS.SETTINGS, DEFAULT_FACTORY_SETTINGS),
+      ]);
+
+      if (!studentsSaved || !settingsSaved) {
+        persistenceSuspendedRef.current = false;
+        setIsPersistenceSuspended(false);
+        showToast("Could not reset app data. Please try again.", "error");
+        return false;
+      }
+
+      try {
+        disablePinLock();
+      } catch {
+        // ignore storage access errors
+      }
+
+      const keysToRemove = [
+        "app_pin_lockout",
+        "repota_backup_check",
+        "repota_last_backup",
+        "repota_had_data",
+        "repota_incomplete_rollback",
+        "welcome_tour_completed",
+        "pwa-install-dismissed",
+        THEME_STORAGE_KEY,
+        REPORT_LEDGER_STORAGE_KEY,
+        ...(getStorageType() === "indexeddb" ? [IDB_KEYS.STUDENTS, IDB_KEYS.SETTINGS] : []),
+      ];
+      try {
+        for (const key of keysToRemove) {
+          localStorage.removeItem(key);
+        }
+      } catch {
+        // ignore storage access errors
+      }
+
+      try {
+        sessionStorage.removeItem("repota_backup_reminder_shown");
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      } catch {
+        // ignore storage access errors
+      }
+
+      const resolvedTheme = resolveTheme("system");
+      applyThemeToDocument(resolvedTheme);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent(THEME_CHANGE_EVENT, {
+            detail: { preference: "system", resolved: resolvedTheme },
+          }),
+        );
+      }
+
+      ++studentsWriteSeqRef.current;
+      ++settingsWriteSeqRef.current;
+      studentsRef.current = [];
+      settingsRef.current = DEFAULT_FACTORY_SETTINGS;
+      isSavingRef.current = false;
+      setStudents([]);
+      setSettings(DEFAULT_FACTORY_SETTINGS);
+      setLoadStatus({ students: "ok", settings: "ok" });
+      setIsRollbackIncomplete(false);
+      suspendedUntilHydratedRef.current = false;
+      setUnsavedChanges("school-context-debounce", false);
+      setUnsavedChanges("school-context-students-write", false);
+      setUnsavedChanges("school-context-settings-write", false);
+
+      persistenceSuspendedRef.current = false;
+      setIsPersistenceSuspended(false);
+      return true;
+    } catch (error) {
+      persistenceSuspendedRef.current = false;
+      setIsPersistenceSuspended(false);
+      showToast(
+        error instanceof Error ? error.message : "Could not reset app data. Please try again.",
+        "error",
+      );
+      return false;
+    } finally {
+      if (startedWrites) {
+        freshWritesStartedRef.current = false;
+      }
+    }
+  }, [showToast, waitForMigration]);
+
   // 5. MASS UPDATE
   const updateClassNameForAll = useCallback(
     (newClassName: string) => {
@@ -1182,8 +1305,10 @@ export function SchoolProvider({
       deletePendingStudents,
       updateStudent,
       clearAllScores,
+      clearAllStudents,
       clearStudentScores,
       removeAllStudentPhotos,
+      resetAllAppData,
       loadDemoData,
       updateClassNameForAll,
       detectComponentMismatches,
@@ -1208,6 +1333,7 @@ export function SchoolProvider({
       autoGenerateRemarks,
       checkDuplicateName,
       clearAllScores,
+      clearAllStudents,
       clearIncompleteRollback,
       clearStudentScores,
       deletePendingStudents,
@@ -1219,6 +1345,7 @@ export function SchoolProvider({
       markIncompleteRollback,
       openStartFreshConfirm,
       removeAllStudentPhotos,
+      resetAllAppData,
       restoreDefaults,
       resumePersistence,
       retryLoad,

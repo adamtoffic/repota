@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { Dispatch, MouseEvent, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type {
   AssessmentCategory,
   ClassScoreComponentConfig,
@@ -48,13 +48,7 @@ export interface SettingsFormContextType {
   handleLevelChange: (newLevel: SchoolLevel) => void;
   applyLevelChange: (newLevel: SchoolLevel) => void;
 
-  // Reset modal handlers
-  openResetModal: () => void;
-  handleResetMouseDown: (e: MouseEvent<HTMLButtonElement>) => void;
-  closeResetModal: () => void;
-  handleReset: () => void;
-
-  // Security, biometrics & factory reset modal triggers
+  // Security, biometrics & reset modal triggers
   biometricAvailable: boolean;
   biometricType: "face" | "fingerprint" | "other" | null;
   enrollingBiometric: boolean;
@@ -64,7 +58,9 @@ export interface SettingsFormContextType {
   setShowPinSetup: Dispatch<SetStateAction<boolean>>;
   setShowPinRecovery: Dispatch<SetStateAction<boolean>>;
   setShowDisablePinModal: Dispatch<SetStateAction<boolean>>;
+  setShowClearStudentsModal: Dispatch<SetStateAction<boolean>>;
   setShowFactoryResetModal: Dispatch<SetStateAction<boolean>>;
+  setShowFullAppResetModal: Dispatch<SetStateAction<boolean>>;
 }
 
 export const SettingsFormContext = createContext<SettingsFormContextType | undefined>(undefined);

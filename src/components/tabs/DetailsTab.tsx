@@ -23,9 +23,10 @@ import { Input } from "../ui";
 interface Props {
   student: ProcessedStudent;
   onUpdate: (updatedRecord: StudentRecord, silent?: boolean) => void;
+  onNestedModalChange?: (open: boolean) => void;
 }
 
-export function DetailsTab({ student, onUpdate }: Props) {
+export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
   const settings = useSchoolSettings();
   const students = useSchoolStudents();
   const fieldPrefix = useId();
@@ -210,6 +211,7 @@ export function DetailsTab({ student, onUpdate }: Props) {
                 value={formData.pictureUrl}
                 onChange={(val) => handleImmediateSave({ pictureUrl: val || "" })}
                 maxHeight="h-32 sm:h-40"
+                onConfirmOpenChange={onNestedModalChange}
               />
             </div>
           </div>

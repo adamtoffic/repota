@@ -91,7 +91,9 @@ function makeSchoolContext(students: ProcessedStudent[], settings = testSettings
     importBackupData: vi.fn(),
     autoGenerateRemarks: vi.fn(),
     clearAllScores: vi.fn(),
+    clearAllStudents: vi.fn(),
     clearStudentScores: vi.fn(),
+    resetAllAppData: vi.fn().mockResolvedValue(true),
     detectComponentMismatches: () => ({
       hasOutdated: false,
       hasMissing: false,

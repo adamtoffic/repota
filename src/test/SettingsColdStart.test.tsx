@@ -1039,40 +1039,7 @@ describe("Settings cold start", () => {
     expect(hasUnsavedChanges()).toBe(true);
   });
 
-  it("preserves reset baseline when Reset confirmation opens before debounced autosave settles", async () => {
-    storage.initStorage.mockResolvedValue(undefined);
-    storage.loadFromStorage
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce(seededSettings);
-
-    renderSettings();
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-      vi.advanceTimersByTime(600);
-      await Promise.resolve();
-    });
-
-    const mottoInput = screen.getByDisplayValue("Learn and Lead");
-    fireEvent.change(mottoInput, { target: { value: "Draft Motto" } });
-    expect(mottoInput).toHaveValue("Draft Motto");
-
-    // Click Reset immediately before 500ms autosave runs
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    expect(screen.getByText("Discard Changes?")).toBeInTheDocument();
-
-    // Advance past debounce window while modal is open
-    await act(async () => {
-      vi.advanceTimersByTime(700);
-      await Promise.resolve();
-    });
-
-    // Confirm Reset: must restore original seeded baseline, not "Draft Motto"
-    fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
-    expect(screen.getByDisplayValue("Learn and Lead")).toBeInTheDocument();
-  });
-
-  it("applies deferred autosave baseline on cancelled Reset and restores it on a subsequent Reset", async () => {
+  it("tracks settings-draft unsaved status during 500ms debounce without rendering a header Reset button", async () => {
     storage.initStorage.mockResolvedValue(undefined);
     storage.loadFromStorage
       .mockResolvedValueOnce([])
@@ -1088,32 +1055,19 @@ describe("Settings cold start", () => {
 
     const mottoInput = screen.getByDisplayValue("Learn and Lead");
     fireEvent.change(mottoInput, { target: { value: "Autosaved Motto" } });
-
-    // Fire 500ms debounce so setSettings runs and queues the baseline RAF, without flushing RAF yet
-    await act(async () => {
-      vi.advanceTimersByTime(500);
-      await Promise.resolve();
-    });
-
-    // Open Reset before RAF settles, then cancel it
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    expect(screen.getByText("Discard Changes?")).toBeInTheDocument();
-
-    await act(async () => {
-      vi.advanceTimersByTime(50);
-      await Promise.resolve();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByDisplayValue("Autosaved Motto")).toBeInTheDocument();
+    expect(mottoInput).toHaveValue("Autosaved Motto");
+    expect(hasUnsavedChanges()).toBe(true);
     expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
 
-    // Now make a transient edit and confirm Reset: must restore "Autosaved Motto"
-    fireEvent.change(screen.getByDisplayValue("Autosaved Motto"), {
-      target: { value: "Temporary Edit" },
+    // Advance past both 500ms debounces (SettingsFormContext -> SchoolContext -> storage)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(550);
     });
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    fireEvent.click(screen.getByRole("button", { name: "Yes, Discard Changes" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(550);
+    });
+
+    expect(hasUnsavedChanges()).toBe(false);
     expect(screen.getByDisplayValue("Autosaved Motto")).toBeInTheDocument();
   });
 

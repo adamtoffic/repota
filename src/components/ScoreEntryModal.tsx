@@ -620,7 +620,12 @@ export function ScoreEntryModal({
             )}
 
             {activeTab === "DETAILS" && (
-              <DetailsTab key={student.id} student={student} onUpdate={onUpdateStudent} />
+              <DetailsTab
+                key={student.id}
+                student={student}
+                onUpdate={onUpdateStudent}
+                onNestedModalChange={setHasNestedModal}
+              />
             )}
           </div>
         </div>
