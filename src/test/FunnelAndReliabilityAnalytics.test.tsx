@@ -148,6 +148,8 @@ function makeSchoolContext(students: ProcessedStudent[]): SchoolContextType {
     updateClassNameForAll: vi.fn(),
     detectComponentMismatches: () => ({ hasOutdated: false, hasMissing: false }),
     syncSubjectComponentsFromSettings: vi.fn(),
+    applySbaConfig: vi.fn(),
+    updateAssessmentWeights: vi.fn(),
     checkDuplicateName: vi.fn(() => false),
     restoreDefaults: vi.fn(),
     autoGenerateRemarks: vi.fn(),

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SchoolProvider } from "../context/SchoolContext";
@@ -6,6 +6,8 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import { SbaPage } from "../pages/SbaPage";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { SchoolSettings, StudentRecord } from "../types";
+import { resetSessionAnalyticsGuards } from "../utils/analytics";
+import * as csvImportUtils from "../utils/csvImport";
 
 const toastMock = vi.hoisted(() => ({
   showToast: vi.fn(),
@@ -14,9 +16,13 @@ const toastMock = vi.hoisted(() => ({
 const storage = vi.hoisted(() => ({
   initStorage: vi.fn(),
   loadFromStorageResult: vi.fn(),
-  saveToStorage: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
+  saveToStorage: vi.fn(),
   createBackupHeartbeat: vi.fn(),
+}));
+
+const posthogMock = vi.hoisted(() => ({
+  capture: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -37,7 +43,11 @@ vi.mock("../utils/idbStorage", () => ({
   ...storage,
 }));
 
-vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
+vi.mock("posthog-js", () => ({ default: posthogMock }));
+
+vi.mock("../utils/analyticsEnv", () => ({
+  isProductionAnalyticsHost: () => true,
+}));
 
 vi.mock("../utils/dataProtection", () => ({
   createBackupHeartbeat: storage.createBackupHeartbeat,
@@ -45,18 +55,40 @@ vi.mock("../utils/dataProtection", () => ({
   detectDataLoss: vi.fn(() => false),
 }));
 
-function StudentSubjectProbe({ onSubjects }: { onSubjects: (names: string[]) => void }) {
-  const { students } = useSchoolData();
-  const names = students[0]?.subjects[0]?.classScoreComponents?.map((c) => c.name) ?? [];
-  onSubjects(names);
+function StudentSbaProbe() {
+  const { students, settings } = useSchoolData();
+
+  const formatSub = (studentIndex: number, subjectName: string) => {
+    const sub = students[studentIndex]?.subjects.find((s) => s.name === subjectName);
+    if (!sub) return "none";
+    const comps = (sub.classScoreComponents ?? [])
+      .map((c) => `${c.name}:${c.score}/${c.maxScore}:${c.category ?? ""}`)
+      .join(",");
+    return `cls=${sub.classScore};exam=${sub.examScore};[${comps}]`;
+  };
+
   return (
-    <div data-testid="student-components">
-      {names.length > 0 ? names.join(",") : "none"}
+    <div>
+      <div data-testid="stu0-math">{formatSub(0, "Mathematics")}</div>
+      <div data-testid="stu0-eng">{formatSub(0, "English")}</div>
+      <div data-testid="stu1-math">{formatSub(1, "Mathematics")}</div>
+      <div data-testid="settings-library">
+        {(settings.componentLibrary ?? []).map((c) => c.name).join(",")}
+      </div>
+      <div data-testid="settings-map-math">
+        {(settings.subjectComponentMap?.Mathematics ?? []).map((c) => c.name).join(",")}
+      </div>
+      <div data-testid="settings-map-eng">
+        {(settings.subjectComponentMap?.English ?? []).map((c) => c.name).join(",")}
+      </div>
+      <div data-testid="settings-weights">
+        {`${settings.examType}:${settings.classScoreMax}/${settings.examScoreMax}`}
+      </div>
     </div>
   );
 }
 
-function LoadedSbaHarness({ onSubjects }: { onSubjects: (names: string[]) => void }) {
+function LoadedSbaHarness() {
   const { isDataLoaded } = useSchoolData();
   if (!isDataLoaded) {
     return <div>Loading school data...</div>;
@@ -64,139 +96,377 @@ function LoadedSbaHarness({ onSubjects }: { onSubjects: (names: string[]) => voi
   return (
     <>
       <SbaPage />
-      <StudentSubjectProbe onSubjects={onSubjects} />
+      <StudentSbaProbe />
     </>
   );
 }
 
-describe("SBA workflow end-to-end", () => {
-  const baseSettings: SchoolSettings = {
-    ...DEFAULT_SETTINGS,
-    schoolName: "Test Academy",
+function renderSbaWorkflow() {
+  return render(
+    <SchoolProvider>
+      <LoadedSbaHarness />
+    </SchoolProvider>,
+  );
+}
+
+const baseSettings: SchoolSettings = {
+  ...DEFAULT_SETTINGS,
+  schoolName: "Test Academy",
+  className: "Basic 5",
+  level: "PRIMARY",
+  examType: "TERMLY",
+  classScoreMax: 50,
+  examScoreMax: 50,
+  defaultSubjects: ["Mathematics", "English"],
+  componentLibrary: [],
+  subjectComponentMap: {},
+};
+
+const baseStudents: StudentRecord[] = [
+  {
+    id: "stu-1",
+    name: "Ama Mensah",
     className: "Basic 5",
-    level: "PRIMARY",
-    examType: "TERMLY",
-    classScoreMax: 50,
-    examScoreMax: 50,
-    defaultSubjects: ["Mathematics", "Science"],
-    componentLibrary: [],
-    subjectComponentMap: {},
-  };
+    gender: "Female",
+    subjects: [
+      { id: "sub-m1", name: "Mathematics", classScore: 0, examScore: 40 },
+      { id: "sub-e1", name: "English", classScore: 0, examScore: 35 },
+    ],
+  },
+  {
+    id: "stu-2",
+    name: "Kofi Boateng",
+    className: "Basic 5",
+    gender: "Male",
+    subjects: [
+      { id: "sub-m2", name: "Mathematics", classScore: 0, examScore: 30 },
+      { id: "sub-e2", name: "English", classScore: 0, examScore: 28 },
+    ],
+  },
+];
 
-  const baseStudents: StudentRecord[] = [
-    {
-      id: "stu-1",
-      name: "Ama Mensah",
-      className: "Basic 5",
-      subjects: [
-        { id: "sub-math", name: "Mathematics", classScore: 0, examScore: 0 },
-        { id: "sub-sci", name: "Science", classScore: 0, examScore: 0 },
-      ],
-    },
-  ];
+function seedStorage(students: StudentRecord[], settings: SchoolSettings) {
+  storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+    if (key === "ges_v1_students") {
+      return { status: "found", value: structuredClone(students) };
+    }
+    if (key === "ges_v1_settings") {
+      return { status: "found", value: structuredClone(settings) };
+    }
+    return { status: "empty" };
+  });
+}
 
+describe("SBA Markbook workflow end-to-end", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
+    resetSessionAnalyticsGuards();
     vi.clearAllMocks();
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: true });
     storage.saveToStorage.mockResolvedValue(true);
     storage.createBackupHeartbeat.mockResolvedValue(undefined);
-    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
-      if (key === "ges_v1_students") {
-        return { status: "found", value: structuredClone(baseStudents) };
-      }
-      if (key === "ges_v1_settings") {
-        return { status: "found", value: structuredClone(baseSettings) };
-      }
-      return { status: "empty" };
-    });
+    seedStorage(baseStudents, baseSettings);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it("adds an SBA task, assigns it to all subjects, surfaces the mismatch banner after auto-save, and syncs to students", async () => {
-    const capturedComponents: string[][] = [];
-
-    render(
-      <SchoolProvider>
-        <LoadedSbaHarness onSubjects={(names) => capturedComponents.push(names)} />
-      </SchoolProvider>,
-    );
+  it("onboards with GES Standard preset and automatically reconciles students without a Sync button", async () => {
+    renderSbaWorkflow();
 
     await waitFor(() => {
-      expect(screen.getByText("Test Academy")).toBeInTheDocument();
-      expect(screen.getByText("Sync Tasks to Students")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /SBA Markbook/i })).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Student SBA tasks are out of sync")).not.toBeInTheDocument();
+    expect(screen.getByText(/Set up SBA tasks for/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sync Tasks to Students/i })).not.toBeInTheDocument();
 
-    // Switch to fake timers after SchoolProvider finished async IndexedDB initialization
-    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: /GES Standard \(4 Tasks/i }));
 
-    const taskNameInput = screen.getByPlaceholderText("e.g. Natural Science Project");
-    const maxScoreInput = screen.getByPlaceholderText("15");
+    // Multi-column grid immediately appears for Mathematics and reconciles students atomically
+    expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ama Mensah Group Work Score")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ama Mensah CAT 2 Score")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ama Mensah Project Work Score")).toBeInTheDocument();
 
-    fireEvent.change(taskNameInput, { target: { value: "Midterm Quiz" } });
-    fireEvent.change(maxScoreInput, { target: { value: "20" } });
-    fireEvent.click(screen.getByRole("button", { name: /^Add$/i }));
-
-    expect(screen.getByText("1 Task Defined")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Assign All Tasks to All Subjects/i }));
-
-    // Advance past SettingsFormProvider 500ms debounce + rAF baseline sync so settings commit to SchoolContext
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(100);
-    });
-
-    expect(screen.getByText("Student SBA tasks are out of sync")).toBeInTheDocument();
-    expect(screen.getByText("Outdated")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Sync Tasks to Students/i }));
-
-    expect(screen.queryByText("Student SBA tasks are out of sync")).not.toBeInTheDocument();
-    expect(screen.getByTestId("student-components")).toHaveTextContent("Midterm Quiz");
-    expect(capturedComponents.at(-1)).toEqual(["Midterm Quiz"]);
+    expect(screen.getByTestId("stu0-math")).toHaveTextContent(
+      "CAT 1:0/15:CAT,Group Work:0/15:GROUP,CAT 2:0/15:CAT,Project Work:0/15:PROJECT",
+    );
+    expect(screen.getByTestId("stu0-eng")).toHaveTextContent(
+      "CAT 1:0/15:CAT,Group Work:0/15:GROUP,CAT 2:0/15:CAT,Project Work:0/15:PROJECT",
+    );
+    expect(screen.queryByRole("button", { name: /Reconcile Tasks/i })).not.toBeInTheDocument();
   });
 
-  it("flushes SBA assignments before opening ScoreImportModal and syncs newly imported tasks back to SbaPage", async () => {
-    render(
-      <SchoolProvider>
-        <LoadedSbaHarness onSubjects={() => {}} />
-      </SchoolProvider>,
+  it("scores multi-column cells with live Raw, Class, mid-term pace, and Score_Entry_Session telemetry", async () => {
+    const gesTasks = [
+      { name: "CAT 1", maxScore: 15, category: "CAT" as const },
+      { name: "Group Work", maxScore: 15, category: "GROUP" as const },
+      { name: "CAT 2", maxScore: 15, category: "CAT" as const },
+      { name: "Project Work", maxScore: 15, category: "PROJECT" as const },
+    ];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Ama Mensah CAT 1 Score"), {
+      target: { value: "12" },
+    });
+
+    // Live Raw (12/60), Class (12/60 * 50 = 10/50), and mid-term pace (1/4 · 80% pace)
+    expect(screen.getAllByText("12/60").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("10/50").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1/4 · 80% pace").length).toBeGreaterThan(0);
+
+    expect(posthogMock.capture).toHaveBeenCalledWith(
+      "Score_Entry_Session",
+      expect.objectContaining({
+        entry_mode: "sba_markbook",
+        used_column_paste: false,
+        school_level: "PRIMARY",
+        exam_type: "TERMLY",
+      }),
+    );
+  });
+
+  it("pastes a 2D spreadsheet block across rows and tasks and tracks used_column_paste analytics", async () => {
+    const gesTasks = [
+      { name: "CAT 1", maxScore: 15, category: "CAT" as const },
+      { name: "Group Work", maxScore: 15, category: "GROUP" as const },
+    ];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    });
+
+    const firstCell = screen.getByLabelText("Ama Mensah CAT 1 Score");
+    fireEvent.paste(firstCell, {
+      clipboardData: {
+        getData: () => "12\t10\n14\t15",
+      },
+    });
+
+    expect(screen.getByTestId("stu0-math")).toHaveTextContent(
+      "cls=37;exam=40;[CAT 1:12/15:CAT,Group Work:10/15:GROUP]",
+    );
+    expect(screen.getByTestId("stu1-math")).toHaveTextContent(
+      "cls=48;exam=30;[CAT 1:14/15:CAT,Group Work:15/15:GROUP]",
     );
 
+    expect(posthogMock.capture).toHaveBeenCalledWith(
+      "Score_Entry_Session",
+      expect.objectContaining({
+        entry_mode: "sba_markbook",
+        used_column_paste: true,
+      }),
+    );
+  });
+
+  it("supports Task Manager CRUD, inline rename preserving marks, shrink confirmation, deletion, and per-subject override", async () => {
+    const gesTasks = [
+      { name: "CAT 1", maxScore: 15, category: "CAT" as const },
+      { name: "Group Work", maxScore: 15, category: "GROUP" as const },
+    ];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
     await waitFor(() => {
-      expect(screen.getByText("Test Academy")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Import Scores \(CSV\)/i })).toBeInTheDocument();
+      expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
     });
 
-    // Assign a task WITHOUT waiting 500ms debounce, then immediately click Import Scores (CSV)
-    fireEvent.change(screen.getByPlaceholderText("e.g. Natural Science Project"), {
-      target: { value: "Quiz 1" },
+    // Score 12/15 in CAT 1 first
+    fireEvent.change(screen.getByLabelText("Ama Mensah CAT 1 Score"), {
+      target: { value: "12" },
     });
-    fireEvent.change(screen.getByPlaceholderText("15"), { target: { value: "10" } });
-    fireEvent.click(screen.getByRole("button", { name: /^Add$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Assign All Tasks to All Subjects/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /Import Scores \(CSV\)/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Manage Tasks/i }));
+    const taskDialog = within(screen.getByRole("dialog"));
 
-    // Modal immediately sees flushed Mathematics SBA task from SbaPage
-    expect(
-      screen.getByText(
-        (_, node) =>
-          node?.tagName === "P" &&
-          Boolean(node.textContent?.includes("Mathematics SBA: 1 component")),
-      ),
-    ).toBeInTheDocument();
+    // Add task "Class Quiz" (/10, CAT)
+    fireEvent.change(taskDialog.getByLabelText("New task category"), { target: { value: "CAT" } });
+    fireEvent.change(taskDialog.getByLabelText("New task name"), { target: { value: "Class Quiz" } });
+    fireEvent.change(taskDialog.getByLabelText("New task max score"), { target: { value: "10" } });
+    fireEvent.click(taskDialog.getByRole("button", { name: /Add Task/i }));
+    expect(screen.getByTestId("settings-map-math")).toHaveTextContent("CAT 1,Group Work,Class Quiz");
 
-    // Switch to Single SBA Task and create a brand-new SBA component "Essay Work"
+    // Inline rename "CAT 1" -> "Midterm CAT" preserves existing score 12
+    fireEvent.click(taskDialog.getByRole("button", { name: "Edit CAT 1" }));
+    fireEvent.change(taskDialog.getByLabelText("Edit task name"), {
+      target: { value: "Midterm CAT" },
+    });
+    fireEvent.click(taskDialog.getByRole("button", { name: /^Save$/i }));
+    expect(screen.getByTestId("stu0-math")).toHaveTextContent("Midterm CAT:12/15");
+
+    // Shrink max score 15 -> 10 triggers destructive impact confirmation and clamps 12 -> 10
+    fireEvent.click(taskDialog.getByRole("button", { name: "Edit Midterm CAT" }));
+    fireEvent.change(taskDialog.getByLabelText("Edit task max score"), { target: { value: "10" } });
+    fireEvent.click(taskDialog.getByRole("button", { name: /^Save$/i }));
+    expect(taskDialog.getByRole("alert")).toHaveTextContent(/1 recorded score across 1 student/i);
+    fireEvent.click(taskDialog.getByRole("button", { name: /Confirm & Update/i }));
+    expect(screen.getByTestId("stu0-math")).toHaveTextContent("Midterm CAT:10/10");
+
+    // Delete "Group Work" cascades from both subjectComponentMap and componentLibrary
+    fireEvent.click(taskDialog.getByRole("button", { name: "Remove Group Work" }));
+    expect(screen.getByTestId("settings-map-math")).toHaveTextContent("Midterm CAT,Class Quiz");
+    expect(screen.getByTestId("settings-library")).toHaveTextContent("Midterm CAT,Class Quiz");
+    expect(screen.getByTestId("settings-library")).not.toHaveTextContent("Group Work");
+
+    // Switch to English and add a subject-specific task without touching Mathematics
+    fireEvent.click(taskDialog.getByRole("button", { name: /Close task manager/i }));
+    fireEvent.change(screen.getByLabelText("SBA subject"), { target: { value: "English" } });
+    fireEvent.click(screen.getByRole("button", { name: /Manage Tasks/i }));
+    const englishDialog = within(screen.getByRole("dialog"));
+    fireEvent.click(englishDialog.getByRole("tab", { name: /Only English/i }));
+    fireEvent.change(englishDialog.getByLabelText("New task name"), {
+      target: { value: "Oral Reading" },
+    });
+    fireEvent.change(englishDialog.getByLabelText("New task max score"), { target: { value: "10" } });
+    fireEvent.click(englishDialog.getByRole("button", { name: /Add Task/i }));
+
+    expect(screen.getByTestId("settings-map-eng")).toHaveTextContent(
+      "Midterm CAT,Class Quiz,Oral Reading",
+    );
+    expect(screen.getByTestId("settings-map-math")).not.toHaveTextContent("Oral Reading");
+  });
+
+  it("clamps weight inputs, rescales 50/50 to 30/70, and pauses/resumes SBA cleanly across Mock Exam toggles", async () => {
+    const gesTasks = [{ name: "CAT 1", maxScore: 20, category: "CAT" as const }];
+    const seededWithScores: StudentRecord[] = [
+      {
+        ...baseStudents[0],
+        subjects: [
+          {
+            id: "sub-m1",
+            name: "Mathematics",
+            classScore: 25,
+            examScore: 40, // 80/100 raw under 50/50 -> must rescale to 56/70
+            classScoreComponents: [{ id: "c1", name: "CAT 1", score: 10, maxScore: 20, category: "CAT" }],
+          },
+          { id: "sub-e1", name: "English", classScore: 0, examScore: 0 },
+        ],
+      },
+    ];
+    seedStorage(seededWithScores, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Grading weights and exam mode/i })).toBeInTheDocument();
+    });
+
+    // Open Weights Modal, check input clamping >100 -> 100/0, then pick 30/70 preset
+    fireEvent.click(screen.getByRole("button", { name: /Grading weights and exam mode/i }));
+    const weightDialog = within(screen.getByRole("dialog"));
+    const weightInputs = weightDialog.getAllByRole("spinbutton") as HTMLInputElement[];
+    fireEvent.change(weightInputs[0], { target: { value: "120" } });
+    expect(weightInputs[0].value).toBe("100");
+    expect(weightInputs[1].value).toBe("0");
+
+    fireEvent.click(weightDialog.getByRole("button", { name: /30 \/ 70/i }));
+    fireEvent.click(weightDialog.getByRole("button", { name: /Apply Grading Split/i }));
+
+    expect(screen.getByRole("button", { name: /Grading weights and exam mode/i })).toHaveTextContent(
+      "Termly · 30/70",
+    );
+    expect(screen.getByTestId("stu0-math")).toHaveTextContent("cls=15;exam=56;[CAT 1:10/20:CAT]");
+
+    // Toggle to Mock Exam (0/100): SBA pauses cleanly, tasks preserved, then resume to Termly
+    fireEvent.click(screen.getByRole("button", { name: /Grading weights and exam mode/i }));
+    const mockDialog = within(screen.getByRole("dialog"));
+    fireEvent.click(mockDialog.getByRole("button", { name: /Mock Exam \(0\/100\)/i }));
+    fireEvent.click(mockDialog.getByRole("button", { name: /Apply Grading Split/i }));
+
+    expect(screen.getByText(/Mock Exam mode is active \(0\/100\)/i)).toBeInTheDocument();
+    expect(screen.getByTestId("stu0-math")).toHaveTextContent("CAT 1:10/20:CAT");
+
+    fireEvent.click(screen.getByRole("button", { name: /Switch to Termly Mode/i }));
+    expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Grading weights and exam mode/i })).toHaveTextContent(
+      "Termly · 50/50",
+    );
+  });
+
+  it("exports SBA markbook CSV with Raw Total/Pace telemetry and syncs new imported CSV tasks back to SbaPage", async () => {
+    const downloadSpy = vi.spyOn(csvImportUtils, "downloadCsvFile").mockImplementation(() => {});
+    const gesTasks = [{ name: "Quiz 1", maxScore: 10, category: "CAT" as const }];
+    const syncedStudent: StudentRecord = {
+      ...baseStudents[0],
+      subjects: [
+        {
+          id: "sub-m1",
+          name: "Mathematics",
+          classScore: 0,
+          examScore: 40,
+          classScoreComponents: [
+            { id: "qm1", name: "Quiz 1", score: 0, maxScore: 10, category: "CAT" },
+          ],
+        },
+        {
+          id: "sub-e1",
+          name: "English",
+          classScore: 0,
+          examScore: 35,
+          classScoreComponents: [
+            { id: "qe1", name: "Quiz 1", score: 0, maxScore: 10, category: "CAT" },
+          ],
+        },
+      ],
+    };
+    seedStorage([syncedStudent], {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Export SBA CSV/i })).toBeInTheDocument();
+    });
+
+    // Export SBA CSV for Mathematics
+    fireEvent.click(screen.getByRole("button", { name: /Export SBA CSV/i }));
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
+    expect(downloadSpy.mock.calls[0][1]).toMatch(/^Mathematics_SBA_Sheet_.*\.csv$/);
+    expect(downloadSpy.mock.calls[0][0]).toContain("Raw Total (/10)");
+    expect(downloadSpy.mock.calls[0][0]).toContain("SBA Pace (%)");
+    expect(posthogMock.capture).toHaveBeenCalledWith(
+      "Class_Tool_Used",
+      expect.objectContaining({
+        tool: "sba_sheet_csv_export",
+        students_count: 1,
+        school_level: "PRIMARY",
+      }),
+    );
+
+    // Switch to English, open Import CSV pre-targeted to English, import new "Essay Work (/20)"
+    fireEvent.change(screen.getByLabelText("SBA subject"), { target: { value: "English" } });
+    fireEvent.click(screen.getByRole("button", { name: /Import CSV/i }));
+    expect(screen.getByLabelText(/Target Subject/i)).toHaveValue("English");
+
     fireEvent.click(screen.getByRole("tab", { name: /Single SBA Task/i }));
     fireEvent.change(screen.getByLabelText("SBA Component"), {
       target: { value: "__CREATE_NEW_TASK__" },
@@ -212,41 +482,12 @@ describe("SBA workflow end-to-end", () => {
     fireEvent.change(textarea, {
       target: { value: "Name\tEssay Work (/20)\nAma Mensah\t15" },
     });
+
     fireEvent.click(screen.getByRole("button", { name: /Preview & Validate Scores/i }));
     fireEvent.click(screen.getByRole("button", { name: /Apply Scores/i }));
 
-    // Wait a tick for modal close & SbaPage re-render: SbaPage immediately shows "Essay Work"
-    expect(screen.getAllByText("Essay Work").length).toBeGreaterThan(0);
-
-    // Syncing tasks across students keeps both Quiz 1 and Essay Work cleanly without wiping
-    fireEvent.click(screen.getByRole("button", { name: /Sync Tasks to Students/i }));
-    expect(screen.getByTestId("student-components")).toHaveTextContent("Quiz 1,Essay Work");
-  });
-
-  it("clarifies Export Broadsheet label, displays per-subject raw mark totals, and opens per-subject ScoreImportModal", async () => {
-    render(
-      <SchoolProvider>
-        <LoadedSbaHarness onSubjects={() => {}} />
-      </SchoolProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("Test Academy")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Export Broadsheet \(CSV\)/i })).toBeInTheDocument();
-    });
-
-    // Add a task and assign it so both Mathematics and Science show their raw mark totals
-    fireEvent.change(screen.getByPlaceholderText("e.g. Natural Science Project"), {
-      target: { value: "Group Drill" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("15"), { target: { value: "10" } });
-    fireEvent.click(screen.getByRole("button", { name: /^Add$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Assign All Tasks to All Subjects/i }));
-
-    expect(screen.getAllByText("1 task • /10 raw → 50% Class")).toHaveLength(2);
-
-    // Clicking Science's Import Scores shortcut opens ScoreImportModal pre-targeted to Science
-    fireEvent.click(screen.getByRole("button", { name: "Import scores for Science" }));
-    expect(screen.getByLabelText(/Target Subject/i)).toHaveValue("Science");
+    expect(screen.getByLabelText("Ama Mensah Essay Work Score")).toHaveValue(15);
+    expect(screen.getByTestId("settings-map-eng")).toHaveTextContent("Quiz 1,Essay Work");
+    expect(screen.queryByRole("button", { name: /Reconcile Tasks/i })).not.toBeInTheDocument();
   });
 });
