@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useContext, useMemo } from "react";
 import type { ReactNode, SetStateAction } from "react";
 import { captureEvent } from "../utils/analytics";
-import { useSchoolData } from "../hooks/useSchoolData";
+import {
+  useSchoolActions,
+  useSchoolLifecycle,
+  useSchoolSettings,
+  useSchoolStudents,
+} from "../hooks/useSchoolData";
 import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
@@ -25,7 +30,8 @@ import {
 } from "../utils/biometricAuth";
 import { setUnsavedChanges } from "../utils/preloadErrorHandler";
 import { removeFromLibrary, unassignFromSubject } from "../utils/componentRegistry";
-import { SettingsFormContext } from "./SettingsFormContextDefinition";
+import { areSettingsEqual } from "../utils/settingsEquality";
+import { SettingsFormContext, type SettingsFormContextType } from "./SettingsFormContextDefinition";
 
 /**
  * Provides shared settings draft state, 500ms debounced auto-save, baseline tracking,
@@ -44,18 +50,16 @@ export function SettingsFormProvider({ children }: { children: ReactNode }) {
 }
 
 function SettingsFormProviderInner({ children }: { children: ReactNode }) {
+  const settings = useSchoolSettings();
+  const students = useSchoolStudents();
+  const { isSaving, lastSaved, isPersistenceSuspended } = useSchoolLifecycle();
   const {
-    settings,
     setSettings,
     updateClassNameForAll,
-    students,
     clearAllStudents,
     restoreDefaults,
     resetAllAppData,
-    isSaving,
-    lastSaved,
-    isPersistenceSuspended,
-  } = useSchoolData();
+  } = useSchoolActions();
   const { showToast } = useToast();
 
   const formGenerationRef = useRef(0);
@@ -76,14 +80,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   }, []);
 
   const [lastSavedSettings, setLastSavedSettings] = useState<SchoolSettings>(settings);
-  const lastAutoSaveRef = useRef<string | null>(null);
   const lastAutoSaveSettingsRef = useRef<SchoolSettings>(settings);
-  const getLastAutoSaveString = useCallback(() => {
-    if (lastAutoSaveRef.current === null) {
-      lastAutoSaveRef.current = JSON.stringify(lastAutoSaveSettingsRef.current);
-    }
-    return lastAutoSaveRef.current;
-  }, []);
 
   // Form inputs
   const [newSubject, setNewSubject] = useState("");
@@ -165,20 +162,17 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
           ? { ...latestForm, className: savedClassName }
           : latestForm;
 
-      if (Object.is(toSave, lastAutoSaveSettingsRef.current)) return;
-      const toSaveString = JSON.stringify(toSave);
-      if (toSaveString === getLastAutoSaveString()) return;
+      if (areSettingsEqual(toSave, lastAutoSaveSettingsRef.current)) return;
 
       lastAutoSaveSettingsRef.current = toSave;
-      lastAutoSaveRef.current = toSaveString;
       setSettingsRef.current(toSave);
     };
-  }, [getLastAutoSaveString]);
+  }, []);
 
-  const hasUnsavedChanges = useMemo(() => {
-    if (Object.is(formData, lastSavedSettings)) return false;
-    return JSON.stringify(formData) !== JSON.stringify(lastSavedSettings);
-  }, [formData, lastSavedSettings]);
+  const hasUnsavedChanges = useMemo(
+    () => !areSettingsEqual(formData, lastSavedSettings),
+    [formData, lastSavedSettings],
+  );
 
   useEffect(() => {
     setUnsavedChanges("settings-draft", hasUnsavedChanges);
@@ -187,9 +181,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (debouncedPayload.generation < immediateSaveGenRef.current) return;
-    if (Object.is(debouncedFormData, lastAutoSaveSettingsRef.current)) return;
-    const debouncedString = JSON.stringify(debouncedFormData);
-    if (debouncedString === getLastAutoSaveString()) return;
+    if (areSettingsEqual(debouncedFormData, lastAutoSaveSettingsRef.current)) return;
     const classNameChanged = debouncedFormData.className !== lastSavedSettings.className;
     const isClassNameEmpty = !(debouncedFormData.className ?? "").trim();
     if ((classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty) {
@@ -197,11 +189,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         ...debouncedFormData,
         className: lastSavedSettings.className,
       };
-      const savedString = JSON.stringify(savedFormData);
-      if (savedString === getLastAutoSaveString()) return;
+      if (areSettingsEqual(savedFormData, lastAutoSaveSettingsRef.current)) return;
       setSettings(savedFormData);
       lastAutoSaveSettingsRef.current = savedFormData;
-      lastAutoSaveRef.current = savedString;
 
       const seq = ++baselineSeqRef.current;
       requestAnimationFrame(() => {
@@ -214,7 +204,6 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
 
     setSettings(debouncedFormData);
     lastAutoSaveSettingsRef.current = debouncedFormData;
-    lastAutoSaveRef.current = debouncedString;
 
     const seq = ++baselineSeqRef.current;
     requestAnimationFrame(() => {
@@ -225,12 +214,11 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   }, [
     debouncedFormData,
     debouncedPayload.generation,
-    getLastAutoSaveString,
     lastSavedSettings.className,
     setSettings,
   ]);
 
-  const handleClassNameBlur = () => {
+  const handleClassNameBlur = useCallback(() => {
     const trimmed = (formData.className ?? "").trim();
     const oldName = (lastSavedSettings.className ?? "").trim();
 
@@ -250,12 +238,12 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     if (trimmed === oldName) return;
 
     // 4. If students exist, prompt confirmation; otherwise let 500ms auto-save persist
-    if (students.length > 0) {
+    if (studentsCountRef.current > 0) {
       setShowClassUpdateModal(true);
     }
-  };
+  }, [formData.className, lastSavedSettings.className, setFormData, showToast]);
 
-  const handleEnrollBiometric = async () => {
+  const handleEnrollBiometric = useCallback(async () => {
     setEnrollingBiometric(true);
     const { success, error } = await enrollBiometric();
     setEnrollingBiometric(false);
@@ -265,90 +253,97 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     } else {
       showToast(error || "Failed to enable biometric", "error");
     }
-  };
+  }, [biometricType, checkBiometric, showToast]);
 
-  const handleDisableBiometric = () => {
+  const handleDisableBiometric = useCallback(() => {
     disableBiometric();
     showToast("Biometric authentication disabled", "info");
     void checkBiometric(true);
-  };
+  }, [checkBiometric, showToast]);
 
-  const handleKeepOldClassName = () => {
+  const handleKeepOldClassName = useCallback(() => {
     setFormData((prev) => ({ ...prev, className: lastSavedSettings.className }));
     setShowClassUpdateModal(false);
-  };
+  }, [lastSavedSettings.className, setFormData]);
 
-  const handleLevelChange = (newLevel: SchoolLevel) => {
-    if (newLevel === formData.level) return;
-    if (
-      formData.defaultSubjects &&
-      formData.defaultSubjects.length > 0
-    ) {
-      setPendingLevel(newLevel);
-      setShowLevelChangeModal(true);
-      return;
-    }
-    applyLevelChange(newLevel);
-  };
+  const applyLevelChange = useCallback(
+    (newLevel: SchoolLevel) => {
+      const previousLevel = formData.level || "unknown";
+      const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
+      const defaultClass = CLASS_OPTIONS[newLevel]?.[0] || "";
 
-  const applyLevelChange = (newLevel: SchoolLevel) => {
-    const previousLevel = formData.level || "unknown";
-    const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
-    const defaultClass = CLASS_OPTIONS[newLevel]?.[0] || "";
-
-    setFormData((prev) => {
-      const validSubjects = new Set(defaultSubs);
-      const prunedMap: Record<string, ClassScoreComponentConfig[]> = {};
-      for (const [subject, comps] of Object.entries(prev.subjectComponentMap || {})) {
-        if (validSubjects.has(subject)) {
-          prunedMap[subject] = comps;
+      setFormData((prev) => {
+        const validSubjects = new Set(defaultSubs);
+        const prunedMap: Record<string, ClassScoreComponentConfig[]> = {};
+        for (const [subject, comps] of Object.entries(prev.subjectComponentMap || {})) {
+          if (validSubjects.has(subject)) {
+            prunedMap[subject] = comps;
+          }
         }
+
+        return {
+          ...prev,
+          level: newLevel,
+          defaultSubjects: defaultSubs,
+          className: defaultClass,
+          subjectComponentMap: prunedMap,
+        };
+      });
+      showToast(`Loaded presets for ${newLevel}`, "info");
+      captureEvent("School_Level_Changed", {
+        previous_level: previousLevel,
+        new_level: newLevel,
+        students_count: studentsCountRef.current,
+      });
+      setShowLevelChangeModal(false);
+      setPendingLevel(null);
+
+      // If students exist and class name changed, prompt to update all students
+      if (
+        studentsCountRef.current > 0 &&
+        defaultClass.trim() &&
+        defaultClass.trim() !== (lastSavedSettings.className ?? "").trim()
+      ) {
+        setShowClassUpdateModal(true);
       }
+    },
+    [formData.level, lastSavedSettings.className, setFormData, showToast],
+  );
 
-      return {
-        ...prev,
-        level: newLevel,
-        defaultSubjects: defaultSubs,
-        className: defaultClass,
-        subjectComponentMap: prunedMap,
-      };
-    });
-    showToast(`Loaded presets for ${newLevel}`, "info");
-    captureEvent("School_Level_Changed", {
-      previous_level: previousLevel,
-      new_level: newLevel,
-      students_count: students.length,
-    });
-    setShowLevelChangeModal(false);
-    setPendingLevel(null);
+  const handleLevelChange = useCallback(
+    (newLevel: SchoolLevel) => {
+      if (newLevel === formData.level) return;
+      if (formData.defaultSubjects && formData.defaultSubjects.length > 0) {
+        setPendingLevel(newLevel);
+        setShowLevelChangeModal(true);
+        return;
+      }
+      applyLevelChange(newLevel);
+    },
+    [applyLevelChange, formData.defaultSubjects, formData.level],
+  );
 
-    // If students exist and class name changed, prompt to update all students
-    if (
-      students.length > 0 &&
-      defaultClass.trim() &&
-      defaultClass.trim() !== (lastSavedSettings.className ?? "").trim()
-    ) {
-      setShowClassUpdateModal(true);
-    }
-  };
-
-  const addSubject = () => {
+  const addSubject = useCallback(() => {
     if (newSubject.trim() && !(formData.defaultSubjects || []).includes(newSubject.trim())) {
+      const trimmed = newSubject.trim();
       setFormData((prev) => ({
         ...prev,
-        defaultSubjects: [...(prev.defaultSubjects || []), newSubject.trim()],
+        defaultSubjects: [...(prev.defaultSubjects || []), trimmed],
       }));
       setNewSubject("");
     }
-  };
+  }, [formData.defaultSubjects, newSubject, setFormData]);
 
-  const removeSubject = (index: number) => {
-    const subjectName = formData.defaultSubjects?.[index] || "";
-    setSubjectToDelete({ index, name: subjectName });
-    setShowDeleteSubjectModal(true);
-  };
+  const removeSubject = useCallback(
+    (index: number) => {
+      const subjectName = formData.defaultSubjects?.[index] || "";
+      setSubjectToDelete({ index, name: subjectName });
+      setShowDeleteSubjectModal(true);
+    },
+    [formData.defaultSubjects],
+  );
 
-  const confirmDeleteSubject = () => {
+  const confirmDeleteSubject = useCallback(() => {
     if (subjectToDelete === null) return;
     setFormData((prev) => ({
       ...prev,
@@ -361,9 +356,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     showToast(`Deleted ${subjectToDelete.name}`, "info");
     setShowDeleteSubjectModal(false);
     setSubjectToDelete(null);
-  };
+  }, [setFormData, showToast, subjectToDelete]);
 
-  const addComponent = () => {
+  const addComponent = useCallback(() => {
     const trimmed = newComponentName.trim();
     const maxScore = parseInt(newComponentMax);
 
@@ -386,7 +381,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setFormData((prev) => ({
       ...prev,
       componentLibrary: [
-        ...current,
+        ...(prev.componentLibrary || []),
         {
           name: trimmed,
           maxScore,
@@ -399,14 +394,21 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setNewComponentMax("");
     setNewComponentCategory("CAT");
     showToast("SBA task added to library!", "success");
-  };
+  }, [
+    formData.componentLibrary,
+    newComponentCategory,
+    newComponentMax,
+    newComponentName,
+    setFormData,
+    showToast,
+  ]);
 
-  const removeComponent = (componentName: string) => {
+  const removeComponent = useCallback((componentName: string) => {
     setComponentToDelete(componentName);
     setShowDeleteComponentModal(true);
-  };
+  }, []);
 
-  const confirmDeleteComponent = () => {
+  const confirmDeleteComponent = useCallback(() => {
     if (!componentToDelete) return;
     setFormData((prev) => {
       const { library, subjectComponentMap } = removeFromLibrary(
@@ -423,33 +425,39 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     showToast(`Deleted task: ${componentToDelete}`, "info");
     setShowDeleteComponentModal(false);
     setComponentToDelete(null);
-  };
+  }, [componentToDelete, setFormData, showToast]);
 
-  const addComponentToSubject = (subjectName: string, component: ClassScoreComponentConfig) => {
-    setFormData((prev) => ({
-      ...prev,
-      subjectComponentMap: {
-        ...(prev.subjectComponentMap || {}),
-        [subjectName]: [...(prev.subjectComponentMap?.[subjectName] || []), component],
-      },
-    }));
-  };
-
-  const removeComponentFromSubject = (subjectName: string, componentName: string) => {
-    setFormData((prev) => {
-      const currentComponents = prev.subjectComponentMap?.[subjectName] || [];
-      const updatedComponents = currentComponents.filter((c) => c.name !== componentName);
-      return {
+  const addComponentToSubject = useCallback(
+    (subjectName: string, component: ClassScoreComponentConfig) => {
+      setFormData((prev) => ({
         ...prev,
         subjectComponentMap: {
           ...(prev.subjectComponentMap || {}),
-          [subjectName]: updatedComponents,
+          [subjectName]: [...(prev.subjectComponentMap?.[subjectName] || []), component],
         },
-      };
-    });
-  };
+      }));
+    },
+    [setFormData],
+  );
 
-  const assignAllComponentsToAllSubjects = () => {
+  const removeComponentFromSubject = useCallback(
+    (subjectName: string, componentName: string) => {
+      setFormData((prev) => {
+        const currentComponents = prev.subjectComponentMap?.[subjectName] || [];
+        const updatedComponents = currentComponents.filter((c) => c.name !== componentName);
+        return {
+          ...prev,
+          subjectComponentMap: {
+            ...(prev.subjectComponentMap || {}),
+            [subjectName]: updatedComponents,
+          },
+        };
+      });
+    },
+    [setFormData],
+  );
+
+  const assignAllComponentsToAllSubjects = useCallback(() => {
     const library = formData.componentLibrary || [];
     const subjects = formData.defaultSubjects || [];
     if (library.length === 0 || subjects.length === 0) return;
@@ -471,26 +479,30 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       };
     });
     showToast(`Assigned ${library.length} tasks to all ${subjects.length} subjects!`, "success");
-  };
+  }, [formData.componentLibrary, formData.defaultSubjects, setFormData, showToast]);
 
-  const finalizeSave = (shouldUpdateStudents = false) => {
-    const trimmed = (formData.className ?? "").trim();
-    const updated = { ...formData, className: trimmed };
+  const finalizeSave = useCallback(
+    (shouldUpdateStudents = false) => {
+      const trimmed = (formData.className ?? "").trim();
+      const updated = { ...formData, className: trimmed };
 
-    setFormData(updated);
-    immediateSaveGenRef.current = formGenerationRef.current;
-    setSettings(updated);
-    ++baselineSeqRef.current;
-    setLastSavedSettings(updated);
-    lastAutoSaveSettingsRef.current = updated;
-    lastAutoSaveRef.current = JSON.stringify(updated);
+      setFormData(updated);
+      immediateSaveGenRef.current = formGenerationRef.current;
+      latestFormDataRef.current = updated;
+      latestLastSavedClassNameRef.current = trimmed;
+      setSettings(updated);
+      ++baselineSeqRef.current;
+      setLastSavedSettings(updated);
+      lastAutoSaveSettingsRef.current = updated;
 
-    if (shouldUpdateStudents) {
-      updateClassNameForAll(trimmed);
-      showToast(`Updated class name for ${students.length} students`, "success");
-    }
-    setShowClassUpdateModal(false);
-  };
+      if (shouldUpdateStudents) {
+        updateClassNameForAll(trimmed);
+        showToast(`Updated class name for ${studentsCountRef.current} students`, "success");
+      }
+      setShowClassUpdateModal(false);
+    },
+    [formData, setFormData, setSettings, showToast, updateClassNameForAll],
+  );
 
   const flushPendingSave = useCallback((): SchoolSettings => {
     const classNameChanged = formData.className !== lastSavedSettings.className;
@@ -500,18 +512,17 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         ? { ...formData, className: lastSavedSettings.className }
         : formData;
 
-    if (Object.is(toSave, lastAutoSaveSettingsRef.current)) return toSave;
-    const toSaveString = JSON.stringify(toSave);
-    if (toSaveString === getLastAutoSaveString()) return toSave;
+    if (areSettingsEqual(toSave, lastAutoSaveSettingsRef.current)) return toSave;
 
     immediateSaveGenRef.current = formGenerationRef.current;
+    latestFormDataRef.current = toSave;
+    latestLastSavedClassNameRef.current = toSave.className;
     setSettings(toSave);
     lastAutoSaveSettingsRef.current = toSave;
-    lastAutoSaveRef.current = toSaveString;
     ++baselineSeqRef.current;
     setLastSavedSettings(toSave);
     return toSave;
-  }, [formData, getLastAutoSaveString, lastSavedSettings.className, setSettings]);
+  }, [formData, lastSavedSettings.className, setSettings]);
 
   const syncCommittedSettings = useCallback((nextSettings: SchoolSettings) => {
     formGenerationRef.current += 1;
@@ -520,62 +531,100 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     latestFormDataRef.current = nextSettings;
     latestLastSavedClassNameRef.current = nextSettings.className;
     lastAutoSaveSettingsRef.current = nextSettings;
-    lastAutoSaveRef.current = JSON.stringify(nextSettings);
     ++baselineSeqRef.current;
     setFormPayload({ data: nextSettings, generation: nextGen });
     setLastSavedSettings(nextSettings);
   }, []);
 
+  const contextValue = useMemo<SettingsFormContextType>(
+    () => ({
+      formData,
+      setFormData,
+      lastSavedSettings,
+      hasUnsavedChanges,
+      isSaving,
+      lastSaved,
+      isPersistenceSuspended,
+      studentsCount: students.length,
+      committedSchoolName: settings.schoolName,
+      newSubject,
+      setNewSubject,
+      addSubject,
+      removeSubject,
+      confirmDeleteSubject,
+      newComponentName,
+      setNewComponentName,
+      newComponentMax,
+      setNewComponentMax,
+      newComponentCategory,
+      setNewComponentCategory,
+      addComponent,
+      removeComponent,
+      confirmDeleteComponent,
+      addComponentToSubject,
+      removeComponentFromSubject,
+      assignAllComponentsToAllSubjects,
+      handleClassNameBlur,
+      handleKeepOldClassName,
+      finalizeSave,
+      flushPendingSave,
+      syncCommittedSettings,
+      handleLevelChange,
+      applyLevelChange,
+      biometricAvailable,
+      biometricType,
+      enrollingBiometric,
+      checkBiometric,
+      handleEnrollBiometric,
+      handleDisableBiometric,
+      setShowPinSetup,
+      setShowPinRecovery,
+      setShowDisablePinModal,
+      setShowClearStudentsModal,
+      setShowFactoryResetModal,
+      setShowFullAppResetModal,
+    }),
+    [
+      addComponent,
+      addComponentToSubject,
+      addSubject,
+      applyLevelChange,
+      assignAllComponentsToAllSubjects,
+      biometricAvailable,
+      biometricType,
+      checkBiometric,
+      confirmDeleteComponent,
+      confirmDeleteSubject,
+      enrollingBiometric,
+      finalizeSave,
+      flushPendingSave,
+      formData,
+      handleClassNameBlur,
+      handleDisableBiometric,
+      handleEnrollBiometric,
+      handleKeepOldClassName,
+      handleLevelChange,
+      hasUnsavedChanges,
+      isPersistenceSuspended,
+      isSaving,
+      lastSaved,
+      lastSavedSettings,
+      newComponentCategory,
+      newComponentMax,
+      newComponentName,
+      newSubject,
+      removeComponent,
+      removeComponentFromSubject,
+      removeSubject,
+      setFormData,
+      settings.schoolName,
+      students.length,
+      syncCommittedSettings,
+    ],
+  );
+
   return (
-    <SettingsFormContext.Provider
-      value={{
-        formData,
-        setFormData,
-        lastSavedSettings,
-        hasUnsavedChanges,
-        isSaving,
-        lastSaved,
-        isPersistenceSuspended,
-        studentsCount: students.length,
-        committedSchoolName: settings.schoolName,
-        newSubject,
-        setNewSubject,
-        addSubject,
-        removeSubject,
-        confirmDeleteSubject,
-        newComponentName,
-        setNewComponentName,
-        newComponentMax,
-        setNewComponentMax,
-        newComponentCategory,
-        setNewComponentCategory,
-        addComponent,
-        removeComponent,
-        confirmDeleteComponent,
-        addComponentToSubject,
-        removeComponentFromSubject,
-        assignAllComponentsToAllSubjects,
-        handleClassNameBlur,
-        handleKeepOldClassName,
-        finalizeSave,
-        flushPendingSave,
-        syncCommittedSettings,
-        handleLevelChange,
-        applyLevelChange,
-        biometricAvailable,
-        biometricType,
-        enrollingBiometric,
-        checkBiometric,
-        handleEnrollBiometric,
-        handleDisableBiometric,
-        setShowPinSetup,
-        setShowPinRecovery,
-        setShowDisablePinModal,
-        setShowClearStudentsModal,
-        setShowFactoryResetModal,
-        setShowFullAppResetModal,
-      }}
-    >
+    <SettingsFormContext.Provider value={contextValue}>
       {children}
 
       {/* SHARED SETTINGS MODALS */}

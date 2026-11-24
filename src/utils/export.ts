@@ -1,5 +1,6 @@
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { downloadCsvFile, escapeCsvCell } from "./csvImport";
+import { downloadBlob } from "./fileDownload";
 
 function parsePositionRank(position: string | undefined): number {
   if (!position) return Number.POSITIVE_INFINITY;
@@ -82,19 +83,7 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
 
     // 5. Trigger Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${fileName}.csv`);
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Cleanup
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `${fileName}.csv`);
 
     return true;
   } catch (error) {
