@@ -8,7 +8,7 @@ Branched from `feat/navigation-shell` (`dc72ade`) after PR #66 (`feat/score-entr
 - Replaced manual two-step `"Sync Tasks to Students"` configuration with atomic `applySbaConfig` and `updateAssessmentWeights` context actions backed by `src/utils/sbaReconciliation.ts`.
 - Fixed key SBA correctness bugs: per-subject `studentModified` spillover, unpropagated `category` edits/demo metadata, un-cascaded task library deletes, orphaned `detectComponentMismatches` misses, `calculateSbaCategoryMastery` zero-score inflation, Mock mode leakage, and missing weight-change rescaling.
 - Aligned `QuickGradebook`, `SubjectRow`, `ScoreImportModal`, `SettingsHub`, `Dashboard`, and `docs/analytics-events.md` with the SBA Markbook flow.
-- Verification after final edits: `npm run lint`, `npx tsc -b`, `npm run build`, and `npm test -- --run --maxWorkers=2` (`49` test files, `483` tests) all passed with zero errors.
+- Verification after final edits: `npm run lint`, `npx tsc -b`, `npm run build`, and `npm test -- --run --maxWorkers=2` (`49` test files, `485` tests) all passed with zero errors.
 
 ## What Changed
 
@@ -48,24 +48,25 @@ Branched from `feat/navigation-shell` (`dc72ade`) after PR #66 (`feat/score-entr
 
 ### 5. Automated Tests & Post-QA Refinement
 - Created `src/test/sbaReconciliation.test.ts` (`8` unit tests with multiple cases covering reconciliation, renames, clearing policies, weight rescaling vs clamping, impact counts, mid-term pace, task-scoped unscored resolution, registry cascade operations, and SBA CSV round-trip).
-- Rewrote `src/test/SbaWorkflow.test.tsx` (`7` end-to-end integration tests covering preset onboarding, multi-column scoring & telemetry, 2D paste, Task Manager CRUD/rename/shrink confirmation/delete/per-subject override, weight clamping & `50/50 -> 30/70` rescaling + Mock toggle, SBA CSV export/import round-trip, and mid-term task-scoped `Unscored only` + `Refresh list`).
+- Rewrote `src/test/SbaWorkflow.test.tsx` (`9` end-to-end integration tests covering preset onboarding, multi-column scoring & telemetry, 2D paste + toast feedback, Task Manager CRUD/rename/shrink confirmation/delete/per-subject override, direct column-gear editing, accessible weight inputs, weight clamping & `50/50 -> 30/70` rescaling, level-aware `SHS` Mock resume, SBA CSV export/import round-trip, mid-term task-scoped `Unscored only` + `Refresh list`, quick student search, and decimal score entry with invalid character rejection).
 - Updated `src/test/NavigationShell.test.tsx`, `src/test/SettingsSubRoutes.test.tsx`, `src/test/analyticsCalculator.test.ts`, `src/test/SchoolContextActions.test.tsx`, `src/test/ScoreImportAndGradebook.test.tsx`, `src/test/FeatureAdoptionAnalytics.test.tsx`, `src/test/FunnelAndReliabilityAnalytics.test.tsx`, and `src/test/PrintPreviewAnalytics.test.tsx`.
 - **Post-QA refinement (`Unscored only` mid-term filter):** Manual testing on Draft PR #67 caught that mid-term classes with only one task graded (`CAT 1`) saw zero rows filtered out when clicking `Unscored only`, because unstarted future tasks (`0`) matched every student. Added `targetTaskName` support + `resolveDefaultUnscoredTaskTarget` in `src/utils/sbaReconciliation.ts`, a `Filter unscored by task` selector (`Any missing task` or `Missing <Task>`) + `Refresh list` banner + mobile pill sync in `src/pages/SbaPage.tsx` and `src/components/sba/SbaMarkbookGrid.tsx`.
+- **Pre-merge UI/UX polish:** Wired `useId()` `htmlFor`/`id` accessibility in `src/components/ui/Input.tsx`, defaulted Mock → Termly resume to `30/70` for `SHS` in `SbaWeightsModal` & `SbaPage`, pinned `pendingCommit` confirmation above the footer and added `initialAction` focus/direct-edit in `SbaTaskManagerModal`, added student search + sticky desktop headers/divider/group-row hover + mobile pill progress/check badges + 2D paste summary toasts + `type="text" inputMode="decimal"` numeric entry in `SbaMarkbookGrid` & `SbaPage`, tightened mobile header density, and hid duplicate mobile `Add Task` trigger.
 
 ## Why
 Teachers previously had to understand library vs per-subject mapping vs `"Sync Tasks to Students"` manually, which hid SBA entry behind configuration boilerplate and left edge cases (stale categories, leaked cross-subject dirty state, unscaled weights, and Mock-mode leakage). Consolidating SBA configuration and continuous score entry into one `/sba` markbook with automatic atomic reconciliation eliminates setup friction while keeping persisted schemas intact.
 
 ## Verification Results
 
-All checks below ran cleanly after the final code & test edits:
+All automated checks below ran cleanly after the final code & test edits:
 
 | Check | Command | Result |
 | --- | --- | --- |
 | ESLint | `npm run lint` | Passed (exit `0`, 0 errors, 0 warnings) |
 | TypeScript build check | `npx tsc -b` | Passed (exit `0`) |
 | Production build | `npm run build` | Passed (`tsc -b && vite build`, exit `0`, 2858 modules transformed, PWA SW generated) |
-| Full Vitest test suite | `npm test -- --run --maxWorkers=2` | Passed (`49` test files, `483` tests passed, `0` failed, `0` skipped) |
-| User Vercel QA (PR #67) | Manual desktop/mobile QA | Passed `T1–T6`, `T7` (bar `Step 3` on `Analytics -> Subjects` pending re-check), `T8b–T8c`; `T8a` reported bug fixed cleanly |
+| Full Vitest test suite | `npm test -- --run --maxWorkers=2` | Passed (`49` test files, `485` tests passed, `0` failed, `0` skipped) |
+| User Vercel QA (PR #67) | Manual desktop/mobile QA | All scenarios `T1–T8` (including `T7` Step 3 & fixed `T8a`) reported passing prior to the final polish commit |
 
 ## What Could Not Be Verified
-- User re-verification of `T7` Step 3 (`Analytics -> Subjects -> SBA Task Category Mastery (%)`) and `T8a` (`Unscored only` mid-term task filter) on the updated Vercel preview deployment after this fix commit.
+- Final post-polish manual browser spot-check on the newly pushed PR #67 Vercel preview deployment (`T1–T8` were verified on PR #67 prior to the 7-item polish commit).

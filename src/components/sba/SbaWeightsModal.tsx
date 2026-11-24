@@ -34,12 +34,13 @@ function SbaWeightsModalContent({
   disabled = false,
   onApplyWeights,
 }: SbaWeightsModalProps) {
+  const defaultTermlyClassMax = settings.level === "SHS" ? 30 : 50;
   const [examType, setExamType] = useState<ExamType>(settings.examType ?? "TERMLY");
   const [classMax, setClassMax] = useState<number>(
-    settings.examType === "MOCK" ? 50 : settings.classScoreMax,
+    settings.examType === "MOCK" ? defaultTermlyClassMax : settings.classScoreMax,
   );
   const [examMax, setExamMax] = useState<number>(
-    settings.examType === "MOCK" ? 50 : settings.examScoreMax,
+    settings.examType === "MOCK" ? 100 - defaultTermlyClassMax : settings.examScoreMax,
   );
   const [scoreMode, setScoreMode] = useState<"rescale" | "clamp">("rescale");
 

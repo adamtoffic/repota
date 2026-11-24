@@ -270,6 +270,11 @@ describe("SBA Markbook workflow end-to-end", () => {
       "cls=48;exam=30;[CAT 1:14/15:CAT,Group Work:15/15:GROUP]",
     );
 
+    expect(toastMock.showToast).toHaveBeenCalledWith(
+      "Pasted 4 scores across 2 students",
+      "success",
+    );
+
     expect(posthogMock.capture).toHaveBeenCalledWith(
       "Score_Entry_Session",
       expect.objectContaining({
@@ -378,13 +383,16 @@ describe("SBA Markbook workflow end-to-end", () => {
       expect(screen.getByRole("button", { name: /Grading weights and exam mode/i })).toBeInTheDocument();
     });
 
-    // Open Weights Modal, check input clamping >100 -> 100/0, then pick 30/70 preset
+    // Open Weights Modal via accessible labels, check input clamping >100 -> 100/0, then pick 30/70 preset
     fireEvent.click(screen.getByRole("button", { name: /Grading weights and exam mode/i }));
     const weightDialog = within(screen.getByRole("dialog"));
-    const weightInputs = weightDialog.getAllByRole("spinbutton") as HTMLInputElement[];
-    fireEvent.change(weightInputs[0], { target: { value: "120" } });
-    expect(weightInputs[0].value).toBe("100");
-    expect(weightInputs[1].value).toBe("0");
+    const classWeightInput = weightDialog.getByLabelText(
+      "Continuous Assessment %",
+    ) as HTMLInputElement;
+    const examWeightInput = weightDialog.getByLabelText("Examination %") as HTMLInputElement;
+    fireEvent.change(classWeightInput, { target: { value: "120" } });
+    expect(classWeightInput.value).toBe("100");
+    expect(examWeightInput.value).toBe("0");
 
     fireEvent.click(weightDialog.getByRole("button", { name: /30 \/ 70/i }));
     fireEvent.click(weightDialog.getByRole("button", { name: /Apply Grading Split/i }));
@@ -486,7 +494,7 @@ describe("SBA Markbook workflow end-to-end", () => {
     fireEvent.click(screen.getByRole("button", { name: /Preview & Validate Scores/i }));
     fireEvent.click(screen.getByRole("button", { name: /Apply Scores/i }));
 
-    expect(screen.getByLabelText("Ama Mensah Essay Work Score")).toHaveValue(15);
+    expect(screen.getByLabelText("Ama Mensah Essay Work Score")).toHaveValue("15");
     expect(screen.getByTestId("settings-map-eng")).toHaveTextContent("Quiz 1,Essay Work");
     expect(screen.queryByRole("button", { name: /Reconcile Tasks/i })).not.toBeInTheDocument();
   });
@@ -581,5 +589,72 @@ describe("SBA Markbook workflow end-to-end", () => {
     fireEvent.click(screen.getByRole("button", { name: /Show All Students/i }));
     expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
     expect(screen.getByLabelText("Kofi Boateng CAT 1 Score")).toBeInTheDocument();
+  });
+
+  it("supports student search, decimal entry with invalid-char rejection, and direct column gear task editing", async () => {
+    const gesTasks = [
+      { name: "CAT 1", maxScore: 15, category: "CAT" as const },
+      { name: "Group Work", maxScore: 15, category: "GROUP" as const },
+    ];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Search students")).toBeInTheDocument();
+    });
+
+    // Search filters to Kofi; missing query shows Clear search card; clearing restores both rows
+    fireEvent.change(screen.getByLabelText("Search students"), { target: { value: "kofi" } });
+    expect(screen.queryByLabelText("Ama Mensah CAT 1 Score")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Kofi Boateng CAT 1 Score")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search students"), { target: { value: "zzzzz" } });
+    expect(screen.getByText(/No students match your search/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Clear search/i }));
+    expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+
+    // Decimal input (12.) -> (12.5) saves cleanly, while non-numeric ('e', '-5') is rejected
+    const amaCell = screen.getByLabelText("Ama Mensah CAT 1 Score") as HTMLInputElement;
+    fireEvent.change(amaCell, { target: { value: "12." } });
+    expect(amaCell.value).toBe("12.");
+    fireEvent.change(amaCell, { target: { value: "12.5" } });
+    expect(amaCell.value).toBe("12.5");
+    fireEvent.change(amaCell, { target: { value: "-5" } });
+    expect(amaCell.value).toBe("12.5");
+    fireEvent.change(amaCell, { target: { value: "12e" } });
+    expect(amaCell.value).toBe("12.5");
+
+    // Column header gear pre-opens SbaTaskManagerModal directly in edit mode for CAT 1
+    fireEvent.click(screen.getByRole("button", { name: "Configure CAT 1" }));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByLabelText("Edit task name")).toHaveValue("CAT 1");
+    expect(dialog.getByLabelText("Edit task max score")).toHaveValue(15);
+  });
+
+  it("resumes Mock Mode to 30/70 automatically for SHS classes", async () => {
+    const gesTasks = [{ name: "CAT 1", maxScore: 20, category: "CAT" as const }];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      level: "SHS",
+      examType: "MOCK",
+      classScoreMax: 0,
+      examScoreMax: 100,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByText(/Mock Exam mode is active \(0\/100\)/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Switch to Termly Mode/i }));
+    expect(screen.getByRole("button", { name: /Grading weights and exam mode/i })).toHaveTextContent(
+      "Termly · 30/70",
+    );
   });
 });

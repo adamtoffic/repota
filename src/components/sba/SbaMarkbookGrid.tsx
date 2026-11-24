@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { PlusCircle, RefreshCw, Settings2 } from "lucide-react";
+import { Check, PlusCircle, RefreshCw, Settings2 } from "lucide-react";
 import type {
   ClassScoreComponent,
   ClassScoreComponentConfig,
@@ -28,14 +28,15 @@ interface SbaMarkbookGridProps {
   selectedMobilePill?: string;
   onSelectMobilePill?: (pill: string) => void;
   onTaskTouched?: (taskName: string) => void;
+  searchQuery?: string;
+  onClearSearch?: () => void;
+  onEditTask?: (taskName: string) => void;
+  onPasteSummary?: (summary: { cells: number; students: number; clamped: number }) => void;
   onClearUnscoredFilter: () => void;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
   onOpenTaskManager: () => void;
   disabled?: boolean;
 }
-
-const NUMBER_INPUT_RESET_CLASSES =
-  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 function getMatchedComponent(
   subject: SavedSubject | undefined,
@@ -85,6 +86,10 @@ export function SbaMarkbookGrid({
   selectedMobilePill: controlledMobilePill,
   onSelectMobilePill,
   onTaskTouched,
+  searchQuery = "",
+  onClearSearch,
+  onEditTask,
+  onPasteSummary,
   onClearUnscoredFilter,
   onUpdateStudent,
   onOpenTaskManager,
@@ -97,6 +102,9 @@ export function SbaMarkbookGrid({
   const errorTimersRef = useRef<Record<string, number>>({});
 
   const [cellErrors, setCellErrors] = useState<Record<string, string | null>>({});
+  const [cellDrafts, setCellDrafts] = useState<Record<string, { baseScore: number; raw: string }>>(
+    {},
+  );
 
   // Keep edited rows mounted while `Unscored only` is active until task target, refresh, subject, or toggle changes.
   const filterSessionKey = `${activeSubject}:${unscoredOnly}:${unscoredTaskTarget ?? "__ANY__"}:${unscoredRefreshNonce}`;
@@ -150,6 +158,15 @@ export function SbaMarkbookGrid({
     }
   };
 
+  const clearCellDraft = (draftKey: string) => {
+    setCellDrafts((prev) => {
+      if (!prev[draftKey]) return prev;
+      const next = { ...prev };
+      delete next[draftKey];
+      return next;
+    });
+  };
+
   const pinStudent = (studentId: string) => {
     if (!unscoredOnly) return;
     setPinnedState((prev) => {
@@ -161,7 +178,7 @@ export function SbaMarkbookGrid({
     });
   };
 
-  const visibleStudents = useMemo(() => {
+  const unscoredFilteredStudents = useMemo(() => {
     if (!unscoredOnly) return students;
     return students.filter(
       (student) =>
@@ -170,16 +187,24 @@ export function SbaMarkbookGrid({
     );
   }, [unscoredOnly, students, pinnedStudentIds, activeSubject, tasks, unscoredTaskTarget]);
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const visibleStudents = useMemo(() => {
+    if (!normalizedSearch) return unscoredFilteredStudents;
+    return unscoredFilteredStudents.filter((student) =>
+      student.name.toLowerCase().includes(normalizedSearch),
+    );
+  }, [unscoredFilteredStudents, normalizedSearch]);
+
   const newlyScoredCount = useMemo(() => {
     if (!unscoredOnly) return 0;
     let count = 0;
-    for (const student of visibleStudents) {
+    for (const student of unscoredFilteredStudents) {
       if (!isStudentUnscoredForSba(student, activeSubject, tasks, unscoredTaskTarget)) {
         count++;
       }
     }
     return count;
-  }, [unscoredOnly, visibleStudents, activeSubject, tasks, unscoredTaskTarget]);
+  }, [unscoredOnly, unscoredFilteredStudents, activeSubject, tasks, unscoredTaskTarget]);
 
   const taskStats = useMemo(() => {
     const map = new Map<string, { scored: number; avg: string }>();
@@ -208,6 +233,7 @@ export function SbaMarkbookGrid({
     rawInput: string,
   ) => {
     if (disabled) return;
+    if (rawInput !== "" && !/^\d*\.?\d*$/.test(rawInput)) return;
     const sub = student.subjects.find((s) => s.name === activeSubject);
     if (!sub) return;
 
@@ -217,15 +243,32 @@ export function SbaMarkbookGrid({
     const target = baseline.find((c) => normalizeTaskKey(c.name) === normalizeTaskKey(task.name));
     if (!target) return;
 
-    const rawScore = rawInput === "" ? 0 : Number(rawInput);
+    const errorKey = `${student.id}:${task.name}`;
+    const isIntermediateDecimal = rawInput.endsWith(".") || rawInput === "0.";
+    const rawScore = rawInput === "" || rawInput === "." ? 0 : Number(rawInput);
+    if (!Number.isFinite(rawScore)) return;
+
     const { updatedComponents, classScore, wasClamped } = updateComponentAndRecalculateClassScore(
       baseline,
       target.id,
       rawScore,
       maxClassScore,
     );
+    const nextComp = updatedComponents.find((c) => c.id === target.id);
+    const committedScore = nextComp?.score ?? 0;
 
-    const errorKey = `${student.id}:${task.name}`;
+    setCellDrafts((prev) => {
+      if (isIntermediateDecimal && !wasClamped) {
+        return { ...prev, [errorKey]: { baseScore: committedScore, raw: rawInput } };
+      }
+      if (prev[errorKey]) {
+        const next = { ...prev };
+        delete next[errorKey];
+        return next;
+      }
+      return prev;
+    });
+
     if (wasClamped) {
       showCellClampError(errorKey, task.maxScore);
     } else {
@@ -316,6 +359,9 @@ export function SbaMarkbookGrid({
 
     e.preventDefault();
     let updatedAny = false;
+    let cellsUpdated = 0;
+    let studentsUpdated = 0;
+    let clampedCount = 0;
 
     for (
       let rowOffset = 0;
@@ -356,6 +402,10 @@ export function SbaMarkbookGrid({
         workingComponents = result.updatedComponents;
         nextClassScore = result.classScore;
         rowChanged = true;
+        cellsUpdated++;
+        if (result.wasClamped) {
+          clampedCount++;
+        }
       }
 
       if (rowChanged) {
@@ -367,6 +417,7 @@ export function SbaMarkbookGrid({
         );
         onUpdateStudent({ ...student, subjects: updatedSubjects }, true);
         updatedAny = true;
+        studentsUpdated++;
       }
     }
 
@@ -374,6 +425,11 @@ export function SbaMarkbookGrid({
       if (tasks[startTaskIdx]) {
         onTaskTouched?.(tasks[startTaskIdx].name);
       }
+      onPasteSummary?.({
+        cells: cellsUpdated,
+        students: studentsUpdated,
+        clamped: clampedCount,
+      });
       trackScoreEntrySessionOnce({
         entryMode: "sba_markbook",
         usedColumnPaste: true,
@@ -382,6 +438,29 @@ export function SbaMarkbookGrid({
       });
     }
   };
+
+  if (normalizedSearch && visibleStudents.length === 0) {
+    return (
+      <div className="border-border bg-surface rounded-xl border px-4 py-10 text-center shadow-sm">
+        <p className="text-main text-sm font-bold" data-record="true">
+          No students match your search
+        </p>
+        <p className="text-muted mt-1 text-xs" data-record="true">
+          Try a different name or clear the search filter.
+        </p>
+        {onClearSearch && (
+          <button
+            type="button"
+            onClick={onClearSearch}
+            className="text-primary-text mt-3 text-xs font-bold hover:underline"
+            data-record="true"
+          >
+            Clear search
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (unscoredOnly && visibleStudents.length === 0) {
     return (
@@ -440,14 +519,14 @@ export function SbaMarkbookGrid({
       {/* Desktop Multi-Column SBA Spreadsheet */}
       <div className="hidden md:block">
         <form onSubmit={(e) => e.preventDefault()} noValidate>
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-border bg-subtle/80 border-b text-xs">
-                  <th className="bg-subtle sticky left-0 z-10 w-10 px-3 py-3 font-bold text-muted">
+              <thead className="bg-subtle sticky top-0 z-20">
+                <tr className="border-border bg-subtle border-b text-xs">
+                  <th className="bg-subtle sticky left-0 z-30 w-10 px-3 py-3 font-bold text-muted">
                     #
                   </th>
-                  <th className="bg-subtle sticky left-10 z-10 min-w-44 px-3 py-3 font-bold text-main">
+                  <th className="border-border-subtle bg-subtle sticky left-10 z-30 min-w-44 border-r px-3 py-3 font-bold text-main">
                     Student
                   </th>
                   {tasks.map((task) => {
@@ -465,9 +544,11 @@ export function SbaMarkbookGrid({
                           <button
                             type="button"
                             disabled={disabled}
-                            onClick={onOpenTaskManager}
+                            onClick={() =>
+                              onEditTask ? onEditTask(task.name) : onOpenTaskManager()
+                            }
                             aria-label={`Configure ${task.name}`}
-                            title="Manage SBA tasks"
+                            title={`Edit ${task.name}`}
                             className="text-muted hover:text-main rounded p-0.5 transition-colors disabled:opacity-40"
                           >
                             <Settings2 className="h-3 w-3" />
@@ -485,7 +566,7 @@ export function SbaMarkbookGrid({
                       /{totalRawMax}
                     </span>
                   </th>
-                  <th className="min-w-28 bg-purple-50/70 px-3 py-2.5 text-center dark:bg-purple-950/30">
+                  <th className="min-w-28 bg-purple-50 px-3 py-2.5 text-center dark:bg-purple-950/50">
                     <span className="block font-bold text-purple-900 dark:text-purple-200">
                       Class
                     </span>
@@ -502,11 +583,11 @@ export function SbaMarkbookGrid({
 
                   if (!subject) {
                     return (
-                      <tr key={student.id} className="hover:bg-subtle/40">
-                        <td className="bg-surface sticky left-0 z-10 px-3 py-3 text-xs font-semibold text-muted tabular-nums">
+                      <tr key={student.id} className="group hover:bg-subtle/40 transition-colors">
+                        <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 px-3 py-3 text-xs font-semibold text-muted tabular-nums transition-colors">
                           {studentIdx + 1}
                         </td>
-                        <td className="bg-surface sticky left-10 z-10 px-3 py-3 text-sm font-bold text-main">
+                        <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 border-r px-3 py-3 text-sm font-bold text-main transition-colors">
                           {student.name}
                         </td>
                         <td colSpan={tasks.length + 2} className="px-3 py-2.5">
@@ -533,11 +614,11 @@ export function SbaMarkbookGrid({
                   const pace = calculateSbaPaceStats(baseline, maxClassScore);
 
                   return (
-                    <tr key={student.id} className="hover:bg-subtle/40 transition-colors">
-                      <td className="bg-surface sticky left-0 z-10 px-3 py-2.5 text-xs font-semibold text-muted tabular-nums">
+                    <tr key={student.id} className="group hover:bg-subtle/40 transition-colors">
+                      <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 px-3 py-2.5 text-xs font-semibold text-muted tabular-nums transition-colors">
                         {studentIdx + 1}
                       </td>
-                      <td className="bg-surface sticky left-10 z-10 max-w-52 truncate px-3 py-2.5 text-sm font-bold text-main">
+                      <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 max-w-52 truncate border-r px-3 py-2.5 text-sm font-bold text-main transition-colors">
                         {student.name}
                       </td>
 
@@ -549,6 +630,13 @@ export function SbaMarkbookGrid({
                         const inputId = `${idPrefix}-desk-${studentIdx}-${taskIdx}`;
                         const errorKey = `${student.id}:${task.name}`;
                         const cellError = cellErrors[errorKey];
+                        const draft = cellDrafts[errorKey];
+                        const displayValue =
+                          draft && draft.baseScore === score
+                            ? draft.raw
+                            : score === 0
+                              ? ""
+                              : String(score);
 
                         return (
                           <td key={task.name} className="px-2 py-2 text-center align-top">
@@ -558,18 +646,19 @@ export function SbaMarkbookGrid({
                               ref={(el) => {
                                 desktopInputRefs.current[`${student.id}:${taskIdx}`] = el;
                               }}
-                              type="number"
-                              inputMode="numeric"
+                              type="text"
+                              inputMode="decimal"
                               enterKeyHint="next"
-                              min={0}
-                              max={task.maxScore}
+                              autoComplete="off"
+                              autoCorrect="off"
+                              spellCheck={false}
                               disabled={disabled}
                               aria-label={`${student.name} ${task.name} Score`}
-                              value={score === 0 ? "" : score}
+                              value={displayValue}
                               placeholder={`/${task.maxScore}`}
                               onChange={(e) => handleScoreEdit(student, task, e.target.value)}
                               onFocus={(e) => e.currentTarget.select()}
-                              onWheel={(e) => e.currentTarget.blur()}
+                              onBlur={() => clearCellDraft(errorKey)}
                               onPaste={(e) => handleGridPaste(e, studentIdx, taskIdx)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === "ArrowDown") {
@@ -580,7 +669,7 @@ export function SbaMarkbookGrid({
                                   focusDesktopCell(studentIdx, taskIdx, -1);
                                 }
                               }}
-                              className={`bg-input text-main placeholder:text-muted h-9 w-20 rounded-lg border px-2 text-center text-sm font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${NUMBER_INPUT_RESET_CLASSES} ${
+                              className={`bg-input text-main placeholder:text-muted h-9 w-20 rounded-lg border px-2 text-center text-sm font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 cellError
                                   ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                                   : "border-border-strong focus:border-purple-500 focus:ring-purple-500/25"
@@ -626,18 +715,35 @@ export function SbaMarkbookGrid({
             const isActive =
               activeMobilePill !== "__SUMMARY__" &&
               normalizeTaskKey(activeMobilePill) === normalizeTaskKey(task.name);
+            const stats = taskStats.get(task.name);
+            const scoredCount = stats?.scored ?? 0;
+            const isComplete = students.length > 0 && scoredCount === students.length;
             return (
               <button
                 key={task.name}
                 type="button"
                 onClick={() => handleSelectMobilePill(task.name)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
                   isActive
                     ? "bg-purple-700 text-white shadow-xs"
                     : "border-border bg-surface text-secondary border hover:text-main"
                 }`}
               >
-                {task.name} /{task.maxScore}
+                <span>{task.name}</span>
+                {students.length > 0 && (
+                  <span
+                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : isComplete
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                          : "bg-subtle text-muted"
+                    }`}
+                  >
+                    {isComplete && <Check className="h-2.5 w-2.5" />}
+                    {scoredCount}/{students.length}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -734,6 +840,13 @@ export function SbaMarkbookGrid({
             const mobileInputId = `${idPrefix}-mob-${studentIdx}`;
             const errorKey = `${student.id}:${activeMobileTask.name}`;
             const cellError = cellErrors[errorKey];
+            const draft = cellDrafts[errorKey];
+            const mobileDisplayValue =
+              draft && draft.baseScore === score
+                ? draft.raw
+                : score === 0
+                  ? ""
+                  : String(score);
 
             return (
               <div
@@ -763,18 +876,19 @@ export function SbaMarkbookGrid({
                     ref={(el) => {
                       mobileInputRefs.current[student.id] = el;
                     }}
-                    type="number"
-                    inputMode="numeric"
+                    type="text"
+                    inputMode="decimal"
                     enterKeyHint={studentIdx === visibleStudents.length - 1 ? "done" : "next"}
-                    min={0}
-                    max={activeMobileTask.maxScore}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     disabled={disabled}
                     aria-label={`${student.name} ${activeMobileTask.name} Score (Mobile)`}
-                    value={score === 0 ? "" : score}
+                    value={mobileDisplayValue}
                     placeholder={`/${activeMobileTask.maxScore}`}
                     onChange={(e) => handleScoreEdit(student, activeMobileTask, e.target.value)}
                     onFocus={(e) => e.currentTarget.select()}
-                    onWheel={(e) => e.currentTarget.blur()}
+                    onBlur={() => clearCellDraft(errorKey)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === "ArrowDown") {
                         e.preventDefault();
@@ -784,7 +898,7 @@ export function SbaMarkbookGrid({
                         focusMobileRow(studentIdx, -1);
                       }
                     }}
-                    className={`bg-input text-main placeholder:text-muted h-11 w-22 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${NUMBER_INPUT_RESET_CLASSES} ${
+                    className={`bg-input text-main placeholder:text-muted h-11 w-22 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
                       cellError
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
                         : "border-purple-300 focus:border-purple-500 focus:ring-purple-500/25 dark:border-purple-700"

@@ -6,12 +6,15 @@ import {
   Calculator,
   Download,
   Filter,
+  Pencil,
   Plus,
   RefreshCw,
   Scale,
+  Search,
   Settings2,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSettingsForm } from "../hooks/useSettingsForm";
@@ -37,7 +40,10 @@ import { SettingsHeaderActions } from "../components/settings/SettingsHeaderActi
 import { SettingsStatusBanners } from "../components/settings/SettingsStatusBanners";
 import { SbaMarkbookGrid } from "../components/sba/SbaMarkbookGrid";
 import { SbaPresetOnboardingCard } from "../components/sba/SbaPresetOnboardingCard";
-import { SbaTaskManagerModal } from "../components/sba/SbaTaskManagerModal";
+import {
+  SbaTaskManagerModal,
+  type SbaTaskManagerInitialAction,
+} from "../components/sba/SbaTaskManagerModal";
 import { SbaWeightsModal } from "../components/sba/SbaWeightsModal";
 
 export function SbaPage() {
@@ -94,9 +100,13 @@ function SbaPageContent() {
   const [lastTouchedTask, setLastTouchedTask] = useState<string | null>(null);
   const [selectedMobilePill, setSelectedMobilePill] = useState<string>("");
   const [unscoredRefreshNonce, setUnscoredRefreshNonce] = useState(0);
-  const [showTaskManager, setShowTaskManager] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [taskManagerAction, setTaskManagerAction] = useState<SbaTaskManagerInitialAction | null>(
+    null,
+  );
   const [showWeightsModal, setShowWeightsModal] = useState(false);
   const [showScoreImport, setShowScoreImport] = useState(false);
+  const defaultTermlyClassMax = effectiveSettings.level === "SHS" ? 30 : 50;
 
   const activeSubjectTasks = useMemo(
     () =>
@@ -312,8 +322,8 @@ function SbaPageContent() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-5 sm:px-6 sm:py-6">
         {/* Top Markbook Header Card */}
-        <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="border-border bg-surface rounded-xl border p-3.5 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-purple-100 p-2.5 dark:bg-purple-950/60">
                 <Calculator className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -328,6 +338,7 @@ function SbaPageContent() {
                     disabled={isPersistenceSuspended}
                     onClick={() => setShowWeightsModal(true)}
                     aria-label="Grading weights and exam mode"
+                    title="Change grading split or Mock mode"
                     className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       isMockMode
                         ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-200"
@@ -340,9 +351,13 @@ function SbaPageContent() {
                         ? "Mock · 0/100"
                         : `Termly · ${effectiveSettings.classScoreMax}/${effectiveSettings.examScoreMax}`}
                     </span>
+                    <Pencil className="h-3 w-3 opacity-70" />
                   </button>
                 </div>
-                <p className="text-muted mt-1 text-xs leading-relaxed" data-record="true">
+                <p
+                  className="text-muted mt-1 hidden text-xs leading-relaxed sm:block"
+                  data-record="true"
+                >
                   Record continuous assessment marks, customize tasks, and manage grading weights.
                 </p>
               </div>
@@ -355,7 +370,7 @@ function SbaPageContent() {
                   size="sm"
                   variant="secondary"
                   disabled={isPersistenceSuspended || availableSubjects.length === 0}
-                  onClick={() => setShowTaskManager(true)}
+                  onClick={() => setTaskManagerAction({ mode: "manage" })}
                   className="gap-1.5"
                 >
                   <Settings2 className="h-4 w-4" />
@@ -418,7 +433,10 @@ function SbaPageContent() {
                   size="sm"
                   disabled={isPersistenceSuspended}
                   onClick={() =>
-                    handleApplyWeights(50, 50, { examType: "TERMLY", scoreMode: "rescale" })
+                    handleApplyWeights(defaultTermlyClassMax, 100 - defaultTermlyClassMax, {
+                      examType: "TERMLY",
+                      scoreMode: "rescale",
+                    })
                   }
                 >
                   Switch to Termly Mode
@@ -519,6 +537,28 @@ function SbaPageContent() {
                     <div className="flex flex-wrap items-center gap-2">
                       {students.length > 0 && (
                         <>
+                          <div className="relative flex-1 sm:w-44 sm:flex-none">
+                            <Search className="text-muted pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              aria-label="Search students"
+                              value={studentSearch}
+                              onChange={(e) => setStudentSearch(e.target.value)}
+                              placeholder="Search student..."
+                              className="border-border-strong bg-input text-main placeholder:text-muted w-full rounded-lg border py-1.5 pr-7 pl-8 text-xs font-medium outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            />
+                            {studentSearch && (
+                              <button
+                                type="button"
+                                aria-label="Clear student search"
+                                onClick={() => setStudentSearch("")}
+                                className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+
                           <button
                             type="button"
                             aria-pressed={unscoredOnly}
@@ -575,8 +615,8 @@ function SbaPageContent() {
                         size="sm"
                         variant="secondary"
                         disabled={isPersistenceSuspended}
-                        onClick={() => setShowTaskManager(true)}
-                        className="gap-1.5"
+                        onClick={() => setTaskManagerAction({ mode: "add" })}
+                        className="hidden gap-1.5 sm:inline-flex"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Add Task</span>
@@ -594,7 +634,7 @@ function SbaPageContent() {
                     classScoreMax={effectiveSettings.classScoreMax}
                     disabled={isPersistenceSuspended}
                     onApplyPreset={handleApplyPresetFromOnboarding}
-                    onCreateCustomTask={() => setShowTaskManager(true)}
+                    onCreateCustomTask={() => setTaskManagerAction({ mode: "add" })}
                   />
                 ) : students.length === 0 ? (
                   <div className="border-border bg-surface space-y-4 rounded-xl border p-6 text-center shadow-sm">
@@ -629,7 +669,7 @@ function SbaPageContent() {
                         size="sm"
                         variant="secondary"
                         disabled={isPersistenceSuspended}
-                        onClick={() => setShowTaskManager(true)}
+                        onClick={() => setTaskManagerAction({ mode: "manage" })}
                       >
                         Manage Tasks
                       </Button>
@@ -658,9 +698,22 @@ function SbaPageContent() {
                       }
                     }}
                     onTaskTouched={(taskName) => setLastTouchedTask(taskName)}
+                    searchQuery={studentSearch}
+                    onClearSearch={() => setStudentSearch("")}
+                    onEditTask={(taskName) =>
+                      setTaskManagerAction({ mode: "edit", taskName })
+                    }
+                    onPasteSummary={({ cells, students: studentCount, clamped }) =>
+                      showToast(
+                        clamped > 0
+                          ? `Pasted ${cells} score${cells === 1 ? "" : "s"} across ${studentCount} student${studentCount === 1 ? "" : "s"} (${clamped} clamped to max)`
+                          : `Pasted ${cells} score${cells === 1 ? "" : "s"} across ${studentCount} student${studentCount === 1 ? "" : "s"}`,
+                        "success",
+                      )
+                    }
                     onClearUnscoredFilter={() => setUnscoredOnly(false)}
                     onUpdateStudent={updateStudent}
-                    onOpenTaskManager={() => setShowTaskManager(true)}
+                    onOpenTaskManager={() => setTaskManagerAction({ mode: "manage" })}
                     disabled={isPersistenceSuspended}
                   />
                 )}
@@ -671,14 +724,19 @@ function SbaPageContent() {
       </main>
 
       <SbaTaskManagerModal
-        key={`tasks:${showTaskManager ? "open" : "closed"}:${activeSubject}`}
-        isOpen={showTaskManager}
-        onClose={() => setShowTaskManager(false)}
+        key={`tasks:${
+          taskManagerAction
+            ? `${taskManagerAction.mode}:${"taskName" in taskManagerAction ? taskManagerAction.taskName : ""}`
+            : "closed"
+        }:${activeSubject}`}
+        isOpen={taskManagerAction !== null}
+        onClose={() => setTaskManagerAction(null)}
         activeSubject={activeSubject}
         defaultSubjects={effectiveSettings.defaultSubjects || []}
         students={students}
         settings={effectiveSettings}
         disabled={isPersistenceSuspended}
+        initialAction={taskManagerAction}
         onCommitConfig={handleCommitTaskConfig}
       />
 

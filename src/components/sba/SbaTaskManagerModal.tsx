@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Edit2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import type {
   AssessmentCategory,
@@ -15,6 +15,10 @@ import {
 import { Button } from "../ui";
 import { Modal } from "../ui/Modal";
 
+export type SbaTaskManagerInitialAction =
+  | { mode: "manage" | "add" }
+  | { mode: "edit"; taskName: string };
+
 interface SbaTaskManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +27,7 @@ interface SbaTaskManagerModalProps {
   students: StudentRecord[];
   settings: SchoolSettings;
   disabled?: boolean;
+  initialAction?: SbaTaskManagerInitialAction | null;
   onCommitConfig: (
     nextMap: Record<string, ClassScoreComponentConfig[]>,
     options: {
@@ -62,30 +67,56 @@ function SbaTaskManagerModalContent({
   students,
   settings,
   disabled = false,
+  initialAction = null,
   onCommitConfig,
 }: SbaTaskManagerModalProps) {
+  const currentMap = settings.subjectComponentMap ?? {};
   const uniformState = areSubjectsUsingUniformTasks(defaultSubjects, settings.subjectComponentMap);
+  const initialScope: "ALL" | "SUBJECT" =
+    defaultSubjects.length <= 1 || (!uniformState.isUniform && activeSubject) ? "SUBJECT" : "ALL";
+  const initialTasks: ClassScoreComponentConfig[] =
+    initialScope === "SUBJECT"
+      ? currentMap[activeSubject] ?? []
+      : uniformState.isUniform
+        ? uniformState.sharedTasks
+        : (currentMap[activeSubject]?.length
+            ? currentMap[activeSubject]
+            : Object.values(currentMap).find((list) => list.length > 0)) ?? [];
+  const initialEditTask =
+    initialAction?.mode === "edit"
+      ? initialTasks.find(
+          (t) => normalizeTaskKey(t.name) === normalizeTaskKey(initialAction.taskName),
+        )
+      : undefined;
 
-  const [scope, setScope] = useState<"ALL" | "SUBJECT">(() => {
-    if (defaultSubjects.length <= 1) return "SUBJECT";
-    if (!uniformState.isUniform && activeSubject) return "SUBJECT";
-    return "ALL";
-  });
+  const [scope, setScope] = useState<"ALL" | "SUBJECT">(initialScope);
 
   const [newName, setNewName] = useState("");
   const [newMax, setNewMax] = useState("15");
   const [newCategory, setNewCategory] = useState<AssessmentCategory>("CAT");
   const [formError, setFormError] = useState<string | null>(null);
+  const newNameInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [editingTaskName, setEditingTaskName] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editMax, setEditMax] = useState("");
-  const [editCategory, setEditCategory] = useState<AssessmentCategory>("CAT");
+  const [editingTaskName, setEditingTaskName] = useState<string | null>(
+    () => initialEditTask?.name ?? null,
+  );
+  const [editName, setEditName] = useState(() => initialEditTask?.name ?? "");
+  const [editMax, setEditMax] = useState(() =>
+    initialEditTask ? String(initialEditTask.maxScore) : "",
+  );
+  const [editCategory, setEditCategory] = useState<AssessmentCategory>(
+    () => initialEditTask?.category ?? "CAT",
+  );
   const [editError, setEditError] = useState<string | null>(null);
 
   const [pendingCommit, setPendingCommit] = useState<PendingCommit | null>(null);
 
-  const currentMap = settings.subjectComponentMap ?? {};
+  useEffect(() => {
+    if (initialAction?.mode === "add") {
+      newNameInputRef.current?.focus();
+    }
+  }, [initialAction?.mode]);
+
   const targetSubjects =
     scope === "ALL"
       ? defaultSubjects.length > 0
@@ -489,50 +520,6 @@ function SbaTaskManagerModalContent({
             </div>
           )}
 
-          {/* Inline Destructive Impact Confirmation */}
-          {pendingCommit && (
-            <div
-              role="alert"
-              className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950 dark:border-amber-700/80 dark:bg-amber-950/50 dark:text-amber-100"
-            >
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <div>
-                  <p className="text-sm font-bold">{pendingCommit.title}</p>
-                  <p className="mt-0.5 leading-relaxed">{pendingCommit.warning}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPendingCommit(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  disabled={disabled}
-                  onClick={() => {
-                    onCommitConfig(pendingCommit.nextMap, {
-                      renamedTasks: pendingCommit.renamedTasks,
-                      onClearTasks: pendingCommit.onClearTasks,
-                      toastMessage: pendingCommit.toastMessage,
-                    });
-                    setPendingCommit(null);
-                    setEditingTaskName(null);
-                    setNewName("");
-                  }}
-                >
-                  Confirm &amp; Update
-                </Button>
-              </div>
-            </div>
-          )}
-
           {/* Task List */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
@@ -697,6 +684,7 @@ function SbaTaskManagerModalContent({
                 ))}
               </select>
               <input
+                ref={newNameInputRef}
                 type="text"
                 aria-label="New task name"
                 value={newName}
@@ -766,6 +754,50 @@ function SbaTaskManagerModalContent({
             </div>
           </div>
         </div>
+
+        {/* Pinned Destructive Impact Confirmation (always visible above footer) */}
+        {pendingCommit && (
+          <div
+            role="alert"
+            className="shrink-0 space-y-2.5 border-t border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-950 sm:px-5 dark:border-amber-700/80 dark:bg-amber-950/60 dark:text-amber-100"
+          >
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div>
+                <p className="text-sm font-bold">{pendingCommit.title}</p>
+                <p className="mt-0.5 leading-relaxed">{pendingCommit.warning}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setPendingCommit(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={disabled}
+                onClick={() => {
+                  onCommitConfig(pendingCommit.nextMap, {
+                    renamedTasks: pendingCommit.renamedTasks,
+                    onClearTasks: pendingCommit.onClearTasks,
+                    toastMessage: pendingCommit.toastMessage,
+                  });
+                  setPendingCommit(null);
+                  setEditingTaskName(null);
+                  setNewName("");
+                }}
+              >
+                Confirm &amp; Update
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="border-border-subtle flex shrink-0 justify-end border-t px-4 py-3 sm:px-5">
           <Button type="button" variant="primary" size="sm" onClick={onClose}>
