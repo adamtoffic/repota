@@ -36,6 +36,7 @@ interface SbaMarkbookGridProps {
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
   onOpenTaskManager: () => void;
   disabled?: boolean;
+  isHeaderSticky?: boolean;
 }
 
 function getMatchedComponent(
@@ -94,6 +95,7 @@ export function SbaMarkbookGrid({
   onUpdateStudent,
   onOpenTaskManager,
   disabled = false,
+  isHeaderSticky = true,
 }: SbaMarkbookGridProps) {
   const maxClassScore = settings.classScoreMax;
   const idPrefix = useId();
@@ -710,7 +712,13 @@ export function SbaMarkbookGrid({
       {/* Mobile Focused 1-Thumb Task Pill Entry */}
       <div className="md:hidden">
         {/* Horizontal Task Pill Strip */}
-        <div className="border-border bg-subtle/95 no-scrollbar sticky top-0 z-10 flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2.5 backdrop-blur-xs">
+        <div
+          className={`border-border bg-subtle no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2.5 ${
+            isHeaderSticky
+              ? "sticky top-[calc(4rem+env(safe-area-inset-top,0px))] z-20"
+              : "relative"
+          }`}
+        >
           {tasks.map((task) => {
             const isActive =
               activeMobilePill !== "__SUMMARY__" &&

@@ -657,4 +657,27 @@ describe("SBA Markbook workflow end-to-end", () => {
       "Termly · 30/70",
     );
   });
+
+  it("keeps mobile PageHeader sticky on visit and releases stickiness only during editable input focus", async () => {
+    const gesTasks = [{ name: "CAT 1", maxScore: 15, category: "CAT" as const }];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    const { container } = renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    });
+
+    const nav = container.querySelector("nav");
+    expect(nav).not.toBeNull();
+    expect(nav).toHaveClass("sticky", "top-0", "z-30");
+
+    // Focusing an editable score input temporarily unsticks PageHeader for iOS keyboard hit-testing
+    fireEvent.focusIn(screen.getByLabelText("Ama Mensah CAT 1 Score"));
+    expect(nav).toHaveClass("relative");
+    expect(nav).not.toHaveClass("sticky");
+  });
 });

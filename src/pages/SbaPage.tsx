@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
+import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 import { useSettingsForm } from "../hooks/useSettingsForm";
 import { useSchoolActions, useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
@@ -64,6 +65,7 @@ function SbaPageContent() {
   } = useSettingsForm();
   const students = useSchoolStudents();
   const committedSettings = useSchoolSettings();
+  const isEditableFocused = useEditableInputFocused();
   const {
     updateStudent,
     applySbaConfig,
@@ -315,7 +317,7 @@ function SbaPageContent() {
     <div className="bg-background flex min-h-screen flex-col font-sans">
       <PageHeader
         hideOnDesktop
-        sticky={false}
+        sticky={!isEditableFocused}
         schoolName={committedSchoolName}
         actions={<SettingsHeaderActions showBack={false} />}
       />
@@ -716,6 +718,7 @@ function SbaPageContent() {
                     onUpdateStudent={updateStudent}
                     onOpenTaskManager={() => setTaskManagerAction({ mode: "manage" })}
                     disabled={isPersistenceSuspended}
+                    isHeaderSticky={!isEditableFocused}
                   />
                 )}
               </>
