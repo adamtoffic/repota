@@ -490,4 +490,96 @@ describe("SBA Markbook workflow end-to-end", () => {
     expect(screen.getByTestId("settings-map-eng")).toHaveTextContent("Quiz 1,Essay Work");
     expect(screen.queryByRole("button", { name: /Reconcile Tasks/i })).not.toBeInTheDocument();
   });
+
+  it("scopes Unscored only filter to the active mid-term task, keeps edited rows pinned, and refreshes cleanly", async () => {
+    const gesTasks = [
+      { name: "CAT 1", maxScore: 15, category: "CAT" as const },
+      { name: "Group Work", maxScore: 15, category: "GROUP" as const },
+      { name: "CAT 2", maxScore: 15, category: "CAT" as const },
+      { name: "Project Work", maxScore: 15, category: "PROJECT" as const },
+    ];
+    const seededMidTerm: StudentRecord[] = [
+      {
+        ...baseStudents[0],
+        subjects: [
+          {
+            id: "sub-m1",
+            name: "Mathematics",
+            classScore: 10,
+            examScore: 40,
+            classScoreComponents: [
+              { id: "c1", name: "CAT 1", score: 12, maxScore: 15, category: "CAT" },
+              { id: "c2", name: "Group Work", score: 0, maxScore: 15, category: "GROUP" },
+              { id: "c3", name: "CAT 2", score: 0, maxScore: 15, category: "CAT" },
+              { id: "c4", name: "Project Work", score: 0, maxScore: 15, category: "PROJECT" },
+            ],
+          },
+        ],
+      },
+      {
+        ...baseStudents[1],
+        subjects: [
+          {
+            id: "sub-m2",
+            name: "Mathematics",
+            classScore: 0,
+            examScore: 30,
+            classScoreComponents: [
+              { id: "k1", name: "CAT 1", score: 0, maxScore: 15, category: "CAT" },
+              { id: "k2", name: "Group Work", score: 0, maxScore: 15, category: "GROUP" },
+              { id: "k3", name: "CAT 2", score: 0, maxScore: 15, category: "CAT" },
+              { id: "k4", name: "Project Work", score: 0, maxScore: 15, category: "PROJECT" },
+            ],
+          },
+        ],
+      },
+    ];
+    seedStorage(seededMidTerm, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    });
+
+    // Mid-term: Ama has CAT 1 scored (12), Kofi does not; future tasks are 0 for everyone.
+    // Toggling Unscored only smartly scopes to CAT 1, hiding Ama and keeping Kofi visible.
+    const unscoredBtn = screen.getByRole("button", { name: /Unscored only/i });
+    expect(unscoredBtn).toHaveTextContent("1");
+    fireEvent.click(unscoredBtn);
+
+    const taskFilter = screen.getByLabelText("Filter unscored by task") as HTMLSelectElement;
+    expect(taskFilter.value).toBe("CAT 1");
+    expect(screen.queryByLabelText("Ama Mensah CAT 1 Score")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Kofi Boateng CAT 1 Score")).toBeInTheDocument();
+
+    // Entering Kofi's CAT 1 keeps Kofi pinned in place while showing the Refresh list control
+    fireEvent.change(screen.getByLabelText("Kofi Boateng CAT 1 Score"), {
+      target: { value: "14" },
+    });
+    expect(screen.getByLabelText("Kofi Boateng CAT 1 Score")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Refresh list/i })).toBeInTheDocument();
+
+    // Refreshing reveals the task-specific all-scored empty state
+    fireEvent.click(screen.getByRole("button", { name: /Refresh list/i }));
+    expect(
+      screen.getByText(/All students have marks entered for/i).closest("p"),
+    ).toHaveTextContent("All students have marks entered for CAT 1");
+
+    // Switching to "Any missing task" restores both students (since Group Work..Project Work are 0)
+    fireEvent.change(screen.getByLabelText("Filter unscored by task"), { target: { value: "" } });
+    expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    expect(screen.getByLabelText("Kofi Boateng CAT 1 Score")).toBeInTheDocument();
+
+    // Clicking Show All Students clears filter cleanly after switching back to empty state
+    fireEvent.change(screen.getByLabelText("Filter unscored by task"), {
+      target: { value: "CAT 1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Show All Students/i }));
+    expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
+    expect(screen.getByLabelText("Kofi Boateng CAT 1 Score")).toBeInTheDocument();
+  });
 });

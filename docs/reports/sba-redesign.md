@@ -8,7 +8,7 @@ Branched from `feat/navigation-shell` (`dc72ade`) after PR #66 (`feat/score-entr
 - Replaced manual two-step `"Sync Tasks to Students"` configuration with atomic `applySbaConfig` and `updateAssessmentWeights` context actions backed by `src/utils/sbaReconciliation.ts`.
 - Fixed key SBA correctness bugs: per-subject `studentModified` spillover, unpropagated `category` edits/demo metadata, un-cascaded task library deletes, orphaned `detectComponentMismatches` misses, `calculateSbaCategoryMastery` zero-score inflation, Mock mode leakage, and missing weight-change rescaling.
 - Aligned `QuickGradebook`, `SubjectRow`, `ScoreImportModal`, `SettingsHub`, `Dashboard`, and `docs/analytics-events.md` with the SBA Markbook flow.
-- Verification after final edits: `npm run lint`, `npx tsc -b`, `npm run build`, and `npm test -- --run --maxWorkers=2` (`49` test files, `482` tests) all passed with zero errors.
+- Verification after final edits: `npm run lint`, `npx tsc -b`, `npm run build`, and `npm test -- --run --maxWorkers=2` (`49` test files, `483` tests) all passed with zero errors.
 
 ## What Changed
 
@@ -46,10 +46,11 @@ Branched from `feat/navigation-shell` (`dc72ade`) after PR #66 (`feat/score-entr
 - `src/components/sba/SbaMarkbookGrid.tsx`: added `scroll-mt-24 scroll-mb-40` on the mobile score input for iOS virtual keyboard clearance.
 - `src/pages/settings/SettingsHub.tsx`, `src/components/ScoreImportModal.tsx`, `src/pages/Dashboard.tsx`, `docs/analytics-events.md`: updated SBA Markbook descriptions, `deriveLibraryFromSubjectMap` derivation, and documented `"sba_markbook"` and `"sba_sheet_csv_export"` analytics events.
 
-### 5. Automated Tests
-- Created `src/test/sbaReconciliation.test.ts` (8 unit tests covering reconciliation, renames, clearing policies, weight rescaling vs clamping, impact counts, mid-term pace, registry cascade operations, and SBA CSV round-trip).
-- Rewrote `src/test/SbaWorkflow.test.tsx` (6 end-to-end integration tests covering preset onboarding, multi-column scoring & telemetry, 2D paste, Task Manager CRUD/rename/shrink confirmation/delete/per-subject override, weight clamping & `50/50 -> 30/70` rescaling + Mock toggle, and SBA CSV export/import round-trip).
+### 5. Automated Tests & Post-QA Refinement
+- Created `src/test/sbaReconciliation.test.ts` (`8` unit tests with multiple cases covering reconciliation, renames, clearing policies, weight rescaling vs clamping, impact counts, mid-term pace, task-scoped unscored resolution, registry cascade operations, and SBA CSV round-trip).
+- Rewrote `src/test/SbaWorkflow.test.tsx` (`7` end-to-end integration tests covering preset onboarding, multi-column scoring & telemetry, 2D paste, Task Manager CRUD/rename/shrink confirmation/delete/per-subject override, weight clamping & `50/50 -> 30/70` rescaling + Mock toggle, SBA CSV export/import round-trip, and mid-term task-scoped `Unscored only` + `Refresh list`).
 - Updated `src/test/NavigationShell.test.tsx`, `src/test/SettingsSubRoutes.test.tsx`, `src/test/analyticsCalculator.test.ts`, `src/test/SchoolContextActions.test.tsx`, `src/test/ScoreImportAndGradebook.test.tsx`, `src/test/FeatureAdoptionAnalytics.test.tsx`, `src/test/FunnelAndReliabilityAnalytics.test.tsx`, and `src/test/PrintPreviewAnalytics.test.tsx`.
+- **Post-QA refinement (`Unscored only` mid-term filter):** Manual testing on Draft PR #67 caught that mid-term classes with only one task graded (`CAT 1`) saw zero rows filtered out when clicking `Unscored only`, because unstarted future tasks (`0`) matched every student. Added `targetTaskName` support + `resolveDefaultUnscoredTaskTarget` in `src/utils/sbaReconciliation.ts`, a `Filter unscored by task` selector (`Any missing task` or `Missing <Task>`) + `Refresh list` banner + mobile pill sync in `src/pages/SbaPage.tsx` and `src/components/sba/SbaMarkbookGrid.tsx`.
 
 ## Why
 Teachers previously had to understand library vs per-subject mapping vs `"Sync Tasks to Students"` manually, which hid SBA entry behind configuration boilerplate and left edge cases (stale categories, leaked cross-subject dirty state, unscaled weights, and Mock-mode leakage). Consolidating SBA configuration and continuous score entry into one `/sba` markbook with automatic atomic reconciliation eliminates setup friction while keeping persisted schemas intact.
@@ -63,7 +64,8 @@ All checks below ran cleanly after the final code & test edits:
 | ESLint | `npm run lint` | Passed (exit `0`, 0 errors, 0 warnings) |
 | TypeScript build check | `npx tsc -b` | Passed (exit `0`) |
 | Production build | `npm run build` | Passed (`tsc -b && vite build`, exit `0`, 2858 modules transformed, PWA SW generated) |
-| Full Vitest test suite | `npm test -- --run --maxWorkers=2` | Passed (`49` test files, `482` tests passed, `0` failed, `0` skipped) |
+| Full Vitest test suite | `npm test -- --run --maxWorkers=2` | Passed (`49` test files, `483` tests passed, `0` failed, `0` skipped) |
+| User Vercel QA (PR #67) | Manual desktop/mobile QA | Passed `T1–T6`, `T7` (bar `Step 3` on `Analytics -> Subjects` pending re-check), `T8b–T8c`; `T8a` reported bug fixed cleanly |
 
 ## What Could Not Be Verified
-- Interactive visual/manual verification in a live desktop browser and physical mobile / iOS Safari viewport (sticky column scroll feel, virtual keyboard clearance, dark/light contrast, and PostHog network transport on `repota.app`).
+- User re-verification of `T7` Step 3 (`Analytics -> Subjects -> SBA Task Category Mastery (%)`) and `T8a` (`Unscored only` mid-term task filter) on the updated Vercel preview deployment after this fix commit.

@@ -12,6 +12,7 @@ import {
   isStudentUnscoredForSba,
   reconcileStudentsWithSbaConfig,
   rescaleStudentsForWeightChange,
+  resolveDefaultUnscoredTaskTarget,
 } from "../utils/sbaReconciliation";
 import { addToLibrary, removeFromLibrary, updateInLibrary } from "../utils/componentRegistry";
 import { buildSubjectSbaExportCsv, parseSbaScoreImport } from "../utils/csvImport";
@@ -307,6 +308,82 @@ describe("sbaReconciliation & componentRegistry", () => {
       isStudentUnscoredForSba(partialStudent, "Mathematics", [{ name: "CAT 1", maxScore: 15 }]),
     ).toBe(false);
     expect(isStudentUnscoredForSba(partialStudent, "Science", [])).toBe(true);
+
+    // Task-targeted unscored check & smart default mid-term resolution
+    const fullTasks: ClassScoreComponentConfig[] = [
+      { name: "CAT 1", maxScore: 15 },
+      { name: "Group Work", maxScore: 15 },
+      { name: "CAT 2", maxScore: 15 },
+    ];
+    expect(isStudentUnscoredForSba(partialStudent, "Mathematics", fullTasks, "CAT 1")).toBe(false);
+    expect(isStudentUnscoredForSba(partialStudent, "Mathematics", fullTasks, "CAT 2")).toBe(true);
+
+    const s1Cat1Only = makeStudent("s1", "Ama", [
+      {
+        id: "m1",
+        name: "Mathematics",
+        classScore: 10,
+        examScore: 0,
+        classScoreComponents: [
+          { id: "1", name: "CAT 1", score: 12, maxScore: 15 },
+          { id: "2", name: "Group Work", score: 0, maxScore: 15 },
+          { id: "3", name: "CAT 2", score: 0, maxScore: 15 },
+        ],
+      },
+    ]);
+    const s2None = makeStudent("s2", "Kofi", [
+      {
+        id: "m2",
+        name: "Mathematics",
+        classScore: 0,
+        examScore: 0,
+        classScoreComponents: [
+          { id: "1", name: "CAT 1", score: 0, maxScore: 15 },
+          { id: "2", name: "Group Work", score: 0, maxScore: 15 },
+          { id: "3", name: "CAT 2", score: 0, maxScore: 15 },
+        ],
+      },
+    ]);
+    // Mid-term: future tasks are 0 for everyone, only CAT 1 is partially graded -> picks "CAT 1"
+    expect(
+      resolveDefaultUnscoredTaskTarget([s1Cat1Only, s2None], "Mathematics", fullTasks),
+    ).toBe("CAT 1");
+
+    // When preferred task is partially graded, honors preferred task
+    const s1TwoTasks = makeStudent("s1", "Ama", [
+      {
+        id: "m1",
+        name: "Mathematics",
+        classScore: 20,
+        examScore: 0,
+        classScoreComponents: [
+          { id: "1", name: "CAT 1", score: 12, maxScore: 15 },
+          { id: "2", name: "Group Work", score: 8, maxScore: 15 },
+          { id: "3", name: "CAT 2", score: 0, maxScore: 15 },
+        ],
+      },
+    ]);
+    expect(
+      resolveDefaultUnscoredTaskTarget([s1TwoTasks, s2None], "Mathematics", fullTasks, "CAT 1"),
+    ).toBe("CAT 1");
+
+    // End-of-term: at least one student has ALL tasks graded -> returns null ("Any missing task")
+    const s1Complete = makeStudent("s1", "Ama", [
+      {
+        id: "m1",
+        name: "Mathematics",
+        classScore: 40,
+        examScore: 0,
+        classScoreComponents: [
+          { id: "1", name: "CAT 1", score: 12, maxScore: 15 },
+          { id: "2", name: "Group Work", score: 13, maxScore: 15 },
+          { id: "3", name: "CAT 2", score: 15, maxScore: 15 },
+        ],
+      },
+    ]);
+    expect(
+      resolveDefaultUnscoredTaskTarget([s1Complete, s2None], "Mathematics", fullTasks),
+    ).toBeNull();
   });
 
   it("checks uniform subject config and derives library cleanly across registry operations", () => {

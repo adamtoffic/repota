@@ -25,7 +25,11 @@ import {
   downloadCsvFile,
   resolveSubjectSbaTasks,
 } from "../utils/csvImport";
-import { isStudentUnscoredForSba } from "../utils/sbaReconciliation";
+import {
+  isStudentUnscoredForSba,
+  normalizeTaskKey,
+  resolveDefaultUnscoredTaskTarget,
+} from "../utils/sbaReconciliation";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Button } from "../components/ui";
 import { ScoreImportModal } from "../components/ScoreImportModal";
@@ -86,6 +90,10 @@ function SbaPageContent() {
     : (availableSubjects[0] ?? "");
 
   const [unscoredOnly, setUnscoredOnly] = useState(false);
+  const [unscoredTaskTarget, setUnscoredTaskTarget] = useState<string | null>(null);
+  const [lastTouchedTask, setLastTouchedTask] = useState<string | null>(null);
+  const [selectedMobilePill, setSelectedMobilePill] = useState<string>("");
+  const [unscoredRefreshNonce, setUnscoredRefreshNonce] = useState(0);
   const [showTaskManager, setShowTaskManager] = useState(false);
   const [showWeightsModal, setShowWeightsModal] = useState(false);
   const [showScoreImport, setShowScoreImport] = useState(false);
@@ -103,12 +111,91 @@ function SbaPageContent() {
     [activeSubjectTasks],
   );
 
-  const unscoredCount = useMemo(() => {
-    if (!activeSubject || students.length === 0) return 0;
-    return students.filter((student) =>
-      isStudentUnscoredForSba(student, activeSubject, activeSubjectTasks),
-    ).length;
+  const activeUnscoredTaskTarget = useMemo(() => {
+    if (!unscoredTaskTarget) return null;
+    const targetKey = normalizeTaskKey(unscoredTaskTarget);
+    const matched = activeSubjectTasks.find((t) => normalizeTaskKey(t.name) === targetKey);
+    return matched ? matched.name : null;
+  }, [unscoredTaskTarget, activeSubjectTasks]);
+
+  const preferredTaskForSmartDefault = useMemo(() => {
+    if (lastTouchedTask) {
+      const touchedKey = normalizeTaskKey(lastTouchedTask);
+      const matched = activeSubjectTasks.find((t) => normalizeTaskKey(t.name) === touchedKey);
+      if (matched) return matched.name;
+    }
+    if (selectedMobilePill && selectedMobilePill !== "__SUMMARY__") {
+      const pillKey = normalizeTaskKey(selectedMobilePill);
+      const matched = activeSubjectTasks.find((t) => normalizeTaskKey(t.name) === pillKey);
+      if (matched) return matched.name;
+    }
+    return null;
+  }, [lastTouchedTask, selectedMobilePill, activeSubjectTasks]);
+
+  const { anyUnscoredCount, taskUnscoredCounts } = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!activeSubject || students.length === 0) {
+      return { anyUnscoredCount: 0, taskUnscoredCounts: counts };
+    }
+    for (const task of activeSubjectTasks) {
+      let count = 0;
+      for (const student of students) {
+        if (isStudentUnscoredForSba(student, activeSubject, activeSubjectTasks, task.name)) {
+          count++;
+        }
+      }
+      counts.set(task.name, count);
+    }
+    let anyCount = 0;
+    for (const student of students) {
+      if (isStudentUnscoredForSba(student, activeSubject, activeSubjectTasks)) {
+        anyCount++;
+      }
+    }
+    return { anyUnscoredCount: anyCount, taskUnscoredCounts: counts };
   }, [students, activeSubject, activeSubjectTasks]);
+
+  const resolvedPreviewTarget = useMemo(
+    () =>
+      unscoredOnly
+        ? activeUnscoredTaskTarget
+        : resolveDefaultUnscoredTaskTarget(
+            students,
+            activeSubject,
+            activeSubjectTasks,
+            preferredTaskForSmartDefault,
+          ),
+    [
+      unscoredOnly,
+      activeUnscoredTaskTarget,
+      students,
+      activeSubject,
+      activeSubjectTasks,
+      preferredTaskForSmartDefault,
+    ],
+  );
+
+  const unscoredCount = resolvedPreviewTarget
+    ? (taskUnscoredCounts.get(resolvedPreviewTarget) ?? anyUnscoredCount)
+    : anyUnscoredCount;
+
+  const handleToggleUnscoredOnly = () => {
+    if (unscoredOnly) {
+      setUnscoredOnly(false);
+      return;
+    }
+    const smartTarget = resolveDefaultUnscoredTaskTarget(
+      students,
+      activeSubject,
+      activeSubjectTasks,
+      preferredTaskForSmartDefault,
+    );
+    setUnscoredTaskTarget(smartTarget);
+    if (smartTarget) {
+      setSelectedMobilePill(smartTarget);
+    }
+    setUnscoredOnly(true);
+  };
 
   const mismatch = useMemo(() => {
     void students;
@@ -431,31 +518,56 @@ function SbaPageContent() {
                   {activeSubjectTasks.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">
                       {students.length > 0 && (
-                        <button
-                          type="button"
-                          aria-pressed={unscoredOnly}
-                          onClick={() => setUnscoredOnly((prev) => !prev)}
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
-                            unscoredOnly
-                              ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
-                              : "border-border-strong bg-surface text-secondary hover:bg-subtle"
-                          }`}
-                          data-record="true"
-                        >
-                          <Filter className="h-3.5 w-3.5" />
-                          <span>Unscored only</span>
-                          {unscoredCount > 0 && (
-                            <span
-                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                                unscoredOnly
-                                  ? "bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-100"
-                                  : "bg-subtle text-secondary"
-                              }`}
+                        <>
+                          <button
+                            type="button"
+                            aria-pressed={unscoredOnly}
+                            onClick={handleToggleUnscoredOnly}
+                            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
+                              unscoredOnly
+                                ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
+                                : "border-border-strong bg-surface text-secondary hover:bg-subtle"
+                            }`}
+                            data-record="true"
+                          >
+                            <Filter className="h-3.5 w-3.5" />
+                            <span>Unscored only</span>
+                            {unscoredCount > 0 && (
+                              <span
+                                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                  unscoredOnly
+                                    ? "bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-100"
+                                    : "bg-subtle text-secondary"
+                                }`}
+                              >
+                                {unscoredCount}
+                              </span>
+                            )}
+                          </button>
+
+                          {unscoredOnly && activeSubjectTasks.length > 1 && (
+                            <select
+                              aria-label="Filter unscored by task"
+                              value={activeUnscoredTaskTarget ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value || null;
+                                setUnscoredTaskTarget(val);
+                                if (val) {
+                                  setLastTouchedTask(val);
+                                  setSelectedMobilePill(val);
+                                }
+                              }}
+                              className="border-amber-300 bg-surface text-main rounded-lg border px-2.5 py-2 text-xs font-semibold outline-none focus:border-amber-500 dark:border-amber-700/70"
                             >
-                              {unscoredCount}
-                            </span>
+                              <option value="">Any missing task ({anyUnscoredCount})</option>
+                              {activeSubjectTasks.map((task) => (
+                                <option key={task.name} value={task.name}>
+                                  Missing {task.name} ({taskUnscoredCounts.get(task.name) ?? 0})
+                                </option>
+                              ))}
+                            </select>
                           )}
-                        </button>
+                        </>
                       )}
 
                       <Button
@@ -530,6 +642,22 @@ function SbaPageContent() {
                     tasks={activeSubjectTasks}
                     settings={effectiveSettings}
                     unscoredOnly={unscoredOnly}
+                    unscoredTaskTarget={activeUnscoredTaskTarget}
+                    unscoredRefreshNonce={unscoredRefreshNonce}
+                    onRefreshUnscoredFilter={() => setUnscoredRefreshNonce((n) => n + 1)}
+                    selectedMobilePill={selectedMobilePill}
+                    onSelectMobilePill={(pill) => {
+                      setSelectedMobilePill(pill);
+                      if (pill === "__SUMMARY__") {
+                        if (unscoredOnly) setUnscoredTaskTarget(null);
+                        return;
+                      }
+                      setLastTouchedTask(pill);
+                      if (unscoredOnly) {
+                        setUnscoredTaskTarget(pill);
+                      }
+                    }}
+                    onTaskTouched={(taskName) => setLastTouchedTask(taskName)}
                     onClearUnscoredFilter={() => setUnscoredOnly(false)}
                     onUpdateStudent={updateStudent}
                     onOpenTaskManager={() => setShowTaskManager(true)}

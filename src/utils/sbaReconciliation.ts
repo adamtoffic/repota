@@ -561,16 +561,27 @@ export function calculateSbaPaceStats(
 }
 
 /**
- * Returns `true` when a student is missing `activeSubject` or has any configured SBA task ungraded (`0`).
+ * Returns `true` when a student is missing `activeSubject`, or has the targeted SBA task (or any configured
+ * task when `targetTaskName` is omitted) ungraded (`<= 0`).
  */
 export function isStudentUnscoredForSba(
   student: Pick<StudentRecord, "subjects">,
   activeSubject: string,
   tasks: ClassScoreComponentConfig[],
+  targetTaskName?: string | null,
 ): boolean {
   const subject = student.subjects.find((s) => s.name === activeSubject);
   if (!subject) return true;
   if (tasks.length === 0) return subject.classScore <= 0;
+
+  if (targetTaskName && targetTaskName.trim().length > 0) {
+    const targetKey = normalizeTaskKey(targetTaskName);
+    const comp = subject.classScoreComponents?.find(
+      (c) => normalizeTaskKey(c.name) === targetKey,
+    );
+    return !comp || comp.score <= 0;
+  }
+
   return tasks.some((task) => {
     const targetKey = normalizeTaskKey(task.name);
     const comp = subject.classScoreComponents?.find(
@@ -578,4 +589,62 @@ export function isStudentUnscoredForSba(
     );
     return !comp || comp.score <= 0;
   });
+}
+
+/**
+ * Picks the smartest default task filter when toggling `Unscored only`:
+ * - If a single-task or empty roster is active, returns `null` (all tasks).
+ * - If `preferredTaskName` is partially scored (`0 < unscored < total`), returns that task.
+ * - If at least one student already completed every task, returns `null` ("Any missing task").
+ * - Otherwise (mid-term state where unstarted future tasks would match 100% of students), returns the
+ *   last task in sequence that has partial progress (`0 < unscored < total`), or `null` if none do.
+ */
+export function resolveDefaultUnscoredTaskTarget(
+  students: Pick<StudentRecord, "subjects">[],
+  activeSubject: string,
+  tasks: ClassScoreComponentConfig[],
+  preferredTaskName?: string | null,
+): string | null {
+  if (tasks.length <= 1 || students.length === 0) return null;
+
+  const countUnscoredForTask = (taskName: string): number => {
+    let count = 0;
+    for (const student of students) {
+      if (isStudentUnscoredForSba(student, activeSubject, tasks, taskName)) {
+        count++;
+      }
+    }
+    return count;
+  };
+
+  if (preferredTaskName && preferredTaskName.trim().length > 0) {
+    const preferredKey = normalizeTaskKey(preferredTaskName);
+    const matched = tasks.find((t) => normalizeTaskKey(t.name) === preferredKey);
+    if (matched) {
+      const preferredCount = countUnscoredForTask(matched.name);
+      if (preferredCount > 0 && preferredCount < students.length) {
+        return matched.name;
+      }
+    }
+  }
+
+  let anyUnscoredCount = 0;
+  for (const student of students) {
+    if (isStudentUnscoredForSba(student, activeSubject, tasks)) {
+      anyUnscoredCount++;
+    }
+  }
+  if (anyUnscoredCount < students.length) {
+    return null;
+  }
+
+  for (let i = tasks.length - 1; i >= 0; i--) {
+    const task = tasks[i];
+    const unscored = countUnscoredForTask(task.name);
+    if (unscored > 0 && unscored < students.length) {
+      return task.name;
+    }
+  }
+
+  return null;
 }

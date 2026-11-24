@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { PlusCircle, Settings2 } from "lucide-react";
+import { PlusCircle, RefreshCw, Settings2 } from "lucide-react";
 import type {
   ClassScoreComponent,
   ClassScoreComponentConfig,
@@ -22,6 +22,12 @@ interface SbaMarkbookGridProps {
   tasks: ClassScoreComponentConfig[];
   settings: SchoolSettings;
   unscoredOnly: boolean;
+  unscoredTaskTarget?: string | null;
+  unscoredRefreshNonce?: number;
+  onRefreshUnscoredFilter?: () => void;
+  selectedMobilePill?: string;
+  onSelectMobilePill?: (pill: string) => void;
+  onTaskTouched?: (taskName: string) => void;
   onClearUnscoredFilter: () => void;
   onUpdateStudent: (updated: StudentRecord, silent?: boolean) => void;
   onOpenTaskManager: () => void;
@@ -73,6 +79,12 @@ export function SbaMarkbookGrid({
   tasks,
   settings,
   unscoredOnly,
+  unscoredTaskTarget = null,
+  unscoredRefreshNonce = 0,
+  onRefreshUnscoredFilter,
+  selectedMobilePill: controlledMobilePill,
+  onSelectMobilePill,
+  onTaskTouched,
   onClearUnscoredFilter,
   onUpdateStudent,
   onOpenTaskManager,
@@ -86,8 +98,8 @@ export function SbaMarkbookGrid({
 
   const [cellErrors, setCellErrors] = useState<Record<string, string | null>>({});
 
-  // Keep edited rows mounted while `Unscored only` is active until subject or filter toggles.
-  const filterSessionKey = `${activeSubject}:${unscoredOnly}`;
+  // Keep edited rows mounted while `Unscored only` is active until task target, refresh, subject, or toggle changes.
+  const filterSessionKey = `${activeSubject}:${unscoredOnly}:${unscoredTaskTarget ?? "__ANY__"}:${unscoredRefreshNonce}`;
   const [pinnedState, setPinnedState] = useState<{ key: string; ids: Set<string> }>(() => ({
     key: filterSessionKey,
     ids: new Set(),
@@ -98,12 +110,24 @@ export function SbaMarkbookGrid({
   );
 
   // Mobile pill selection: task name or "__SUMMARY__"
-  const [selectedMobilePill, setSelectedMobilePill] = useState<string>(tasks[0]?.name ?? "");
+  const [internalMobilePill, setInternalMobilePill] = useState<string>(tasks[0]?.name ?? "");
+  const effectiveMobilePill =
+    controlledMobilePill !== undefined && controlledMobilePill !== ""
+      ? controlledMobilePill
+      : internalMobilePill;
   const activeMobilePill =
-    selectedMobilePill === "__SUMMARY__" ||
-    tasks.some((t) => normalizeTaskKey(t.name) === normalizeTaskKey(selectedMobilePill))
-      ? selectedMobilePill
+    effectiveMobilePill === "__SUMMARY__" ||
+    tasks.some((t) => normalizeTaskKey(t.name) === normalizeTaskKey(effectiveMobilePill))
+      ? effectiveMobilePill
       : (tasks[0]?.name ?? "__SUMMARY__");
+
+  const handleSelectMobilePill = (pill: string) => {
+    if (onSelectMobilePill) {
+      onSelectMobilePill(pill);
+    } else {
+      setInternalMobilePill(pill);
+    }
+  };
 
   useEffect(() => {
     const timers = errorTimersRef.current;
@@ -142,9 +166,20 @@ export function SbaMarkbookGrid({
     return students.filter(
       (student) =>
         pinnedStudentIds.has(student.id) ||
-        isStudentUnscoredForSba(student, activeSubject, tasks),
+        isStudentUnscoredForSba(student, activeSubject, tasks, unscoredTaskTarget),
     );
-  }, [unscoredOnly, students, pinnedStudentIds, activeSubject, tasks]);
+  }, [unscoredOnly, students, pinnedStudentIds, activeSubject, tasks, unscoredTaskTarget]);
+
+  const newlyScoredCount = useMemo(() => {
+    if (!unscoredOnly) return 0;
+    let count = 0;
+    for (const student of visibleStudents) {
+      if (!isStudentUnscoredForSba(student, activeSubject, tasks, unscoredTaskTarget)) {
+        count++;
+      }
+    }
+    return count;
+  }, [unscoredOnly, visibleStudents, activeSubject, tasks, unscoredTaskTarget]);
 
   const taskStats = useMemo(() => {
     const map = new Map<string, { scored: number; avg: string }>();
@@ -204,6 +239,7 @@ export function SbaMarkbookGrid({
     );
 
     onUpdateStudent({ ...student, subjects: updatedSubjects }, true);
+    onTaskTouched?.(task.name);
     trackScoreEntrySessionOnce({
       entryMode: "sba_markbook",
       usedColumnPaste: false,
@@ -335,6 +371,9 @@ export function SbaMarkbookGrid({
     }
 
     if (updatedAny) {
+      if (tasks[startTaskIdx]) {
+        onTaskTouched?.(tasks[startTaskIdx].name);
+      }
       trackScoreEntrySessionOnce({
         entryMode: "sba_markbook",
         usedColumnPaste: true,
@@ -347,8 +386,15 @@ export function SbaMarkbookGrid({
   if (unscoredOnly && visibleStudents.length === 0) {
     return (
       <div className="border-border bg-surface rounded-xl border px-4 py-10 text-center shadow-sm">
-        <p className="text-main text-sm font-bold" data-record="true">
-          All students have SBA marks entered for this subject
+        <p className="text-main text-sm font-bold">
+          {unscoredTaskTarget ? (
+            <>
+              <span data-record="true">All students have marks entered for</span>{" "}
+              <span>{unscoredTaskTarget}</span>
+            </>
+          ) : (
+            <span data-record="true">All students have SBA marks entered for this subject</span>
+          )}
         </p>
         <p className="text-muted mt-1 text-xs" data-record="true">
           Switch subjects or show all students to review or adjust scores.
@@ -373,6 +419,24 @@ export function SbaMarkbookGrid({
 
   return (
     <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
+      {unscoredOnly && newlyScoredCount > 0 && onRefreshUnscoredFilter && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50/80 px-4 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <span data-record="true">
+            <strong>{newlyScoredCount}</strong>{" "}
+            {newlyScoredCount === 1 ? "student" : "students"} newly scored — rows stay pinned while typing
+          </span>
+          <button
+            type="button"
+            onClick={onRefreshUnscoredFilter}
+            className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-surface px-2.5 py-1 text-[11px] font-bold text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/60"
+            data-record="true"
+          >
+            <RefreshCw className="h-3 w-3" />
+            <span>Refresh list</span>
+          </button>
+        </div>
+      )}
+
       {/* Desktop Multi-Column SBA Spreadsheet */}
       <div className="hidden md:block">
         <form onSubmit={(e) => e.preventDefault()} noValidate>
@@ -566,7 +630,7 @@ export function SbaMarkbookGrid({
               <button
                 key={task.name}
                 type="button"
-                onClick={() => setSelectedMobilePill(task.name)}
+                onClick={() => handleSelectMobilePill(task.name)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
                   isActive
                     ? "bg-purple-700 text-white shadow-xs"
@@ -579,7 +643,7 @@ export function SbaMarkbookGrid({
           })}
           <button
             type="button"
-            onClick={() => setSelectedMobilePill("__SUMMARY__")}
+            onClick={() => handleSelectMobilePill("__SUMMARY__")}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
               activeMobilePill === "__SUMMARY__"
                 ? "bg-slate-900 text-white dark:bg-elevated dark:text-main"
