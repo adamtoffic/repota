@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import { Analytics } from "../pages/Analytics";
 import type { ProcessedStudent, SchoolSettings, StudentRecord } from "../types";
 import { generateClassPulseHeadline, generateClassStory } from "../utils/classStoryGenerator";
@@ -133,11 +132,9 @@ describe("classStoryGenerator & Analytics UI", () => {
     } as unknown as SchoolContextType;
 
     render(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={ctx}>
-          <Analytics />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <Analytics />
+      </SchoolContext.Provider>,
     );
 
     expect(screen.getByText(/Class Pulse Story/i)).toBeInTheDocument();
@@ -175,11 +172,9 @@ describe("classStoryGenerator & Analytics UI", () => {
     } as unknown as SchoolContextType;
 
     render(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={ctx}>
-          <Analytics />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={ctx}>
+        <Analytics />
+      </SchoolContext.Provider>,
     );
 
     const heading = screen.getByRole("heading", { name: "Advanced Analytics" });

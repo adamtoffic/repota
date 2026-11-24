@@ -6,11 +6,9 @@ import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { BulkImportModal } from "../components/BulkImportModal";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import type { SchoolSettings } from "../types";
 
 const mockAddStudent = vi.fn();
-const mockShowToast = vi.fn();
 
 const mockSettings = {
   schoolName: "Test School",
@@ -188,11 +186,9 @@ describe("Student CRUD Operations", () => {
       } as unknown as SchoolContextType;
 
       render(
-        <ToastContext.Provider value={{ showToast: mockShowToast }}>
-          <SchoolContext.Provider value={schoolValue}>
-            <BulkImportModal isOpen={true} onClose={vi.fn()} />
-          </SchoolContext.Provider>
-        </ToastContext.Provider>,
+        <SchoolContext.Provider value={schoolValue}>
+          <BulkImportModal isOpen={true} onClose={vi.fn()} />
+        </SchoolContext.Provider>,
       );
 
       await user.type(screen.getByRole("textbox"), "Kwame Mensah\nAma Serwaa");

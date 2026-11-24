@@ -1,11 +1,6 @@
 import { createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import type {
-  AssessmentCategory,
-  ClassScoreComponentConfig,
-  SchoolLevel,
-  SchoolSettings,
-} from "../types";
+import type { SchoolLevel, SchoolSettings } from "../types";
 
 export interface SettingsFormContextType {
   formData: SchoolSettings;
@@ -24,20 +19,6 @@ export interface SettingsFormContextType {
   addSubject: () => void;
   removeSubject: (index: number) => void;
   confirmDeleteSubject: () => void;
-
-  // SBA component library & subject component assignment
-  newComponentName: string;
-  setNewComponentName: Dispatch<SetStateAction<string>>;
-  newComponentMax: string;
-  setNewComponentMax: Dispatch<SetStateAction<string>>;
-  newComponentCategory: AssessmentCategory;
-  setNewComponentCategory: Dispatch<SetStateAction<AssessmentCategory>>;
-  addComponent: () => void;
-  removeComponent: (componentName: string) => void;
-  confirmDeleteComponent: () => void;
-  addComponentToSubject: (subjectName: string, component: ClassScoreComponentConfig) => void;
-  removeComponentFromSubject: (subjectName: string, componentName: string) => void;
-  assignAllComponentsToAllSubjects: () => void;
 
   // Class name & level handlers
   handleClassNameBlur: () => void;

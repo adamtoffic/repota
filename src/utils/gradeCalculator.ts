@@ -300,48 +300,38 @@ const getOrdinalSuffix = (i: number): string => {
  * from `totalScore` across students taking that subject, using competition tie-breaking (`1st`, `1st`, `3rd`).
  */
 export const assignSubjectPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
-  // 1. Get a list of all unique subject names across all students
-  const allSubjectNames = Array.from(
-    new Set(students.flatMap((s) => s.subjects.map((sub) => sub.name))),
-  );
+  const scoresBySubject = new Map<string, number[]>();
 
-  // 2. Create a map of Subject -> Sorted Scores
-  // Example: "Mathematics" -> [{studentId: "1", score: 90}, {studentId: "2", score: 80}]
-  const subjectRankings: Record<string, { studentId: string; score: number }[]> = {};
-
-  allSubjectNames.forEach((subjectName) => {
-    const scores = students
-      .map((s) => {
-        const sub = s.subjects.find((sub) => sub.name === subjectName);
-        return sub ? { studentId: s.id, score: sub.totalScore } : null;
-      })
-      .filter((item): item is { studentId: string; score: number } => item !== null)
-      .sort((a, b) => b.score - a.score); // Sort High to Low
-
-    subjectRankings[subjectName] = scores;
-  });
-
-  // 3. Map back to students
-  return students.map((student) => {
-    const updatedSubjects = student.subjects.map((sub) => {
-      const ranks = subjectRankings[sub.name];
-      // Find index
-      const index = ranks.findIndex((r) => r.studentId === student.id);
-
-      // Handle Tie-Breaking (Same score = Same position)
-      let rank = index + 1;
-      if (index > 0 && ranks[index].score === ranks[index - 1].score) {
-        // Find the first occurrence of this score to get the true rank
-        const firstOccurrence = ranks.findIndex((r) => r.score === ranks[index].score);
-        rank = firstOccurrence + 1;
+  for (const student of students) {
+    for (const sub of student.subjects) {
+      let scores = scoresBySubject.get(sub.name);
+      if (!scores) {
+        scores = [];
+        scoresBySubject.set(sub.name, scores);
       }
+      scores.push(sub.totalScore);
+    }
+  }
 
-      return {
-        ...sub,
-        subjectPosition: getOrdinalSuffix(rank), // Uses your existing ordinal function
-      };
-    });
+  const ordinalsBySubject = new Map<string, Map<number, string>>();
+  for (const [subjectName, scores] of scoresBySubject) {
+    scores.sort((a, b) => b - a);
+    const rankMap = new Map<number, string>();
+    for (let index = 0; index < scores.length; index++) {
+      const score = scores[index];
+      if (!rankMap.has(score)) {
+        rankMap.set(score, getOrdinalSuffix(index + 1));
+      }
+    }
+    ordinalsBySubject.set(subjectName, rankMap);
+  }
 
-    return { ...student, subjects: updatedSubjects };
-  });
+  return students.map((student) => ({
+    ...student,
+    subjects: student.subjects.map((sub) => ({
+      ...sub,
+      subjectPosition:
+        ordinalsBySubject.get(sub.name)?.get(sub.totalScore) ?? getOrdinalSuffix(1),
+    })),
+  }));
 };

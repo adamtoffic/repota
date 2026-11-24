@@ -11,7 +11,6 @@ import { DashboardStats } from "../components/DashboardStats";
 import { Dashboard } from "../pages/Dashboard";
 import { PrintPreview } from "../pages/PrintPreview";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
 import { resetSessionAnalyticsGuards } from "../utils/analytics";
@@ -1361,11 +1360,9 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         };
 
         return (
-          <ToastContext.Provider value={{ showToast: vi.fn() }}>
-            <SchoolContext.Provider value={ctx}>
-              <Dashboard />
-            </SchoolContext.Provider>
-          </ToastContext.Provider>
+          <SchoolContext.Provider value={ctx}>
+            <Dashboard />
+          </SchoolContext.Provider>
         );
       }
 

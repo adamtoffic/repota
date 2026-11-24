@@ -41,11 +41,19 @@ vi.mock("../utils/dataProtection", () => ({
 }));
 
 import { SchoolProvider, MIGRATION_WAIT_TIMEOUT_MS } from "../context/SchoolContext";
+import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { hasUnsavedChanges, setUnsavedChanges } from "../utils/preloadErrorHandler";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { useSettingsForm } from "../hooks/useSettingsForm";
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { DataGate } from "../components/DataGate";
+import { AcademicSessionSection } from "../components/settings/AcademicSessionSection";
+import { ReportTemplateSection } from "../components/settings/ReportTemplateSection";
+import { SchoolIdentitySection } from "../components/settings/SchoolIdentitySection";
+import { SecurityBackupSection } from "../components/settings/SecurityBackupSection";
+import { SettingsStatusBanners } from "../components/settings/SettingsStatusBanners";
+import { PageHeader } from "../components/ui/PageHeader";
 import { Dashboard } from "../pages/Dashboard";
-import { Settings } from "../pages/Settings";
 
 const seededSettings: SchoolSettings = {
   schoolName: "Seeded Academy",
@@ -96,11 +104,36 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+function SettingsHarnessContent() {
+  const { committedSchoolName, isSaving, lastSaved } = useSettingsForm();
+  return (
+    <div className="bg-background flex min-h-screen flex-col font-sans">
+      <PageHeader schoolName={committedSchoolName} />
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-6">
+        <SettingsStatusBanners />
+        <SchoolIdentitySection />
+        <AcademicSessionSection />
+        <ReportTemplateSection />
+        <SecurityBackupSection />
+      </main>
+      <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+    </div>
+  );
+}
+
+function SettingsTestHarness() {
+  return (
+    <SettingsFormProvider>
+      <SettingsHarnessContent />
+    </SettingsFormProvider>
+  );
+}
+
 function renderSettings() {
   return render(
     <SchoolProvider>
       <DataGate>
-        <Settings />
+        <SettingsTestHarness />
       </DataGate>
     </SchoolProvider>,
   );
@@ -144,7 +177,7 @@ function renderSettingsWithStudentAction() {
   return render(
     <SchoolProvider>
       <DataGate>
-        <Settings />
+        <SettingsTestHarness />
       </DataGate>
       <AddStudentAction />
     </SchoolProvider>,
@@ -631,7 +664,7 @@ describe("Settings cold start", () => {
     const { rerender } = render(
       <SchoolProvider isLocked={false}>
         <DataGate>
-          <Settings />
+          <SettingsTestHarness />
         </DataGate>
       </SchoolProvider>,
     );
@@ -647,7 +680,7 @@ describe("Settings cold start", () => {
     rerender(
       <SchoolProvider isLocked={true}>
         <DataGate>
-          <Settings />
+          <SettingsTestHarness />
         </DataGate>
       </SchoolProvider>,
     );
@@ -661,7 +694,7 @@ describe("Settings cold start", () => {
     render(
       <SchoolProvider isLocked={false}>
         <DataGate>
-          <Settings />
+          <SettingsTestHarness />
         </DataGate>
       </SchoolProvider>,
     );

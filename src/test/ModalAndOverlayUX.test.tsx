@@ -10,7 +10,6 @@ import { WelcomeTour } from "../components/WelcomeTour";
 import { Modal } from "../components/ui/Modal";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
-import { ToastContext } from "../context/ToastContextDefinition";
 import { createAppRouter } from "../router";
 import type { ProcessedStudent } from "../types";
 
@@ -172,31 +171,25 @@ describe("Modal and Overlay UX", () => {
       }) as unknown as SchoolContextType;
 
     const { rerender } = render(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={makeCtx(40)}>
-          <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={makeCtx(40)}>
+        <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
+      </SchoolContext.Provider>,
     );
 
     expect(screen.getByLabelText("Kofi Boateng Attendance")).toHaveValue(40);
 
     // Close modal while underlying student changes to 55 days
     rerender(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={makeCtx(55)}>
-          <BulkAttendanceModal isOpen={false} onClose={vi.fn()} />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={makeCtx(55)}>
+        <BulkAttendanceModal isOpen={false} onClose={vi.fn()} />
+      </SchoolContext.Provider>,
     );
 
     // Reopen -> shows updated 55 rather than stale 40
     rerender(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <SchoolContext.Provider value={makeCtx(55)}>
-          <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
-        </SchoolContext.Provider>
-      </ToastContext.Provider>,
+      <SchoolContext.Provider value={makeCtx(55)}>
+        <BulkAttendanceModal isOpen={true} onClose={vi.fn()} />
+      </SchoolContext.Provider>,
     );
 
     expect(screen.getByLabelText("Kofi Boateng Attendance")).toHaveValue(55);
@@ -232,13 +225,11 @@ describe("Modal and Overlay UX", () => {
     const onChange = vi.fn();
 
     render(
-      <ToastContext.Provider value={{ showToast: vi.fn() }}>
-        <ImageUploader
-          label="School Crest"
-          value="data:image/png;base64,fake"
-          onChange={onChange}
-        />
-      </ToastContext.Provider>,
+      <ImageUploader
+        label="School Crest"
+        value="data:image/png;base64,fake"
+        onChange={onChange}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Remove Image/i }));

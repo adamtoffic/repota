@@ -160,7 +160,27 @@ function seedStorage(students: StudentRecord[], settings: SchoolSettings) {
 }
 
 describe("SBA Markbook workflow end-to-end", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  const setViewportDesktop = (isDesktop: boolean) => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      configurable: true,
+      value: vi.fn((query: string) => ({
+        matches: query === "(min-width: 768px)" ? isDesktop : false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+  };
+
   beforeEach(() => {
+    setViewportDesktop(true);
     localStorage.clear();
     sessionStorage.clear();
     resetSessionAnalyticsGuards();
@@ -174,8 +194,25 @@ describe("SBA Markbook workflow end-to-end", () => {
   });
 
   afterEach(() => {
+    window.matchMedia = originalMatchMedia;
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  it("mounts only the mobile pill view without desktop table on mobile viewports", async () => {
+    setViewportDesktop(false);
+    const gesTasks = [{ name: "CAT 1", maxScore: 15, category: "CAT" as const }];
+    seedStorage(baseStudents, {
+      ...baseSettings,
+      componentLibrary: gesTasks,
+      subjectComponentMap: { Mathematics: gesTasks, English: gesTasks },
+    });
+
+    renderSbaWorkflow();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Ama Mensah CAT 1 Score (Mobile)")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("Ama Mensah CAT 1 Score")).not.toBeInTheDocument();
   });
 
   it("onboards with GES Standard preset and automatically reconciles students without a Sync button", async () => {
