@@ -27,7 +27,9 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
 
   const showSbaSetup = formData.examType !== "MOCK";
   const showSubjectAssignment =
-    (formData.defaultSubjects || []).length > 0 && (formData.componentLibrary || []).length > 0;
+    showSbaSetup &&
+    (formData.defaultSubjects || []).length > 0 &&
+    (formData.componentLibrary || []).length > 0;
 
   if (!showSbaSetup && !showSubjectAssignment) {
     return null;
@@ -53,9 +55,13 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                 inputMode="numeric"
                 min="0"
                 max="100"
-                value={formData.classScoreMax || ""}
+                value={formData.classScoreMax}
                 onChange={(e) => {
-                  const classScore = Number(e.target.value) || 0;
+                  const raw = Number(e.target.value);
+                  const classScore =
+                    e.target.value === "" || !Number.isFinite(raw)
+                      ? 0
+                      : Math.min(100, Math.max(0, Math.round(raw)));
                   const examScore = 100 - classScore;
                   setFormData({
                     ...formData,
@@ -72,9 +78,13 @@ export function SbaAssessmentSection({ onImportSubjectScores }: SbaAssessmentSec
                 inputMode="numeric"
                 min="0"
                 max="100"
-                value={formData.examScoreMax || ""}
+                value={formData.examScoreMax}
                 onChange={(e) => {
-                  const examScore = Number(e.target.value) || 0;
+                  const raw = Number(e.target.value);
+                  const examScore =
+                    e.target.value === "" || !Number.isFinite(raw)
+                      ? 0
+                      : Math.min(100, Math.max(0, Math.round(raw)));
                   const classScore = 100 - examScore;
                   setFormData({
                     ...formData,

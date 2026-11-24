@@ -23,6 +23,7 @@ import {
   getBiometricName,
 } from "../utils/biometricAuth";
 import { setUnsavedChanges } from "../utils/preloadErrorHandler";
+import { removeFromLibrary, unassignFromSubject } from "../utils/componentRegistry";
 import { SettingsFormContext } from "./SettingsFormContextDefinition";
 
 /**
@@ -258,12 +259,23 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     const defaultSubs = DEFAULT_SUBJECTS[newLevel] || [];
     const defaultClass = CLASS_OPTIONS[newLevel]?.[0] || "";
 
-    setFormData((prev) => ({
-      ...prev,
-      level: newLevel,
-      defaultSubjects: defaultSubs,
-      className: defaultClass,
-    }));
+    setFormData((prev) => {
+      const validSubjects = new Set(defaultSubs);
+      const prunedMap: Record<string, ClassScoreComponentConfig[]> = {};
+      for (const [subject, comps] of Object.entries(prev.subjectComponentMap || {})) {
+        if (validSubjects.has(subject)) {
+          prunedMap[subject] = comps;
+        }
+      }
+
+      return {
+        ...prev,
+        level: newLevel,
+        defaultSubjects: defaultSubs,
+        className: defaultClass,
+        subjectComponentMap: prunedMap,
+      };
+    });
     showToast(`Loaded presets for ${newLevel}`, "info");
     captureEvent("School_Level_Changed", {
       previous_level: previousLevel,
@@ -304,6 +316,10 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setFormData((prev) => ({
       ...prev,
       defaultSubjects: prev.defaultSubjects?.filter((_, i) => i !== subjectToDelete.index),
+      subjectComponentMap: unassignFromSubject(
+        prev.subjectComponentMap || {},
+        subjectToDelete.name,
+      ),
     }));
     showToast(`Deleted ${subjectToDelete.name}`, "info");
     setShowDeleteSubjectModal(false);
@@ -355,12 +371,18 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
 
   const confirmDeleteComponent = () => {
     if (!componentToDelete) return;
-    setFormData((prev) => ({
-      ...prev,
-      componentLibrary: (prev.componentLibrary || []).filter(
-        (config) => config.name !== componentToDelete,
-      ),
-    }));
+    setFormData((prev) => {
+      const { library, subjectComponentMap } = removeFromLibrary(
+        prev.componentLibrary || [],
+        prev.subjectComponentMap || {},
+        componentToDelete,
+      );
+      return {
+        ...prev,
+        componentLibrary: library,
+        subjectComponentMap,
+      };
+    });
     showToast(`Deleted task: ${componentToDelete}`, "info");
     setShowDeleteComponentModal(false);
     setComponentToDelete(null);
@@ -434,7 +456,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setShowClassUpdateModal(false);
   };
 
-  const flushPendingSave = useCallback(() => {
+  const flushPendingSave = useCallback((): SchoolSettings => {
     const classNameChanged = formData.className !== lastSavedSettings.className;
     const isClassNameEmpty = !(formData.className ?? "").trim();
     const toSave =
@@ -442,9 +464,9 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         ? { ...formData, className: lastSavedSettings.className }
         : formData;
 
-    if (Object.is(toSave, lastAutoSaveSettingsRef.current)) return;
+    if (Object.is(toSave, lastAutoSaveSettingsRef.current)) return toSave;
     const toSaveString = JSON.stringify(toSave);
-    if (toSaveString === getLastAutoSaveString()) return;
+    if (toSaveString === getLastAutoSaveString()) return toSave;
 
     immediateSaveGenRef.current = formGenerationRef.current;
     setSettings(toSave);
@@ -453,6 +475,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     ++baselineSeqRef.current;
     pendingSavedBaselineRef.current = null;
     setLastSavedSettings(toSave);
+    return toSave;
   }, [formData, getLastAutoSaveString, lastSavedSettings.className, setSettings]);
 
   const syncCommittedSettings = useCallback((nextSettings: SchoolSettings) => {

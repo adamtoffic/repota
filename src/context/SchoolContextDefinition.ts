@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { StudentRecord, SchoolSettings, ProcessedStudent } from "../types";
+import type { ExamType, StudentRecord, SchoolSettings, ProcessedStudent } from "../types";
 
 export type LoadKeyStatus = "ok" | "error";
 export type LoadStatus = { students: LoadKeyStatus; settings: LoadKeyStatus };
@@ -24,10 +24,31 @@ export interface SchoolActionsType {
   removeAllStudentPhotos: () => void;
   loadDemoData: () => void;
   updateClassNameForAll: (newClassName: string) => void;
-  /** Compares `settings.subjectComponentMap` against existing students' `classScoreComponents` to flag missing or outdated weights. */
+  /** Compares `settings.subjectComponentMap` against existing students' `classScoreComponents` to flag missing, extra, or outdated task definitions. */
   detectComponentMismatches: () => { hasOutdated: boolean; hasMissing: boolean };
   /** Reconciles every student's `classScoreComponents` (and weighted `classScore`) with `settings.subjectComponentMap`. */
   syncSubjectComponentsFromSettings: () => void;
+  /**
+   * Atomically updates SBA settings (`subjectComponentMap` and derived `componentLibrary`) and immediately
+   * reconciles all student records in one step without a manual Sync step.
+   */
+  applySbaConfig: (
+    updater: (prev: SchoolSettings) => {
+      settings: SchoolSettings;
+      renamedTasks?: Record<string, string>;
+      onClearTasks?: "preserve_class_score" | "zero";
+    },
+    options?: { silent?: boolean; toastMessage?: string },
+  ) => SchoolSettings;
+  /**
+   * Atomically updates grading weights (`classScoreMax`, `examScoreMax`, optional `examType`) and updates
+   * existing student scores (losslessly recomputing SBA-tracked subjects; rescaling or clamping direct/exam scores).
+   */
+  updateAssessmentWeights: (
+    nextClassScoreMax: number,
+    nextExamScoreMax: number,
+    options?: { examType?: ExamType; scoreMode?: "rescale" | "clamp"; silent?: boolean },
+  ) => SchoolSettings;
   checkDuplicateName: (name: string) => boolean;
   restoreDefaults: () => void;
   autoGenerateRemarks: (onProgress?: (current: number, total: number) => void) => void;

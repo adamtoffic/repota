@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Plus, Users, X } from "lucide-react";
 import type { AcademicPeriod, ExamType, SchoolLevel } from "../../types";
 import { IconButton, Input } from "../ui";
@@ -185,7 +186,7 @@ export function AcademicSessionSection() {
                 </button>
               ))}
             </div>
-            {formData.examType === "MOCK" && (
+            {formData.examType === "MOCK" ? (
               <div className="mt-3 flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800 dark:border dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
                 <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <p>
@@ -193,6 +194,16 @@ export function AcademicSessionSection() {
                   scores and SBA components are disabled. Grades use the same system.
                 </p>
               </div>
+            ) : (
+              <p className="text-muted mt-2 text-xs">
+                Need to adjust Continuous Assessment weights or manage SBA tasks?{" "}
+                <Link
+                  to="/sba"
+                  className="text-primary-text font-semibold hover:underline"
+                >
+                  Open SBA Markbook →
+                </Link>
+              </p>
             )}
           </div>
         </div>
