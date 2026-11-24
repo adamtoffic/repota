@@ -559,3 +559,23 @@ export function calculateSbaPaceStats(
     isPartialMidTerm,
   };
 }
+
+/**
+ * Returns `true` when a student is missing `activeSubject` or has any configured SBA task ungraded (`0`).
+ */
+export function isStudentUnscoredForSba(
+  student: Pick<StudentRecord, "subjects">,
+  activeSubject: string,
+  tasks: ClassScoreComponentConfig[],
+): boolean {
+  const subject = student.subjects.find((s) => s.name === activeSubject);
+  if (!subject) return true;
+  if (tasks.length === 0) return subject.classScore <= 0;
+  return tasks.some((task) => {
+    const targetKey = normalizeTaskKey(task.name);
+    const comp = subject.classScoreComponents?.find(
+      (c) => normalizeTaskKey(c.name) === targetKey,
+    );
+    return !comp || comp.score <= 0;
+  });
+}
