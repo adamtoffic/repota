@@ -14,6 +14,7 @@ const storage = vi.hoisted(() => ({
   initStorage: vi.fn(),
   loadFromStorageResult: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
   createBackupHeartbeat: vi.fn(),
 }));
@@ -135,6 +136,7 @@ describe("SchoolContext live actions", () => {
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: true });
     storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
     storage.createBackupHeartbeat.mockResolvedValue(undefined);
   });
 
@@ -376,9 +378,12 @@ describe("SchoolContext live actions", () => {
     localStorage.setItem("repota_had_data", "true");
     localStorage.setItem("repota_backup_check", "123");
     localStorage.setItem("welcome_tour_completed", "true");
+    localStorage.setItem("repota_welcome_tour_v2", "true");
+    localStorage.setItem("repota_idb_migrated", "v2");
     localStorage.setItem("repota_theme", "dark");
     localStorage.setItem("repota_analytics_report_ledger_v1", "{}");
     sessionStorage.setItem("repota_backup_reminder_shown", "true");
+    sessionStorage.setItem("repota_dismiss_photo_warning", "true");
     document.documentElement.classList.add("dark");
 
     storage.createBackupHeartbeat.mockClear();
@@ -398,18 +403,23 @@ describe("SchoolContext live actions", () => {
     expect(localStorage.getItem("biometric_enabled")).toBeNull();
     expect(localStorage.getItem("repota_had_data")).toBeNull();
     expect(localStorage.getItem("welcome_tour_completed")).toBeNull();
+    expect(localStorage.getItem("repota_welcome_tour_v2")).toBeNull();
+    expect(localStorage.getItem("repota_idb_migrated")).toBeNull();
     expect(localStorage.getItem("repota_theme")).toBeNull();
     expect(localStorage.getItem("repota_analytics_report_ledger_v1")).toBeNull();
     expect(sessionStorage.getItem("repota_backup_reminder_shown")).toBeNull();
+    expect(sessionStorage.getItem("repota_dismiss_photo_warning")).toBeNull();
     expect(document.documentElement.classList.contains("dark")).toBe(false);
     expect(storage.createBackupHeartbeat).not.toHaveBeenCalled();
-    expect(storage.saveToStorage).toHaveBeenCalledWith("ges_v1_students", []);
-    expect(storage.saveToStorage).toHaveBeenCalledWith(
-      "ges_v1_settings",
-      expect.objectContaining({
-        schoolName: DEFAULT_SETTINGS.schoolName,
-        examType: "TERMLY",
-      }),
-    );
+    expect(storage.saveEntriesToStorage).toHaveBeenCalledWith([
+      { key: "ges_v1_students", value: [] },
+      {
+        key: "ges_v1_settings",
+        value: expect.objectContaining({
+          schoolName: DEFAULT_SETTINGS.schoolName,
+          examType: "TERMLY",
+        }),
+      },
+    ]);
   });
 });

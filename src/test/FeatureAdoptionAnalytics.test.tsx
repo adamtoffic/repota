@@ -15,6 +15,7 @@ const storageMock = vi.hoisted(() => ({
   initStorage: vi.fn(),
   loadFromStorageResult: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
   getStorageType: vi.fn(() => "indexeddb"),
 }));
@@ -143,6 +144,7 @@ describe("Tier 2 Feature Adoption Analytics", () => {
     storageMock.initStorage.mockResolvedValue(undefined);
     storageMock.migrateFromLocalStorage.mockResolvedValue({ success: true });
     storageMock.saveToStorage.mockResolvedValue(true);
+    storageMock.saveEntriesToStorage.mockResolvedValue(true);
     storageMock.loadFromStorageResult.mockImplementation(async (key: string) => {
       if (key === "ges_v1_students") return { status: "found", value: [] };
       if (key === "ges_v1_settings") return { status: "found", value: baseSettings };

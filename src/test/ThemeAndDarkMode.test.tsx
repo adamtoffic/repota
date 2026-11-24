@@ -8,6 +8,7 @@ const storage = vi.hoisted(() => ({
   loadFromStorage: vi.fn(),
   loadFromStorageResult: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
   createBackupHeartbeat: vi.fn(),
 }));
@@ -214,12 +215,14 @@ describe("Theme system and Dark Mode invariants", () => {
     storage.loadFromStorage.mockReset();
     storage.loadFromStorageResult.mockReset();
     storage.saveToStorage.mockReset();
+    storage.saveEntriesToStorage.mockReset();
     storage.migrateFromLocalStorage.mockReset();
     storage.createBackupHeartbeat.mockReset();
 
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: true, studentsCount: 0 });
     storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
     storage.loadFromStorageResult.mockImplementation(async (key: string) => {
       if (key === "ges_v1_students") {
         return { status: "found", value: seededStudents };

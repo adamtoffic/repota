@@ -14,6 +14,7 @@ vi.mock("../utils/idbStorage", () => ({
   migrateFromLocalStorage: vi.fn().mockResolvedValue({ success: true, studentsCount: 0 }),
   loadFromStorageResult: vi.fn().mockResolvedValue({ status: "empty" }),
   saveToStorage: vi.fn().mockResolvedValue(true),
+  saveEntriesToStorage: vi.fn().mockResolvedValue(true),
   getStorageType: vi.fn(() => "indexeddb"),
 }));
 

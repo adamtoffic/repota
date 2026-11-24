@@ -1,9 +1,9 @@
 /**
- * Storage monitoring utilities to track and manage localStorage usage
- * Helps prevent QuotaExceededError and optimize storage efficiency
+ * Storage monitoring utilities to track localStorage fallback usage and IndexedDB quota.
+ * Prevents bogus 5MB localStorage warnings when running on IndexedDB.
  */
 
-import { IDB_KEYS as STORAGE_KEYS } from "./idbStorage";
+import { getStorageType, IDB_KEYS as STORAGE_KEYS } from "./idbStorage";
 
 export interface StorageStats {
   usedBytes: number;
@@ -95,9 +95,13 @@ export const getStorageStats = (): StorageStats => {
 };
 
 /**
- * Check if storage is approaching capacity (>70% = warning, >90% = critical)
+ * Check if localStorage fallback is approaching capacity (>70% = warning, >90% = critical).
+ * Returns `"safe"` immediately when using IndexedDB (use `getAsyncStorageWarningLevel` for IDB quota checks).
  */
 export const getStorageWarningLevel = (): "safe" | "warning" | "critical" => {
+  if (getStorageType() === "indexeddb") {
+    return "safe";
+  }
   const stats = getStorageStats();
   if (stats.usagePercent >= 90) return "critical";
   if (stats.usagePercent >= 70) return "warning";
@@ -105,68 +109,28 @@ export const getStorageWarningLevel = (): "safe" | "warning" | "critical" => {
 };
 
 /**
- * Calculate how many more students with photos can be stored
+ * Storage-aware capacity check: inspects `navigator.storage.estimate()` on IndexedDB
+ * and falls back to synchronous `localStorage` byte accounting when IDB is unavailable.
  */
-export const calculateRemainingCapacity = (): {
-  remainingMB: number;
-  estimatedStudentsWithPhotos: number;
-  estimatedStudentsWithoutPhotos: number;
-} => {
-  const stats = getStorageStats();
-  const remainingMB = stats.totalEstimatedMB - stats.usedMB;
-  const avgPhotoKB = stats.averagePhotoSize || 70; // Default 70KB if no photos yet
-
-  // Estimate capacity
-  const estimatedStudentsWithPhotos = Math.floor((remainingMB * 1024) / avgPhotoKB);
-  const estimatedStudentsWithoutPhotos = Math.floor((remainingMB * 1024) / 0.5); // 500 bytes per student
-
-  return {
-    remainingMB: parseFloat(remainingMB.toFixed(2)),
-    estimatedStudentsWithPhotos: Math.max(0, estimatedStudentsWithPhotos),
-    estimatedStudentsWithoutPhotos: Math.max(0, estimatedStudentsWithoutPhotos),
-  };
-};
-
-/**
- * Find students with largest photo sizes (for cleanup)
- */
-export const findLargestPhotos = (
-  limit = 5,
-): Array<{ id: string; name: string; sizeKB: number }> => {
-  const students = localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]";
-  const studentData = JSON.parse(students) as Array<{
-    id: string;
-    name: string;
-    pictureUrl?: string;
-  }>;
-
-  interface StudentWithSize {
-    id: string;
-    name: string;
-    sizeKB: number;
+export const getAsyncStorageWarningLevel = async (): Promise<
+  "safe" | "warning" | "critical"
+> => {
+  if (getStorageType() === "localstorage") {
+    return getStorageWarningLevel();
   }
 
-  const studentsWithSizes = studentData
-    .filter((s) => s.pictureUrl?.startsWith("data:image"))
-    .map(
-      (s): StudentWithSize => ({
-        id: s.id,
-        name: s.name,
-        sizeKB: Math.round(getStringSize(s.pictureUrl!) / 1024),
-      }),
-    )
-    .sort((a, b) => b.sizeKB - a.sizeKB);
+  try {
+    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
+      const { usage, quota } = await navigator.storage.estimate();
+      if (typeof usage === "number" && typeof quota === "number" && quota > 0) {
+        const usagePercent = (usage / quota) * 100;
+        if (usagePercent >= 90) return "critical";
+        if (usagePercent >= 70) return "warning";
+      }
+    }
+  } catch {
+    // Ignore storage estimate permission/support errors on restricted WebViews
+  }
 
-  return studentsWithSizes.slice(0, limit);
-};
-
-/**
- * Format bytes to human-readable format
- */
-export const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  return "safe";
 };

@@ -1,34 +1,42 @@
 // src/utils/dataProtection.ts
 // Protection against data loss from Android cleaner apps
 
-import { IDB_KEYS as STORAGE_KEYS } from "./idbStorage";
+import { getStorageType, IDB_KEYS as STORAGE_KEYS } from "./idbStorage";
 
 /**
- * Create a backup timestamp to detect if LocalStorage was wiped
+ * Create a backup timestamp to detect if storage was wiped
  */
 const BACKUP_CHECK_KEY = "repota_backup_check";
 const LAST_BACKUP_KEY = "repota_last_backup";
 const HAD_DATA_BEFORE_KEY = "repota_had_data"; // Track if user ever had data
 
 /**
- * Check if data was recently lost (cleared by cleaner app)
- * Returns true if storage appears to have been wiped
+ * Check if data was recently lost (cleared by cleaner app or external eviction).
+ * When IndexedDB is active, pass `storageSnapshot` from post-hydration load results;
+ * checking `localStorage` keys under IndexedDB causes false positives on every launch.
  */
-export const detectDataLoss = (): boolean => {
+export const detectDataLoss = (storageSnapshot?: {
+  studentsEmpty: boolean;
+  settingsEmpty: boolean;
+}): boolean => {
   const backupCheck = localStorage.getItem(BACKUP_CHECK_KEY);
-  const hasStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
-  const hasSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
   const hadDataBefore = localStorage.getItem(HAD_DATA_BEFORE_KEY);
 
-  // Only flag data loss if:
-  // 1. User had data before (not first-time setup)
-  // 2. Backup check exists (app was running)
-  // 3. Data is now missing
-  if (hadDataBefore === "true" && backupCheck && (!hasStudents || !hasSettings)) {
-    return true;
+  if (hadDataBefore !== "true" || !backupCheck) {
+    return false;
   }
 
-  return false;
+  if (storageSnapshot) {
+    return storageSnapshot.studentsEmpty && storageSnapshot.settingsEmpty;
+  }
+
+  if (getStorageType() === "indexeddb") {
+    return false;
+  }
+
+  const hasStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+  const hasSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+  return !hasStudents || !hasSettings;
 };
 
 /**

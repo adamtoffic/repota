@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import {
   Download,
   Upload,
@@ -37,6 +37,7 @@ import {
   validateBackup,
 } from "../utils/backupValidation";
 import type { RecoveryAction } from "../context/SchoolContextDefinition";
+import { SettingsFormContext } from "../context/SettingsFormContextDefinition";
 import { isIOSDevice } from "../utils/iosInteraction";
 import { captureEvent } from "../utils/analytics";
 import { isDemoStudent } from "../utils/reportAnalytics";
@@ -69,7 +70,9 @@ export function DataBackup({
     activeRecoveryAction: contextRecoveryAction,
     setActiveRecoveryAction: contextSetRecoveryAction,
     waitForMigration,
+    flushPendingWrites,
   } = useSchoolData();
+  const settingsFormCtx = useContext(SettingsFormContext);
 
   const currentRecoveryAction = activeRecoveryActionProp ?? contextRecoveryAction ?? null;
   const setRecoveryAction = onRecoveryActionChange ?? contextSetRecoveryAction;
@@ -220,6 +223,10 @@ export function DataBackup({
           return;
         }
       }
+
+      // Flush any debounced settings or school edits before reading storage for export
+      settingsFormCtx?.flushPendingSave();
+      await flushPendingWrites?.();
 
       const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
       const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);

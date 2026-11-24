@@ -7,6 +7,7 @@ const storage = vi.hoisted(() => ({
   loadFromStorage: vi.fn(),
   loadFromStorageResult: vi.fn(),
   saveToStorage: vi.fn(),
+  saveEntriesToStorage: vi.fn(),
   migrateFromLocalStorage: vi.fn(),
   createBackupHeartbeat: vi.fn(),
 }));
@@ -163,6 +164,7 @@ describe("Settings cold start", () => {
     storage.loadFromStorage.mockReset();
     storage.loadFromStorageResult.mockReset();
     storage.saveToStorage.mockReset();
+    storage.saveEntriesToStorage.mockReset();
     storage.createBackupHeartbeat.mockReset();
     storage.migrateFromLocalStorage.mockReset();
     storage.migrateFromLocalStorage.mockResolvedValue({
@@ -170,6 +172,7 @@ describe("Settings cold start", () => {
       studentsCount: 0,
     });
     storage.saveToStorage.mockResolvedValue(true);
+    storage.saveEntriesToStorage.mockResolvedValue(true);
     storage.loadFromStorageResult.mockImplementation(async (key: string) => {
       const value = await storage.loadFromStorage(key);
       return value == null ? { status: "empty" } : { status: "found", value };
@@ -752,14 +755,17 @@ describe("Settings cold start", () => {
     fireEvent.click(screen.getByRole("button", { name: "Trigger Start Fresh" }));
     fireEvent.click(screen.getByRole("button", { name: "Start fresh", exact: true }));
 
-    expect(storage.saveToStorage).not.toHaveBeenCalled();
+    expect(storage.saveEntriesToStorage).not.toHaveBeenCalled();
 
     await act(async () => {
       migrationDeferred.resolve({ success: false });
       await vi.advanceTimersByTimeAsync(100);
     });
 
-    expect(storage.saveToStorage).toHaveBeenCalledWith("ges_v1_settings", expect.any(Object));
+    expect(storage.saveEntriesToStorage).toHaveBeenCalledWith([
+      { key: "ges_v1_students", value: [] },
+      { key: "ges_v1_settings", value: expect.any(Object) },
+    ]);
   });
 
   it("disables Try again, Start fresh, and Load Class File while a recovery action is active", async () => {
@@ -853,7 +859,7 @@ describe("Settings cold start", () => {
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: false });
     const saveDeferred = deferred<boolean>();
-    storage.saveToStorage.mockReturnValue(saveDeferred.promise);
+    storage.saveEntriesToStorage.mockReturnValue(saveDeferred.promise);
 
     function TestConsumer() {
       const { startFresh, activeRecoveryAction } = useSchoolData();
@@ -884,7 +890,7 @@ describe("Settings cold start", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(storage.saveToStorage).toHaveBeenCalled();
+    expect(storage.saveEntriesToStorage).toHaveBeenCalled();
     expect(screen.getByTestId("recovery-action")).toHaveTextContent("fresh");
 
     // Lock while saves are still in-flight: ownership must stay "fresh"
