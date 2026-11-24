@@ -1,7 +1,7 @@
 import posthog from "posthog-js";
 import { getStorageType } from "./idbStorage";
 
-export type ScoreEntryMode = "quick_gradebook" | "score_modal";
+export type ScoreEntryMode = "quick_gradebook" | "score_modal" | "sba_markbook";
 
 export interface RuntimeAnalyticsContext {
   is_standalone_pwa: boolean;
