@@ -29,7 +29,12 @@ import {
   requiresPassword,
 } from "../utils/fileEncryption";
 import { Input } from "./ui";
-import { useSchoolData } from "../hooks/useSchoolData";
+import {
+  useSchoolActions,
+  useSchoolLifecycle,
+  useSchoolStudents,
+} from "../hooks/useSchoolData";
+import { downloadBlob } from "../utils/fileDownload";
 import {
   createBackupPayload,
   importBackupAtomically,
@@ -58,20 +63,22 @@ export function DataBackup({
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
+  const students = useSchoolStudents();
   const {
     loadError,
-    students,
-    suspendPersistence,
-    resumePersistence,
     isStorageReady,
-    markIncompleteRollback,
-    clearIncompleteRollback,
     isRollbackIncomplete,
     activeRecoveryAction: contextRecoveryAction,
+  } = useSchoolLifecycle();
+  const {
+    suspendPersistence,
+    resumePersistence,
+    markIncompleteRollback,
+    clearIncompleteRollback,
     setActiveRecoveryAction: contextSetRecoveryAction,
     waitForMigration,
     flushPendingWrites,
-  } = useSchoolData();
+  } = useSchoolActions();
   const settingsFormCtx = useContext(SettingsFormContext);
 
   const currentRecoveryAction = activeRecoveryActionProp ?? contextRecoveryAction ?? null;
@@ -182,22 +189,6 @@ export function DataBackup({
   const isExportPasswordMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
 
-  const triggerBlobDownload = (blob: Blob, fileName: string) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    if (isIOS) {
-      // Defer revocation so iOS/Safari WebKit completes the download before the blob URL invalidates
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } else {
-      URL.revokeObjectURL(url);
-    }
-  };
-
   // 1. EXPORT HANDLER - Opens password modal or exports directly
   const initiateExport = () => {
     if (usePassword) {
@@ -277,10 +268,10 @@ export function DataBackup({
             return;
           }
           // Fall back to direct download if OS share fails or user activation expired after crypto
-          triggerBlobDownload(blob, fileName);
+          downloadBlob(blob, fileName);
         }
       } else {
-        triggerBlobDownload(blob, fileName);
+        downloadBlob(blob, fileName);
       }
 
       recordBackup(); // Track backup timestamp

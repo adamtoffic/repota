@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useSchoolData } from "../hooks/useSchoolData";
+import { useSchoolActions, useSchoolLifecycle } from "../hooks/useSchoolData";
 import { Alert, Button } from "./ui";
 import { PageLoader } from "./PageLoader";
 import { DataBackup } from "./DataBackup";
@@ -14,15 +14,9 @@ interface DataGateProps {
  * local draft state from loaded settings on mount (such as `SettingsFormProvider`).
  */
 export function DataGate({ children }: DataGateProps) {
-  const {
-    isDataLoaded,
-    loadError,
-    isRollbackIncomplete,
-    retryLoad,
-    startFresh,
-    activeRecoveryAction,
-    setActiveRecoveryAction,
-  } = useSchoolData();
+  const { isDataLoaded, loadError, isRollbackIncomplete, activeRecoveryAction } =
+    useSchoolLifecycle();
+  const { retryLoad, startFresh, setActiveRecoveryAction } = useSchoolActions();
 
   if (!isDataLoaded) {
     return <PageLoader />;

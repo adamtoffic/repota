@@ -10,7 +10,7 @@ import {
   reconcileStudentsWithSbaConfig,
   rescaleStudentsForWeightChange,
 } from "../utils/sbaReconciliation";
-import type { ExamType, StudentRecord, SchoolSettings, SavedSubject } from "../types";
+import type { ExamType, SavedSubject, SchoolSettings, StudentRecord } from "../types";
 import { useToast } from "../hooks/useToast";
 import { useDebounce } from "../hooks/useDebounce";
 // ✅ Import definition
@@ -25,11 +25,9 @@ import {
   type SchoolContextType,
   type SchoolLifecycleType,
 } from "./SchoolContextDefinition";
-import {
-  generateTeacherRemark,
-  getRandomConductTrait,
-  getRandomInterest,
-} from "../utils/remarkGenerator";
+import { createDemoStudents } from "../utils/demoData";
+import { applyAutoRemarksToStudents } from "../utils/remarksBatch";
+import { areSettingsEqual } from "../utils/settingsEquality";
 import { stripDerivedStudentFields } from "../utils/studentSanitizer";
 import {
   createBackupHeartbeat,
@@ -183,7 +181,7 @@ export function SchoolProvider({
     (value) => {
       const prev = settingsRef.current;
       const next = typeof value === "function" ? value(prev) : value;
-      if (Object.is(next, prev) || JSON.stringify(next) === JSON.stringify(prev)) {
+      if (areSettingsEqual(next, prev)) {
         setUnsavedChanges("school-context-debounce", isSavingRef.current);
         return;
       }
@@ -1329,211 +1327,7 @@ export function SchoolProvider({
   // 6. DEMO DATA
   const loadDemoData = useCallback(() => {
     const currentSettings = settingsRef.current;
-    const hasComponents =
-      currentSettings.subjectComponentMap &&
-      Object.keys(currentSettings.subjectComponentMap).length > 0;
-
-    // Helper function to create subject with components from settings map
-    const createDemoSubject = (
-      subName: string,
-      classScoreRange: [number, number],
-      examScoreRange: [number, number],
-    ): SavedSubject => {
-      const subject: SavedSubject = {
-        id: crypto.randomUUID(),
-        name: subName,
-        classScore: 0,
-        examScore:
-          Math.floor(Math.random() * (examScoreRange[1] - examScoreRange[0] + 1)) +
-          examScoreRange[0],
-      };
-
-      const subjectComponents = currentSettings.subjectComponentMap?.[subName];
-      if (hasComponents && subjectComponents && subjectComponents.length > 0) {
-        const targetClassScore =
-          Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
-          classScoreRange[0];
-        const targetPercentage = targetClassScore / currentSettings.classScoreMax;
-        const totalMaxScore = subjectComponents.reduce((sum, c) => sum + c.maxScore, 0);
-        const targetTotalScore = targetPercentage * totalMaxScore;
-
-        subject.classScoreComponents = subjectComponents.map((config) => {
-          const proportion = config.maxScore / totalMaxScore;
-          const baseScore = targetTotalScore * proportion;
-          const variance = baseScore * 0.15;
-          const score = Math.min(
-            config.maxScore,
-            Math.max(0, Math.floor(baseScore + (Math.random() * variance * 2 - variance))),
-          );
-
-          return {
-            id: crypto.randomUUID(),
-            name: config.name,
-            score,
-            maxScore: config.maxScore,
-            ...(config.category !== undefined ? { category: config.category } : {}),
-          };
-        });
-
-        const totalActualScore = subject.classScoreComponents!.reduce((sum, c) => sum + c.score, 0);
-        subject.classScore = Math.round(
-          (totalActualScore / totalMaxScore) * currentSettings.classScoreMax,
-        );
-      } else {
-        subject.classScore =
-          Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
-          classScoreRange[0];
-      }
-
-      return subject;
-    };
-
-    const classMax = currentSettings.classScoreMax;
-    const examMax = currentSettings.examScoreMax;
-
-    const demoStudents: StudentRecord[] = [
-      {
-        id: "demo-1",
-        name: "Kwame Mensah",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Male",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.7), Math.floor(classMax * 0.9)],
-            [Math.floor(examMax * 0.7), Math.floor(examMax * 0.9)],
-          ),
-        ),
-        attendancePresent: 65,
-      },
-      {
-        id: "demo-2",
-        name: "Ama Asante",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Female",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.76), Math.floor(classMax * 0.96)],
-            [Math.floor(examMax * 0.8), examMax],
-          ),
-        ),
-        attendancePresent: 68,
-      },
-      {
-        id: "demo-3",
-        name: "Kofi Owusu",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Male",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.56), Math.floor(classMax * 0.76)],
-            [Math.floor(examMax * 0.6), Math.floor(examMax * 0.8)],
-          ),
-        ),
-        attendancePresent: 60,
-      },
-      {
-        id: "demo-4",
-        name: "Abena Boateng",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Female",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.8), classMax],
-            [Math.floor(examMax * 0.84), examMax],
-          ),
-        ),
-        attendancePresent: 70,
-      },
-      {
-        id: "demo-5",
-        name: "Yaw Adomako",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Male",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.5), Math.floor(classMax * 0.74)],
-            [Math.floor(examMax * 0.56), Math.floor(examMax * 0.8)],
-          ),
-        ),
-        attendancePresent: 55,
-      },
-      {
-        id: "demo-6",
-        name: "Efua Appiah",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Female",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.8), classMax],
-            [Math.floor(examMax * 0.76), examMax],
-          ),
-        ),
-        attendancePresent: 67,
-      },
-      {
-        id: "demo-7",
-        name: "Kwabena Darko",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Male",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.6), Math.floor(classMax * 0.8)],
-            [Math.floor(examMax * 0.64), Math.floor(examMax * 0.84)],
-          ),
-        ),
-        attendancePresent: 69,
-      },
-      {
-        id: "demo-8",
-        name: "Akosua Frimpong",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Female",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.9), classMax],
-            [Math.floor(examMax * 0.86), examMax],
-          ),
-        ),
-        attendancePresent: 70,
-      },
-      {
-        id: "demo-9",
-        name: "Kwesi Osei",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Male",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.64), Math.floor(classMax * 0.94)],
-            [Math.floor(examMax * 0.7), examMax],
-          ),
-        ),
-        attendancePresent: 63,
-      },
-      {
-        id: "demo-10",
-        name: "Adwoa Agyeman",
-        className: currentSettings.className || "Primary 5A",
-        gender: "Female",
-        subjects: currentSettings.defaultSubjects.map((subName) =>
-          createDemoSubject(
-            subName,
-            [Math.floor(classMax * 0.76), Math.floor(classMax * 0.96)],
-            [Math.floor(examMax * 0.78), Math.floor(examMax * 0.98)],
-          ),
-        ),
-        attendancePresent: 66,
-      },
-    ];
-
+    const demoStudents = createDemoStudents(currentSettings);
     const existingCount = studentsRef.current.length;
     if (demoStudents.length > 0) {
       handleSetStudents((prev) => [...prev, ...demoStudents]);
@@ -1565,36 +1359,13 @@ export function SchoolProvider({
     (onProgress?: (current: number, total: number) => void) => {
       const currentStudents = studentsRef.current;
       const currentSettings = settingsRef.current;
-      const usedTeacherRemarks: string[] = [];
-
       const total = currentStudents.length;
 
-      const updatedStudents = currentStudents.map((student, index) => {
-        const processed = processStudent(student, currentSettings.level);
-
-        const tRemark = generateTeacherRemark(
-          processed,
-          student.attendancePresent ?? 0,
-          currentSettings.totalAttendanceDays ?? 0,
-          currentSettings.level,
-          usedTeacherRemarks,
-        );
-        usedTeacherRemarks.push(tRemark);
-
-        const conduct = student.conduct || getRandomConductTrait();
-        const interest = student.interest || getRandomInterest();
-
-        if (onProgress) {
-          queueMicrotask(() => onProgress(index + 1, total));
-        }
-
-        return {
-          ...student,
-          teacherRemark: tRemark,
-          conduct,
-          interest,
-        };
-      });
+      const updatedStudents = applyAutoRemarksToStudents(
+        currentStudents,
+        currentSettings,
+        onProgress,
+      );
 
       handleSetStudents(updatedStudents);
       showToast("Remarks auto-generated and distributed uniquely!", "success");

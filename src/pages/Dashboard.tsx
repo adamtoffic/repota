@@ -18,6 +18,7 @@ import { Footer } from "../components/Footer";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { useDebounce } from "../hooks/useDebounce";
 import { captureEvent } from "../utils/analytics";
+import { downloadBlob } from "../utils/fileDownload";
 import { exportDetailedBroadsheetCSV, exportToCSV } from "../utils/export";
 import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
 import { BulkImportModal } from "../components/BulkImportModal";
@@ -384,7 +385,7 @@ export function Dashboard() {
             <div className="mb-5 hidden items-center justify-between gap-4 md:flex">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-main truncate text-2xl font-black tracking-tight" data-record="true">
+                  <h1 className="text-main truncate text-2xl font-black tracking-tight">
                     {settings.className || "My Class"}
                   </h1>
                   {settings.examType === "MOCK" ? (
@@ -474,12 +475,10 @@ export function Dashboard() {
                 // Export simple student names list as text file
                 const studentList = students.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
                 const blob = new Blob([studentList], { type: "text/plain" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${settings.className || "Class"}_Students_${new Date().toISOString().split("T")[0]}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
+                downloadBlob(
+                  blob,
+                  `${settings.className || "Class"}_Students_${new Date().toISOString().split("T")[0]}.txt`,
+                );
               }}
             />
 
