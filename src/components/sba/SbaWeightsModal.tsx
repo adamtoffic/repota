@@ -105,13 +105,13 @@ function SbaWeightsModalContent({
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto p-3.5 sm:p-5">
           {/* Exam Type Switcher */}
           <div>
             <label className="text-muted mb-1.5 block text-xs font-bold tracking-wide uppercase">
               Exam Mode
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {(["TERMLY", "MOCK"] as ExamType[]).map((modeOption) => {
                 const isSelected = examType === modeOption;
                 return (
@@ -149,7 +149,7 @@ function SbaWeightsModalContent({
                 <label className="text-muted mb-1.5 block text-xs font-bold tracking-wide uppercase">
                   Standard Presets
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                   {WEIGHT_PRESETS.map((preset) => {
                     const active =
                       classMax === preset.classScoreMax && examMax === preset.examScoreMax;
@@ -162,7 +162,7 @@ function SbaWeightsModalContent({
                           setClassMax(preset.classScoreMax);
                           setExamMax(preset.examScoreMax);
                         }}
-                        className={`rounded-xl border px-2.5 py-2 text-center transition-all ${
+                        className={`flex flex-col justify-center rounded-xl border px-1.5 py-2 text-center transition-all sm:px-2.5 ${
                           active
                             ? "border-purple-500 bg-purple-50 text-purple-900 ring-2 ring-purple-500/20 dark:bg-purple-950/50 dark:text-purple-200"
                             : "border-border bg-surface text-main hover:bg-subtle"
@@ -171,7 +171,7 @@ function SbaWeightsModalContent({
                         <span className="block text-sm font-black tabular-nums">
                           {preset.label}
                         </span>
-                        <span className="text-muted block truncate text-[10px]">
+                        <span className="text-muted mt-0.5 line-clamp-2 block text-[10px] leading-tight">
                           {preset.subtitle}
                         </span>
                       </button>
@@ -181,29 +181,33 @@ function SbaWeightsModalContent({
               </div>
 
               {/* Custom Inputs */}
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 dark:border-amber-800/70 dark:bg-amber-950/30">
-                <Input
-                  label="Continuous Assessment %"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={100}
-                  disabled={disabled}
-                  value={classMax}
-                  onChange={(e) => handleClassChange(e.target.value)}
-                  className="text-center font-bold"
-                />
-                <Input
-                  label="Examination %"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={100}
-                  disabled={disabled}
-                  value={examMax}
-                  onChange={(e) => handleExamChange(e.target.value)}
-                  className="text-center font-bold"
-                />
+              <div className="grid grid-cols-2 items-end gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 dark:border-amber-800/70 dark:bg-amber-950/30">
+                <div className="min-w-0">
+                  <Input
+                    label="Continuous Assessment %"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={100}
+                    disabled={disabled}
+                    value={classMax}
+                    onChange={(e) => handleClassChange(e.target.value)}
+                    className="px-2.5 py-2 text-center font-bold"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <Input
+                    label="Examination %"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={100}
+                    disabled={disabled}
+                    value={examMax}
+                    onChange={(e) => handleExamChange(e.target.value)}
+                    className="px-2.5 py-2 text-center font-bold"
+                  />
+                </div>
               </div>
             </>
           ) : (
@@ -257,7 +261,7 @@ function SbaWeightsModalContent({
           )}
         </div>
 
-        <div className="border-border-subtle flex shrink-0 justify-end gap-2 border-t px-4 py-3 sm:px-5">
+        <div className="border-border-subtle flex shrink-0 flex-wrap justify-end gap-2 border-t px-3.5 py-3 sm:px-5">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>

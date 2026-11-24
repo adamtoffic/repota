@@ -927,12 +927,12 @@ export function QuickGradebook({
                               });
                             }}
                             title="Open SBA task scores"
-                            className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-2 text-xs font-semibold text-purple-700 tabular-nums transition-colors hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-900/60"
+                            className="inline-flex h-[38px] items-center whitespace-nowrap rounded-lg border border-purple-200 bg-purple-50 px-2.5 text-xs font-semibold text-purple-700 tabular-nums transition-colors hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-900/60"
                           >
                             {subject.classScore}/{maxClassScore} · SBA
                           </button>
                         ) : (
-                          <span className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-2 text-xs font-semibold text-purple-700 tabular-nums dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300">
+                          <span className="inline-flex h-[38px] items-center whitespace-nowrap rounded-lg border border-purple-200 bg-purple-50 px-2.5 text-xs font-semibold text-purple-700 tabular-nums dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300">
                             {subject.classScore}/{maxClassScore} · SBA
                           </span>
                         )}

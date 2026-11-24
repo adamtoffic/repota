@@ -35,7 +35,7 @@ export function SbaPresetOnboardingCard({
   );
 
   return (
-    <div className="border-border bg-surface space-y-5 rounded-xl border p-5 shadow-sm sm:p-6">
+    <div className="border-border bg-surface space-y-5 rounded-xl border p-4 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-lg bg-purple-100 p-2.5 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
@@ -58,7 +58,7 @@ export function SbaPresetOnboardingCard({
           size="sm"
           disabled={disabled}
           onClick={onCreateCustomTask}
-          className="shrink-0 gap-1.5"
+          className="w-full shrink-0 gap-1.5 sm:w-auto"
           data-record="true"
         >
           <Plus className="h-4 w-4" />
@@ -104,7 +104,7 @@ export function SbaPresetOnboardingCard({
                 `tasks from ${otherConfiguredEntry[0]}`,
               )
             }
-            className="gap-1.5"
+            className="w-full gap-1.5 sm:w-auto"
           >
             <Copy className="h-3.5 w-3.5" />
             <span>Copy tasks from {otherConfiguredEntry[0]}</span>

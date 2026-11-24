@@ -497,7 +497,7 @@ export function SbaMarkbookGrid({
       : undefined;
 
   return (
-    <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
+    <div className="border-border bg-surface overflow-x-clip rounded-xl border shadow-sm">
       {unscoredOnly && newlyScoredCount > 0 && onRefreshUnscoredFilter && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50/80 px-4 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
           <span data-record="true">
@@ -523,10 +523,10 @@ export function SbaMarkbookGrid({
             <table className="w-full border-collapse text-left text-sm">
               <thead className="bg-subtle sticky top-0 z-20">
                 <tr className="border-border bg-subtle border-b text-xs">
-                  <th className="bg-subtle sticky left-0 z-30 w-10 px-3 py-3 font-bold text-muted">
+                  <th className="bg-subtle sticky left-0 z-30 w-10 min-w-10 max-w-10 px-2 py-3 text-center font-bold text-muted">
                     #
                   </th>
-                  <th className="border-border-subtle bg-subtle sticky left-10 z-30 min-w-44 border-r px-3 py-3 font-bold text-main">
+                  <th className="border-border-subtle bg-subtle sticky left-10 z-30 min-w-36 max-w-40 border-r px-3 py-3 font-bold text-main lg:min-w-44 lg:max-w-52">
                     Student
                   </th>
                   {tasks.map((task) => {
@@ -584,10 +584,10 @@ export function SbaMarkbookGrid({
                   if (!subject) {
                     return (
                       <tr key={student.id} className="group hover:bg-subtle/40 transition-colors">
-                        <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 px-3 py-3 text-xs font-semibold text-muted tabular-nums transition-colors">
+                        <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 w-10 min-w-10 max-w-10 px-2 py-3 text-center text-xs font-semibold text-muted tabular-nums transition-colors">
                           {studentIdx + 1}
                         </td>
-                        <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 border-r px-3 py-3 text-sm font-bold text-main transition-colors">
+                        <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 max-w-40 truncate border-r px-3 py-3 text-sm font-bold text-main transition-colors lg:max-w-52">
                           {student.name}
                         </td>
                         <td colSpan={tasks.length + 2} className="px-3 py-2.5">
@@ -615,10 +615,10 @@ export function SbaMarkbookGrid({
 
                   return (
                     <tr key={student.id} className="group hover:bg-subtle/40 transition-colors">
-                      <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 px-3 py-2.5 text-xs font-semibold text-muted tabular-nums transition-colors">
+                      <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 w-10 min-w-10 max-w-10 px-2 py-2.5 text-center text-xs font-semibold text-muted tabular-nums transition-colors">
                         {studentIdx + 1}
                       </td>
-                      <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 max-w-52 truncate border-r px-3 py-2.5 text-sm font-bold text-main transition-colors">
+                      <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 max-w-40 truncate border-r px-3 py-2.5 text-sm font-bold text-main transition-colors lg:max-w-52">
                         {student.name}
                       </td>
 
@@ -710,7 +710,7 @@ export function SbaMarkbookGrid({
       {/* Mobile Focused 1-Thumb Task Pill Entry */}
       <div className="md:hidden">
         {/* Horizontal Task Pill Strip */}
-        <div className="border-border bg-subtle/60 no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2.5">
+        <div className="border-border bg-subtle/95 no-scrollbar sticky top-0 z-10 flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2.5 backdrop-blur-xs">
           {tasks.map((task) => {
             const isActive =
               activeMobilePill !== "__SUMMARY__" &&
@@ -799,7 +799,7 @@ export function SbaMarkbookGrid({
                     <p className="text-main truncate text-sm font-bold">
                       {studentIdx + 1}. {student.name}
                     </p>
-                    <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 tabular-nums dark:bg-purple-950/60 dark:text-purple-200">
+                    <span className="shrink-0 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 tabular-nums dark:bg-purple-950/60 dark:text-purple-200">
                       Class: {subject.classScore}/{maxClassScore}
                     </span>
                   </div>

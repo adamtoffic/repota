@@ -364,14 +364,14 @@ function SbaPageContent() {
             </div>
 
             {!isMockMode && (
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <Button
                   type="button"
                   size="sm"
                   variant="secondary"
                   disabled={isPersistenceSuspended || availableSubjects.length === 0}
                   onClick={() => setTaskManagerAction({ mode: "manage" })}
-                  className="gap-1.5"
+                  className="w-full gap-1.5 sm:w-auto"
                 >
                   <Settings2 className="h-4 w-4" />
                   <span>Manage Tasks</span>
@@ -385,7 +385,7 @@ function SbaPageContent() {
                     flushPendingSave();
                     setShowScoreImport(true);
                   }}
-                  className="gap-1.5"
+                  className="w-full gap-1.5 sm:w-auto"
                 >
                   <Upload className="h-4 w-4" />
                   <span>Import CSV</span>
@@ -396,7 +396,7 @@ function SbaPageContent() {
                     size="sm"
                     variant="secondary"
                     onClick={handleExportSbaCsv}
-                    className="gap-1.5"
+                    className="col-span-2 w-full gap-1.5 sm:col-span-1 sm:w-auto"
                   >
                     <Download className="h-4 w-4" />
                     <span>Export SBA CSV</span>
@@ -426,7 +426,7 @@ function SbaPageContent() {
                   </p>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <Button
                   type="button"
                   variant="primary"
@@ -438,12 +438,13 @@ function SbaPageContent() {
                       scoreMode: "rescale",
                     })
                   }
+                  className="w-full sm:w-auto"
                 >
                   Switch to Termly Mode
                 </Button>
                 <Link
                   to="/settings/academic"
-                  className="border-border-strong bg-surface text-secondary hover:bg-subtle inline-flex items-center justify-center rounded-lg border px-3 py-2 text-xs font-bold transition-colors"
+                  className="border-border-strong bg-surface text-secondary hover:bg-subtle inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-xs font-bold transition-colors sm:w-auto"
                 >
                   Academic Settings
                 </Link>
@@ -478,7 +479,7 @@ function SbaPageContent() {
                     flushPendingSave();
                     syncSubjectComponentsFromSettings();
                   }}
-                  className="shrink-0 gap-1.5"
+                  className="w-full shrink-0 gap-1.5 sm:w-auto"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>Reconcile Tasks</span>
@@ -506,12 +507,12 @@ function SbaPageContent() {
               <>
                 {/* Subject Toolbar */}
                 <div className="border-border bg-surface flex flex-col gap-3 rounded-xl border p-3.5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2.5">
                     <select
                       aria-label="SBA subject"
                       value={activeSubject}
                       onChange={(e) => setSelectedSubject(e.target.value)}
-                      className="border-border-strong bg-input text-main rounded-lg border px-3 py-2 text-sm font-bold shadow-xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25"
+                      className="border-border-strong bg-input text-main w-full min-w-0 max-w-full rounded-lg border px-3 py-2 text-sm font-bold shadow-xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/25 sm:w-auto"
                     >
                       {availableSubjects.map((subj) => (
                         <option key={subj} value={subj}>
@@ -534,10 +535,10 @@ function SbaPageContent() {
                   </div>
 
                   {activeSubjectTasks.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       {students.length > 0 && (
                         <>
-                          <div className="relative flex-1 sm:w-44 sm:flex-none">
+                          <div className="relative w-full sm:w-44 sm:flex-none">
                             <Search className="text-muted pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                             <input
                               type="text"
@@ -563,7 +564,7 @@ function SbaPageContent() {
                             type="button"
                             aria-pressed={unscoredOnly}
                             onClick={handleToggleUnscoredOnly}
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
+                            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
                               unscoredOnly
                                 ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
                                 : "border-border-strong bg-surface text-secondary hover:bg-subtle"
@@ -597,7 +598,7 @@ function SbaPageContent() {
                                   setSelectedMobilePill(val);
                                 }
                               }}
-                              className="border-amber-300 bg-surface text-main rounded-lg border px-2.5 py-2 text-xs font-semibold outline-none focus:border-amber-500 dark:border-amber-700/70"
+                              className="border-amber-300 bg-surface text-main min-w-0 max-w-full flex-1 rounded-lg border px-2.5 py-2 text-xs font-semibold outline-none focus:border-amber-500 sm:flex-none dark:border-amber-700/70"
                             >
                               <option value="">Any missing task ({anyUnscoredCount})</option>
                               {activeSubjectTasks.map((task) => (
