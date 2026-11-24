@@ -80,7 +80,7 @@ function ConfirmModalContent({
       closeOnEscape={!isLoading}
       className="max-w-sm"
     >
-      <div className="p-6">
+      <div className="p-5 sm:p-6">
         {/* Header with Icon */}
         <div className="mb-4 flex items-start gap-4">
           <div
@@ -90,7 +90,7 @@ function ConfirmModalContent({
               className={`h-6 w-6 ${isDangerous ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-main text-lg leading-tight font-bold" data-record="true">
               {title}
             </h3>
@@ -110,19 +110,19 @@ function ConfirmModalContent({
               value={typedKeyword}
               onChange={(e) => setTypedKeyword(e.target.value)}
               placeholder={confirmKeyword}
-              className="font-mono text-sm font-bold uppercase"
+              className="font-mono text-base font-bold uppercase sm:text-sm"
             />
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button
             ref={cancelButtonRef}
             type="button"
             disabled={isLoading}
             onClick={handleCancel}
-            className="hover:bg-subtle border-border-strong bg-surface text-secondary rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="hover:bg-subtle border-border-strong bg-surface text-secondary w-full rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             data-record="true"
           >
             {cancelText}
@@ -139,6 +139,7 @@ function ConfirmModalContent({
             }}
             variant={isDangerous ? "danger" : "primary"}
             size="md"
+            className="w-full sm:w-auto"
             data-record="true"
           >
             {isLoading && (

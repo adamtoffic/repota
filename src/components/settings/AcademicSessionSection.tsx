@@ -191,6 +191,7 @@ export function AcademicSessionSection() {
                 <button
                   key={type}
                   type="button"
+                  aria-pressed={(formData.examType ?? "TERMLY") === type}
                   onClick={() => handleExamTypeSelect(type)}
                   className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 ${
                     (formData.examType ?? "TERMLY") === type
@@ -214,7 +215,11 @@ export function AcademicSessionSection() {
               </div>
             ) : (
               <p className="text-muted mt-2 text-xs">
-                Need to adjust Continuous Assessment weights or manage SBA tasks?{" "}
+                Current split:{" "}
+                <strong className="text-secondary">
+                  {formData.classScoreMax}/{formData.examScoreMax}
+                </strong>
+                . Need to adjust Continuous Assessment weights or manage SBA tasks?{" "}
                 <Link
                   to="/sba"
                   className="text-primary-text font-semibold hover:underline"

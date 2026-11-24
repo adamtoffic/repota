@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SchoolSettings, StudentRecord } from "../types";
@@ -534,5 +534,64 @@ describe("NavigationShell and route exclusions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Yes, Overwrite Remarks" }));
     expect(screen.queryByText("Overwrite Existing Remarks?")).not.toBeInTheDocument();
+  });
+
+  it("streams AddStudentModal with class context, batch Save & Add Another, and missing-class Settings link", async () => {
+    const { unmount } = renderAppAt("/");
+    await screen.findByPlaceholderText("Search students...");
+
+    fireEvent.click(screen.getByRole("button", { name: /Quick add student/i }));
+    const dialog = within(screen.getByRole("dialog"));
+
+    expect(dialog.getByText(/Adding to/i)).toBeInTheDocument();
+    expect(dialog.getByText(/JHS 1/i)).toBeInTheDocument();
+    expect(dialog.queryByText(/Not configured/i)).not.toBeInTheDocument();
+    expect(dialog.queryByText(/Based on School Level/i)).not.toBeInTheDocument();
+
+    const saveBtn = dialog.getByRole("button", { name: "Save Student" });
+    const saveAnotherBtn = dialog.getByRole("button", { name: /Save & Add Another/i });
+    expect(saveBtn).toBeDisabled();
+    expect(saveAnotherBtn).toBeDisabled();
+
+    const nameInput = dialog.getByLabelText(/Full Name/i);
+    fireEvent.change(nameInput, { target: { value: "Kofi Mensah" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Female" }));
+    fireEvent.click(saveAnotherBtn);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(dialog.getByText("+1 added")).toBeInTheDocument();
+    expect(dialog.getByLabelText(/Full Name/i)).toHaveValue("");
+
+    fireEvent.change(dialog.getByLabelText(/Full Name/i), { target: { value: "Ama Adjei" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Save Student" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Kofi Mensah").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ama Adjei").length).toBeGreaterThan(0);
+    unmount();
+
+    // Unconfigured className shows direct Settings shortcut to /settings/academic
+    storage.loadFromStorageResult.mockImplementation(async (key: string) => {
+      if (key === "ges_v1_students") {
+        return { status: "found", value: [] };
+      }
+      if (key === "ges_v1_settings") {
+        return { status: "found", value: { ...demoSettings, className: "" } };
+      }
+      return { status: "empty" };
+    });
+
+    renderAppAt("/");
+    const addFirstBtn = await screen.findByRole("button", { name: /Add your first student/i });
+    fireEvent.click(addFirstBtn);
+
+    const emptyClassDialog = within(screen.getByRole("dialog"));
+    expect(emptyClassDialog.getByText("No class name set yet.")).toBeInTheDocument();
+    const setClassLink = emptyClassDialog.getByRole("link", { name: /Set class name/i });
+    expect(setClassLink).toHaveAttribute("href", "/settings/academic");
+
+    fireEvent.click(setClassLink);
+    expect(await screen.findByRole("heading", { name: "Academic Session" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

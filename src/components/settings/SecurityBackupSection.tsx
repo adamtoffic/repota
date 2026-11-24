@@ -237,10 +237,10 @@ export function SecurityBackupSection() {
             <Button
               type="button"
               onClick={() => setShowClearStudentsModal(true)}
-              variant="danger"
+              variant="outline"
               size="sm"
               disabled={isPersistenceSuspended || studentsCount === 0}
-              className="w-full shrink-0 sm:w-auto"
+              className="w-full shrink-0 border-red-300 text-red-700 hover:bg-red-50 sm:w-52 dark:border-red-800/80 dark:text-red-300 dark:hover:bg-red-950/60"
             >
               {studentsCount > 0 ? `Remove All Students (${studentsCount})` : "Remove All Students"}
             </Button>
@@ -261,10 +261,10 @@ export function SecurityBackupSection() {
             <Button
               type="button"
               onClick={() => setShowFactoryResetModal(true)}
-              variant="danger"
+              variant="outline"
               size="sm"
               disabled={isPersistenceSuspended}
-              className="w-full shrink-0 sm:w-auto"
+              className="w-full shrink-0 border-red-300 text-red-700 hover:bg-red-50 sm:w-52 dark:border-red-800/80 dark:text-red-300 dark:hover:bg-red-950/60"
             >
               Restore Factory Defaults
             </Button>
@@ -290,7 +290,7 @@ export function SecurityBackupSection() {
               variant="danger"
               size="sm"
               disabled={isPersistenceSuspended}
-              className="w-full shrink-0 sm:w-auto"
+              className="w-full shrink-0 sm:w-52"
             >
               Reset Entire App
             </Button>
