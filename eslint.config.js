@@ -6,7 +6,16 @@ import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
 export default [
-  { ignores: ["dist", "dev-dist/**", "public/**", "node_modules/**"] },
+  {
+    ignores: [
+      "dist",
+      "dev-dist/**",
+      "public/**",
+      "node_modules/**",
+      "playwright-report/**",
+      "test-results/**",
+    ],
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -30,6 +39,22 @@ export default [
           allowConstantExport: true,
         },
       ],
+    },
+  },
+
+  {
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+      ecmaVersion: "latest",
+      sourceType: "module",
+    },
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+      "react-refresh/only-export-components": "off",
     },
   },
 

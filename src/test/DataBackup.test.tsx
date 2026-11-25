@@ -752,9 +752,9 @@ describe("DataBackup", () => {
         target: { files: [file] },
       });
 
-      await vi.waitFor(() =>
-        expect(screen.getByRole("button", { name: "Yes, Load File" })).toBeVisible(),
-      );
+      expect(
+        await screen.findByRole("button", { name: "Yes, Load File" }, { timeout: 3000 }),
+      ).toBeVisible();
       fireEvent.click(screen.getByRole("button", { name: "Yes, Load File" }));
 
       expect(await screen.findByText("Backup loaded. Reloading...")).toBeVisible();
