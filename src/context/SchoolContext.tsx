@@ -25,8 +25,6 @@ import {
   type SchoolContextType,
   type SchoolLifecycleType,
 } from "./SchoolContextDefinition";
-import { createDemoStudents } from "../utils/demoData";
-import { applyAutoRemarksToStudents } from "../utils/remarksBatch";
 import { areSettingsEqual } from "../utils/settingsEquality";
 import { stripDerivedStudentFields } from "../utils/studentSanitizer";
 import {
@@ -1325,8 +1323,9 @@ export function SchoolProvider({
   );
 
   // 6. DEMO DATA
-  const loadDemoData = useCallback(() => {
+  const loadDemoData = useCallback(async () => {
     const currentSettings = settingsRef.current;
+    const { createDemoStudents } = await import("../utils/demoData");
     const demoStudents = createDemoStudents(currentSettings);
     const existingCount = studentsRef.current.length;
     if (demoStudents.length > 0) {
@@ -1356,11 +1355,12 @@ export function SchoolProvider({
 
   // 8. AUTO-GENERATE REMARKS (Smart Batching with Progress)
   const autoGenerateRemarks = useCallback(
-    (onProgress?: (current: number, total: number) => void) => {
+    async (onProgress?: (current: number, total: number) => void) => {
       const currentStudents = studentsRef.current;
       const currentSettings = settingsRef.current;
       const total = currentStudents.length;
 
+      const { applyAutoRemarksToStudents } = await import("../utils/remarksBatch");
       const updatedStudents = applyAutoRemarksToStudents(
         currentStudents,
         currentSettings,

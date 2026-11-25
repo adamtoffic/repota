@@ -740,10 +740,15 @@ describe("DataBackup", () => {
         </SchoolContext.Provider>,
       );
 
+      const fileInput = await vi.waitFor(() => {
+        const el = view.container.querySelector('input[type="file"]');
+        expect(el).toBeTruthy();
+        return el as HTMLInputElement;
+      });
       const file = new File([JSON.stringify(incoming)], "backup.json", {
         type: "application/json",
       });
-      fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+      fireEvent.change(fileInput, {
         target: { files: [file] },
       });
 

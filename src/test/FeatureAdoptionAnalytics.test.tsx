@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { ProcessedStudent, SchoolSettings } from "../types";
+import { registerPostHogClient } from "../utils/analytics";
 
 const posthogMock = vi.hoisted(() => ({
   capture: vi.fn(),
@@ -141,6 +142,7 @@ function getCapturedEvents(eventName: string) {
 describe("Tier 2 Feature Adoption Analytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    registerPostHogClient(posthogMock);
     localStorage.clear();
     storageMock.initStorage.mockResolvedValue(undefined);
     storageMock.migrateFromLocalStorage.mockResolvedValue({ success: true });

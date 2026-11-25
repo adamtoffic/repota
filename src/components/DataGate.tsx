@@ -1,8 +1,12 @@
-import { useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { useSchoolActions, useSchoolLifecycle } from "../hooks/useSchoolData";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { Alert, Button } from "./ui";
 import { PageLoader } from "./PageLoader";
-import { DataBackup } from "./DataBackup";
+
+const DataBackup = lazyWithRetry(() =>
+  import("./DataBackup").then((module) => ({ default: module.DataBackup })),
+);
 
 interface DataGateProps {
   children: ReactNode;
@@ -24,6 +28,7 @@ export function DataGate({ children }: DataGateProps) {
 
     const preload = () => {
       void import("../pages/Analytics").catch(() => {});
+      void import("../pages/SbaPage").catch(() => {});
     };
 
     if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
@@ -57,12 +62,14 @@ export function DataGate({ children }: DataGateProps) {
               </Button>
             </div>
             <div className="mt-4">
-              <DataBackup
-                recoveryOnly
-                disabled={isRecoveryBusy}
-                activeRecoveryAction={activeRecoveryAction}
-                onRecoveryActionChange={setActiveRecoveryAction}
-              />
+              <Suspense fallback={null}>
+                <DataBackup
+                  recoveryOnly
+                  disabled={isRecoveryBusy}
+                  activeRecoveryAction={activeRecoveryAction}
+                  onRecoveryActionChange={setActiveRecoveryAction}
+                />
+              </Suspense>
             </div>
           </Alert>
         </div>

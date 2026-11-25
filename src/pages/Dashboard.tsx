@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { HelpCircle, X, Printer, Plus, List, TableProperties, Upload } from "lucide-react";
 import type { ProcessedStudent } from "../types";
 import {
@@ -8,8 +8,7 @@ import {
 } from "../hooks/useSchoolData";
 import { AddStudentModal } from "../components/AddStudentModal";
 import { StudentList } from "../components/StudentList";
-import { QuickGradebook } from "../components/QuickGradebook";
-import { ScoreEntryModal } from "../components/ScoreEntryModal";
+import { PageLoader } from "../components/PageLoader";
 import { DashboardStats } from "../components/DashboardStats";
 import { DashboardToolbar } from "../components/DashboardToolbar";
 import { Link } from "@tanstack/react-router";
@@ -20,14 +19,34 @@ import { useDebounce } from "../hooks/useDebounce";
 import { captureEvent } from "../utils/analytics";
 import { downloadBlob } from "../utils/fileDownload";
 import { exportDetailedBroadsheetCSV, exportToCSV } from "../utils/export";
-import { BulkAttendanceModal } from "../components/BulkAttendanceModal";
-import { BulkImportModal } from "../components/BulkImportModal";
-import { BulkPromotionModal } from "../components/BulkPromotionModal";
-import { ScoreImportModal } from "../components/ScoreImportModal";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { ScrollButton } from "../components/ScrollButton";
 import { WelcomeTour } from "../components/WelcomeTour";
 import { ValidationWarnings } from "../components/ValidationWarnings";
 import { ProgressModal } from "../components/ProgressModal";
+
+const QuickGradebook = lazyWithRetry(() =>
+  import("../components/QuickGradebook").then((module) => ({ default: module.QuickGradebook })),
+);
+const ScoreEntryModal = lazyWithRetry(() =>
+  import("../components/ScoreEntryModal").then((module) => ({ default: module.ScoreEntryModal })),
+);
+const BulkImportModal = lazyWithRetry(() =>
+  import("../components/BulkImportModal").then((module) => ({ default: module.BulkImportModal })),
+);
+const ScoreImportModal = lazyWithRetry(() =>
+  import("../components/ScoreImportModal").then((module) => ({ default: module.ScoreImportModal })),
+);
+const BulkAttendanceModal = lazyWithRetry(() =>
+  import("../components/BulkAttendanceModal").then((module) => ({
+    default: module.BulkAttendanceModal,
+  })),
+);
+const BulkPromotionModal = lazyWithRetry(() =>
+  import("../components/BulkPromotionModal").then((module) => ({
+    default: module.BulkPromotionModal,
+  })),
+);
 import { useToast } from "../hooks/useToast";
 
 import { triggerHaptic } from "../utils/iosInteraction";
@@ -525,23 +544,25 @@ export function Dashboard() {
               </div>
 
               {entryViewMode === "GRADEBOOK" ? (
-                <QuickGradebook
-                  students={filteredStudents}
-                  allStudents={students}
-                  sessionKey={gradebookSessionKey}
-                  settings={settings}
-                  onUpdateStudent={updateStudent}
-                  onBatchUpdateStudents={batchUpdateStudents}
-                  onOpenStudent={(s, ordered) => handleOpenStudentModal(s, ordered)}
-                  onOpenScoreImport={(subject, taskName) => {
-                    setScoreImportPreset({ subject, taskName });
-                    setShowScoreImportModal(true);
-                  }}
-                  onClearParentFilters={() => {
-                    setSearchQuery("");
-                    setActiveFilter("ALL");
-                  }}
-                />
+                <Suspense fallback={<PageLoader />}>
+                  <QuickGradebook
+                    students={filteredStudents}
+                    allStudents={students}
+                    sessionKey={gradebookSessionKey}
+                    settings={settings}
+                    onUpdateStudent={updateStudent}
+                    onBatchUpdateStudents={batchUpdateStudents}
+                    onOpenStudent={(s, ordered) => handleOpenStudentModal(s, ordered)}
+                    onOpenScoreImport={(subject, taskName) => {
+                      setScoreImportPreset({ subject, taskName });
+                      setShowScoreImportModal(true);
+                    }}
+                    onClearParentFilters={() => {
+                      setSearchQuery("");
+                      setActiveFilter("ALL");
+                    }}
+                  />
+                </Suspense>
               ) : filteredStudents.length === 0 ? (
                 <div className="border-border bg-surface rounded-xl border py-16 text-center shadow-sm">
                   <div className="bg-subtle mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
@@ -611,69 +632,87 @@ export function Dashboard() {
 
       {/* EDIT MODAL */}
       {editingStudent && (
-        <ScoreEntryModal
-          student={editingStudent}
-          level={settings.level}
-          isOpen={!!editingStudent}
-          onClose={handleCloseStudentModal}
-          onUpdateStudent={updateStudent}
-          allStudents={modalNavigationStudents}
-          onNavigate={setEditingStudentId}
-          initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
-          renderPrintAction={(studentId) => (
-            <Link
-              to="/print"
-              search={{ id: studentId }}
-              onClick={handleCloseStudentModal}
-              aria-label="Print student report"
-              title="Print student report"
-              className="border-border-strong bg-surface text-secondary hover:bg-subtle hover:text-main inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-colors"
-              data-record="true"
-            >
-              <Printer className="text-primary-text h-4 w-4" />
-              <span className="hidden sm:inline">Print</span>
-            </Link>
-          )}
-          renderSbaSetupLink={() => (
-            <Link
-              to="/sba"
-              onClick={handleCloseStudentModal}
-              className="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-              data-record="true"
-            >
-              SBA Markbook
-            </Link>
-          )}
-        />
+        <Suspense fallback={null}>
+          <ScoreEntryModal
+            student={editingStudent}
+            level={settings.level}
+            isOpen={!!editingStudent}
+            onClose={handleCloseStudentModal}
+            onUpdateStudent={updateStudent}
+            allStudents={modalNavigationStudents}
+            onNavigate={setEditingStudentId}
+            initialTab={activeFilter === "MISSING_PHOTOS" ? "DETAILS" : "ACADEMIC"}
+            renderPrintAction={(studentId) => (
+              <Link
+                to="/print"
+                search={{ id: studentId }}
+                onClick={handleCloseStudentModal}
+                aria-label="Print student report"
+                title="Print student report"
+                className="border-border-strong bg-surface text-secondary hover:bg-subtle hover:text-main inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-colors"
+                data-record="true"
+              >
+                <Printer className="text-primary-text h-4 w-4" />
+                <span className="hidden sm:inline">Print</span>
+              </Link>
+            )}
+            renderSbaSetupLink={() => (
+              <Link
+                to="/sba"
+                onClick={handleCloseStudentModal}
+                className="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+                data-record="true"
+              >
+                SBA Markbook
+              </Link>
+            )}
+          />
+        </Suspense>
       )}
 
       {/* ✅ BULK IMPORT MODAL */}
-      <BulkImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
+      {showImportModal && (
+        <Suspense fallback={null}>
+          <BulkImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
+        </Suspense>
+      )}
 
       {/* ✅ SCORE IMPORT MODAL */}
-      <ScoreImportModal
-        key={`${scoreImportPreset.subject ?? ""}:${scoreImportPreset.taskName ?? ""}`}
-        isOpen={showScoreImportModal}
-        onClose={() => {
-          setShowScoreImportModal(false);
-          setScoreImportPreset({});
-        }}
-        initialSubject={scoreImportPreset.subject}
-        initialMode={scoreImportPreset.taskName ? "SINGLE_COMPONENT" : undefined}
-        initialTaskName={scoreImportPreset.taskName}
-      />
+      {showScoreImportModal && (
+        <Suspense fallback={null}>
+          <ScoreImportModal
+            key={`${scoreImportPreset.subject ?? ""}:${scoreImportPreset.taskName ?? ""}`}
+            isOpen={showScoreImportModal}
+            onClose={() => {
+              setShowScoreImportModal(false);
+              setScoreImportPreset({});
+            }}
+            initialSubject={scoreImportPreset.subject}
+            initialMode={scoreImportPreset.taskName ? "SINGLE_COMPONENT" : undefined}
+            initialTaskName={scoreImportPreset.taskName}
+          />
+        </Suspense>
+      )}
 
       {/* ✅ BULK ATTENDANCE MODAL */}
-      <BulkAttendanceModal
-        isOpen={showBulkAttendanceModal}
-        onClose={() => setShowBulkAttendanceModal(false)}
-      />
+      {showBulkAttendanceModal && (
+        <Suspense fallback={null}>
+          <BulkAttendanceModal
+            isOpen={showBulkAttendanceModal}
+            onClose={() => setShowBulkAttendanceModal(false)}
+          />
+        </Suspense>
+      )}
 
       {/* ✅ BULK PROMOTION MODAL */}
-      <BulkPromotionModal
-        isOpen={showBulkPromotionModal}
-        onClose={() => setShowBulkPromotionModal(false)}
-      />
+      {showBulkPromotionModal && (
+        <Suspense fallback={null}>
+          <BulkPromotionModal
+            isOpen={showBulkPromotionModal}
+            onClose={() => setShowBulkPromotionModal(false)}
+          />
+        </Suspense>
+      )}
 
       {/* ✅ CONFIRM CLEAN MODAL */}
       <ConfirmModal

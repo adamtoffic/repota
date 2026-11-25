@@ -6,7 +6,7 @@ import { useSchoolData } from "../hooks/useSchoolData";
 import { SbaPage } from "../pages/SbaPage";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { SchoolSettings, StudentRecord } from "../types";
-import { resetSessionAnalyticsGuards } from "../utils/analytics";
+import { registerPostHogClient, resetSessionAnalyticsGuards } from "../utils/analytics";
 import * as csvImportUtils from "../utils/csvImport";
 
 const toastMock = vi.hoisted(() => ({
@@ -183,6 +183,7 @@ describe("SBA Markbook workflow end-to-end", () => {
     setViewportDesktop(true);
     localStorage.clear();
     sessionStorage.clear();
+    registerPostHogClient(posthogMock);
     resetSessionAnalyticsGuards();
     vi.clearAllMocks();
     storage.initStorage.mockResolvedValue(undefined);

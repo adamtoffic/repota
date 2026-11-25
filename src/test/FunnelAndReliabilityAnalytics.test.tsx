@@ -81,7 +81,7 @@ import { ScoreImportModal } from "../components/ScoreImportModal";
 import { SchoolProvider } from "../context/SchoolContext";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
 import { useSchoolData } from "../hooks/useSchoolData";
-import { resetSessionAnalyticsGuards } from "../utils/analytics";
+import { registerPostHogClient, resetSessionAnalyticsGuards } from "../utils/analytics";
 import { createBackupPayload } from "../utils/backupValidation";
 import { STORAGE_QUOTA_EXCEEDED_EVENT } from "../utils/idbStorage";
 
@@ -174,6 +174,7 @@ function getCapturedEvents(eventName: string) {
 describe("Tier 1 Funnel & Reliability Analytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    registerPostHogClient(posthogMock);
     localStorage.clear();
     sessionStorage.clear();
     resetSessionAnalyticsGuards();

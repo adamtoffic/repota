@@ -15,7 +15,7 @@ describe("PostHog configuration", () => {
   it("initializes autocapture and masks sensitive session-recording data", async () => {
     await import("../main");
 
-    expect(posthog.init).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(posthog.init).toHaveBeenCalledOnce());
     const [, config] = posthog.init.mock.calls[0];
     expect(config).toMatchObject({
       autocapture: true,

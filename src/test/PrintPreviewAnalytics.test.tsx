@@ -42,6 +42,7 @@ import { SchoolContext, type SchoolContextType } from "../context/SchoolContextD
 import { PrintPreview } from "../pages/PrintPreview";
 import type { ProcessedStudent, SchoolSettings } from "../types";
 import { clearReportAnalyticsLedger } from "../utils/reportAnalytics";
+import { registerPostHogClient } from "../utils/analytics";
 
 const testSettings: SchoolSettings = {
   ...DEFAULT_SETTINGS,
@@ -145,6 +146,7 @@ describe("PrintPreview confirmed multi-channel analytics", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    registerPostHogClient(posthogMock);
     localStorage.clear();
     clearReportAnalyticsLedger();
     iosInteractionMock.isIOSPWA.mockReturnValue(false);

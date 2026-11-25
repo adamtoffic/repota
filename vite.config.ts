@@ -9,6 +9,13 @@ export default defineConfig({
   define: {
     __VERCEL_ENV__: JSON.stringify(process.env.VERCEL_ENV ?? ""),
   },
+  resolve: {
+    alias: {
+      // jsPDF dynamically imports optional "html2canvas"; alias it to "html2canvas-pro"
+      // so the build does not emit a duplicate 200KB html2canvas chunk into dist/ and precache.
+      html2canvas: "html2canvas-pro",
+    },
+  },
   test: {
     globals: true,
     environment: "happy-dom",
@@ -217,7 +224,7 @@ export default defineConfig({
 
   // Production optimizations
   build: {
-    target: "es2015",
+    target: "es2020",
     minify: "esbuild",
     cssMinify: true,
     chunkSizeWarningLimit: 400,
@@ -235,6 +242,9 @@ export default defineConfig({
           }
           if (id.includes("node_modules/lucide-react")) {
             return "icons";
+          }
+          if (id.includes("node_modules/posthog-js")) {
+            return "posthog";
           }
         },
       },

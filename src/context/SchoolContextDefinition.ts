@@ -31,7 +31,7 @@ export interface SchoolActionsType {
   clearAllStudents: () => void;
   /** Atomically wipes students, settings, media blobs, PIN/biometric locks, and device preferences back to a first-visit state. */
   resetAllAppData: () => Promise<boolean>;
-  loadDemoData: () => void;
+  loadDemoData: () => Promise<void> | void;
   updateClassNameForAll: (newClassName: string) => void;
   /** Compares `settings.subjectComponentMap` against existing students' `classScoreComponents` to flag missing, extra, or outdated task definitions. */
   detectComponentMismatches: () => { hasOutdated: boolean; hasMissing: boolean };
@@ -62,7 +62,7 @@ export interface SchoolActionsType {
   ) => SchoolSettings;
   checkDuplicateName: (name: string) => boolean;
   restoreDefaults: () => void;
-  autoGenerateRemarks: (onProgress?: (current: number, total: number) => void) => void;
+  autoGenerateRemarks: (onProgress?: (current: number, total: number) => void) => Promise<void> | void;
   retryLoad: () => void;
   startFresh: () => void;
   /** Pauses debounced storage auto-writes (e.g., before backup import or recovery). */

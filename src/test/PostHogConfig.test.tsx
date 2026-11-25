@@ -33,7 +33,7 @@ describe("PostHog configuration", () => {
   it("marks static labels in Dashboard and Analytics components with data-record='true' while keeping sensitive data unflagged", async () => {
     posthog.init.mockClear();
     await import("../main");
-    expect(posthog.init).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(posthog.init).toHaveBeenCalledOnce());
     const maskTextFn = posthog.init.mock.calls[0][1].session_recording.maskTextFn as (
       text: string,
       element: Element | null,
