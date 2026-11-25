@@ -209,14 +209,6 @@ export function useSchoolStorageLifecycle({
           setIsDataLoaded(true);
           return;
         }
-        if (
-          migration.success &&
-          migration.studentsCount !== undefined &&
-          migration.studentsCount > 0 &&
-          !migration.error?.includes("already")
-        ) {
-          console.log(`✅ Migrated ${migration.studentsCount} students to IndexedDB`);
-        }
 
         let studentsLoadStatus: LoadKeyStatus = "ok";
         const studentsResult = await loadFromStorageResult<StudentRecord[]>(IDB_KEYS.STUDENTS);

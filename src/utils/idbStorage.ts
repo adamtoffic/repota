@@ -194,7 +194,6 @@ export const initStorage = async (): Promise<void> => {
       isIndexedDBAvailable = true;
       blobMemoryCache.clear();
       db = openedDb;
-      console.log("✅ IndexedDB initialized successfully");
     } catch (error) {
       try {
         openedDb?.close();
@@ -813,7 +812,6 @@ export const migrateFromLocalStorage = (): Promise<{
       }
 
       // Success!
-      console.log(`✅ Migrated ${students.length} students to IndexedDB`);
 
       return {
         success: true,

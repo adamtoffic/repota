@@ -52,7 +52,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
     setError("");
 
     try {
-      const { success, error: biometricError } = await verifyBiometric();
+      const { success } = await verifyBiometric();
 
       if (success) {
         clearPinLockout();
@@ -60,9 +60,6 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
         setTimeout(() => {
           onUnlock();
         }, 400);
-      } else if (biometricError && !biometricError.includes("cancelled")) {
-        // Only log unexpected errors on auto-prompt (silent fail to PIN)
-        console.log("Biometric failed:", biometricError);
       }
     } catch (err) {
       console.error("Biometric error:", err);
