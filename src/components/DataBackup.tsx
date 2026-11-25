@@ -1,51 +1,29 @@
-import { useContext, useState, useRef, useEffect } from "react";
-import {
-  Download,
-  Upload,
-  AlertTriangle,
-  CheckCircle,
-  Share2,
-  Lock,
-  Eye,
-  EyeOff,
-  X,
-} from "lucide-react";
-import { useToast } from "../hooks/useToast";
-import { ConfirmModal } from "./ConfirmModal";
-import { Modal } from "./ui/Modal";
-import { recordBackup } from "../utils/dataProtection";
-import {
-  loadFromStorageResult,
-  saveToStorage,
-  deleteFromStorage,
-  saveEntriesToStorage,
-  IDB_KEYS,
-} from "../utils/idbStorage";
-import {
-  encryptAppSealedBackup,
-  encryptBackupFile,
-  decryptBackupFile,
-  isEncryptedFile,
-  requiresPassword,
-} from "../utils/fileEncryption";
-import { Input } from "./ui";
+import { useContext, useEffect, useRef, useState } from "react";
+import { AlertTriangle, CheckCircle, Download, Lock, Share2, Upload } from "lucide-react";
+import type { RecoveryAction } from "../context/SchoolContextDefinition";
+import { SettingsFormContext } from "../context/SettingsFormContextDefinition";
 import {
   useSchoolActions,
   useSchoolLifecycle,
   useSchoolStudents,
 } from "../hooks/useSchoolData";
-import { downloadBlob } from "../utils/fileDownload";
-import {
-  createBackupPayload,
-  importBackupAtomically,
-  IncompleteRollbackError,
-  validateBackup,
-} from "../utils/backupValidation";
-import type { RecoveryAction } from "../context/SchoolContextDefinition";
-import { SettingsFormContext } from "../context/SettingsFormContextDefinition";
-import { isIOSDevice } from "../utils/iosInteraction";
+import { useToast } from "../hooks/useToast";
 import { captureEvent } from "../utils/analytics";
-import { isDemoStudent } from "../utils/reportAnalytics";
+import { IncompleteRollbackError, importBackupAtomically } from "../utils/backupValidation";
+import {
+  IDB_KEYS,
+  deleteFromStorage,
+  loadFromStorageResult,
+  saveEntriesToStorage,
+  saveToStorage,
+} from "../utils/idbStorage";
+import { isIOSDevice } from "../utils/iosInteraction";
+import { BackupModals } from "./backup/BackupModals";
+import {
+  buildEncryptedBackupArtifact,
+  deliverEncryptedBackupBlob,
+  parseIncomingBackupContent,
+} from "./backup/backupOperations";
 
 export interface DataBackupProps {
   recoveryOnly?: boolean;
@@ -91,6 +69,7 @@ export function DataBackup({
   useEffect(() => {
     hasForeignRecoveryOwnerRef.current = hasForeignRecoveryOwner;
   }, [hasForeignRecoveryOwner]);
+
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
   const isImportingRef = useRef(false);
   const activeReaderRef = useRef<FileReader | null>(null);
@@ -105,10 +84,11 @@ export function DataBackup({
   };
 
   useEffect(() => {
+    const attemptCounter = decryptAttemptRef;
     isUnmountedRef.current = false;
-    ++decryptAttemptRef.current;
     return () => {
       isUnmountedRef.current = true;
+      ++attemptCounter.current;
       if (activeReaderRef.current) {
         try {
           activeReaderRef.current.abort();
@@ -232,59 +212,27 @@ export function DataBackup({
         return;
       }
 
-      const backup = createBackupPayload(parsedStudents, parsedSettings);
-
-      // Every saved .repota file is AES-256-GCM encrypted (app-sealed by default, or password-locked).
-      const finalData =
-        usePassword && password
-          ? await encryptBackupFile(backup, password, passwordHint || undefined)
-          : await encryptAppSealedBackup(backup);
-
-      const serialized = JSON.stringify(finalData);
-      const blob = new Blob([serialized], {
-        type: "application/octet-stream",
+      const artifact = await buildEncryptedBackupArtifact({
+        parsedStudents,
+        parsedSettings,
+        usePassword,
+        password,
+        passwordHint,
       });
 
-      const schoolName = (parsedSettings.schoolName as string) || "School";
-      const className = (parsedSettings.className as string) || "Class";
-      const date = new Date().toISOString().split("T")[0];
-      const fileName = `${schoolName}_${className}_${date}.repota`.replace(/\s+/g, "_");
-
-      let sharedViaOs = false;
-      const shareFile =
-        typeof File !== "undefined" ? new File([blob], fileName, { type: "application/octet-stream" }) : null;
-      const nav = typeof navigator !== "undefined" ? navigator : undefined;
-      if (shareFile && nav && typeof nav.share === "function" && nav.canShare?.({ files: [shareFile] })) {
-        try {
-          await nav.share({
-            files: [shareFile],
-            title: `${schoolName} (${className}) Class Backup`,
-          });
-          sharedViaOs = true;
-        } catch (shareError) {
-          if (shareError instanceof Error && shareError.name === "AbortError") {
-            resetExportPasswordState();
-            showToast("Share canceled", "info");
-            return;
-          }
-          // Fall back to direct download if OS share fails or user activation expired after crypto
-          downloadBlob(blob, fileName);
-        }
-      } else {
-        downloadBlob(blob, fileName);
+      const outcome = await deliverEncryptedBackupBlob(artifact);
+      if (outcome === "canceled") {
+        resetExportPasswordState();
+        showToast("Share canceled", "info");
+        return;
       }
 
-      recordBackup(); // Track backup timestamp
-
-      const demoCount = parsedStudents.filter(
-        (item) => Boolean(item && typeof item === "object" && isDemoStudent(item as { id: string })),
-      ).length;
-      const realCount = parsedStudents.length - demoCount;
+      const sharedViaOs = outcome === "shared";
       captureEvent("Backup_Exported", {
         password_protected: Boolean(usePassword && password),
         delivery_method: sharedViaOs ? "os_share" : "download",
         students_count: parsedStudents.length,
-        is_demo: demoCount > 0 && realCount === 0,
+        is_demo: artifact.demoCount > 0 && artifact.realCount === 0,
       });
 
       setStatus("success");
@@ -352,26 +300,18 @@ export function DataBackup({
       }
       if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
-        const content = (e.target?.result as string).replace(/^\uFEFF/, "").trim();
-        const data = JSON.parse(content);
+        const parsed = await parseIncomingBackupContent((e.target?.result as string) || "");
+        if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
 
-        let rawBackup: unknown = data;
-
-        // Handle encrypted envelopes (v1 password-only, v2 password or app-sealed)
-        if (isEncryptedFile(data)) {
-          if (requiresPassword(data)) {
-            setDecryptedBackupData(null);
-            setEncryptionHint(data.hint || "");
-            setPendingFile(file);
-            setShowImportPasswordModal(true);
-            return;
-          }
-
-          rawBackup = await decryptBackupFile(data);
-          if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
+        if (parsed.requiresPassword) {
+          setDecryptedBackupData(null);
+          setEncryptionHint(parsed.hint);
+          setPendingFile(file);
+          setShowImportPasswordModal(true);
+          return;
         }
 
-        const validated = validateBackup(rawBackup);
+        const validated = parsed.validated;
         setDecryptedBackupData(validated);
         setPendingFile(file);
         setImportStats({
@@ -421,28 +361,23 @@ export function DataBackup({
       }
       if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
       try {
-        const content = (e.target?.result as string).replace(/^\uFEFF/, "").trim();
-        const encryptedData = JSON.parse(content);
-
-        // Decrypt the file
-        const decryptedBackup = await decryptBackupFile<{
-          students: unknown[];
-          settings: Record<string, unknown>;
-        }>(encryptedData, importPassword);
-
+        const parsed = await parseIncomingBackupContent(
+          (e.target?.result as string) || "",
+          importPassword,
+        );
         if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
+        if (parsed.requiresPassword) {
+          throw new Error("Incorrect password. Please try again.");
+        }
 
-        // Validate decrypted data
-        const validated = validateBackup(decryptedBackup);
-
-        // Show confirmation modal with decrypted stats
+        const validated = parsed.validated;
         setImportStats({
           count: validated.students.length,
           school: (validated.settings.schoolName as string) || "Unknown School",
           currentCount: students.length,
           warningCount: validated.warningCount,
         });
-        setDecryptedBackupData(validated); // Store validated data
+        setDecryptedBackupData(validated);
         setShowImportPasswordModal(false);
         setShowImportModal(true);
         setImportPassword("");
@@ -481,12 +416,9 @@ export function DataBackup({
 
     try {
       let backup;
-
-      // If we have decrypted data, use it
       if (decryptedBackupData) {
         backup = decryptedBackupData;
       } else if (pendingFile) {
-        // Otherwise read and parse the file
         const reader = new FileReader();
         const content = await new Promise<string>((resolve, reject) => {
           reader.onload = (e) => resolve(e.target?.result as string);
@@ -581,20 +513,6 @@ export function DataBackup({
 
   return (
     <div className="border-border bg-surface rounded-xl border p-6 shadow-sm">
-      {showReloadOverlay && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6">
-          <div className="border-border bg-elevated rounded-xl border p-6 text-center shadow-2xl">
-            <h2 className="text-main text-lg font-bold">Backup loaded. Reloading...</h2>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="bg-primary hover:bg-primary/90 mt-4 rounded-lg px-4 py-2 font-bold text-white"
-            >
-              Reload now
-            </button>
-          </div>
-        </div>
-      )}
       {isRollbackIncomplete && (
         <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-200">
           <div className="flex items-start gap-3">
@@ -620,11 +538,13 @@ export function DataBackup({
         </h2>
       </div>
 
-      {!recoveryOnly && <p className="text-secondary mb-6 text-sm leading-relaxed">
-        Need to switch from your phone to a laptop? Or send this class to another teacher?
-        <br />
-        Save this file and send it via <strong>WhatsApp (Document)</strong> or Bluetooth.
-      </p>}
+      {!recoveryOnly && (
+        <p className="text-secondary mb-6 text-sm leading-relaxed">
+          Need to switch from your phone to a laptop? Or send this class to another teacher?
+          <br />
+          Save this file and send it via <strong>WhatsApp (Document)</strong> or Bluetooth.
+        </p>
+      )}
 
       {/* Status Message */}
       {status !== "idle" && (
@@ -645,46 +565,48 @@ export function DataBackup({
       )}
 
       {!recoveryOnly && (
-      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/45">
-        <label className="flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
-            checked={usePassword}
-            onChange={(e) => setUsePassword(e.target.checked)}
-            className="mt-0.5 h-5 w-5 cursor-pointer rounded border-amber-300 text-amber-600 focus:ring-2 focus:ring-amber-500"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="font-bold text-amber-900 dark:text-amber-200">
-                Password protect this file
-              </span>
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/70 dark:bg-amber-950/45">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={usePassword}
+              onChange={(e) => setUsePassword(e.target.checked)}
+              className="mt-0.5 h-5 w-5 cursor-pointer rounded border-amber-300 text-amber-600 focus:ring-2 focus:ring-amber-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="font-bold text-amber-900 dark:text-amber-200">
+                  Password protect this file
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                Every saved .repota file is encrypted so WhatsApp and file apps cannot preview student
+                records. Turn this on to add a password so only people with that password can open
+                it.
+              </p>
             </div>
-            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-              Every saved .repota file is encrypted so WhatsApp and file apps cannot preview student
-              records. Turn this on to add a password so only people with that password can open
-              it.
-            </p>
-          </div>
-        </label>
-      </div>
+          </label>
+        </div>
       )}
 
       {/* Action Buttons */}
       <div className="grid gap-3 sm:grid-cols-2">
-        {!recoveryOnly && <button
-          onClick={initiateExport}
-          disabled={loadError || isRollbackIncomplete || isImporting || isRecoveryBusy}
-          className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-        >
-          {usePassword ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
-          {usePassword ? "Save Encrypted File" : "Save Class File"}
-        </button>}
+        {!recoveryOnly && (
+          <button
+            onClick={initiateExport}
+            disabled={loadError || isRollbackIncomplete || isImporting || isRecoveryBusy}
+            className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+          >
+            {usePassword ? <Lock className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+            {usePassword ? "Save Encrypted File" : "Save Class File"}
+          </button>
+        )}
 
         <label
           className={`bg-background border-border-strong text-secondary flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-3 font-bold transition-colors ${
             isImporting || isRecoveryBusy
-              ? "pointer-events-none opacity-50 cursor-not-allowed"
+              ? "pointer-events-none cursor-not-allowed opacity-50"
               : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95 dark:hover:border-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-300"
           }`}
           onClick={(e) => {
@@ -715,21 +637,19 @@ export function DataBackup({
             <p className="mt-1">
               Pass this file like a baton. Finish your part, save it, and send it to the next
               teacher.{" "}
-              <strong>Do not work on the same file at the same time</strong>, or someone's work will
+              <strong>Do not work on the same file at the same time</strong>, or someone&apos;s work will
               be lost.
             </p>
           </div>
         </div>
       </div>
 
-      <ConfirmModal
-        isOpen={showImportModal}
-        title="Load New Class Data?"
-        message={`You are about to load "${importStats.school}" (${importStats.count} students). This will replace ${importStats.currentCount} current students on this device.${importStats.warningCount > 0 ? ` ${importStats.warningCount} values look unusual and will be imported as-is.` : ""}`}
-        confirmText={isImporting ? "Loading..." : "Yes, Load File"}
-        cancelText="Cancel"
-        isDangerous={true}
-        onClose={() => {
+      <BackupModals
+        showReloadOverlay={showReloadOverlay}
+        showImportModal={showImportModal}
+        importStats={importStats}
+        isImporting={isImporting}
+        onCloseImportModal={() => {
           if (!isImportingRef.current) {
             setShowImportModal(false);
             setDecryptedBackupData(null);
@@ -737,213 +657,38 @@ export function DataBackup({
             releaseImportRecoveryOwnership();
           }
         }}
-        onConfirm={executeImport}
-      />
-
-      <ConfirmModal
-        isOpen={showEmptyExportConfirm}
-        title="Save Empty Class File?"
-        message="No students found. This backup will contain no students."
-        confirmText="Yes, Save File"
-        cancelText="Cancel"
-        isDangerous={false}
-        onClose={() => {
+        onConfirmImport={executeImport}
+        showEmptyExportConfirm={showEmptyExportConfirm}
+        onCloseEmptyExportConfirm={() => {
           setShowEmptyExportConfirm(false);
           resetExportPasswordState();
         }}
-        onConfirm={() => {
+        onConfirmEmptyExport={() => {
           setShowEmptyExportConfirm(false);
           void handleExport(true);
         }}
+        showExportPasswordModal={showExportPasswordModal}
+        password={password}
+        confirmPassword={confirmPassword}
+        passwordHint={passwordHint}
+        showPassword={showPassword}
+        isExportPasswordMismatch={isExportPasswordMismatch}
+        onPasswordChange={setPassword}
+        onConfirmPasswordChange={setConfirmPassword}
+        onPasswordHintChange={setPasswordHint}
+        onToggleShowPassword={() => setShowPassword(!showPassword)}
+        onCloseExportPasswordModal={resetExportPasswordState}
+        onConfirmExportWithPassword={() => void handleExport()}
+        showImportPasswordModal={showImportPasswordModal}
+        encryptionHint={encryptionHint}
+        importPassword={importPassword}
+        showImportPassword={showImportPassword}
+        isDecrypting={isDecrypting}
+        onImportPasswordChange={setImportPassword}
+        onToggleShowImportPassword={() => setShowImportPassword(!showImportPassword)}
+        onCancelImportPasswordModal={cancelImportPasswordModal}
+        onDecryptAndImport={handleDecryptAndImport}
       />
-
-      {/* Export Password Modal */}
-      <Modal
-        isOpen={showExportPasswordModal}
-        onClose={resetExportPasswordState}
-        closeOnBackdrop={false}
-        className="max-w-md"
-      >
-        <div className="p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-950/60">
-                <Lock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <h3 className="text-main text-lg font-bold">Set Password</h3>
-            </div>
-            <button
-              type="button"
-              onClick={resetExportPasswordState}
-              aria-label="Close modal"
-              className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <p className="text-secondary mb-4 text-sm">
-            Create a password to encrypt this file. You&apos;ll need this password to open the file
-            later.
-          </p>
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-secondary mb-1 block text-sm font-medium">
-                Password (min 4 characters)
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10 text-sm"
-                  placeholder="Enter password"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <Input
-              label="Confirm Password"
-              type={showPassword ? "text" : "password"}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              error={isExportPasswordMismatch ? "Passwords do not match" : undefined}
-              className="text-sm"
-              placeholder="Re-enter password"
-            />
-
-            <div>
-              <Input
-                label="Password Hint (optional)"
-                type="text"
-                value={passwordHint}
-                onChange={(e) => setPasswordHint(e.target.value)}
-                className="text-sm"
-                placeholder="e.g., 'My birth year'"
-              />
-              <p className="text-muted mt-1 text-xs">
-                This hint will be shown when someone tries to open the file
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <button
-              type="button"
-              onClick={resetExportPasswordState}
-              className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border px-4 py-2.5 font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleExport()}
-              disabled={!password || password.length < 4 || password !== confirmPassword}
-              className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-bold text-white hover:bg-amber-700 disabled:opacity-50"
-            >
-              Encrypt &amp; Save
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Import Password Modal */}
-      <Modal
-        isOpen={showImportPasswordModal}
-        onClose={cancelImportPasswordModal}
-        closeOnBackdrop={false}
-        className="max-w-md"
-      >
-        <div className="p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-950/60">
-                <Lock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-main text-lg font-bold">Password Required</h3>
-            </div>
-            <button
-              type="button"
-              onClick={cancelImportPasswordModal}
-              aria-label="Close modal"
-              className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <p className="text-secondary mb-4 text-sm">
-            This file is password-protected. Enter the password to decrypt and load the data.
-          </p>
-
-          {encryptionHint && (
-            <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:border dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
-              <strong>💡 Hint:</strong> {encryptionHint}
-            </div>
-          )}
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-secondary mb-1 block text-sm font-medium">Password</label>
-              <div className="relative">
-                <Input
-                  type={showImportPassword ? "text" : "password"}
-                  value={importPassword}
-                  onChange={(e) => setImportPassword(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && importPassword) {
-                      handleDecryptAndImport();
-                    }
-                  }}
-                  className="pr-10 text-sm"
-                  placeholder="Enter password"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowImportPassword(!showImportPassword)}
-                  aria-label={showImportPassword ? "Hide password" : "Show password"}
-                  className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2"
-                >
-                  {showImportPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <button
-              type="button"
-              onClick={cancelImportPasswordModal}
-              className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border px-4 py-2.5 font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDecryptAndImport}
-              disabled={!importPassword || isDecrypting}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isDecrypting ? "Decrypting..." : "Unlock File"}
-            </button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
