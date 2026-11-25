@@ -31,6 +31,7 @@ export function IconButton({
   children,
   variant = "ghost",
   size = "md",
+  type = "button",
   isLoading = false,
   disabled,
   className = "",
@@ -38,7 +39,8 @@ export function IconButton({
 }: IconButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      type={type}
+      className={`inline-flex items-center justify-center rounded-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >

@@ -321,7 +321,11 @@ function SbaPageContent() {
         schoolName={committedSchoolName}
       />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-5 focus:outline-none sm:px-6 sm:py-6"
+      >
         {/* Top Markbook Header Card */}
         <div className="border-border bg-surface rounded-xl border p-3.5 shadow-sm sm:p-5">
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">

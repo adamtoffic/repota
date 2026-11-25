@@ -228,12 +228,12 @@ export function AnalyticsOverviewTab({
                 <div
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white sm:h-8 sm:w-8 ${
                     index === 0
-                      ? "bg-linear-to-br from-yellow-400 to-yellow-600"
+                      ? "bg-linear-to-br from-amber-600 to-amber-800"
                       : index === 1
-                        ? "bg-linear-to-br from-gray-300 to-gray-500"
+                        ? "bg-linear-to-br from-slate-600 to-slate-800"
                         : index === 2
-                          ? "bg-linear-to-br from-orange-400 to-orange-600"
-                          : "bg-linear-to-br from-blue-400 to-blue-600"
+                          ? "bg-linear-to-br from-orange-700 to-orange-800"
+                          : "bg-linear-to-br from-blue-600 to-blue-800"
                   }`}
                 >
                   {index + 1}

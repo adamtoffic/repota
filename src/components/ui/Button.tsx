@@ -18,6 +18,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function Button({
   variant = "primary",
   size = "md",
+  type = "button",
   children,
   className = "",
   isLoading = false,
@@ -27,7 +28,7 @@ export function Button({
 }: ButtonProps) {
   // Base styles applied to all buttons
   const baseStyles =
-    "inline-flex items-center justify-center gap-2 rounded-lg font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex items-center justify-center gap-2 rounded-lg font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text focus-visible:ring-offset-2 focus-visible:ring-offset-surface";
 
   // Variant styles
   const variantStyles: Record<ButtonVariant, string> = {
@@ -52,6 +53,7 @@ export function Button({
 
   return (
     <button
+      type={type}
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthStyles} ${className}`}
       disabled={disabled || isLoading}
       {...props}

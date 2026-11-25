@@ -59,6 +59,7 @@ export function StorageMonitor() {
       {studentsWithPhotos > 0 && (
         <div className="mt-4">
           <button
+            type="button"
             onClick={() => setShowClearPhotosConfirm(true)}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200 dark:border dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300 dark:hover:bg-red-950/90"
           >

@@ -71,6 +71,7 @@ export function Alert({
       </div>
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
           className="shrink-0 rounded p-1 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
           aria-label="Close alert"

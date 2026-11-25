@@ -408,7 +408,12 @@ export const Analytics: React.FC = () => {
       <div className="bg-background flex min-h-screen flex-col font-sans">
         <PageHeader schoolName={settings.schoolName} />
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:px-8"
+        >
+          <h1 className="sr-only">Advanced Analytics</h1>
           <Card padding="lg" className="text-center">
             <BarChart3 size={48} className="text-muted mx-auto mb-4" />
             <h3 data-record="true" className="text-main mb-2 text-lg font-bold sm:text-xl">
@@ -435,7 +440,11 @@ export const Analytics: React.FC = () => {
     <div className="bg-background flex min-h-screen flex-col font-sans">
       <PageHeader schoolName={settings.schoolName} />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:px-8"
+      >
         {/* Header */}
         <div ref={analyticsHeaderRef} className="mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -493,6 +502,7 @@ export const Analytics: React.FC = () => {
               return (
                 <button
                   key={view.id}
+                  type="button"
                   data-record="true"
                   onClick={() => setActiveView(view.id)}
                   className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${

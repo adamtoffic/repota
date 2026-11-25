@@ -274,6 +274,7 @@ export function AcademicSessionSection() {
               <button
                 type="button"
                 onClick={() => removeSubject(index)}
+                aria-label={`Remove ${sub}`}
                 className="text-muted rounded-full p-0.5 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-950/60 dark:hover:text-red-400"
               >
                 <X className="h-3 w-3" />

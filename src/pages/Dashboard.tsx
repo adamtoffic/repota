@@ -352,6 +352,7 @@ export function Dashboard() {
             <button
               type="button"
               onClick={handleOpenAddStudent}
+              aria-label="Add student"
               className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-white shadow-sm transition-all active:scale-95 sm:px-4"
               data-record="true"
             >
@@ -362,10 +363,15 @@ export function Dashboard() {
         }
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 focus:outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+      >
         {/* MAIN CONTENT AREA */}
         {students.length === 0 ? (
           <>
+            <h1 className="sr-only">Class Dashboard</h1>
             <EmptyState
               onAddStudent={handleOpenAddStudent}
               onImport={() => setShowImportModal(true)}
@@ -400,34 +406,34 @@ export function Dashboard() {
           </>
         ) : (
           <>
-            {/* DESKTOP CONTEXT HEADER */}
-            <div className="mb-5 hidden items-center justify-between gap-4 md:flex">
+            {/* DESKTOP CONTEXT HEADER (h1 is max-md:sr-only until mobile strip is added; desktop controls use hidden md:... so no sr-only focusables exist on mobile) */}
+            <div className="md:mb-5 md:flex md:items-center md:justify-between md:gap-4">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-main truncate text-2xl font-black tracking-tight">
+                  <h1 className="text-main truncate text-2xl font-black tracking-tight max-md:sr-only">
                     {settings.className || "My Class"}
                   </h1>
                   {settings.examType === "MOCK" ? (
                     <Link
                       to="/settings/academic"
-                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
+                      className="hidden items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 md:inline-flex dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
                       title="Change exam mode in Settings"
                     >
                       Mock Exam (0/100)
                     </Link>
                   ) : (
-                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300">
+                    <span className="hidden items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 md:inline-flex dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300">
                       Termly ({settings.classScoreMax}/{settings.examScoreMax})
                     </span>
                   )}
                 </div>
-                <p className="text-muted mt-0.5 text-sm">
+                <p className="text-muted mt-0.5 hidden text-sm md:block">
                   {settings.term} &bull; {settings.academicYear} &bull;{" "}
                   {(settings.defaultSubjects || []).length} subjects
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden shrink-0 items-center gap-2 md:flex">
                 <button
                   type="button"
                   onClick={() => {
@@ -579,6 +585,7 @@ export function Dashboard() {
                     .
                   </p>
                   <button
+                    type="button"
                     onClick={() => {
                       setSearchQuery("");
                       setActiveFilter("ALL");

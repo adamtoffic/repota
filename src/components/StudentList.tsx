@@ -385,13 +385,14 @@ export function StudentList({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
-                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-50 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                        <div className="flex justify-end gap-1.5 opacity-100 transition-opacity sm:gap-2 md:opacity-85 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               onEditStudent(student);
                             }}
+                            aria-label={`Edit scores for ${student.name}`}
                             className="rounded-lg p-2 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950/60"
                             title="Edit Student"
                           >
@@ -403,6 +404,7 @@ export function StudentList({
                               to="/print"
                               search={{ id: student.id }}
                               onClick={(e) => e.stopPropagation()}
+                              aria-label={`Print report for ${student.name}`}
                               className="rounded-lg p-2 text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-950/60"
                               title="Print Report"
                             >
@@ -416,7 +418,8 @@ export function StudentList({
                               e.stopPropagation();
                               setStudentToDelete(student.id);
                             }}
-                            className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/60 dark:hover:text-red-300"
+                            aria-label={`Delete ${student.name}`}
+                            className="rounded-lg p-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/60 dark:hover:text-red-300"
                             title="Delete Student"
                           >
                             <Trash2 className="h-4 w-4" />

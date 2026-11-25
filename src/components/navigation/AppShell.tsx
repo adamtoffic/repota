@@ -101,7 +101,7 @@ function MobileBottomNav({
               preload={false}
               aria-current={item.isActive ? "page" : undefined}
               onClick={() => triggerHaptic("light")}
-              className={`relative z-10 flex h-full touch-manipulation flex-col items-center justify-center gap-0.5 rounded-full text-[11px] leading-none transition-transform duration-150 select-none active:scale-95 ${
+              className={`relative z-10 flex h-full touch-manipulation flex-col items-center justify-center gap-0.5 rounded-full text-[11px] leading-none transition-transform duration-150 select-none active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text ${
                 item.isActive
                   ? "text-primary-text font-bold"
                   : "text-secondary/80 dark:text-muted font-medium"
@@ -148,6 +148,13 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="bg-background min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Desktop Persistent Sidebar */}
       <aside
         aria-label="Sidebar navigation"
@@ -177,7 +184,7 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav aria-label="Primary navigation" className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {primaryItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -186,7 +193,7 @@ export function AppShell({ children }: AppShellProps) {
                 to={item.to}
                 preload={false}
                 aria-current={item.isActive ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text ${
                   item.isActive
                     ? "bg-primary/10 text-primary-text dark:bg-elevated dark:text-main font-bold dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
                     : "text-secondary hover:bg-subtle hover:text-main font-medium"
@@ -209,7 +216,7 @@ export function AppShell({ children }: AppShellProps) {
                   key={sub.to}
                   to={sub.to}
                   aria-current={isSubActive ? "page" : undefined}
-                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors ${
+                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text ${
                     isSubActive
                       ? "bg-blue-50 font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
                       : "text-muted hover:bg-subtle hover:text-main font-medium"
@@ -240,7 +247,7 @@ export function AppShell({ children }: AppShellProps) {
                   onClick={() => setTheme(option.value)}
                   aria-pressed={isSelected}
                   aria-label={`Use ${option.label.toLowerCase()} theme`}
-                  className={`flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold transition-all ${
+                  className={`flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text ${
                     isSelected
                       ? "bg-surface text-main dark:bg-elevated shadow-xs dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
                       : "text-muted hover:text-main"
@@ -256,7 +263,7 @@ export function AppShell({ children }: AppShellProps) {
 
           <Link
             to="/print"
-            className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+            className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             data-record="true"
           >
             <Printer className="h-4 w-4 shrink-0" />

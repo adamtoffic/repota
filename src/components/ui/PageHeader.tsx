@@ -27,7 +27,7 @@ export function PageHeader({
       : "bg-white/85 backdrop-blur-xl backdrop-saturate-[160%] dark:bg-[#111620]/85";
 
   return (
-    <nav
+    <header
       className={`border-border/80 ${sticky ? "sticky top-0 z-30" : "relative"} border-b shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)] ${bgClass} ${!actions || hideOnDesktop ? "md:hidden" : ""}`}
     >
       {/* Safe area spacer for notch/dynamic island */}
@@ -43,7 +43,9 @@ export function PageHeader({
 
             {/* App Name + School Context */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-main text-lg leading-none font-black tracking-tight">REPOTA</h1>
+              <span className="text-main block text-lg leading-none font-black tracking-tight">
+                REPOTA
+              </span>
               <p className="text-muted truncate text-xs font-medium">
                 {schoolName || "No School Selected"}
               </p>
@@ -54,6 +56,6 @@ export function PageHeader({
           {actions && <div className="flex items-center gap-2 pl-2">{actions}</div>}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

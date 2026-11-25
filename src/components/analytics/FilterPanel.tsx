@@ -44,6 +44,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </h3>
         {hasActiveFilters && (
           <button
+            type="button"
             onClick={clearFilters}
             className="text-primary-text hover:text-primary-text/80 flex items-center gap-1 text-xs font-bold transition-colors sm:text-sm"
             data-record="true"

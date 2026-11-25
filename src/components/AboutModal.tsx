@@ -116,6 +116,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
           className="mt-8 w-full rounded-lg bg-slate-900 py-3 font-bold text-white transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
         >
