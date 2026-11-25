@@ -37,7 +37,8 @@
     "generate:screenshots": "node scripts/generate-screenshots.mjs",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.146.0",
@@ -55,6 +56,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
