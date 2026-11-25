@@ -55,6 +55,7 @@ import { SchoolProvider } from "../context/SchoolContext";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
 import { SettingsFormProvider } from "../context/SettingsFormContext";
 import { useSchoolData } from "../hooks/useSchoolData";
+import { registerPostHogClient } from "../utils/analytics";
 
 const BASE_SETTINGS: SchoolSettings = {
   ...DEFAULT_SETTINGS,
@@ -90,6 +91,7 @@ function getCapturedEvents(eventName: string) {
 describe("Hardened existing PostHog events", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    registerPostHogClient(posthogMock);
     localStorage.clear();
     storage.initStorage.mockResolvedValue(undefined);
     storage.migrateFromLocalStorage.mockResolvedValue({ success: true });
@@ -111,14 +113,14 @@ describe("Hardened existing PostHog events", () => {
     await waitFor(() => expect(result.current.isDataLoaded).toBe(true));
 
     // Empty class auto-remarks should NOT fire Auto_Remarks_Generated
-    act(() => {
-      result.current.autoGenerateRemarks();
+    await act(async () => {
+      await result.current.autoGenerateRemarks();
     });
     expect(getCapturedEvents("Auto_Remarks_Generated")).toHaveLength(0);
 
     // Loading demo data on empty workspace
-    act(() => {
-      result.current.loadDemoData();
+    await act(async () => {
+      await result.current.loadDemoData();
     });
     expect(getCapturedEvents("Loaded_Demo_Data")).toEqual([
       {
@@ -131,8 +133,8 @@ describe("Hardened existing PostHog events", () => {
     ]);
 
     // Auto-remarks on demo-only workspace marks is_demo: true
-    act(() => {
-      result.current.autoGenerateRemarks();
+    await act(async () => {
+      await result.current.autoGenerateRemarks();
     });
     expect(getCapturedEvents("Auto_Remarks_Generated")).toEqual([
       {
@@ -172,8 +174,8 @@ describe("Hardened existing PostHog events", () => {
     ]);
 
     // Auto-remarks on mixed class separates real vs demo counts
-    act(() => {
-      result.current.autoGenerateRemarks();
+    await act(async () => {
+      await result.current.autoGenerateRemarks();
     });
     expect(getCapturedEvents("Auto_Remarks_Generated")[1]).toMatchObject({
       students_count: 12,
@@ -183,8 +185,8 @@ describe("Hardened existing PostHog events", () => {
     });
 
     // Loading demo data onto non-empty workspace marks is_empty_workspace: false
-    act(() => {
-      result.current.loadDemoData();
+    await act(async () => {
+      await result.current.loadDemoData();
     });
     expect(getCapturedEvents("Loaded_Demo_Data")[1]).toMatchObject({
       existing_students_count: 12,

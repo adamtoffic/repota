@@ -339,8 +339,8 @@ describe("SchoolContext live actions", () => {
     expect(rescaledMath?.examScore).toBe(56);
 
     // 3. loadDemoData preserves category on demo student SBA components
-    act(() => {
-      result.current.loadDemoData();
+    await act(async () => {
+      await result.current.loadDemoData();
     });
     const demoWithComp = result.current.students.find((s) =>
       s.subjects.some((sub) => (sub.classScoreComponents?.length ?? 0) > 0),

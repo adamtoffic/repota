@@ -11,6 +11,7 @@ vi.mock("posthog-js", () => ({
 }));
 
 import { resolveAppEnv, shouldSendAnalytics } from "../utils/analyticsEnv";
+import { registerPostHogClient } from "../utils/analytics";
 import {
   REPORT_LEDGER_STORAGE_KEY,
   clearReportAnalyticsLedger,
@@ -60,6 +61,7 @@ function getCapturedEvents(eventName: string) {
 describe("reportAnalytics & analyticsEnv", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    registerPostHogClient(posthogMock);
     localStorage.clear();
     clearReportAnalyticsLedger();
   });

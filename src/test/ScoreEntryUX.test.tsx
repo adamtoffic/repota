@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import posthog from "posthog-js";
 import { SubjectRow } from "../components/SubjectRow";
@@ -13,7 +13,7 @@ import { PrintPreview } from "../pages/PrintPreview";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import type { ProcessedStudent, SavedSubject, SchoolSettings, StudentRecord } from "../types";
-import { resetSessionAnalyticsGuards } from "../utils/analytics";
+import { registerPostHogClient, resetSessionAnalyticsGuards } from "../utils/analytics";
 import {
   assignPositions,
   assignSubjectPositions,
@@ -104,6 +104,10 @@ function makeSchoolContext(students: ProcessedStudent[], settings = testSettings
 }
 
 describe("Phase 3 Teacher UX & Score Entry", () => {
+  beforeEach(() => {
+    registerPostHogClient(posthog);
+  });
+
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -970,7 +974,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       expect(screen.getByRole("button", { name: /Pass Rate/i })).toBe(passRateBtn);
       expect(passRateBtn).toBeEnabled();
     });
-    it("keeps ScoreEntryModal Next/Prev and QuickGradebook navigation stable when scores change rank under AVG_DESC", () => {
+    it("keeps ScoreEntryModal Next/Prev and QuickGradebook navigation stable when scores change rank under AVG_DESC", async () => {
       localStorage.setItem("repota_welcome_tour_v2", "true");
       try {
         const initialRecords: StudentRecord[] = [
@@ -1029,7 +1033,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
 
         // Open Student B (index 2 of 3)
         fireEvent.click(screen.getAllByText("Student B")[0]);
-        expect(screen.getByText("2 / 3")).toBeInTheDocument();
+        expect(await screen.findByText("2 / 3")).toBeInTheDocument();
         expect(dashboardShell).toHaveClass("max-sm:hidden");
         expect(document.documentElement.dataset.mobileSheetOpen).toBe("true");
 
@@ -1050,7 +1054,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         expect(document.documentElement.dataset.mobileSheetOpen).toBeUndefined();
         fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
 
-        expect(screen.getByText("1. Student B")).toBeInTheDocument();
+        expect(await screen.findByText("1. Student B")).toBeInTheDocument();
         expect(screen.getByText("2. Student A")).toBeInTheDocument();
         expect(screen.getByText("3. Student C")).toBeInTheDocument();
 

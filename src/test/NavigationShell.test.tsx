@@ -357,7 +357,7 @@ describe("NavigationShell and route exclusions", () => {
     expect(screen.queryByText("Student Partial")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Edit Scores/i }));
-    expect(screen.getByRole("tab", { name: /Student Details/i })).toHaveAttribute(
+    expect(await screen.findByRole("tab", { name: /Student Details/i })).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -426,12 +426,14 @@ describe("NavigationShell and route exclusions", () => {
       renderAppAt("/");
       await screen.findByPlaceholderText("Search students...");
 
-      vi.useFakeTimers();
-
       fireEvent.click(screen.getByRole("button", { name: /Quick Gradebook/i }));
-      const examInput = screen.getByLabelText("Student One Exam Score") as HTMLInputElement;
+      const examInput = (await screen.findByLabelText(
+        "Student One Exam Score",
+      )) as HTMLInputElement;
       const searchInput = screen.getByPlaceholderText("Search students...") as HTMLInputElement;
       const sortSelect = screen.getByLabelText("Sort students") as HTMLSelectElement;
+
+      vi.useFakeTimers();
 
       const mobileBar = screen.getByLabelText("Mobile bottom navigation");
       const mobilePill = mobileBar.firstElementChild as HTMLElement;

@@ -17,6 +17,7 @@ vi.mock("../utils/idbStorage", () => idbMock);
 import {
   captureEvent,
   getRuntimeAnalyticsContext,
+  registerPostHogClient,
   resetSessionAnalyticsGuards,
   sanitizePostHogUrl,
   trackScoreEntrySessionOnce,
@@ -29,6 +30,7 @@ describe("analytics helpers", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    registerPostHogClient(posthogMock);
     resetSessionAnalyticsGuards();
     idbMock.getStorageType.mockReturnValue("indexeddb");
   });

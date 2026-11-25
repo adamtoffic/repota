@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 // src/router.tsx
-import { lazy, Suspense, type ComponentType } from "react";
+import { Suspense } from "react";
 import {
   createRouter,
   createRoute,
@@ -11,12 +11,10 @@ import {
 } from "@tanstack/react-router";
 import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
-import { SbaPage } from "./pages/SbaPage";
-import { SettingsHub } from "./pages/settings/SettingsHub";
 import { PageLoader } from "./components/PageLoader";
 import { DataGate } from "./components/DataGate";
-import { SettingsFormProvider } from "./context/SettingsFormContext";
 import { AppShell } from "./components/navigation/AppShell";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 import {
   CHUNK_RELOAD_KEY,
   hasUnsavedChanges,
@@ -24,50 +22,7 @@ import {
   setUnsavedChanges,
 } from "./utils/preloadErrorHandler";
 
-export { CHUNK_RELOAD_KEY, hasUnsavedChanges, isChunkLoadError, setUnsavedChanges };
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function lazyWithRetry<T extends ComponentType<any>>(
-  factory: () => Promise<{ default: T }>,
-) {
-  return lazy(async () => {
-    try {
-      const module = await factory();
-      try {
-        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-      } catch {
-        // ignore storage access errors
-      }
-      return module;
-    } catch (error) {
-      const isChunk = isChunkLoadError(error);
-      if (isChunk) {
-        if (hasUnsavedChanges()) {
-          throw error;
-        }
-
-        let canReload = false;
-        try {
-          const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "true";
-          if (!alreadyReloaded) {
-            sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
-            canReload = true;
-          }
-        } catch {
-          // If sessionStorage throws or is blocked, do not reload to prevent infinite loops
-          canReload = false;
-        }
-
-        if (canReload) {
-          window.location.reload();
-          return new Promise<{ default: T }>(() => {});
-        }
-      }
-
-      throw error;
-    }
-  });
-}
+export { CHUNK_RELOAD_KEY, hasUnsavedChanges, isChunkLoadError, lazyWithRetry, setUnsavedChanges };
 
 export function RouteErrorFallback({ error }: { error?: unknown }) {
   const handleReload = () => {
@@ -139,10 +94,17 @@ export function RouteNotFound() {
   );
 }
 
-// Code-split heavy secondary pages with auto-reload retry on chunk failures
+// Code-split heavy secondary pages and form layout with auto-reload retry on chunk failures
+const SbaPage = lazyWithRetry(() =>
+  import("./pages/SbaPage").then((module) => ({ default: module.SbaPage })),
+);
 const Analytics = lazyWithRetry(() =>
   import("./pages/Analytics").then((module) => ({ default: module.Analytics })),
 );
+const SettingsHub = lazyWithRetry(() =>
+  import("./pages/settings/SettingsHub").then((module) => ({ default: module.SettingsHub })),
+);
+const SettingsFormLayout = lazyWithRetry(() => import("./components/settings/SettingsFormLayout"));
 const SettingsSchoolPage = lazyWithRetry(() => import("./pages/settings/SettingsSchoolPage"));
 const SettingsAcademicPage = lazyWithRetry(() => import("./pages/settings/SettingsAcademicPage"));
 const SettingsTemplatesPage = lazyWithRetry(() => import("./pages/settings/SettingsTemplatesPage"));
@@ -175,14 +137,6 @@ function ShellLayout() {
 }
 
 // Shared draft & auto-save provider scoped strictly to SBA and Settings routes
-function SettingsFormLayout() {
-  return (
-    <SettingsFormProvider>
-      <Outlet />
-    </SettingsFormProvider>
-  );
-}
-
 const shellRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "shell",
