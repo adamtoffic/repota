@@ -1,8 +1,7 @@
-import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, PlusCircle, RefreshCw, Settings2 } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import type {
-  ClassScoreComponent,
   ClassScoreComponentConfig,
   ProcessedStudent,
   SavedSubject,
@@ -10,12 +9,15 @@ import type {
   StudentRecord,
 } from "../../types";
 import { trackScoreEntrySessionOnce } from "../../utils/analytics";
-import {
-  calculateSbaPaceStats,
-  isStudentUnscoredForSba,
-  normalizeTaskKey,
-} from "../../utils/sbaReconciliation";
+import { isStudentUnscoredForSba, normalizeTaskKey } from "../../utils/sbaReconciliation";
 import { updateComponentAndRecalculateClassScore } from "../../utils/scoreConversion";
+import { SbaMarkbookDesktopTable } from "./SbaMarkbookDesktopTable";
+import { SbaMarkbookMobileView } from "./SbaMarkbookMobileView";
+import {
+  buildBaselineComponents,
+  computeGridPastePatches,
+  getMatchedComponent,
+} from "./sbaGridHelpers";
 
 interface SbaMarkbookGridProps {
   students: ProcessedStudent[];
@@ -43,380 +45,6 @@ interface SbaMarkbookGridProps {
   disabled?: boolean;
   isHeaderSticky?: boolean;
 }
-
-function getMatchedComponent(
-  subject: SavedSubject | undefined,
-  taskName: string,
-): ClassScoreComponent | undefined {
-  if (!subject?.classScoreComponents) return undefined;
-  const targetKey = normalizeTaskKey(taskName);
-  return subject.classScoreComponents.find((c) => normalizeTaskKey(c.name) === targetKey);
-}
-
-function buildBaselineComponents(
-  existing: ClassScoreComponent[] | undefined,
-  tasks: ClassScoreComponentConfig[],
-  deterministicIdPrefix?: string,
-): ClassScoreComponent[] {
-  return tasks.map((task) => {
-    const found = existing?.find(
-      (c) => normalizeTaskKey(c.name) === normalizeTaskKey(task.name),
-    );
-    if (found) {
-      return {
-        ...found,
-        name: task.name,
-        maxScore: task.maxScore,
-        score: Math.min(Math.max(found.score, 0), task.maxScore),
-        category: task.category ?? found.category,
-      };
-    }
-    return {
-      id: deterministicIdPrefix ? `${deterministicIdPrefix}:${task.name}` : crypto.randomUUID(),
-      name: task.name,
-      score: 0,
-      maxScore: task.maxScore,
-      ...(task.category !== undefined ? { category: task.category } : {}),
-    };
-  });
-}
-
-interface DesktopSbaRowProps {
-  student: ProcessedStudent;
-  studentIdx: number;
-  activeSubject: string;
-  tasks: ClassScoreComponentConfig[];
-  maxClassScore: number;
-  idPrefix: string;
-  disabled: boolean;
-  cellErrors: Record<string, string | null>;
-  cellDrafts: Record<string, { baseScore: number; raw: string }>;
-  onRegisterDesktopInput: (key: string, el: HTMLInputElement | null) => void;
-  onScoreEdit: (student: ProcessedStudent, task: ClassScoreComponentConfig, rawInput: string) => void;
-  onClearCellDraft: (draftKey: string) => void;
-  onGridPaste: (
-    e: React.ClipboardEvent<HTMLInputElement>,
-    startStudentIdx: number,
-    startTaskIdx: number,
-  ) => void;
-  onFocusDesktopCell: (studentIdx: number, taskIdx: number, direction: 1 | -1) => void;
-  onAddSubjectToStudent: (student: ProcessedStudent) => void;
-}
-
-const DesktopSbaRow = memo(function DesktopSbaRow({
-  student,
-  studentIdx,
-  activeSubject,
-  tasks,
-  maxClassScore,
-  idPrefix,
-  disabled,
-  cellErrors,
-  cellDrafts,
-  onRegisterDesktopInput,
-  onScoreEdit,
-  onClearCellDraft,
-  onGridPaste,
-  onFocusDesktopCell,
-  onAddSubjectToStudent,
-}: DesktopSbaRowProps) {
-  const subject = student.subjects.find((s) => s.name === activeSubject);
-
-  if (!subject) {
-    return (
-      <tr className="group hover:bg-subtle/40 transition-colors">
-        <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 w-10 min-w-10 max-w-10 px-2 py-3 text-center text-xs font-semibold text-muted tabular-nums transition-colors">
-          {studentIdx + 1}
-        </td>
-        <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 max-w-40 truncate border-r px-3 py-3 text-sm font-bold text-main transition-colors lg:max-w-52">
-          {student.name}
-        </td>
-        <td colSpan={tasks.length + 2} className="px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-muted text-xs">Not enrolled in {activeSubject} yet</span>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onAddSubjectToStudent(student)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 disabled:opacity-50 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300"
-            >
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span>Add {activeSubject}</span>
-            </button>
-          </div>
-        </td>
-      </tr>
-    );
-  }
-
-  const baseline = buildBaselineComponents(
-    subject.classScoreComponents,
-    tasks,
-    `draft-${student.id}`,
-  );
-  const pace = calculateSbaPaceStats(baseline, maxClassScore);
-
-  return (
-    <tr className="group hover:bg-subtle/40 transition-colors">
-      <td className="bg-surface group-hover:bg-subtle sticky left-0 z-10 w-10 min-w-10 max-w-10 px-2 py-2.5 text-center text-xs font-semibold text-muted tabular-nums transition-colors">
-        {studentIdx + 1}
-      </td>
-      <td className="border-border-subtle bg-surface group-hover:bg-subtle sticky left-10 z-10 max-w-40 truncate border-r px-3 py-2.5 text-sm font-bold text-main transition-colors lg:max-w-52">
-        {student.name}
-      </td>
-
-      {tasks.map((task, taskIdx) => {
-        const comp = baseline.find((c) => normalizeTaskKey(c.name) === normalizeTaskKey(task.name));
-        const score = comp?.score ?? 0;
-        const inputId = `${idPrefix}-desk-${studentIdx}-${taskIdx}`;
-        const errorKey = `${student.id}:${task.name}`;
-        const cellError = cellErrors[errorKey];
-        const draft = cellDrafts[errorKey];
-        const displayValue =
-          draft && draft.baseScore === score ? draft.raw : score === 0 ? "" : String(score);
-
-        return (
-          <td key={task.name} className="px-2 py-2 text-center align-top">
-            <input
-              id={inputId}
-              name={inputId}
-              ref={(el) => onRegisterDesktopInput(`${student.id}:${taskIdx}`, el)}
-              type="text"
-              inputMode="decimal"
-              enterKeyHint="next"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              disabled={disabled}
-              aria-label={`${student.name} ${task.name} Score`}
-              value={displayValue}
-              placeholder={`/${task.maxScore}`}
-              onChange={(e) => onScoreEdit(student, task, e.target.value)}
-              onFocus={(e) => e.currentTarget.select()}
-              onBlur={() => onClearCellDraft(errorKey)}
-              onPaste={(e) => onGridPaste(e, studentIdx, taskIdx)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === "ArrowDown") {
-                  e.preventDefault();
-                  onFocusDesktopCell(studentIdx, taskIdx, 1);
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  onFocusDesktopCell(studentIdx, taskIdx, -1);
-                }
-              }}
-              className={`bg-input text-main placeholder:text-muted h-9 w-20 rounded-lg border px-2 text-center text-sm font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                cellError
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
-                  : "border-border-strong focus:border-purple-500 focus:ring-purple-500/25"
-              }`}
-            />
-            {cellError && (
-              <p className="mt-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
-                {cellError}
-              </p>
-            )}
-          </td>
-        );
-      })}
-
-      <td className="px-3 py-2.5 text-center text-xs font-semibold text-secondary tabular-nums">
-        {pace.rawSum}/{pace.rawMax}
-      </td>
-
-      <td className="bg-purple-50/40 px-3 py-2 text-center dark:bg-purple-950/20">
-        <div className="text-sm font-black text-purple-800 tabular-nums dark:text-purple-200">
-          {subject.classScore}/{maxClassScore}
-        </div>
-        {pace.isPartialMidTerm && pace.pacePercent !== null && (
-          <div className="text-[10px] font-semibold text-amber-700 tabular-nums dark:text-amber-300">
-            {pace.gradedTasks}/{pace.totalTasks} · {pace.pacePercent}% pace
-          </div>
-        )}
-      </td>
-    </tr>
-  );
-});
-
-interface MobileSbaRowProps {
-  student: ProcessedStudent;
-  studentIdx: number;
-  activeSubject: string;
-  tasks: ClassScoreComponentConfig[];
-  maxClassScore: number;
-  idPrefix: string;
-  disabled: boolean;
-  activeMobileTask: ClassScoreComponentConfig | undefined;
-  isLastStudent: boolean;
-  cellErrors: Record<string, string | null>;
-  cellDrafts: Record<string, { baseScore: number; raw: string }>;
-  onRegisterMobileInput: (studentId: string, el: HTMLInputElement | null) => void;
-  onScoreEdit: (student: ProcessedStudent, task: ClassScoreComponentConfig, rawInput: string) => void;
-  onClearCellDraft: (draftKey: string) => void;
-  onFocusMobileRow: (studentIdx: number, direction: 1 | -1) => void;
-  onAddSubjectToStudent: (student: ProcessedStudent) => void;
-}
-
-const MobileSbaRow = memo(function MobileSbaRow({
-  student,
-  studentIdx,
-  activeSubject,
-  tasks,
-  maxClassScore,
-  idPrefix,
-  disabled,
-  activeMobileTask,
-  isLastStudent,
-  cellErrors,
-  cellDrafts,
-  onRegisterMobileInput,
-  onScoreEdit,
-  onClearCellDraft,
-  onFocusMobileRow,
-  onAddSubjectToStudent,
-}: MobileSbaRowProps) {
-  const subject = student.subjects.find((s) => s.name === activeSubject);
-
-  if (!subject) {
-    return (
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-main truncate text-sm font-bold">
-            {studentIdx + 1}. {student.name}
-          </p>
-          <p className="text-muted text-xs">Missing {activeSubject}</p>
-        </div>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => onAddSubjectToStudent(student)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 disabled:opacity-50 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300"
-        >
-          <PlusCircle className="h-3.5 w-3.5" />
-          <span>Add</span>
-        </button>
-      </div>
-    );
-  }
-
-  const baseline = buildBaselineComponents(
-    subject.classScoreComponents,
-    tasks,
-    `draft-${student.id}`,
-  );
-  const pace = calculateSbaPaceStats(baseline, maxClassScore);
-
-  if (!activeMobileTask) {
-    return (
-      <div className="space-y-2 px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-main truncate text-sm font-bold">
-            {studentIdx + 1}. {student.name}
-          </p>
-          <span className="shrink-0 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 tabular-nums dark:bg-purple-950/60 dark:text-purple-200">
-            Class: {subject.classScore}/{maxClassScore}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {tasks.map((task) => {
-            const comp = baseline.find(
-              (c) => normalizeTaskKey(c.name) === normalizeTaskKey(task.name),
-            );
-            const score = comp?.score ?? 0;
-            return (
-              <span
-                key={task.name}
-                className="border-border bg-subtle text-secondary rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums"
-              >
-                {task.name}: {score > 0 ? score : "—"}/{task.maxScore}
-              </span>
-            );
-          })}
-        </div>
-        <div className="text-muted flex items-center justify-between text-[11px] tabular-nums">
-          <span>
-            Raw: {pace.rawSum}/{pace.rawMax}
-          </span>
-          {pace.isPartialMidTerm && pace.pacePercent !== null && (
-            <span className="font-semibold text-amber-700 dark:text-amber-300">
-              {pace.gradedTasks}/{pace.totalTasks} · {pace.pacePercent}% pace
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const activeComp = baseline.find(
-    (c) => normalizeTaskKey(c.name) === normalizeTaskKey(activeMobileTask.name),
-  );
-  const score = activeComp?.score ?? 0;
-  const mobileInputId = `${idPrefix}-mob-${studentIdx}`;
-  const errorKey = `${student.id}:${activeMobileTask.name}`;
-  const cellError = cellErrors[errorKey];
-  const draft = cellDrafts[errorKey];
-  const mobileDisplayValue =
-    draft && draft.baseScore === score ? draft.raw : score === 0 ? "" : String(score);
-
-  return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <p className="text-main truncate text-sm font-bold">
-          {studentIdx + 1}. {student.name}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] tabular-nums">
-          <span className="rounded-full bg-purple-100 px-2 py-0.5 font-bold text-purple-800 dark:bg-purple-950/60 dark:text-purple-200">
-            Class: {subject.classScore}/{maxClassScore}
-          </span>
-          {pace.isPartialMidTerm && pace.pacePercent !== null && (
-            <span className="font-semibold text-amber-700 dark:text-amber-300">
-              {pace.gradedTasks}/{pace.totalTasks} · {pace.pacePercent}% pace
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex shrink-0 flex-col items-end">
-        <input
-          id={mobileInputId}
-          name={mobileInputId}
-          ref={(el) => onRegisterMobileInput(student.id, el)}
-          type="text"
-          inputMode="decimal"
-          enterKeyHint={isLastStudent ? "done" : "next"}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          disabled={disabled}
-          aria-label={`${student.name} ${activeMobileTask.name} Score (Mobile)`}
-          value={mobileDisplayValue}
-          placeholder={`/${activeMobileTask.maxScore}`}
-          onChange={(e) => onScoreEdit(student, activeMobileTask, e.target.value)}
-          onFocus={(e) => e.currentTarget.select()}
-          onBlur={() => onClearCellDraft(errorKey)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === "ArrowDown") {
-              e.preventDefault();
-              onFocusMobileRow(studentIdx, 1);
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              onFocusMobileRow(studentIdx, -1);
-            }
-          }}
-          className={`bg-input text-main placeholder:text-muted h-11 w-22 scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-            cellError
-              ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
-              : "border-purple-300 focus:border-purple-500 focus:ring-purple-500/25 dark:border-purple-700"
-          }`}
-        />
-        {cellError && (
-          <span className="mt-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
-            {cellError}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-});
 
 export function SbaMarkbookGrid({
   students,
@@ -656,113 +284,57 @@ export function SbaMarkbookGrid({
   const handleGridPaste = useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>, startStudentIdx: number, startTaskIdx: number) => {
       if (disabled) return;
-      const text = e.clipboardData.getData("text");
-      if (!text || !/[\r\n\t]/.test(text)) return;
-
-      const pastedRows = text
-        .split(/\r?\n/)
-        .filter((line) => line.trim().length > 0)
-        .map((line) => line.split(/\t|,/));
-
-      if (pastedRows.length === 0) return;
-      if (pastedRows.length === 1 && pastedRows[0].length <= 1) return;
+      const result = computeGridPastePatches({
+        text: e.clipboardData.getData("text"),
+        visibleStudents,
+        startStudentIdx,
+        startTaskIdx,
+        activeSubject,
+        tasks,
+        maxClassScore,
+      });
+      if (!result) return;
 
       e.preventDefault();
-      let cellsUpdated = 0;
-      let studentsUpdated = 0;
-      let clampedCount = 0;
-      const patches: Array<{ student: ProcessedStudent; updatedSubjects: SavedSubject[] }> = [];
+      if (result.patches.length === 0) return;
 
-      for (
-        let rowOffset = 0;
-        rowOffset < pastedRows.length && startStudentIdx + rowOffset < visibleStudents.length;
-        rowOffset++
-      ) {
-        const student = visibleStudents[startStudentIdx + rowOffset];
-        const sub = student.subjects.find((s) => s.name === activeSubject);
-        if (!sub) continue;
+      for (const patch of result.patches) {
+        pinStudent(patch.student.id);
+      }
 
-        let workingComponents = buildBaselineComponents(sub.classScoreComponents, tasks);
-        let nextClassScore = sub.classScore;
-        let rowChanged = false;
-
-        const rowCells = pastedRows[rowOffset];
-        for (
-          let colOffset = 0;
-          colOffset < rowCells.length && startTaskIdx + colOffset < tasks.length;
-          colOffset++
-        ) {
-          const rawCell = rowCells[colOffset].trim();
-          if (!rawCell) continue;
-          const numeric = Number(rawCell);
-          if (!Number.isFinite(numeric)) continue;
-
-          const targetTask = tasks[startTaskIdx + colOffset];
-          const targetComp = workingComponents.find(
-            (c) => normalizeTaskKey(c.name) === normalizeTaskKey(targetTask.name),
-          );
-          if (!targetComp) continue;
-
-          const result = updateComponentAndRecalculateClassScore(
-            workingComponents,
-            targetComp.id,
-            numeric,
-            maxClassScore,
-          );
-          workingComponents = result.updatedComponents;
-          nextClassScore = result.classScore;
-          rowChanged = true;
-          cellsUpdated++;
-          if (result.wasClamped) {
-            clampedCount++;
-          }
-        }
-
-        if (rowChanged) {
-          pinStudent(student.id);
-          const updatedSubjects = student.subjects.map((item) =>
-            item.id === sub.id
-              ? { ...item, classScoreComponents: workingComponents, classScore: nextClassScore }
-              : item,
-          );
-          patches.push({ student, updatedSubjects });
-          studentsUpdated++;
+      if (onBatchUpdateStudents) {
+        const subjectsById = new Map(
+          result.patches.map((p) => [p.student.id, p.updatedSubjects]),
+        );
+        onBatchUpdateStudents(
+          (prev) =>
+            prev.map((student) =>
+              subjectsById.has(student.id)
+                ? { ...student, subjects: subjectsById.get(student.id)! }
+                : student,
+            ),
+          { silent: true },
+        );
+      } else {
+        for (const patch of result.patches) {
+          onUpdateStudent({ ...patch.student, subjects: patch.updatedSubjects }, true);
         }
       }
 
-      if (patches.length > 0) {
-        if (onBatchUpdateStudents) {
-          const subjectsById = new Map(patches.map((p) => [p.student.id, p.updatedSubjects]));
-          onBatchUpdateStudents(
-            (prev) =>
-              prev.map((student) =>
-                subjectsById.has(student.id)
-                  ? { ...student, subjects: subjectsById.get(student.id)! }
-                  : student,
-              ),
-            { silent: true },
-          );
-        } else {
-          for (const patch of patches) {
-            onUpdateStudent({ ...patch.student, subjects: patch.updatedSubjects }, true);
-          }
-        }
-
-        if (tasks[startTaskIdx]) {
-          onTaskTouched?.(tasks[startTaskIdx].name);
-        }
-        onPasteSummary?.({
-          cells: cellsUpdated,
-          students: studentsUpdated,
-          clamped: clampedCount,
-        });
-        trackScoreEntrySessionOnce({
-          entryMode: "sba_markbook",
-          usedColumnPaste: true,
-          schoolLevel: settings.level,
-          examType: settings.examType,
-        });
+      if (tasks[startTaskIdx]) {
+        onTaskTouched?.(tasks[startTaskIdx].name);
       }
+      onPasteSummary?.({
+        cells: result.cellsUpdated,
+        students: result.studentsUpdated,
+        clamped: result.clampedCount,
+      });
+      trackScoreEntrySessionOnce({
+        entryMode: "sba_markbook",
+        usedColumnPaste: true,
+        schoolLevel: settings.level,
+        examType: settings.examType,
+      });
     },
     [
       activeSubject,
@@ -911,175 +483,49 @@ export function SbaMarkbookGrid({
       )}
 
       {isDesktop ? (
-        <div data-testid="sba-desktop-view">
-          <form onSubmit={(e) => e.preventDefault()} noValidate>
-            <div className="max-h-[70vh] overflow-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead className="bg-subtle sticky top-0 z-20">
-                  <tr className="border-border bg-subtle border-b text-xs">
-                    <th className="bg-subtle sticky left-0 z-30 w-10 min-w-10 max-w-10 px-2 py-3 text-center font-bold text-muted">
-                      #
-                    </th>
-                    <th className="border-border-subtle bg-subtle sticky left-10 z-30 min-w-36 max-w-40 border-r px-3 py-3 font-bold text-main lg:min-w-44 lg:max-w-52">
-                      Student
-                    </th>
-                    {tasks.map((task) => {
-                      const stats = taskStats.get(task.name);
-                      return (
-                        <th key={task.name} className="min-w-32 px-2.5 py-2.5 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 uppercase dark:bg-purple-950/70 dark:text-purple-300">
-                              {task.category ?? "CAT"}
-                            </span>
-                            <span className="text-main truncate font-bold">{task.name}</span>
-                            <span className="text-muted font-semibold tabular-nums">
-                              /{task.maxScore}
-                            </span>
-                            <button
-                              type="button"
-                              disabled={disabled}
-                              onClick={() =>
-                                onEditTask ? onEditTask(task.name) : onOpenTaskManager()
-                              }
-                              aria-label={`Configure ${task.name}`}
-                              title={`Edit ${task.name}`}
-                              className="text-muted hover:text-main rounded p-0.5 transition-colors disabled:opacity-40"
-                            >
-                              <Settings2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <div className="text-muted mt-0.5 text-[10px] font-medium tabular-nums">
-                            {stats?.scored ?? 0}/{students.length} · Avg {stats?.avg ?? "—"}
-                          </div>
-                        </th>
-                      );
-                    })}
-                    <th className="min-w-24 px-3 py-2.5 text-center">
-                      <span className="text-secondary block font-bold">Raw</span>
-                      <span className="text-muted text-[10px] font-medium tabular-nums">
-                        /{totalRawMax}
-                      </span>
-                    </th>
-                    <th className="min-w-28 bg-purple-50 px-3 py-2.5 text-center dark:bg-purple-950/50">
-                      <span className="block font-bold text-purple-900 dark:text-purple-200">
-                        Class
-                      </span>
-                      <span className="text-[10px] font-semibold text-purple-700 tabular-nums dark:text-purple-300">
-                        /{maxClassScore}
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-border-subtle divide-y">
-                  {visibleStudents.map((student, studentIdx) => (
-                    <DesktopSbaRow
-                      key={student.id}
-                      student={student}
-                      studentIdx={studentIdx}
-                      activeSubject={activeSubject}
-                      tasks={tasks}
-                      maxClassScore={maxClassScore}
-                      idPrefix={idPrefix}
-                      disabled={disabled}
-                      cellErrors={cellErrors}
-                      cellDrafts={cellDrafts}
-                      onRegisterDesktopInput={registerDesktopInput}
-                      onScoreEdit={handleScoreEdit}
-                      onClearCellDraft={clearCellDraft}
-                      onGridPaste={handleGridPaste}
-                      onFocusDesktopCell={focusDesktopCell}
-                      onAddSubjectToStudent={handleAddSubjectToStudent}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </form>
-        </div>
+        <SbaMarkbookDesktopTable
+          visibleStudents={visibleStudents}
+          totalStudentCount={students.length}
+          activeSubject={activeSubject}
+          tasks={tasks}
+          taskStats={taskStats}
+          totalRawMax={totalRawMax}
+          maxClassScore={maxClassScore}
+          idPrefix={idPrefix}
+          disabled={disabled}
+          cellErrors={cellErrors}
+          cellDrafts={cellDrafts}
+          onEditTask={onEditTask}
+          onOpenTaskManager={onOpenTaskManager}
+          onRegisterDesktopInput={registerDesktopInput}
+          onScoreEdit={handleScoreEdit}
+          onClearCellDraft={clearCellDraft}
+          onGridPaste={handleGridPaste}
+          onFocusDesktopCell={focusDesktopCell}
+          onAddSubjectToStudent={handleAddSubjectToStudent}
+        />
       ) : (
-        <div data-testid="sba-mobile-view">
-          {/* Horizontal Task Pill Strip */}
-          <div
-            className={`border-border bg-subtle no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2.5 ${
-              isHeaderSticky
-                ? "sticky top-[calc(4rem+env(safe-area-inset-top,0px))] z-20"
-                : "relative"
-            }`}
-          >
-            {tasks.map((task) => {
-              const isActive =
-                activeMobilePill !== "__SUMMARY__" &&
-                normalizeTaskKey(activeMobilePill) === normalizeTaskKey(task.name);
-              const stats = taskStats.get(task.name);
-              const scoredCount = stats?.scored ?? 0;
-              const isComplete = students.length > 0 && scoredCount === students.length;
-              return (
-                <button
-                  key={task.name}
-                  type="button"
-                  onClick={() => handleSelectMobilePill(task.name)}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                    isActive
-                      ? "bg-purple-700 text-white shadow-xs"
-                      : "border-border bg-surface text-secondary border hover:text-main"
-                  }`}
-                >
-                  <span>{task.name}</span>
-                  {students.length > 0 && (
-                    <span
-                      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : isComplete
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                            : "bg-subtle text-muted"
-                      }`}
-                    >
-                      {isComplete && <Check className="h-2.5 w-2.5" />}
-                      {scoredCount}/{students.length}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => handleSelectMobilePill("__SUMMARY__")}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                activeMobilePill === "__SUMMARY__"
-                  ? "bg-slate-900 text-white dark:bg-elevated dark:text-main"
-                  : "border-border bg-surface text-secondary border hover:text-main"
-              }`}
-            >
-              Summary
-            </button>
-          </div>
-
-          <form onSubmit={(e) => e.preventDefault()} noValidate className="divide-border-subtle divide-y">
-            {visibleStudents.map((student, studentIdx) => (
-              <MobileSbaRow
-                key={student.id}
-                student={student}
-                studentIdx={studentIdx}
-                activeSubject={activeSubject}
-                tasks={tasks}
-                maxClassScore={maxClassScore}
-                idPrefix={idPrefix}
-                disabled={disabled}
-                activeMobileTask={activeMobileTask}
-                isLastStudent={studentIdx === visibleStudents.length - 1}
-                cellErrors={cellErrors}
-                cellDrafts={cellDrafts}
-                onRegisterMobileInput={registerMobileInput}
-                onScoreEdit={handleScoreEdit}
-                onClearCellDraft={clearCellDraft}
-                onFocusMobileRow={focusMobileRow}
-                onAddSubjectToStudent={handleAddSubjectToStudent}
-              />
-            ))}
-          </form>
-        </div>
+        <SbaMarkbookMobileView
+          visibleStudents={visibleStudents}
+          totalStudentCount={students.length}
+          activeSubject={activeSubject}
+          tasks={tasks}
+          taskStats={taskStats}
+          activeMobilePill={activeMobilePill}
+          activeMobileTask={activeMobileTask}
+          isHeaderSticky={isHeaderSticky}
+          maxClassScore={maxClassScore}
+          idPrefix={idPrefix}
+          disabled={disabled}
+          cellErrors={cellErrors}
+          cellDrafts={cellDrafts}
+          onSelectMobilePill={handleSelectMobilePill}
+          onRegisterMobileInput={registerMobileInput}
+          onScoreEdit={handleScoreEdit}
+          onClearCellDraft={clearCellDraft}
+          onFocusMobileRow={focusMobileRow}
+          onAddSubjectToStudent={handleAddSubjectToStudent}
+        />
       )}
     </div>
   );
