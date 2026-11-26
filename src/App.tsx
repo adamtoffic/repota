@@ -6,11 +6,15 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
-import { PinRecovery } from "./components/PinRecovery";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { useIdleTimer } from "./hooks/useIdleTimer";
+
+const PinRecovery = lazyWithRetry(() =>
+  import("./components/PinRecovery").then((module) => ({ default: module.PinRecovery })),
+);
 import { useSchoolSettings } from "./hooks/useSchoolData";
 import { useTheme } from "./hooks/useTheme";
 import { PRINT_STARTED_EVENT } from "./utils/printHandler";
@@ -145,13 +149,15 @@ function AppContent({
           onForgotPin={() => setShowRecovery(true)}
         />
         {showRecovery && (
-          <PinRecovery
-            onComplete={() => {
-              setShowRecovery(false);
-              handleUnlock();
-            }}
-            onCancel={() => setShowRecovery(false)}
-          />
+          <Suspense fallback={null}>
+            <PinRecovery
+              onComplete={() => {
+                setShowRecovery(false);
+                handleUnlock();
+              }}
+              onCancel={() => setShowRecovery(false)}
+            />
+          </Suspense>
         )}
       </ErrorBoundary>
     );

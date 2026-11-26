@@ -21,9 +21,12 @@ import { downloadBlob } from "../utils/fileDownload";
 import { exportDetailedBroadsheetCSV, exportToCSV } from "../utils/export";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { ScrollButton } from "../components/ScrollButton";
-import { WelcomeTour } from "../components/WelcomeTour";
 import { ValidationWarnings } from "../components/ValidationWarnings";
 import { ProgressModal } from "../components/ProgressModal";
+
+const WelcomeTour = lazyWithRetry(() =>
+  import("../components/WelcomeTour").then((module) => ({ default: module.WelcomeTour })),
+);
 
 const QuickGradebook = lazyWithRetry(() =>
   import("../components/QuickGradebook").then((module) => ({ default: module.QuickGradebook })),
@@ -110,6 +113,14 @@ export function Dashboard() {
   // Debounce Search Logic
   const debounceSearch = useDebounce(searchQuery, 300);
   const isSearching = searchQuery !== "" && debounceSearch !== searchQuery;
+
+  const [shouldRenderWelcomeTour] = useState(() => {
+    try {
+      return localStorage.getItem("repota_welcome_tour_v2") !== "true";
+    } catch {
+      return false;
+    }
+  });
 
   const filterCounts = useMemo(() => {
     let noScores = 0;
@@ -775,47 +786,51 @@ export function Dashboard() {
       )}
 
       {/* ✅ WELCOME TOUR for first-time users */}
-      <WelcomeTour
-        steps={[
-          {
-            title: "Welcome to Repota! 🇬🇭",
-            description:
-              "We're so glad you're here! Repota helps you create beautiful GES report cards in minutes. Everything works offline - no internet needed once loaded. Let's show you around!",
-          },
-          {
-            title: "Step 1: Configure Your School & SBA ⚙️",
-            description:
-              "Before adding students, use the Settings tab in the navigation bar to set up your school details, academic year, term, class name, and subjects — and use the SBA Markbook tab to configure Continuous Assessment tasks.",
-          },
-          {
-            title: "Step 2: Add Your Students 👨‍🎓",
-            description:
-              "Now click 'Add Student' to start building your class list. Type their names one by one, or use 'Bulk Import' if you have a list ready. You can also try 'Load Demo Data' to see how everything works first.",
-          },
-          {
-            title: "Step 3: Enter Scores & Watch the Magic ✨",
-            description:
-              "Click on any student's name to enter their class and exam scores. Repota automatically calculates their total marks, grades (A, B, C...), class position, and even writes teacher remarks for you! No more manual calculations.",
-          },
-          {
-            title: "Step 4: View Class Analytics 📊",
-            description:
-              "Tap the Analytics tab in the navigation bar to see beautiful charts and insights about your class performance. See top performers, subject averages, pass rates, and trends — all updated in real-time as you enter scores.",
-          },
-          {
-            title: "Step 5: Print Report Cards 🖨️",
-            description:
-              "When you're done, tap 'Print' in the top bar or sidebar to generate professional GES-compliant report cards for all students at once. You can print them directly or save as PDF. Each report looks perfect and ready to hand out!",
-          },
-          {
-            title: "Your Work is Safe! 💚",
-            description:
-              "Don't worry - everything you type is saved automatically every few seconds. Even if your phone dies or you close the app, your work is safe on your device. You'll see 'Saved just now' at the bottom-left. No internet required!",
-          },
-        ]}
-        onComplete={() => {}}
-        storageKey="repota_welcome_tour_v2"
-      />
+      {shouldRenderWelcomeTour && (
+        <Suspense fallback={null}>
+          <WelcomeTour
+            steps={[
+              {
+                title: "Welcome to Repota! 🇬🇭",
+                description:
+                  "We're so glad you're here! Repota helps you create beautiful GES report cards in minutes. Everything works offline - no internet needed once loaded. Let's show you around!",
+              },
+              {
+                title: "Step 1: Configure Your School & SBA ⚙️",
+                description:
+                  "Before adding students, use the Settings tab in the navigation bar to set up your school details, academic year, term, class name, and subjects — and use the SBA Markbook tab to configure Continuous Assessment tasks.",
+              },
+              {
+                title: "Step 2: Add Your Students 👨‍🎓",
+                description:
+                  "Now click 'Add Student' to start building your class list. Type their names one by one, or use 'Bulk Import' if you have a list ready. You can also try 'Load Demo Data' to see how everything works first.",
+              },
+              {
+                title: "Step 3: Enter Scores & Watch the Magic ✨",
+                description:
+                  "Click on any student's name to enter their class and exam scores. Repota automatically calculates their total marks, grades (A, B, C...), class position, and even writes teacher remarks for you! No more manual calculations.",
+              },
+              {
+                title: "Step 4: View Class Analytics 📊",
+                description:
+                  "Tap the Analytics tab in the navigation bar to see beautiful charts and insights about your class performance. See top performers, subject averages, pass rates, and trends — all updated in real-time as you enter scores.",
+              },
+              {
+                title: "Step 5: Print Report Cards 🖨️",
+                description:
+                  "When you're done, tap 'Print' in the top bar or sidebar to generate professional GES-compliant report cards for all students at once. You can print them directly or save as PDF. Each report looks perfect and ready to hand out!",
+              },
+              {
+                title: "Your Work is Safe! 💚",
+                description:
+                  "Don't worry - everything you type is saved automatically every few seconds. Even if your phone dies or you close the app, your work is safe on your device. You'll see 'Saved just now' at the bottom-left. No internet required!",
+              },
+            ]}
+            onComplete={() => {}}
+            storageKey="repota_welcome_tour_v2"
+          />
+        </Suspense>
+      )}
 
       {/* PROGRESS MODAL FOR BULK OPERATIONS */}
       <ProgressModal

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useContext, useMemo } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback, useContext, useMemo } from "react";
 import type { ReactNode, SetStateAction } from "react";
 import { captureEvent } from "../utils/analytics";
 import {
@@ -10,8 +10,14 @@ import {
 import { useDebounce } from "../hooks/useDebounce";
 import { useToast } from "../hooks/useToast";
 import { ConfirmModal } from "../components/ConfirmModal";
-import { PinSetup } from "../components/PinSetup";
-import { PinRecovery } from "../components/PinRecovery";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
+
+const PinSetup = lazyWithRetry(() =>
+  import("../components/PinSetup").then((module) => ({ default: module.PinSetup })),
+);
+const PinRecovery = lazyWithRetry(() =>
+  import("../components/PinRecovery").then((module) => ({ default: module.PinRecovery })),
+);
 import { DEFAULT_FACTORY_SETTINGS } from "../constants/defaultSettings";
 import { DEFAULT_SUBJECTS } from "../constants/defaultSubjects";
 import { CLASS_OPTIONS } from "../constants/classes";
@@ -557,17 +563,21 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       />
 
       {showPinSetup && (
-        <PinSetup
-          onComplete={() => setShowPinSetup(false)}
-          onCancel={() => setShowPinSetup(false)}
-        />
+        <Suspense fallback={null}>
+          <PinSetup
+            onComplete={() => setShowPinSetup(false)}
+            onCancel={() => setShowPinSetup(false)}
+          />
+        </Suspense>
       )}
 
       {showPinRecovery && (
-        <PinRecovery
-          onComplete={() => setShowPinRecovery(false)}
-          onCancel={() => setShowPinRecovery(false)}
-        />
+        <Suspense fallback={null}>
+          <PinRecovery
+            onComplete={() => setShowPinRecovery(false)}
+            onCancel={() => setShowPinRecovery(false)}
+          />
+        </Suspense>
       )}
 
       <ConfirmModal

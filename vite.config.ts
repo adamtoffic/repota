@@ -1,4 +1,5 @@
 // vite.config.ts - PRODUCTION OPTIMIZED
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
@@ -14,6 +15,10 @@ export default defineConfig({
       // jsPDF dynamically imports optional "html2canvas"; alias it to "html2canvas-pro"
       // so the build does not emit a duplicate 200KB html2canvas chunk into dist/ and precache.
       html2canvas: "html2canvas-pro",
+      // Repota captures DOM/charts via html2canvas-pro + pdf.addImage(), never jsPDF.html(),
+      // so optional SVG/DOMPurify chunks are unused bloat in dist/ and Workbox precache.
+      canvg: path.resolve(__dirname, "src/utils/emptyModule.ts"),
+      dompurify: path.resolve(__dirname, "src/utils/emptyModule.ts"),
     },
   },
   test: {
