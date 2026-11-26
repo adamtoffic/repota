@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LockScreen } from "../components/LockScreen";
@@ -140,13 +140,20 @@ describe("pinSecurity", () => {
 
     render(<LockScreen onUnlock={onUnlock} onForgotPin={onForgotPin} />);
 
+    // Allow initial mount delay timer (500ms) to settle inside act()
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 550));
+    });
+
     // Enter 5 wrong attempts via input change + timer advance
     const input = screen.getByPlaceholderText("••••") as HTMLInputElement;
     expect(input).toHaveAttribute("type", "password");
     for (let i = 0; i < 5; i++) {
-      fireEvent.change(input, { target: { value: "0000" } });
-      // Wait for auto-verify 100ms timeout + PBKDF2 verification
-      await vi.waitFor(() => expect(getPinLockoutStatus().failedAttempts).toBe(i + 1));
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "0000" } });
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      });
+      await waitFor(() => expect(getPinLockoutStatus().failedAttempts).toBe(i + 1));
     }
 
     expect(await screen.findByText(/too many incorrect attempts/i)).toBeVisible();
@@ -154,6 +161,11 @@ describe("pinSecurity", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /forgot your pin/i }));
     expect(onForgotPin).toHaveBeenCalledTimes(1);
+
+    // Flush shake reset timer (450ms) inside act() before teardown
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    });
   });
 
   it("lets PinSetup complete setup when skipping optional security questions and uses bg-black/50 in PinRecovery", async () => {
