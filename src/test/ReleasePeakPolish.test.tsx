@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { DashboardToolbar } from "../components/DashboardToolbar";
+import { Footer } from "../components/Footer";
 import { SecurityBackupSection } from "../components/settings/SecurityBackupSection";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { SchoolContext, type SchoolContextType } from "../context/SchoolContextDefinition";
@@ -203,5 +204,12 @@ describe("Release Peak Polish — ConfirmModal privacy, DashboardToolbar mobile 
 
     expect(screen.getByRole("button", { name: "Change PIN" })).toBeInTheDocument();
     expect(screen.getByText("PIN Lock Active")).toBeInTheDocument();
+  });
+});
+
+describe("Footer version sync", () => {
+  it("renders the package.json version injected via __APP_VERSION__", () => {
+    render(<Footer />);
+    expect(screen.getByText("v2.0.0")).toBeInTheDocument();
   });
 });
