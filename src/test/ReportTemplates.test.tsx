@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { ClassicTemplate } from "../templates/ClassicTemplate";
 import { ExecutiveTemplate } from "../templates/ExecutiveTemplate";
+import { HeritageTemplate } from "../templates/HeritageTemplate";
 import { MinimalTemplate } from "../templates/MinimalTemplate";
 import { ModernTemplate } from "../templates/ModernTemplate";
 import { OriginalTemplate } from "../templates/OriginalTemplate";
+import { ScholarTemplate } from "../templates/ScholarTemplate";
 import type { ProcessedStudent, SchoolSettings } from "../types";
 
 const baseStudent: ProcessedStudent = {
@@ -82,6 +84,8 @@ const TEMPLATES = [
   { name: "ModernTemplate", Component: ModernTemplate },
   { name: "MinimalTemplate", Component: MinimalTemplate },
   { name: "ExecutiveTemplate", Component: ExecutiveTemplate },
+  { name: "HeritageTemplate", Component: HeritageTemplate },
+  { name: "ScholarTemplate", Component: ScholarTemplate },
 ] as const;
 
 describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colors", () => {
@@ -181,4 +185,36 @@ describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colo
       expect(screen.queryByText(/^Crest$/i)).not.toBeInTheDocument();
     },
   );
+
+  it.each([
+    { name: "ExecutiveTemplate", Component: ExecutiveTemplate },
+    { name: "HeritageTemplate", Component: HeritageTemplate },
+    { name: "ScholarTemplate", Component: ScholarTemplate },
+  ])(
+    "$name balances light B&W headers with crisp #111827 accent badges",
+    ({ Component }) => {
+      const { container } = render(
+        <Component student={baseStudent} settings={baseSettings} printMode="bw" />,
+      );
+
+      // Light banner or table-header surface instead of solid black toner slabs
+      expect(container.innerHTML).toMatch(/rgb\(243,\s*244,\s*246\)|rgb\(229,\s*231,\s*235\)|#f3f4f6|#e5e7eb/i);
+      // High-contrast #111827 ink for compact Position/Aggregate/title badges
+      expect(container.innerHTML).toMatch(/rgb\(17,\s*24,\s*39\)|#111827/i);
+    },
+  );
+
+  it("ScholarTemplate renders proportional mastery bars and hides class/exam columns in MOCK mode", () => {
+    render(
+      <ScholarTemplate
+        student={baseStudent}
+        settings={{ ...baseSettings, examType: "MOCK" }}
+        printMode="color"
+      />,
+    );
+
+    expect(screen.getByText(/Mock Assessment/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Class \(30\)/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Score & Mastery/i)).toBeInTheDocument();
+  });
 });

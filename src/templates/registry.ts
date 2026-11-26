@@ -3,8 +3,10 @@ import type { TemplateDefinition } from "../types";
 import { OriginalTemplate } from "./OriginalTemplate";
 import { ClassicTemplate } from "./ClassicTemplate";
 import { ExecutiveTemplate } from "./ExecutiveTemplate";
+import { HeritageTemplate } from "./HeritageTemplate";
 import { MinimalTemplate } from "./MinimalTemplate";
 import { ModernTemplate } from "./ModernTemplate";
+import { ScholarTemplate } from "./ScholarTemplate";
 
 export const TEMPLATE_REGISTRY: TemplateDefinition[] = [
   {
@@ -37,6 +39,20 @@ export const TEMPLATE_REGISTRY: TemplateDefinition[] = [
     description:
       "Institutional banner + compact single-A4 grid tailored for all levels and custom school colors.",
     component: ExecutiveTemplate,
+  },
+  {
+    id: "heritage_v1",
+    name: "Heritage Framed",
+    description:
+      "Ceremonial double-rule collegiate frame with centered crest and classic ink ledger.",
+    component: HeritageTemplate,
+  },
+  {
+    id: "scholar_v1",
+    name: "Editorial Scholar",
+    description:
+      "Modern editorial grid with KPI summary strip and inline subject mastery progress bars.",
+    component: ScholarTemplate,
   },
 ];
 
