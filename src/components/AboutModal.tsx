@@ -1,4 +1,4 @@
-import { X, Shield, Code, Heart } from "lucide-react"; // 👈 Added User icon
+import { X, Shield, Code, Heart } from "lucide-react";
 import { Modal } from "./ui/Modal";
 
 interface AboutModalProps {
@@ -10,11 +10,18 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-h-[90vh] max-w-lg overflow-y-auto">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabelledBy="about-modal-title"
+      className="max-h-[90dvh] max-w-lg overflow-y-auto"
+    >
       <div className="relative p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-main text-2xl font-bold">About Repota</h2>
+          <h2 id="about-modal-title" className="text-main text-2xl font-bold">
+            About Repota
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -71,7 +78,6 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 <a
-                  /* 🔴 EDIT THIS */
                   href="https://wa.me/233248140806?text=Hi!%20About%20Repota..."
                   target="_blank"
                   rel="noopener noreferrer"
@@ -80,7 +86,6 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                   💬 WhatsApp
                 </a>
                 <a
-                  /* 🔴 EDIT THIS */
                   href="mailto:repota.team@proton.me"
                   className="text-primary-text inline-flex items-center gap-1.5 text-sm font-bold hover:underline"
                 >
@@ -102,7 +107,6 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 on GitHub.
               </p>
               <a
-                /* 🔴 EDIT THIS */
                 href="https://github.com/adamtoffic/repota"
                 target="_blank"
                 rel="noopener noreferrer"

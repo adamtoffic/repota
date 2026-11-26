@@ -137,7 +137,7 @@ function MobileStudentCard({
           type="button"
           onClick={() => onDeleteRequest(student.id)}
           aria-label={`Delete ${student.name}`}
-          className="flex min-h-11 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/80"
+          className="flex min-h-11 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-700 hover:bg-red-100 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/80"
           title="Delete Student"
         >
           <Trash2 className="h-4 w-4" />
@@ -286,7 +286,7 @@ export function StudentList({
         <div
           ref={mobileParentRef}
           data-scroll-region="student-list"
-          className="max-h-[68vh] overflow-y-auto overscroll-contain lg:hidden"
+          className="max-h-[68dvh] overflow-y-auto overscroll-contain lg:hidden"
         >
           <div
             className="relative w-full"

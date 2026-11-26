@@ -24,7 +24,7 @@ export function PdfExportModal({
     isOpen,
     onClose,
     dialogRef,
-    closeOnEscape: canDismiss,
+    closeOnEscape: true,
   });
 
   if (!isOpen) return null;
@@ -73,7 +73,7 @@ export function PdfExportModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={status === "generating" ? "Cancel PDF generation" : "Close"}
             className="text-muted hover:bg-subtle hover:text-main rounded-full p-1"
           >
             <X className="h-5 w-5" />

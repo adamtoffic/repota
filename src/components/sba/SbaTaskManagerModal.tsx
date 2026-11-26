@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AlertTriangle, Check, Edit2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import type {
   AssessmentCategory,
@@ -421,14 +422,46 @@ function SbaTaskManagerModalContent({
     );
   };
 
+  const allTabRef = useRef<HTMLButtonElement>(null);
+  const subjectTabRef = useRef<HTMLButtonElement>(null);
   const totalRawMax = currentTasks.reduce((sum, task) => sum + task.maxScore, 0);
 
+  const handleScopeTabKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      const nextScope =
+        e.key === "Home"
+          ? "ALL"
+          : e.key === "End"
+            ? "SUBJECT"
+            : scope === "ALL"
+              ? "SUBJECT"
+              : "ALL";
+      setScope(nextScope);
+      setEditingTaskName(null);
+      setPendingCommit(null);
+      requestAnimationFrame(() => {
+        (nextScope === "ALL" ? allTabRef : subjectTabRef).current?.focus();
+      });
+    }
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-2xl">
-      <div className="flex max-h-[90vh] flex-col overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeOnBackdrop={false}
+      ariaLabelledBy="sba-task-manager-modal-title"
+      className="max-w-2xl"
+    >
+      <div className="flex max-h-[90dvh] flex-col overflow-hidden">
         <div className="border-border-subtle flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3.5 sm:px-5 sm:py-4">
           <div className="min-w-0">
-            <h3 className="text-main truncate text-base font-bold sm:text-lg" data-record="true">
+            <h3
+              id="sba-task-manager-modal-title"
+              className="text-main truncate text-base font-bold sm:text-lg"
+              data-record="true"
+            >
               Manage SBA Tasks
             </h3>
             <p className="text-muted text-xs" data-record="true">
@@ -456,9 +489,14 @@ function SbaTaskManagerModalContent({
                 className="border-border bg-subtle grid grid-cols-2 gap-1 rounded-xl border p-1"
               >
                 <button
+                  ref={allTabRef}
+                  id="sba-scope-tab-all"
                   type="button"
                   role="tab"
+                  tabIndex={scope === "ALL" ? 0 : -1}
                   aria-selected={scope === "ALL"}
+                  aria-controls="sba-scope-tabpanel"
+                  onKeyDown={handleScopeTabKeyDown}
                   onClick={() => {
                     setScope("ALL");
                     setEditingTaskName(null);
@@ -473,9 +511,14 @@ function SbaTaskManagerModalContent({
                   All Subjects (Shared)
                 </button>
                 <button
+                  ref={subjectTabRef}
+                  id="sba-scope-tab-subject"
                   type="button"
                   role="tab"
+                  tabIndex={scope === "SUBJECT" ? 0 : -1}
                   aria-selected={scope === "SUBJECT"}
+                  aria-controls="sba-scope-tabpanel"
+                  onKeyDown={handleScopeTabKeyDown}
                   onClick={() => {
                     setScope("SUBJECT");
                     setEditingTaskName(null);
@@ -541,10 +584,22 @@ function SbaTaskManagerModalContent({
           )}
 
           {/* Task List */}
+          <div
+            id="sba-scope-tabpanel"
+            role={defaultSubjects.length > 1 ? "tabpanel" : undefined}
+            aria-labelledby={
+              defaultSubjects.length > 1
+                ? scope === "ALL"
+                  ? "sba-scope-tab-all"
+                  : "sba-scope-tab-subject"
+                : undefined
+            }
+            className="space-y-4"
+          >
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-secondary font-bold uppercase" data-record="true">
-                Active Tasks ({currentTasks.length})
+              <span className="text-secondary font-bold uppercase">
+                <span data-record="true">Active Tasks</span> ({currentTasks.length})
               </span>
               {currentTasks.length > 0 && (
                 <span className="text-muted font-semibold tabular-nums">
@@ -773,6 +828,7 @@ function SbaTaskManagerModalContent({
                 </button>
               )}
             </div>
+          </div>
           </div>
         </div>
 

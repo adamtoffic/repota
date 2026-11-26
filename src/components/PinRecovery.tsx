@@ -233,7 +233,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
         aria-labelledby={titleId}
         className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm focus:outline-none dark:bg-black/70"
       >
-        <div className="animate-sheet-up border-border bg-elevated relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border p-6 shadow-2xl sm:p-8">
+        <div className="animate-sheet-up border-border bg-elevated relative my-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-3xl border p-6 shadow-2xl sm:p-8">
           <button
             type="button"
             onClick={onCancel}
@@ -253,9 +253,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             </div>
           </div>
 
-          <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
+          <h2 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
             {method === "code" ? "Enter Recovery Code" : "Answer Security Questions"}
-          </h1>
+          </h2>
           <p className="text-muted mb-6 text-center text-sm">
             {method === "code"
               ? "Enter the 6-digit recovery code you saved when you set up your PIN."
@@ -441,9 +441,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             <X className="h-5 w-5" />
           </button>
 
-          <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
+          <h2 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
             Create New PIN
-          </h1>
+          </h2>
           <p className="text-muted mb-6 text-center text-sm">Enter your new 4-digit PIN.</p>
 
           <div className="mb-6">
@@ -509,9 +509,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           <X className="h-5 w-5" />
         </button>
 
-        <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
+        <h2 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
           Confirm New PIN
-        </h1>
+        </h2>
         <p className="text-muted mb-6 text-center text-sm">Re-enter your PIN to confirm.</p>
 
         <div className="mb-6">

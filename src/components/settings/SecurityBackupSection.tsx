@@ -68,6 +68,7 @@ export function SecurityBackupSection() {
             {isPinConfigured() && (
               <Alert
                 variant="warning"
+                role="region"
                 title={
                   <>
                     <Key className="inline h-4 w-4" /> Forgot Your PIN?
@@ -90,7 +91,7 @@ export function SecurityBackupSection() {
             )}
 
             {isPinConfigured() && (
-              <Alert variant="error" title="Disable PIN Lock">
+              <Alert variant="error" role="region" title="Disable PIN Lock">
                 <p className="mb-3">
                   Remove PIN protection from the app. This action cannot be undone.
                 </p>

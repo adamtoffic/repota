@@ -92,15 +92,21 @@ function SbaWeightsModalContent({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnBackdrop={false} className="max-w-lg">
-      <form onSubmit={handleSubmit} className="flex max-h-[90vh] flex-col overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeOnBackdrop={false}
+      ariaLabelledBy="sba-weights-modal-title"
+      className="max-w-lg"
+    >
+      <form onSubmit={handleSubmit} className="flex max-h-[90dvh] flex-col overflow-hidden">
         <div className="border-border-subtle flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3.5 sm:px-5 sm:py-4">
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-amber-100 p-2 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
               <Scale className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-main text-base font-bold" data-record="true">
+              <h3 id="sba-weights-modal-title" className="text-main text-base font-bold" data-record="true">
                 Grading Weights &amp; Exam Mode
               </h3>
               <p className="text-muted text-xs" data-record="true">

@@ -1,5 +1,7 @@
-import { useId } from "react";
+import { useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Eye, EyeOff, Lock, X } from "lucide-react";
+import { useDialogA11y } from "../../hooks/useDialogA11y";
 import { ConfirmModal } from "../ConfirmModal";
 import { Input } from "../ui";
 import { Modal } from "../ui/Modal";
@@ -75,25 +77,50 @@ export function BackupModals({
   onDecryptAndImport,
 }: BackupModalsProps) {
   const modalIdPrefix = useId();
+  const reloadDialogRef = useRef<HTMLDivElement>(null);
+  const reloadTitleId = `${modalIdPrefix}-reload-title`;
+  const exportTitleId = `${modalIdPrefix}-export-title`;
+  const importTitleId = `${modalIdPrefix}-import-title`;
   const exportPasswordId = `${modalIdPrefix}-export-password`;
   const importPasswordId = `${modalIdPrefix}-import-password`;
 
+  useDialogA11y({
+    isOpen: showReloadOverlay,
+    onClose: () => {},
+    dialogRef: reloadDialogRef,
+    closeOnEscape: false,
+  });
+
+  const reloadOverlayContent = showReloadOverlay ? (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6">
+      <div
+        ref={reloadDialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={reloadTitleId}
+        className="border-border bg-elevated rounded-xl border p-6 text-center shadow-2xl focus:outline-none"
+      >
+        <h2 id={reloadTitleId} className="text-main text-lg font-bold">
+          Backup loaded. Reloading...
+        </h2>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="bg-primary hover:bg-primary/90 mt-4 rounded-lg px-4 py-2 font-bold text-white"
+        >
+          Reload now
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
-      {showReloadOverlay && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6">
-          <div className="border-border bg-elevated rounded-xl border p-6 text-center shadow-2xl">
-            <h2 className="text-main text-lg font-bold">Backup loaded. Reloading...</h2>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="bg-primary hover:bg-primary/90 mt-4 rounded-lg px-4 py-2 font-bold text-white"
-            >
-              Reload now
-            </button>
-          </div>
-        </div>
-      )}
+      {reloadOverlayContent &&
+        (typeof document !== "undefined"
+          ? createPortal(reloadOverlayContent, document.body)
+          : reloadOverlayContent)}
 
       <ConfirmModal
         isOpen={showImportModal}
@@ -122,6 +149,7 @@ export function BackupModals({
         isOpen={showExportPasswordModal}
         onClose={onCloseExportPasswordModal}
         closeOnBackdrop={false}
+        ariaLabelledBy={exportTitleId}
         className="max-h-[90dvh] max-w-md overflow-y-auto"
       >
         <div className="p-5 sm:p-6">
@@ -130,7 +158,9 @@ export function BackupModals({
               <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-950/60">
                 <Lock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="text-main text-lg font-bold">Set Password</h3>
+              <h3 id={exportTitleId} className="text-main text-lg font-bold">
+                Set Password
+              </h3>
             </div>
             <button
               type="button"
@@ -213,7 +243,7 @@ export function BackupModals({
               type="button"
               onClick={onConfirmExportWithPassword}
               disabled={!password || password.length < 4 || password !== confirmPassword}
-              className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-amber-700 px-4 py-2.5 font-bold text-white hover:bg-amber-800 disabled:opacity-50"
             >
               Encrypt &amp; Save
             </button>
@@ -226,6 +256,7 @@ export function BackupModals({
         isOpen={showImportPasswordModal}
         onClose={onCancelImportPasswordModal}
         closeOnBackdrop={false}
+        ariaLabelledBy={importTitleId}
         className="max-h-[90dvh] max-w-md overflow-y-auto"
       >
         <div className="p-5 sm:p-6">
@@ -234,7 +265,9 @@ export function BackupModals({
               <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-950/60">
                 <Lock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-main text-lg font-bold">Password Required</h3>
+              <h3 id={importTitleId} className="text-main text-lg font-bold">
+                Password Required
+              </h3>
             </div>
             <button
               type="button"
