@@ -1,4 +1,4 @@
-import { Suspense, useEffect, type ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { useSchoolActions, useSchoolLifecycle } from "../hooks/useSchoolData";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { Alert, Button } from "./ui";
@@ -21,24 +21,6 @@ export function DataGate({ children }: DataGateProps) {
   const { isDataLoaded, loadError, isRollbackIncomplete, activeRecoveryAction } =
     useSchoolLifecycle();
   const { retryLoad, startFresh, setActiveRecoveryAction } = useSchoolActions();
-
-  useEffect(() => {
-    if (!isDataLoaded || loadError || isRollbackIncomplete) return;
-    if (import.meta.env.MODE === "test") return;
-
-    const preload = () => {
-      void import("../pages/Analytics").catch(() => {});
-      void import("../pages/SbaPage").catch(() => {});
-    };
-
-    if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(preload);
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timerId = window.setTimeout(preload, 1500);
-    return () => window.clearTimeout(timerId);
-  }, [isDataLoaded, isRollbackIncomplete, loadError]);
 
   if (!isDataLoaded) {
     return <PageLoader />;
