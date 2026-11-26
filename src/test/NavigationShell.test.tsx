@@ -321,42 +321,45 @@ describe("NavigationShell and route exclusions", () => {
 
     renderAppAt("/");
 
-    expect(await screen.findByText("Student Zero")).toBeInTheDocument();
-    expect(screen.getByText("Student Partial")).toBeInTheDocument();
-    expect(screen.getByText("Student NoPhoto")).toBeInTheDocument();
+    await screen.findAllByTestId("mobile-student-card");
+    const getMobileList = () => screen.getAllByTestId("mobile-student-card")[0].parentElement!;
+
+    expect(within(getMobileList()).getByText("Student Zero")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student Partial")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student NoPhoto")).toBeInTheDocument();
 
     // Score progress badges & missing photo pill appear on cards
-    expect(screen.getByText("0/2 Scored")).toBeInTheDocument();
-    expect(screen.getByText("1/2 Scored")).toBeInTheDocument();
-    expect(screen.getByText("2/2 Scored")).toBeInTheDocument();
-    expect(screen.getByText("No Photo")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("0/2 Scored")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("1/2 Scored")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("2/2 Scored")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("No Photo")).toBeInTheDocument();
 
     // Filter by "no scores entered" and toggle back
     const noScoresBtn = screen.getByRole("button", { name: /1 student has no scores entered/i });
     fireEvent.click(noScoresBtn);
-    expect(screen.getByText("Student Zero")).toBeInTheDocument();
-    expect(screen.queryByText("Student Partial")).not.toBeInTheDocument();
-    expect(screen.queryByText("Student NoPhoto")).not.toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student Zero")).toBeInTheDocument();
+    expect(within(getMobileList()).queryByText("Student Partial")).not.toBeInTheDocument();
+    expect(within(getMobileList()).queryByText("Student NoPhoto")).not.toBeInTheDocument();
 
     fireEvent.click(noScoresBtn);
-    expect(screen.getByText("Student Partial")).toBeInTheDocument();
-    expect(screen.getByText("Student NoPhoto")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student Partial")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student NoPhoto")).toBeInTheDocument();
 
     // Filter by "incomplete scores"
     const partialBtn = screen.getByRole("button", { name: /1 student with incomplete scores/i });
     fireEvent.click(partialBtn);
-    expect(screen.getByText("Student Partial")).toBeInTheDocument();
-    expect(screen.queryByText("Student Zero")).not.toBeInTheDocument();
-    expect(screen.queryByText("Student NoPhoto")).not.toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student Partial")).toBeInTheDocument();
+    expect(within(getMobileList()).queryByText("Student Zero")).not.toBeInTheDocument();
+    expect(within(getMobileList()).queryByText("Student NoPhoto")).not.toBeInTheDocument();
 
     // Filter by "missing photo" and open student -> lands on Student Details tab
     const missingPhotoBtn = screen.getByRole("button", { name: /1 student missing photo/i });
     fireEvent.click(missingPhotoBtn);
-    expect(screen.getByText("Student NoPhoto")).toBeInTheDocument();
-    expect(screen.queryByText("Student Zero")).not.toBeInTheDocument();
-    expect(screen.queryByText("Student Partial")).not.toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student NoPhoto")).toBeInTheDocument();
+    expect(within(getMobileList()).queryByText("Student Zero")).not.toBeInTheDocument();
+    expect(within(getMobileList()).queryByText("Student Partial")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Edit Scores/i }));
+    fireEvent.click(within(getMobileList()).getByRole("button", { name: /Edit Scores/i }));
     expect(await screen.findByRole("tab", { name: /Student Details/i })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -372,7 +375,7 @@ describe("NavigationShell and route exclusions", () => {
     fireEvent.click(screen.getByRole("button", { name: /Dismiss missing photos warning/i }));
     expect(sessionStorage.getItem("repota_dismiss_photo_warning")).toBe("true");
     expect(screen.queryByRole("button", { name: /1 student missing photo/i })).not.toBeInTheDocument();
-    expect(screen.getByText("Student Zero")).toBeInTheDocument();
+    expect(within(getMobileList()).getByText("Student Zero")).toBeInTheDocument();
   });
 
   it("auto-hides AutoSaveIndicator after 3.5 seconds while keeping saving state visible", () => {
