@@ -148,29 +148,54 @@
 }
 
 /* Lock printable report cards, template previews, and off-screen PDF stages to light paper */
-.report-page,
-[data-paper-surface="true"] {
-  --brand-primary: #1e3a8a;
-  --brand-primary-foreground: #ffffff;
-  --brand-primary-text: #1e3a8a;
-  --brand-accent: #fcd34d;
-  --brand-accent-foreground: #1e3a8a;
-  --status-danger: #dc2626;
-  --status-danger-foreground: #ffffff;
-  --status-success: #16a34a;
-  --status-success-foreground: #ffffff;
-  --surface-canvas: #f9fafb;
-  --surface-card: #ffffff;
-  --surface-subtle: #f3f4f6;
-  --surface-elevated: #ffffff;
-  --surface-input: #ffffff;
-  --border-default: #e5e7eb;
-  --border-subtle: #f3f4f6;
-  --border-strong: #d1d5db;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  color-scheme: light;
+@layer components {
+  .report-page,
+  [data-paper-surface="true"] {
+    --brand-primary: #1e3a8a;
+    --brand-primary-foreground: #ffffff;
+    --brand-primary-text: #1e3a8a;
+    --brand-accent: #fcd34d;
+    --brand-accent-foreground: #1e3a8a;
+    --status-danger: #dc2626;
+    --status-danger-foreground: #ffffff;
+    --status-success: #16a34a;
+    --status-success-foreground: #ffffff;
+    --surface-canvas: #f9fafb;
+    --surface-card: #ffffff;
+    --surface-subtle: #f3f4f6;
+    --surface-elevated: #ffffff;
+    --surface-input: #ffffff;
+    --border-default: #e5e7eb;
+    --border-subtle: #f3f4f6;
+    --border-strong: #d1d5db;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    color-scheme: light;
+  }
+
+  .report-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    margin: 0 auto;
+    position: relative;
+    color: black;
+    box-sizing: border-box;
+  }
+
+  .watermark {
+    position: absolute;
+    inset: 0;
+    background-image: url("/assets/coat-of-arms.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 60%;
+    opacity: 0.05;
+    pointer-events: none;
+    z-index: 0;
+  }
 }
 
 /* iOS specific fixes for better mobile experience — single document scroll container */
@@ -213,6 +238,10 @@ body.modal-open {
 }
 
 @layer utilities {
+  .font-arabic {
+    font-family:
+      "Traditional Arabic", "Geeza Pro", "Noto Naskh Arabic", "Tahoma", var(--font-sans);
+  }
   .print-only {
     display: none;
   }
@@ -579,7 +608,7 @@ a[role="button"]:active {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 0; /* Tells browser: "I'll handle the margins" */
+    margin: 0mm;
   }
 
   :root,
@@ -609,13 +638,22 @@ a[role="button"]:active {
 
   html,
   body {
-    width: 210mm;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: white;
+    overflow: visible !important;
+    background: white !important;
     color: #0f172a;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   /* Hide UI */
@@ -629,31 +667,30 @@ a[role="button"]:active {
     display: block !important;
   }
 
-  /* REPORT PAGE CONTAINER */
+  .report-scale-stage {
+    transform: none !important;
+    width: 210mm !important;
+  }
+
+  /* REPORT PAGE CONTAINER (exact subpixel-safe height under 297mm prevents trailing blank page) */
   .report-page {
-    width: 210mm;
-    height: 297mm;
-
-    /* ⚡️ FIX 1: REDUCED PADDING */
-    /* 5mm is enough to clear the printer rollers, but tight enough to use the space. */
-    padding: 1mm !important;
-
-    margin: 0 auto; /* Centers it if printer paper is slightly wider */
-    page-break-after: always;
+    width: 210mm !important;
+    height: 296.5mm !important;
+    max-height: 296.5mm !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    page-break-after: auto !important;
+    break-inside: avoid;
+    page-break-inside: avoid !important;
     position: relative;
-    overflow: hidden;
-    background: white;
-    font-family: var(--font-serif);
-
-    /* ⚡️ FIX 2: BORDER-BOX */
-    /* Ensures padding doesn't make the div wider than 210mm */
-    box-sizing: border-box;
+    overflow: hidden !important;
+    background: white !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
   }
 
   /* WATERMARK FIX */
   .watermark {
-    /* ⚡️ FIX 3: VISIBILITY */
-    /* You had this at 0 (invisible). 0.05 (5%) is the sweet spot for B&W. */
     opacity: 0.05 !important;
     filter: grayscale(100%);
     -webkit-print-color-adjust: exact;
@@ -661,22 +698,24 @@ a[role="button"]:active {
   }
 
   /* Fix for the last page blank sheet */
-  .report-wrapper:last-child .report-page {
-    page-break-after: auto !important;
-    page-break-inside: avoid !important;
-  }
-
   .report-wrapper {
+    width: 210mm !important;
+    height: 296.5mm !important;
+    max-height: 296.5mm !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     display: block !important;
+    overflow: hidden !important;
+    break-after: page;
     page-break-after: always !important;
+    break-inside: avoid;
     page-break-inside: avoid !important;
   }
 
-  /* Ensure last report doesn't create blank page */
+  .report-wrapper:last-child,
   .report-wrapper[data-is-last="true"] {
+    break-after: auto;
     page-break-after: auto !important;
   }
 
@@ -687,32 +726,5 @@ a[role="button"]:active {
   .animate-slide-in-down,
   .animate-scale-in {
     animation: none !important;
-  }
-}
-
-/* SCREEN PREVIEW */
-@media screen {
-  .report-page {
-    width: 210mm;
-    min-height: 297mm;
-    padding: 5mm; /* Match the print padding so preview is accurate */
-    background: white;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    margin: 0 auto;
-    position: relative;
-    color: black;
-    box-sizing: border-box; /* Match print logic */
-  }
-
-  .watermark {
-    position: absolute;
-    inset: 0;
-    background-image: url("/assets/coat-of-arms.png");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 60%;
-    opacity: 0.05;
-    pointer-events: none;
-    z-index: 0;
   }
 }

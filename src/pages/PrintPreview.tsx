@@ -41,65 +41,6 @@ export function PrintPreview() {
   const effectiveScale = previewZoom === "full" ? 1 : fitScale;
   const isCompactPreview = fitScale < 0.98;
 
-  // Inject AGGRESSIVE print styles to FORCE zero margins
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      @media print {
-        @page {
-          size: A4 portrait;
-          margin: 0mm !important;
-        }
-        
-        html, body {
-          margin: 0 !important;
-          padding: 0 !important;
-          width: 210mm !important;
-        }
-        
-        .report-wrapper {
-          width: 210mm !important;
-          height: 297mm !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          display: block !important;
-          overflow: hidden !important;
-          page-break-after: always !important;
-          page-break-inside: avoid !important;
-        }
-        
-        .report-wrapper:last-child {
-          page-break-after: auto !important;
-        }
-        
-        .report-scale-stage {
-          transform: none !important;
-          width: 210mm !important;
-        }
-
-        .report-page {
-          width: 210mm !important;
-          height: 297mm !important;
-          margin: 0 !important;
-          padding: 8mm !important;
-          box-sizing: border-box !important;
-          page-break-after: auto !important;
-          page-break-inside: avoid !important;
-        }
-        
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
   const readyStudents = useMemo(
     () => students.filter((s) => !isStudentPending(s, settings)),
     [students, settings],
@@ -134,30 +75,61 @@ export function PrintPreview() {
 
   const contentKey = useMemo(
     () =>
-      `${printMode}|${printFilter}|${id ?? ""}|${settings.templateId ?? ""}|${
-        settings.showClassPosition ?? true
-      }|${settings.showSubjectPosition ?? true}|${settings.useCustomTemplateColor ?? false}|${
-        settings.primaryColor ?? ""
-      }|${settings.accentColor ?? ""}|${settings.showFeeSchedule ?? true}|${
-        settings.showStudentFeeArrearsOnReport ?? false
-      }|${JSON.stringify(settings.privateFeeItems ?? [])}|${printableStudents
-        .map((s) => `${s.id}:${s.totalScore}:${s.pictureUrl ?? ""}:${s.feeArrears ?? 0}`)
-        .join(",")}`,
-    [
-      printMode,
-      printFilter,
-      id,
-      settings.templateId,
-      settings.showClassPosition,
-      settings.showSubjectPosition,
-      settings.useCustomTemplateColor,
-      settings.primaryColor,
-      settings.accentColor,
-      settings.showFeeSchedule,
-      settings.showStudentFeeArrearsOnReport,
-      settings.privateFeeItems,
-      printableStudents,
-    ],
+      JSON.stringify({
+        printMode,
+        printFilter,
+        id: id ?? "",
+        settings: {
+          templateId: settings.templateId ?? "",
+          schoolName: settings.schoolName,
+          schoolMotto: settings.schoolMotto ?? "",
+          address: settings.address ?? "",
+          phoneNumber: settings.phoneNumber ?? "",
+          email: settings.email ?? "",
+          academicYear: settings.academicYear,
+          term: settings.term,
+          className: settings.className,
+          classSize: settings.classSize,
+          totalAttendanceDays: settings.totalAttendanceDays,
+          nextTermStarts: settings.nextTermStarts ?? "",
+          schoolType: settings.schoolType,
+          level: settings.level,
+          examType: settings.examType,
+          classScoreMax: settings.classScoreMax,
+          examScoreMax: settings.examScoreMax,
+          logoUrl: settings.logoUrl ?? "",
+          classTeacherName: settings.classTeacherName ?? "",
+          headTeacherName: settings.headTeacherName ?? "",
+          teacherSignature: settings.teacherSignature ?? "",
+          headTeacherSignature: settings.headTeacherSignature ?? "",
+          showClassPosition: settings.showClassPosition ?? true,
+          showSubjectPosition: settings.showSubjectPosition ?? true,
+          useCustomTemplateColor: settings.useCustomTemplateColor ?? false,
+          primaryColor: settings.primaryColor ?? "",
+          accentColor: settings.accentColor ?? "",
+          showFeeSchedule: settings.showFeeSchedule ?? true,
+          showStudentFeeArrearsOnReport: settings.showStudentFeeArrearsOnReport ?? false,
+          privateFeeItems: settings.privateFeeItems ?? [],
+          feePaymentNote: settings.feePaymentNote ?? "",
+        },
+        students: printableStudents.map((s) => ({
+          id: s.id,
+          name: s.name,
+          className: s.className,
+          totalScore: s.totalScore,
+          averageScore: s.averageScore,
+          classPosition: s.classPosition,
+          aggregate: s.aggregate,
+          attendancePresent: s.attendancePresent,
+          conduct: s.conduct ?? "",
+          interest: s.interest ?? "",
+          teacherRemark: s.teacherRemark ?? "",
+          promotionStatus: s.promotionStatus ?? "",
+          pictureUrl: s.pictureUrl ?? "",
+          feeArrears: s.feeArrears ?? 0,
+        })),
+      }),
+    [printMode, printFilter, id, settings, printableStudents],
   );
 
   const buildReportCardsPdf = useCallback(
@@ -283,6 +255,9 @@ export function PrintPreview() {
     modalProps: pdfModalProps,
     runPrintOrPdfFallback,
     isGenerating,
+    showFallbackNotice,
+    dismissFallbackNotice,
+    openPdfFallback,
   } = usePdfShareFlow({
     cacheKey: contentKey,
     totalCount: printableStudents.length,
@@ -319,6 +294,7 @@ export function PrintPreview() {
     };
 
     const onBeforePrint = () => {
+      markPrintStarted();
       confirmNativePrint(false);
     };
 
@@ -367,6 +343,7 @@ export function PrintPreview() {
   };
 
   if (printableStudents.length === 0) {
+    const isMissingStudentId = Boolean(id && students.length > 0);
     const isFilteredToReady = !id && printFilter === "ready" && students.length > 0;
     return (
       <main
@@ -378,14 +355,29 @@ export function PrintPreview() {
         <div className="border-border bg-surface max-w-md rounded-xl border p-8 shadow-sm">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-orange-500" />
           <h2 className="text-main mb-2 text-xl font-bold">
-            {isFilteredToReady ? "No Complete Report Cards Ready" : "No Students Found"}
+            {isMissingStudentId
+              ? "Student Report Not Found"
+              : isFilteredToReady
+                ? "No Complete Report Cards Ready"
+                : "No Students Found"}
           </h2>
           <p className="text-secondary mb-6">
-            {isFilteredToReady
-              ? `All ${students.length} students still have missing subjects or zero scores.`
-              : "Add students and enter their grades before generating reports."}
+            {isMissingStudentId
+              ? "This student link is no longer active or the record was removed."
+              : isFilteredToReady
+                ? `All ${students.length} students still have missing subjects or zero scores.`
+                : "Add students and enter their grades before generating reports."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
+            {isMissingStudentId && (
+              <Link
+                to="/print"
+                search={{ id: undefined }}
+                className="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white"
+              >
+                View All Report Cards
+              </Link>
+            )}
             {isFilteredToReady && (
               <button
                 type="button"
@@ -408,7 +400,7 @@ export function PrintPreview() {
   }
 
   return (
-    <div className="bg-subtle dark:bg-background min-h-screen font-sans print:m-0 print:bg-white print:p-0">
+    <div className="bg-subtle dark:bg-background min-h-screen font-sans print:m-0 print:h-auto print:min-h-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
       <header
         data-testid="print-sticky-toolbar"
@@ -590,6 +582,41 @@ export function PrintPreview() {
         </div>
       </header>
 
+      {showFallbackNotice && (
+        <div className="mx-auto max-w-5xl px-3 pt-3 sm:px-4 print:hidden">
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3.5 shadow-xs dark:border-blue-800/70 dark:bg-blue-950/50"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-blue-950 dark:text-blue-100">
+                Print dialog did not appear in this web app
+              </p>
+              <p className="text-muted mt-0.5 text-xs">
+                Export a multi-page A4 PDF instead to share, save, or AirPrint cleanly.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={openPdfFallback}
+                className="bg-primary hover:bg-primary/90 rounded-lg px-3.5 py-2 text-xs font-bold text-white shadow-2xs"
+              >
+                Print / Save PDF
+              </button>
+              <button
+                type="button"
+                onClick={dismissFallbackNotice}
+                aria-label="Dismiss PDF fallback banner"
+                className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1.5"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* VALIDATION WARNING FOR MISSING PHOTOS (Outside sticky toolbar so it scrolls naturally) */}
       {studentsWithMissingPhotos.length > 0 && !photoWarningDismissed && (
         <div className="mx-auto max-w-5xl px-3 pt-3 sm:px-4 print:hidden">
@@ -627,15 +654,16 @@ export function PrintPreview() {
           previewZoom === "full" && isCompactPreview ? "overflow-x-auto px-3" : "overflow-hidden"
         }`}
       >
-        {printableStudents.map((student) => (
+        {printableStudents.map((student, idx) => (
           <div
             key={student.id}
+            data-is-last={idx === printableStudents.length - 1 ? "true" : undefined}
             style={
               effectiveScale < 1
                 ? { height: `${Math.ceil(A4_HEIGHT_PX * effectiveScale) + 12}px` }
                 : undefined
             }
-            className={`report-wrapper ph-no-capture mb-3 flex overflow-hidden sm:mb-4 lg:mb-6 lg:h-auto print:m-0 print:mb-0 print:block print:h-[297mm] print:overflow-hidden print:p-0 ${
+            className={`report-wrapper ph-no-capture mb-3 flex overflow-hidden sm:mb-4 lg:mb-6 lg:h-auto print:m-0 print:mb-0 print:block print:h-[296.5mm] print:overflow-hidden print:p-0 ${
               previewZoom === "full" && isCompactPreview
                 ? "w-max min-w-full justify-start"
                 : "justify-center"
