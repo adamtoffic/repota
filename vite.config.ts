@@ -115,7 +115,7 @@ export default defineConfig({
         short_name: "Repota",
         description:
           "Free, offline-first report card generator for Ghanaian teachers. Generate GES-compliant reports in minutes.",
-        theme_color: "#1E3A8A",
+        theme_color: "#FFFFFF",
         background_color: "#ffffff",
         display: "standalone",
         scope: "/",
