@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, Fingerprint, Key, Lock, RotateCcw, Trash2, Users } from "lucide-react";
 import { DataBackup } from "../DataBackup";
 import { StorageMonitor } from "../StorageMonitor";
 import { Alert, Button } from "../ui";
-import { isPinConfigured } from "../../utils/pinSecurity";
+import { isPinConfigured, PIN_CONFIG_CHANGED_EVENT } from "../../utils/pinSecurity";
 import { getBiometricName, isBiometricEnrolled } from "../../utils/biometricAuth";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 
@@ -27,6 +27,20 @@ export function SecurityBackupSection() {
     setShowFullAppResetModal,
   } = useSettingsForm();
 
+  const [, setPinRevision] = useState(0);
+
+  useEffect(() => {
+    const syncPinStatus = () => setPinRevision((rev) => rev + 1);
+    window.addEventListener(PIN_CONFIG_CHANGED_EVENT, syncPinStatus);
+    window.addEventListener("storage", syncPinStatus);
+    return () => {
+      window.removeEventListener(PIN_CONFIG_CHANGED_EVENT, syncPinStatus);
+      window.removeEventListener("storage", syncPinStatus);
+    };
+  }, []);
+
+  const pinConfigured = isPinConfigured();
+
   useEffect(() => {
     void checkBiometric();
   }, [checkBiometric]);
@@ -48,7 +62,7 @@ export function SecurityBackupSection() {
           <div className="space-y-4">
             <Alert
               variant="success"
-              title={isPinConfigured() ? "PIN Lock Active" : "PIN Lock (Optional)"}
+              title={pinConfigured ? "PIN Lock Active" : "PIN Lock (Optional)"}
             >
               <p className="mb-4">
                 Secure your student data with a 4-digit PIN. You'll need to enter it when opening
@@ -61,11 +75,11 @@ export function SecurityBackupSection() {
                 size="sm"
                 className="w-full bg-green-700 hover:bg-green-800 sm:w-auto"
               >
-                {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
+                {pinConfigured ? "Change PIN" : "Enable PIN Lock"}
               </Button>
             </Alert>
 
-            {isPinConfigured() && (
+            {pinConfigured && (
               <Alert
                 variant="warning"
                 role="region"
@@ -90,7 +104,7 @@ export function SecurityBackupSection() {
               </Alert>
             )}
 
-            {isPinConfigured() && (
+            {pinConfigured && (
               <Alert variant="error" role="region" title="Disable PIN Lock">
                 <p className="mb-3">
                   Remove PIN protection from the app. This action cannot be undone.
@@ -111,7 +125,7 @@ export function SecurityBackupSection() {
               </Alert>
             )}
 
-            {isPinConfigured() && (
+            {pinConfigured && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800/70 dark:bg-blue-950/45">
                 <h3
                   className="mb-2 font-bold text-blue-900 dark:text-blue-200"
@@ -148,7 +162,7 @@ export function SecurityBackupSection() {
               </div>
             )}
 
-            {isPinConfigured() && biometricAvailable && (
+            {pinConfigured && biometricAvailable && (
               <Alert
                 variant="info"
                 title={
