@@ -193,12 +193,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
-        style={{
-          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
-        }}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-md rounded-3xl p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8 dark:border">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"
@@ -261,12 +258,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
-        style={{
-          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
-        }}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-md rounded-3xl p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8 dark:border">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"
@@ -362,12 +356,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
-        style={{
-          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
-        }}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-md rounded-3xl p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8 dark:border">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"
@@ -461,12 +452,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
-        style={{
-          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
-        }}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-md rounded-3xl p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8 dark:border">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"
@@ -563,12 +551,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
-        style={{
-          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
-        }}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface dark:border-border relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8 dark:border">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"
@@ -709,12 +694,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
-        style={{
-          backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
-        }}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-md rounded-3xl p-6 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 sm:p-8 dark:border">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"

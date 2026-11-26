@@ -41,9 +41,16 @@ const RadarChartTooltip: React.FC<{
     return (
       <div className="border-border bg-elevated rounded-lg border p-3 shadow-lg">
         <p className="text-main text-sm font-bold">{payload[0].payload.subject}</p>
-        <p className="text-lg font-black" style={{ color }}>
-          {payload[0].value}%
-        </p>
+        <div className="mt-0.5 flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <p className="text-primary-text text-lg font-black tabular-nums">
+            {payload[0].value}%
+          </p>
+        </div>
       </div>
     );
   }

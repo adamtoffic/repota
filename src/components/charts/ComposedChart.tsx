@@ -46,8 +46,15 @@ const ComposedChartTooltip: React.FC<{ active?: boolean; payload?: TooltipPayloa
         <p className="text-main mb-2 text-sm font-bold">{payload[0].payload.name}</p>
         {payload.map((entry: TooltipPayload, index: number) => (
           <div key={index} className="flex items-center justify-between gap-4">
-            <span className="text-muted text-xs">{entry.name}:</span>
-            <span className="font-bold" style={{ color: entry.color }}>
+            <span className="text-muted inline-flex items-center gap-1.5 text-xs">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: entry.color }}
+              />
+              {entry.name}:
+            </span>
+            <span className="text-main font-bold tabular-nums">
               {typeof entry.value === "number" ? entry.value.toFixed(1) : entry.value}
             </span>
           </div>
