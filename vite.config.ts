@@ -1,4 +1,5 @@
 // vite.config.ts - PRODUCTION OPTIMIZED
+import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
@@ -6,8 +7,13 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
 
+const { version: appVersion } = JSON.parse(
+  fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8")
+) as { version: string };
+
 export default defineConfig({
   define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
     __VERCEL_ENV__: JSON.stringify(process.env.VERCEL_ENV ?? ""),
   },
   resolve: {

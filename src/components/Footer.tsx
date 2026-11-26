@@ -14,7 +14,7 @@ export function Footer() {
             <div className="flex items-center gap-2">
               <span className="text-main text-base font-bold sm:text-lg">Repota</span>
               <span className="border-border bg-subtle rounded-full border px-2 py-0.5 text-xs">
-                v1.0.0
+                v{__APP_VERSION__}
               </span>
             </div>
 

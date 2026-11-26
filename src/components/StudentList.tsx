@@ -19,14 +19,22 @@ import { Button } from "./ui";
 
 const MOBILE_VIRTUALIZATION_THRESHOLD = 20;
 
-// Headless environments (Happy-DOM) report 0x0 bounding rects; keep mobile virtualization testable while using real viewport bounds on device.
-const observeMobileElementRect = (
-  instance: Virtualizer<HTMLDivElement, HTMLDivElement>,
-  cb: (rect: Rect) => void,
-) =>
-  defaultObserveElementRect(instance, (rect) => {
-    cb(rect.height > 0 ? rect : { width: 390, height: 800 });
-  });
+// Headless environments (Happy-DOM) report 0x0 bounding rects; keep virtualization testable while using real viewport bounds on device.
+function createObserveElementRect<TItem extends Element>(fallbackRect: Rect) {
+  return (instance: Virtualizer<HTMLDivElement, TItem>, cb: (rect: Rect) => void) =>
+    defaultObserveElementRect(
+      instance as unknown as Virtualizer<HTMLDivElement, Element>,
+      (rect) => {
+        cb(rect.height > 0 ? rect : fallbackRect);
+      },
+    );
+}
+
+const observeDesktopElementRect = createObserveElementRect<Element>({ width: 960, height: 600 });
+const observeMobileElementRect = createObserveElementRect<HTMLDivElement>({
+  width: 390,
+  height: 800,
+});
 
 function isTopThreePosition(position: string): boolean {
   return /^[123](st|nd|rd)\b/i.test(position.trim());
@@ -210,6 +218,7 @@ export function StudentList({
     estimateSize: () => 64, // Estimated row height in pixels
     overscan: 5, // Render 5 extra rows above/below viewport for smooth scrolling
     initialRect: { width: 960, height: 600 },
+    observeElementRect: observeDesktopElementRect,
   });
 
   const shouldVirtualizeMobile = students.length > MOBILE_VIRTUALIZATION_THRESHOLD;
