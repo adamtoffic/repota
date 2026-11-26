@@ -24,25 +24,25 @@ Target: Resolve all 12 **P0 Blockers**, 27 **P1 High** items, and high-value P2/
 - [x] **P3-16 / P3-18** Guard `localStorage` in `dataProtection.ts` and clean up `DataBackup` status timeout
 
 ## Wave 2 — Grading Math, SBA, CSV/Paste & Analytics Integrity (`fix/release-grading-csv-analytics`)
-- [ ] **P0-3** Fix `parseOptionalNumber` (`"Absent"`/`"Gender"`/`"N/A"` → `undefined`, reject `"12/15"` fractions) (`src/utils/csv/tabularParser.ts`)
-- [ ] **P0-4** Preserve blank lines & subject-missing row offset on Excel paste (`gradebookHelpers.ts`, `sbaGridHelpers.ts`)
-- [ ] **P0-5** Fix CSV formula injection & header escaping in `exportAnalyticsData` and `exportToCSV`, plus async `downloadBlob` (`src/utils/analyticsExport.ts`, `src/utils/export.ts`)
-- [ ] **P1-8** Fix IEEE-754 division-before-multiplication drift on `50/50` split (`scoreConversion.ts`, `sbaReconciliation.ts`, `sbaCsvParser.ts`)
-- [ ] **P1-9** Fix `ScoreImportModal` preview-vs-apply `classScore` mismatch & guard direct `classScore` transitions (`src/components/import/scoreImportApply.ts`)
-- [ ] **P1-10** Clear `savedDirectClassScore`, `savedDirectClassScoreMax`, `examRawScore` in `clearStudentSubjectScores`
-- [ ] **P1-11** Enforce `classScoreMax >= 1 && examScoreMax >= 10` bounds in `SbaWeightsModal` & `normalizeAssessmentWeightSettings`
-- [ ] **P1-12** Preserve students with stashed Termly `savedDirectClassScore` or `classScoreComponents` in `deletePendingStudents` / `hasNoScoresEntered`
-- [ ] **P1-13** Fix GES core subject matching (`Literature in English`, slot caps) & `< 6` subject aggregate guard (`gradeCalculator.ts`, `insightsAndSba.ts`)
-- [ ] **P1-14** Exclude incomplete students from `assignPositions` and unscored `0` rows from `assignSubjectPositions`
-- [ ] **P1-15** Fix unreachable empty-score guard in `classStoryGenerator.ts` for all-ungraded rosters
-- [ ] **P1-16** Scope subject metrics & charts to `filters.subjectFilter` in `Analytics.tsx`
-- [ ] **P1-17** Require both genders (`maleCount > 0 && femaleCount > 0`) before reporting gender performance gaps
-- [ ] **P1-18** Require `classScore > 0 && examScore > 0` in `calculateSbaVsExamAnalysis`
-- [ ] **P1-19** Preserve `attendancePresent: undefined` across `BulkImportModal`, `scoreImportApply`, `DetailsTab`, and `remarksBatch`
-- [ ] **P1-20** Guard `settings.classScoreMax > 0` in `createDemoStudents` (`0 / 0 = NaN`)
-- [ ] **P1-21** Trigger confirmation check on `"All Subjects"` task deletion when subjects have divergent task lists (`SbaTaskManagerModal.tsx`)
-- [ ] **P1-22** Deduplicate duplicate rows in `ScoreImportModal` & `BulkImportModal` and fix `KEEP_EXISTING` snapshot drift
-- [ ] **P2-19..24** Fix decimal input swallowing (`SubjectRow`, `QuickGradebookRow`, `SbaMarkbookGrid`), floating-point sum display, stale `examRawScore` in `clamp` mode, `normalizeTaskKey` / `examRawScore` in `QuickGradebook`, Analytics KPI/quartile/age-chart polish, and CSV parser quote/TSV hardening
+- [x] **P0-3** Fix `parseOptionalNumber` (`"Absent"`/`"Gender"`/`"N/A"` → `undefined`, reject `"12/15"` fractions) (`src/utils/csv/tabularParser.ts`)
+- [x] **P0-4** Preserve blank lines & subject-missing row offset on Excel paste (`gradebookHelpers.ts`, `sbaGridHelpers.ts`)
+- [x] **P0-5** Fix CSV formula injection & header escaping in `exportAnalyticsData` and `exportToCSV`, plus async `downloadBlob` (`src/utils/analyticsExport.ts`, `src/utils/export.ts`)
+- [x] **P1-8** Fix IEEE-754 division-before-multiplication drift on `50/50` split (`scoreConversion.ts`, `sbaReconciliation.ts`, `sbaCsvParser.ts`)
+- [x] **P1-9** Fix `ScoreImportModal` preview-vs-apply `classScore` mismatch & guard direct `classScore` transitions (`src/components/import/scoreImportApply.ts`)
+- [x] **P1-10** Clear `savedDirectClassScore`, `savedDirectClassScoreMax`, `examRawScore` in `clearStudentSubjectScores`
+- [x] **P1-11** Enforce `classScoreMax >= 1 && examScoreMax >= 10` bounds in `SbaWeightsModal` & `normalizeAssessmentWeightSettings`
+- [x] **P1-12** Preserve students with stashed Termly `savedDirectClassScore` or `classScoreComponents` in `deletePendingStudents` / `hasNoScoresEntered`
+- [x] **P1-13** Fix GES core subject matching (`Literature in English`, slot caps) & `< 6` subject aggregate guard (`gradeCalculator.ts`, `insightsAndSba.ts`)
+- [x] **P1-14** Exclude incomplete students from `assignPositions` and unscored `0` rows from `assignSubjectPositions`
+- [x] **P1-15** Fix unreachable empty-score guard in `classStoryGenerator.ts` for all-ungraded rosters
+- [x] **P1-16** Scope subject metrics & charts to `filters.subjectFilter` in `Analytics.tsx`
+- [x] **P1-17** Require both genders (`maleCount > 0 && femaleCount > 0`) before reporting gender performance gaps
+- [x] **P1-18** Require `classScore > 0 && examScore > 0` in `calculateSbaVsExamAnalysis`
+- [x] **P1-19** Preserve `attendancePresent: undefined` across `BulkImportModal`, `scoreImportApply`, `DetailsTab`, and `remarksBatch`
+- [x] **P1-20** Guard `settings.classScoreMax > 0` in `createDemoStudents` (`0 / 0 = NaN`)
+- [x] **P1-21** Trigger confirmation check on `"All Subjects"` task deletion when subjects have divergent task lists (`SbaTaskManagerModal.tsx`)
+- [x] **P1-22** Deduplicate duplicate rows in `ScoreImportModal` & `BulkImportModal` and fix `KEEP_EXISTING` snapshot drift
+- [x] **P2-19..24** Fix decimal input swallowing (`SubjectRow`, `QuickGradebookRow`, `SbaMarkbookGrid`), floating-point sum display, stale `examRawScore` in `clamp` mode, `normalizeTaskKey` / `examRawScore` in `QuickGradebook`, Analytics KPI/quartile/age-chart polish, and CSV parser quote/TSV hardening
 
 ## Wave 3 — Print Engine, PDF Memory & Cross-Template Parity (`fix/release-print-templates`)
 - [ ] **P0-6** Pass `ignoreElements` + dynamic scale cap + cancellation awareness in `pdfPrint.ts` ($O(N^2)$ cloning & iOS OOM fix)
