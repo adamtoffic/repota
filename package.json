@@ -1,7 +1,7 @@
 {
   "name": "repota",
   "private": false,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Ghana's Professional Report Card Generator for Teachers - A free, offline-first PWA for GES-compliant report cards",
   "author": "Repota Team <repota.team@proton.me>",

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-29
+
 ### Added
 
 - Responsive navigation shell (`AppShell`) with desktop sidebar, mobile liquid-glass dock, and light/dark/system theme switching
@@ -22,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offline-first storage integrity across tabs (`BroadcastChannel` blob cache invalidation, read-only IDB probes, PBKDF2 PIN cooldowns)
 - GES core subject & aggregate rules, incomplete/unscored position exclusions, and raw-to-weighted exam rounding parity
 - WCAG AA keyboard/screen-reader parity (accessible file uploads, named dialogs, focus traps, `md:` toolbar breakpoints, `dvh` sizing) and HTTP security headers in `vercel.json`
+
+### Compatibility
+
+- Automatic zero-data-loss migration from `v1.0.0` local storage (`ges_v1_students`, `ges_v1_settings`), IndexedDB (`repota-storage`), and JSON/`.repota` backups
 
 ## [1.0.0] - 2026-02-03
 
@@ -46,5 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional PIN protection
 - No tracking or telemetry
 
-[Unreleased]: https://github.com/adamtoffic/repota/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/adamtoffic/repota/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/adamtoffic/repota/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/adamtoffic/repota/releases/tag/v1.0.0
