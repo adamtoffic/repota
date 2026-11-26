@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { captureEvent } from "../utils/analytics";
 import { useToast } from "./useToast";
 import { isIOSPWA, shouldUseIOSPdfPrintFallback } from "../utils/iosInteraction";
+import { markPrintStarted } from "../utils/printHandler";
 import {
   downloadPdfFile,
   sharePdfFile,
@@ -54,6 +55,7 @@ export function usePdfShareFlow({
   const [progress, setProgress] = useState<PdfGenerationProgress | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFallbackNotice, setShowFallbackNotice] = useState(false);
 
   const cacheRef = useRef<{ key: string; file: File } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -99,6 +101,7 @@ export function usePdfShareFlow({
 
   const triggerShare = useCallback(
     async (targetFile: File) => {
+      markPrintStarted();
       try {
         const outcome = await sharePdfFile(targetFile);
         if (outcome === "shared") {
@@ -129,6 +132,7 @@ export function usePdfShareFlow({
   );
 
   const startPdfFlow = useCallback(async () => {
+    setShowFallbackNotice(false);
     const cached = cacheRef.current;
     if (cached && cached.key === cacheKey) {
       await triggerShare(cached.file);
@@ -177,21 +181,31 @@ export function usePdfShareFlow({
     const onBlur = () => {
       sawPrint = true;
     };
+    const onVisibilityChange = () => {
+      if (document.hidden) sawPrint = true;
+    };
 
     window.addEventListener("beforeprint", onBeforePrint);
     mql?.addEventListener("change", onMediaChange);
     window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     const timer = window.setTimeout(() => {
       cleanup();
       if (!sawPrint) {
-        showToast("Print sheet did not open in this web app.", "info", {
-          label: "Print / Save PDF",
-          onClick: () => {
-            triggerReasonRef.current = "watchdog_recovery";
-            void startPdfFlow();
+        setShowFallbackNotice(true);
+        showToast(
+          "Print sheet did not open in this web app.",
+          "info",
+          {
+            label: "Print / Save PDF",
+            onClick: () => {
+              triggerReasonRef.current = "watchdog_recovery";
+              void startPdfFlow();
+            },
           },
-        });
+          { duration: 15_000 },
+        );
       }
     }, 1500);
 
@@ -200,6 +214,7 @@ export function usePdfShareFlow({
       window.removeEventListener("beforeprint", onBeforePrint);
       mql?.removeEventListener("change", onMediaChange);
       window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       if (watchdogCleanupRef.current === cleanup) {
         watchdogCleanupRef.current = null;
       }
@@ -213,6 +228,7 @@ export function usePdfShareFlow({
    */
   const runPrintOrPdfFallback = useCallback(
     (triggerNativePrint: () => void): "native" | "pdf-fallback" => {
+      setShowFallbackNotice(false);
       if (shouldUseIOSPdfPrintFallback()) {
         triggerReasonRef.current = "ios27_auto";
         void startPdfFlow();
@@ -226,6 +242,15 @@ export function usePdfShareFlow({
     },
     [armWatchdog, startPdfFlow],
   );
+
+  const openPdfFallback = useCallback(() => {
+    triggerReasonRef.current = "watchdog_recovery";
+    void startPdfFlow();
+  }, [startPdfFlow]);
+
+  const dismissFallbackNotice = useCallback(() => {
+    setShowFallbackNotice(false);
+  }, []);
 
   const modalProps: PdfExportModalProps = {
     isOpen,
@@ -254,5 +279,8 @@ export function usePdfShareFlow({
     startPdfFlow,
     runPrintOrPdfFallback,
     isGenerating: status === "generating",
+    showFallbackNotice,
+    dismissFallbackNotice,
+    openPdfFallback,
   };
 }
