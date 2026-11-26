@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Award, LayoutTemplate, Palette, Printer, RotateCcw } from "lucide-react";
 import type { ComponentType } from "react";
@@ -82,6 +82,21 @@ export function ReportTemplateSection() {
   const [primaryHexDraft, setPrimaryHexDraft] = useState<string | null>(null);
   const [accentHexDraft, setAccentHexDraft] = useState<string | null>(null);
   const [previewPrintMode, setPreviewPrintMode] = useState<PrintMode>("color");
+  const railRef = useRef<HTMLDivElement>(null);
+  const activeCardRef = useRef<HTMLButtonElement>(null);
+
+  const activeTemplateId = formData.templateId || "original_v1";
+  const activeTemplateName =
+    TEMPLATE_REGISTRY.find((t) => t.id === activeTemplateId)?.name || "Repota Original";
+
+  useEffect(() => {
+    const rail = railRef.current;
+    const card = activeCardRef.current;
+    if (!rail || !card) return;
+    if (rail.scrollWidth > rail.clientWidth) {
+      rail.scrollLeft = Math.max(0, card.offsetLeft - 8);
+    }
+  }, []);
 
   const { showClassPositionHeader, showSubjectPosition } = resolvePositionVisibility(formData);
   const useCustomColor = Boolean(formData.useCustomTemplateColor);
@@ -118,6 +133,8 @@ export function ReportTemplateSection() {
       formData.totalAttendanceDays,
     ],
   );
+  const deferredPreviewSettings = useDeferredValue(previewSettings);
+  const deferredPreviewPrintMode = useDeferredValue(previewPrintMode);
 
   const previewPalette = getReportPalette({
     settings: {
@@ -134,8 +151,8 @@ export function ReportTemplateSection() {
     <div className="space-y-6">
       <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 1: REPORT DESIGN TEMPLATE */}
-      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
+        <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-indigo-100 p-2.5 dark:bg-indigo-950/60">
               <LayoutTemplate className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -182,45 +199,62 @@ export function ReportTemplateSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {TEMPLATE_REGISTRY.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => {
-                const currentTemplateId = formData.templateId || "original_v1";
-                if (currentTemplateId === template.id) return;
-                setFormData({ ...formData, templateId: template.id });
-                captureEvent("Template_Changed", {
-                  template_id: template.id,
-                  previous_template_id: currentTemplateId,
-                  school_level: formData.level || "unknown",
-                  school_type: formData.schoolType || "unknown",
-                  uses_custom_color: Boolean(formData.useCustomTemplateColor),
-                });
-              }}
-              className={`relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all active:scale-95 ${
-                (formData.templateId || "original_v1") === template.id
-                  ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
-                  : "border-border bg-surface hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30"
-              }`}
-            >
-              <ScaledTemplatePreview
-                TemplateComponent={template.component}
-                previewSettings={previewSettings}
-                printMode={previewPrintMode}
-              />
-              <span className="text-main mb-1 pr-6 font-bold">{template.name}</span>
-              <span className="text-muted text-xs leading-relaxed">{template.description}</span>
+        <div className="mb-2 flex items-center justify-between text-xs sm:hidden">
+          <span className="text-main font-semibold">
+            Active: <span className="text-indigo-600 dark:text-indigo-400">{activeTemplateName}</span>
+          </span>
+          <span className="text-muted text-[11px] font-medium">
+            Swipe &bull; {TEMPLATE_REGISTRY.length} layouts
+          </span>
+        </div>
 
-              {/* Active Checkmark */}
-              {(formData.templateId || "original_v1") === template.id && (
-                <div className="absolute top-3 right-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
-                  ✓
-                </div>
-              )}
-            </button>
-          ))}
+        <div
+          ref={railRef}
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-0.5 pt-0.5 pb-2 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:p-0 lg:grid-cols-3"
+        >
+          {TEMPLATE_REGISTRY.map((template) => {
+            const isActive = activeTemplateId === template.id;
+            return (
+              <button
+                key={template.id}
+                ref={isActive ? activeCardRef : undefined}
+                type="button"
+                onClick={() => {
+                  if (activeTemplateId === template.id) return;
+                  setFormData({ ...formData, templateId: template.id });
+                  captureEvent("Template_Changed", {
+                    template_id: template.id,
+                    previous_template_id: activeTemplateId,
+                    school_level: formData.level || "unknown",
+                    school_type: formData.schoolType || "unknown",
+                    uses_custom_color: Boolean(formData.useCustomTemplateColor),
+                  });
+                }}
+                className={`relative flex w-[205px] shrink-0 snap-start flex-col items-start rounded-xl border-2 p-3 text-left transition-all active:scale-95 sm:w-auto sm:shrink sm:p-4 ${
+                  isActive
+                    ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
+                    : "border-border bg-surface hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30"
+                }`}
+              >
+                <ScaledTemplatePreview
+                  TemplateComponent={template.component}
+                  previewSettings={deferredPreviewSettings}
+                  printMode={deferredPreviewPrintMode}
+                />
+                <span className="text-main mb-1 pr-6 font-bold">{template.name}</span>
+                <span className="text-muted line-clamp-2 text-xs leading-relaxed">
+                  {template.description}
+                </span>
+
+                {/* Active Checkmark */}
+                {isActive && (
+                  <div className="absolute top-3 right-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
+                    ✓
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

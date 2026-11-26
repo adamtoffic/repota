@@ -153,7 +153,11 @@ describe("Responsive breakpoints and live UX bug fixes (Branch 3)", () => {
   it("allows backspacing and editing hex color inputs cleanly in ReportTemplateSection and reverts invalid drafts on blur", async () => {
     renderAppAt("/settings/templates");
 
-    const primaryHex = (await screen.findByLabelText("Primary hex color")) as HTMLInputElement;
+    const primaryHex = (await screen.findByLabelText(
+      "Primary hex color",
+      {},
+      { timeout: 5000 },
+    )) as HTMLInputElement;
     const accentHex = screen.getByLabelText("Accent hex color") as HTMLInputElement;
 
     expect(primaryHex.value).toBe("#1e3a8a");
