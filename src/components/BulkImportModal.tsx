@@ -8,6 +8,7 @@ import {
   buildDefaultSubjectsForStudent,
   buildRosterTemplateCsv,
   downloadCsvFile,
+  normalizeStudentNameKey,
   parseRosterImport,
   type ParsedRosterRow,
 } from "../utils/csvImport";
@@ -79,12 +80,12 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
 
   const handleImport = () => {
     const updatedRecords = new Map<string, StudentRecord>();
-    const newRecords: StudentRecord[] = [];
+    const newRecordsByKey = new Map<string, StudentRecord>();
     const studentById = new Map(students.map((s) => [s.id, s]));
 
     preview.forEach((row, index) => {
       if (row.matchedExistingId && studentById.has(row.matchedExistingId)) {
-        const existing = studentById.get(row.matchedExistingId)!;
+        const existing = updatedRecords.get(row.matchedExistingId) ?? studentById.get(row.matchedExistingId)!;
         const updatedRecord: StudentRecord = {
           ...existing,
           name: row.name,
@@ -102,6 +103,25 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
         return;
       }
 
+      const nameKey = normalizeStudentNameKey(row.name);
+      const existingNew = newRecordsByKey.get(nameKey);
+      if (existingNew) {
+        newRecordsByKey.set(nameKey, {
+          ...existingNew,
+          name: row.name,
+          gender: row.genderExplicit ? row.gender : existingNew.gender,
+          dateOfBirth: row.dateOfBirth ?? existingNew.dateOfBirth,
+          attendancePresent: row.attendancePresent ?? existingNew.attendancePresent,
+          conduct: row.conduct ?? existingNew.conduct,
+          interest: row.interest ?? existingNew.interest,
+          admissionNumber: row.admissionNumber ?? existingNew.admissionNumber,
+          feeStatus: row.feeStatus ?? existingNew.feeStatus,
+          feeArrears: row.feeArrears ?? existingNew.feeArrears,
+          guardianPhone: row.guardianPhone ?? existingNew.guardianPhone,
+        });
+        return;
+      }
+
       const newStudent: StudentRecord = {
         id:
           typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -111,7 +131,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
         gender: row.gender,
         className: settings.className || "Class",
         subjects: buildDefaultSubjectsForStudent(settings),
-        attendancePresent: row.attendancePresent ?? 0,
+        ...(row.attendancePresent !== undefined ? { attendancePresent: row.attendancePresent } : {}),
         ...(row.dateOfBirth ? { dateOfBirth: row.dateOfBirth } : {}),
         ...(row.conduct ? { conduct: row.conduct } : {}),
         ...(row.interest ? { interest: row.interest } : {}),
@@ -121,9 +141,10 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
         ...(row.guardianPhone ? { guardianPhone: row.guardianPhone } : {}),
       };
 
-      newRecords.push(newStudent);
+      newRecordsByKey.set(nameKey, newStudent);
     });
 
+    const newRecords = Array.from(newRecordsByKey.values());
     const addedCount = newRecords.length;
     const updatedCount = updatedRecords.size;
 

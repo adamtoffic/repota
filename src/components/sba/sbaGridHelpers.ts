@@ -4,6 +4,7 @@ import type {
   ProcessedStudent,
   SavedSubject,
 } from "../../types";
+import { parseOptionalNumber } from "../../utils/csv/tabularParser";
 import { normalizeTaskKey } from "../../utils/sbaReconciliation";
 import { updateComponentAndRecalculateClassScore } from "../../utils/scoreConversion";
 
@@ -79,10 +80,11 @@ export function computeGridPastePatches({
 }): GridPasteResult | null {
   if (!text || !/[\r\n\t]/.test(text)) return null;
 
-  const pastedRows = text
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0)
-    .map((line) => line.split(/\t|,/));
+  const rawLines = text.split(/\r?\n/);
+  while (rawLines.length > 0 && rawLines[rawLines.length - 1].trim() === "") {
+    rawLines.pop();
+  }
+  const pastedRows = rawLines.map((line) => line.split(/\t|,/));
 
   if (pastedRows.length === 0) return null;
   if (pastedRows.length === 1 && pastedRows[0].length <= 1) return null;
@@ -113,8 +115,8 @@ export function computeGridPastePatches({
     ) {
       const rawCell = rowCells[colOffset].trim();
       if (!rawCell) continue;
-      const numeric = Number(rawCell);
-      if (!Number.isFinite(numeric)) continue;
+      const numeric = parseOptionalNumber(rawCell);
+      if (numeric === undefined || numeric < 0) continue;
 
       const targetTask = tasks[startTaskIdx + colOffset];
       const targetComp = workingComponents.find(

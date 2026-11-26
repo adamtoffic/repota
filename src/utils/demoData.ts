@@ -22,34 +22,46 @@ function createDemoSubject(
     settings.subjectComponentMap && Object.keys(settings.subjectComponentMap).length > 0;
   const subjectComponents = settings.subjectComponentMap?.[subName];
 
-  if (hasComponents && subjectComponents && subjectComponents.length > 0) {
-    const targetClassScore =
-      Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
-      classScoreRange[0];
-    const targetPercentage = targetClassScore / settings.classScoreMax;
+  if (
+    settings.examType !== "MOCK" &&
+    settings.classScoreMax > 0 &&
+    hasComponents &&
+    subjectComponents &&
+    subjectComponents.length > 0
+  ) {
     const totalMaxScore = subjectComponents.reduce((sum, c) => sum + c.maxScore, 0);
-    const targetTotalScore = targetPercentage * totalMaxScore;
+    if (totalMaxScore > 0) {
+      const targetClassScore =
+        Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
+        classScoreRange[0];
+      const targetPercentage = targetClassScore / settings.classScoreMax;
+      const targetTotalScore = targetPercentage * totalMaxScore;
 
-    subject.classScoreComponents = subjectComponents.map((config) => {
-      const proportion = config.maxScore / totalMaxScore;
-      const baseScore = targetTotalScore * proportion;
-      const variance = baseScore * 0.15;
-      const score = Math.min(
-        config.maxScore,
-        Math.max(0, Math.floor(baseScore + (Math.random() * variance * 2 - variance))),
-      );
+      subject.classScoreComponents = subjectComponents.map((config) => {
+        const proportion = config.maxScore / totalMaxScore;
+        const baseScore = targetTotalScore * proportion;
+        const variance = baseScore * 0.15;
+        const score = Math.min(
+          config.maxScore,
+          Math.max(0, Math.floor(baseScore + (Math.random() * variance * 2 - variance))),
+        );
 
-      return {
-        id: crypto.randomUUID(),
-        name: config.name,
-        score,
-        maxScore: config.maxScore,
-        ...(config.category !== undefined ? { category: config.category } : {}),
-      };
-    });
+        return {
+          id: crypto.randomUUID(),
+          name: config.name,
+          score,
+          maxScore: config.maxScore,
+          ...(config.category !== undefined ? { category: config.category } : {}),
+        };
+      });
 
-    const totalActualScore = subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0);
-    subject.classScore = Math.round((totalActualScore / totalMaxScore) * settings.classScoreMax);
+      const totalActualScore = subject.classScoreComponents.reduce((sum, c) => sum + c.score, 0);
+      subject.classScore = Math.round((totalActualScore * settings.classScoreMax) / totalMaxScore);
+    } else {
+      subject.classScore =
+        Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +
+        classScoreRange[0];
+    }
   } else {
     subject.classScore =
       Math.floor(Math.random() * (classScoreRange[1] - classScoreRange[0] + 1)) +

@@ -9,21 +9,28 @@ import {
   normalizeTaskKey,
   reconcileStudentsWithSbaConfig,
 } from "../../utils/sbaReconciliation";
+import { hasNoScoresEntered } from "../../utils/studentValidation";
 
 function clearStudentSubjectScores(student: StudentRecord): StudentRecord {
   return {
     ...student,
-    subjects: student.subjects.map((sub) => ({
-      ...sub,
-      classScore: 0,
-      examScore: 0,
-      classScoreComponents: sub.classScoreComponents
-        ? sub.classScoreComponents.map((comp) => ({
-            ...comp,
-            score: 0,
-          }))
-        : undefined,
-    })),
+    subjects: student.subjects.map((sub) => {
+      const cleared: SavedSubject = {
+        ...sub,
+        classScore: 0,
+        examScore: 0,
+        classScoreComponents: sub.classScoreComponents
+          ? sub.classScoreComponents.map((comp) => ({
+              ...comp,
+              score: 0,
+            }))
+          : undefined,
+      };
+      delete cleared.savedDirectClassScore;
+      delete cleared.savedDirectClassScoreMax;
+      delete cleared.examRawScore;
+      return cleared;
+    }),
   };
 }
 
@@ -44,10 +51,7 @@ export function filterActiveNonPendingStudents(students: StudentRecord[]): {
   activeStudents: StudentRecord[];
   removedCount: number;
 } {
-  const activeStudents = students.filter(
-    (s) =>
-      s.subjects.length > 0 && s.subjects.some((sub) => sub.classScore > 0 || sub.examScore > 0),
-  );
+  const activeStudents = students.filter((s) => !hasNoScoresEntered(s));
   return {
     activeStudents,
     removedCount: students.length - activeStudents.length,
@@ -201,14 +205,14 @@ export function normalizeAssessmentWeightSettings(
   shouldRescale: boolean;
 } {
   const nextExamType = explicitExamType ?? prevSettings.examType ?? "TERMLY";
+  const rawClass = Number.isFinite(nextClassScoreMax)
+    ? nextClassScoreMax
+    : Number.isFinite(nextExamScoreMax)
+      ? 100 - nextExamScoreMax
+      : 50;
   const clampedClass =
-    nextExamType === "MOCK"
-      ? 0
-      : Math.min(100, Math.max(0, Math.round(nextClassScoreMax)));
-  const clampedExam =
-    nextExamType === "MOCK"
-      ? 100
-      : Math.min(100, Math.max(0, Math.round(nextExamScoreMax)));
+    nextExamType === "MOCK" ? 0 : Math.min(90, Math.max(1, Math.round(rawClass)));
+  const clampedExam = nextExamType === "MOCK" ? 100 : 100 - clampedClass;
 
   const nextSettings: SchoolSettings = {
     ...prevSettings,

@@ -242,9 +242,20 @@ describe("analyticsCalculator", () => {
     const borderline = calculateBorderlineStudents(graded, settings);
     expect(borderline.map((s) => s.name)).toEqual(["Borderline"]);
 
-    const coreElective = calculateCoreVsElectiveStats(graded, settings);
-    expect(coreElective.coreAverage).toBeGreaterThan(0);
-    expect(coreElective.aggregateBands.length).toBeGreaterThan(0);
+    const coreElectivePartial = calculateCoreVsElectiveStats(graded, settings);
+    expect(coreElectivePartial.coreAverage).toBeGreaterThan(0);
+    expect(coreElectivePartial.aggregateBands).toEqual([]);
+
+    const fullJhsStudent = makeStudent("f1", "Full Candidate", [
+      ["English Language", 45, 45],
+      ["Mathematics", 45, 45],
+      ["Integrated Science", 40, 40],
+      ["Social Studies", 40, 40],
+      ["Computing", 42, 42],
+      ["R.M.E", 42, 42],
+    ]);
+    const coreElectiveFull = calculateCoreVsElectiveStats([fullJhsStudent], settings);
+    expect(coreElectiveFull.aggregateBands.length).toBeGreaterThan(0);
   });
 
   it("skips ungraded (score === 0) SBA components in calculateSbaCategoryMastery", () => {

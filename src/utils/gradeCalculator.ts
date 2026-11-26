@@ -1,11 +1,13 @@
 import type {
   Grade,
   SchoolLevel,
+  SchoolSettings,
   SavedSubject,
   ProcessedSubject,
   StudentRecord,
   ProcessedStudent,
 } from "../types";
+import { isStudentPending } from "./studentValidation";
 
 /**
  * Maps a weighted 0–100 subject total to the GES grade and remark for `level`.
@@ -73,38 +75,64 @@ const calculateSHSGrade = (total: number): { grade: Grade; remark: string } => {
   return { grade: "F9", remark: "Fail" };
 };
 
-/**
- * Identifies core subjects using level-specific name substring matching.
- * SHS requires `"core"` alongside `"math"` and `"integrated"` alongside `"science"`
- * so Elective Maths and Elective Sciences remain classified as electives; `PRIMARY` and `JHS` match broadly.
- */
-const isCoreSubject = (name: string, level: SchoolLevel): boolean => {
-  const n = name.toLowerCase();
+type CoreSlot = "english" | "math" | "science" | "social";
 
-  if (level === "PRIMARY") {
-    return (
-      n.includes("english") || n.includes("math") || n.includes("science") // Covers "Integrated Science" or just "Science"
-    );
-  }
+const getCoreSubjectSlot = (name: string, level: SchoolLevel): CoreSlot | null => {
+  const n = name.trim().toLowerCase().replace(/\s+/g, " ");
+  if (level !== "PRIMARY" && level !== "JHS" && level !== "SHS") return null;
 
-  if (level === "JHS") {
-    return (
-      n.includes("english") || n.includes("math") || n.includes("science") || n.includes("social")
-    );
+  if (n.includes("english") && !n.includes("literature")) {
+    return "english";
   }
 
   if (level === "SHS") {
-    // SHS Cores: Core Math, Int Science, English, Social
-    return (
-      (n.includes("math") && n.includes("core")) ||
-      n.includes("english") ||
-      (n.includes("science") && n.includes("integrated")) ||
-      n.includes("social")
-    );
+    if ((n.includes("math") && n.includes("core")) || n === "mathematics" || n === "maths") {
+      return "math";
+    }
+    if (n.includes("science") && n.includes("integrated")) {
+      return "science";
+    }
+    if (n.includes("social") && !n.includes("science")) {
+      return "social";
+    }
+    return null;
   }
 
-  return false; // Primary/KG don't use this logic
+  if (
+    n.includes("math") &&
+    !n.includes("elective") &&
+    !n.includes("additional") &&
+    !n.includes("further") &&
+    !n.includes("business")
+  ) {
+    return "math";
+  }
+
+  if (
+    n.includes("science") &&
+    !n.includes("computer") &&
+    !n.includes("agricultural") &&
+    !n.includes("agric") &&
+    !n.includes("home") &&
+    !n.includes("social")
+  ) {
+    return "science";
+  }
+
+  if (level === "JHS" && n.includes("social") && !n.includes("science")) {
+    return "social";
+  }
+
+  return null;
 };
+
+/**
+ * Identifies GES core subjects using level-specific rules while excluding elective lookalikes
+ * such as `"Literature in English"`, `"Computer Science"`, `"Agricultural Science"`, and
+ * `"Additional/Elective Mathematics"`.
+ */
+export const isCoreSubject = (name: string, level: SchoolLevel): boolean =>
+  getCoreSubjectSlot(name, level) !== null;
 
 const gradeToNumber = (grade: Grade): number => {
   if (typeof grade === "number") return grade; // JHS/Primary (1-9)
@@ -125,81 +153,73 @@ const gradeToNumber = (grade: Grade): number => {
 };
 
 /**
- * Computes the GES aggregate score (lower is better) for a processed subject list:
- * - `KG` or empty subjects: `null`
+ * Computes the strict 6-subject GES aggregate score (lower is better) for a processed subject list:
+ * - `KG`, fewer than 6 subjects, or missing required core/elective slots: `null`
  * - `PRIMARY`: 3 cores (English, Math, Science) + best 3 electives
- * - `JHS`: 4 cores (English, Math, Science, Social) + best 2 electives
- * - `SHS`: English + Core Math + best of Integrated Science/Social + best 3 electives
+ * - `JHS`: 4 cores (English, Math, Science, Social Studies) + best 2 electives
+ * - `SHS`: English + Core Math + best 1 of (Integrated Science, Social Studies) + best 3 electives
  */
 const calculateAggregate = (subjects: ProcessedSubject[], level: SchoolLevel): number | null => {
-  // KG and students with no subjects DO NOT produce an aggregate
-  if (level === "KG" || subjects.length === 0) return null;
+  if (level === "KG" || subjects.length < 6) return null;
 
-  // 1. Separate Cores and Electives
-  const cores = subjects.filter((s) => isCoreSubject(s.name, level));
-  const electives = subjects.filter((s) => !isCoreSubject(s.name, level));
-
-  // Helper to sort by numeric grade (Ascending: 1 is best)
   const byGrade = (a: ProcessedSubject, b: ProcessedSubject) =>
     gradeToNumber(a.grade) - gradeToNumber(b.grade);
 
-  let totalAggregate = 0;
+  const coreBySlot = new Map<CoreSlot, ProcessedSubject>();
+  const electives: ProcessedSubject[] = [];
+
+  for (const sub of subjects) {
+    const slot = getCoreSubjectSlot(sub.name, level);
+    if (slot) {
+      const existing = coreBySlot.get(slot);
+      if (!existing || gradeToNumber(sub.grade) < gradeToNumber(existing.grade)) {
+        coreBySlot.set(slot, sub);
+      }
+    } else {
+      electives.push(sub);
+    }
+  }
+
+  electives.sort(byGrade);
 
   if (level === "PRIMARY") {
-    // 1. Add specific Cores (English, Math, Science)
-    // We filter to ensure we don't accidentally add "Social Studies" if it slipped into cores array
-    const primaryCores = cores.filter((s) => {
-      const n = s.name.toLowerCase();
-      return n.includes("english") || n.includes("math") || n.includes("science");
-    });
-
-    primaryCores.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
-
-    // 2. Add Best 3 Electives
-    const bestElectives = electives.sort(byGrade).slice(0, 3);
-    bestElectives.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
-
-    // If student has absolutely no subjects, return null (hide aggregate)
-    if (primaryCores.length === 0 && bestElectives.length === 0) return null;
-
-    return totalAggregate;
+    const requiredCores: CoreSlot[] = ["english", "math", "science"];
+    if (requiredCores.some((slot) => !coreBySlot.has(slot)) || electives.length < 3) return null;
+    const coreSum = requiredCores.reduce(
+      (sum, slot) => sum + gradeToNumber(coreBySlot.get(slot)!.grade),
+      0,
+    );
+    const electiveSum = electives.slice(0, 3).reduce((sum, s) => sum + gradeToNumber(s.grade), 0);
+    return coreSum + electiveSum;
   }
 
-  // --- JHS ALGORITHM (Core 4 + Best 2) ---
   if (level === "JHS") {
-    // We strictly need the 4 specific cores.
-    // If they are missing, we can't calculate a valid aggregate (or we assume 9).
-    // For v0.1, we'll just sum whatever cores exist + best electives.
-
-    cores.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
-
-    // Add Best 2 Electives
-    const bestElectives = electives.sort(byGrade).slice(0, 2);
-    bestElectives.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
-
-    return totalAggregate;
+    const requiredCores: CoreSlot[] = ["english", "math", "science", "social"];
+    if (requiredCores.some((slot) => !coreBySlot.has(slot)) || electives.length < 2) return null;
+    const coreSum = requiredCores.reduce(
+      (sum, slot) => sum + gradeToNumber(coreBySlot.get(slot)!.grade),
+      0,
+    );
+    const electiveSum = electives.slice(0, 2).reduce((sum, s) => sum + gradeToNumber(s.grade), 0);
+    return coreSum + electiveSum;
   }
 
-  // --- SHS ALGORITHM (Core 3 + Best 3) ---
   if (level === "SHS") {
-    // 1. Mandatory: English + Math
-    const english = cores.find((s) => s.name.toLowerCase().includes("english"));
-    const math = cores.find((s) => s.name.toLowerCase().includes("math"));
-
-    // 2. Best of Science vs Social
-    const others = cores.filter((s) => s !== english && s !== math).sort(byGrade);
-    const bestThirdCore = others[0];
-
-    // Add Core Points
-    if (english) totalAggregate += gradeToNumber(english.grade);
-    if (math) totalAggregate += gradeToNumber(math.grade);
-    if (bestThirdCore) totalAggregate += gradeToNumber(bestThirdCore.grade);
-
-    // 3. Best 3 Electives
-    const bestElectives = electives.sort(byGrade).slice(0, 3);
-    bestElectives.forEach((sub) => (totalAggregate += gradeToNumber(sub.grade)));
-
-    return totalAggregate;
+    const english = coreBySlot.get("english");
+    const math = coreBySlot.get("math");
+    const thirdCandidates = [coreBySlot.get("science"), coreBySlot.get("social")].filter(
+      (s): s is ProcessedSubject => Boolean(s),
+    );
+    if (!english || !math || thirdCandidates.length === 0 || electives.length < 3) {
+      return null;
+    }
+    thirdCandidates.sort(byGrade);
+    const coreSum =
+      gradeToNumber(english.grade) +
+      gradeToNumber(math.grade) +
+      gradeToNumber(thirdCandidates[0].grade);
+    const electiveSum = electives.slice(0, 3).reduce((sum, s) => sum + gradeToNumber(s.grade), 0);
+    return coreSum + electiveSum;
   }
 
   return null;
@@ -266,10 +286,20 @@ export const processStudent = (student: StudentRecord, level: SchoolLevel): Proc
 /**
  * Returns a new array preserving input roll order with `classPosition` ordinals populated
  * from descending `averageScore` using standard competition tie-breaking (`1st`, `1st`, `3rd`).
+ * Incomplete/pending students (when `settings` is provided) or zero-scored students receive `"Pending..."`.
  * Does not mutate or reorder the input array.
  */
-export const assignPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
-  const sortedScores = students.map((s) => s.averageScore).sort((a, b) => b - a);
+export const assignPositions = (
+  students: ProcessedStudent[],
+  settings?: Pick<SchoolSettings, "defaultSubjects" | "examType">,
+): ProcessedStudent[] => {
+  const isEligible = (student: ProcessedStudent): boolean =>
+    settings ? !isStudentPending(student, settings) : student.subjects.length > 0 && student.totalScore > 0;
+
+  const sortedScores = students
+    .filter(isEligible)
+    .map((s) => s.averageScore)
+    .sort((a, b) => b - a);
   const ordinalByScore = new Map<number, string>();
 
   for (let index = 0; index < sortedScores.length; index++) {
@@ -281,7 +311,9 @@ export const assignPositions = (students: ProcessedStudent[]): ProcessedStudent[
 
   return students.map((student) => ({
     ...student,
-    classPosition: ordinalByScore.get(student.averageScore) ?? "pending...",
+    classPosition: isEligible(student)
+      ? (ordinalByScore.get(student.averageScore) ?? "Pending...")
+      : "Pending...",
   }));
 };
 
@@ -297,24 +329,28 @@ const getOrdinalSuffix = (i: number): string => {
 // ✅ NEW: Helper to calculate Subject Positions
 /**
  * Returns a new student array with `subjectPosition` ordinals populated per subject
- * from `totalScore` across students taking that subject, using competition tie-breaking (`1st`, `1st`, `3rd`).
+ * from `totalScore` across scored students (`totalScore > 0`), using competition tie-breaking (`1st`, `1st`, `3rd`).
+ * Unscored (`0`) subjects leave `subjectPosition` `undefined`.
  */
 export const assignSubjectPositions = (students: ProcessedStudent[]): ProcessedStudent[] => {
   const scoresBySubject = new Map<string, number[]>();
+  const subjectKey = (name: string) => name.trim().toLowerCase();
 
   for (const student of students) {
     for (const sub of student.subjects) {
-      let scores = scoresBySubject.get(sub.name);
+      if (sub.totalScore <= 0) continue;
+      const key = subjectKey(sub.name);
+      let scores = scoresBySubject.get(key);
       if (!scores) {
         scores = [];
-        scoresBySubject.set(sub.name, scores);
+        scoresBySubject.set(key, scores);
       }
       scores.push(sub.totalScore);
     }
   }
 
   const ordinalsBySubject = new Map<string, Map<number, string>>();
-  for (const [subjectName, scores] of scoresBySubject) {
+  for (const [key, scores] of scoresBySubject) {
     scores.sort((a, b) => b - a);
     const rankMap = new Map<number, string>();
     for (let index = 0; index < scores.length; index++) {
@@ -323,7 +359,7 @@ export const assignSubjectPositions = (students: ProcessedStudent[]): ProcessedS
         rankMap.set(score, getOrdinalSuffix(index + 1));
       }
     }
-    ordinalsBySubject.set(subjectName, rankMap);
+    ordinalsBySubject.set(key, rankMap);
   }
 
   return students.map((student) => ({
@@ -331,7 +367,7 @@ export const assignSubjectPositions = (students: ProcessedStudent[]): ProcessedS
     subjects: student.subjects.map((sub) => ({
       ...sub,
       subjectPosition:
-        ordinalsBySubject.get(sub.name)?.get(sub.totalScore) ?? getOrdinalSuffix(1),
+        sub.totalScore > 0 ? ordinalsBySubject.get(subjectKey(sub.name))?.get(sub.totalScore) : undefined,
     })),
   }));
 };

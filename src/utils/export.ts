@@ -1,5 +1,5 @@
 import type { ProcessedStudent, SchoolSettings } from "../types";
-import { downloadCsvFile, escapeCsvCell } from "./csvImport";
+import { downloadCsvFile, escapeCsvCell, formatTemplateHeaderCell } from "./csv/tabularParser";
 import { downloadBlob } from "./fileDownload";
 
 function parsePositionRank(position: string | undefined): number {
@@ -79,7 +79,10 @@ export function exportToCSV(students: ProcessedStudent[], fileName: string): boo
     });
 
     // 4. Construct CSV String
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent = [
+      headers.map(formatTemplateHeaderCell).join(","),
+      ...rows.map((r) => r.join(",")),
+    ].join("\n");
 
     // 5. Trigger Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

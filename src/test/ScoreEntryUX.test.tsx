@@ -431,10 +431,10 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       const sCExam = screen.getByLabelText("Student C Exam Score") as HTMLInputElement;
       sBExam.focus();
 
-      // Entering 80/100 (weighted 40) makes Student B overtake Student A (20) to become 1st
+      // Entering 80/100 (weighted 40) makes Student B overtake Student A (20) to become 1st; unscored Student C stays Pending...
       fireEvent.change(sBExam, { target: { value: "80" } });
 
-      expect(screen.getByTestId("positions").textContent).toBe("sA:2nd,sB:1st,sC:3rd");
+      expect(screen.getByTestId("positions").textContent).toBe("sA:2nd,sB:1st,sC:Pending...");
       expect(screen.getByText("1. Student A")).toBeInTheDocument();
       expect(screen.getByText("2. Student B")).toBeInTheDocument();
       expect(screen.getByText("3. Student C")).toBeInTheDocument();
@@ -771,11 +771,9 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
         const sAExam = screen.getByLabelText("Student A Exam Score") as HTMLInputElement;
 
         expect(sAClass).toHaveAttribute("type", "text");
-        expect(sAClass).toHaveAttribute("inputmode", "numeric");
-        expect(sAClass).toHaveAttribute("pattern", "[0-9]*");
+        expect(sAClass).toHaveAttribute("inputmode", "decimal");
         expect(sAExam).toHaveAttribute("type", "text");
-        expect(sAExam).toHaveAttribute("inputmode", "numeric");
-        expect(sAExam).toHaveAttribute("pattern", "[0-9]*");
+        expect(sAExam).toHaveAttribute("inputmode", "decimal");
 
         // Non-numeric text is ignored without wiping the current value
         fireEvent.change(sAClass, { target: { value: "20abc" } });
@@ -1676,8 +1674,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       const examInput = screen.getByLabelText("Mathematics Exam Score") as HTMLInputElement;
       for (const input of [sbaInput, examInput]) {
         expect(input).toHaveAttribute("type", "text");
-        expect(input).toHaveAttribute("inputmode", "numeric");
-        expect(input).toHaveAttribute("pattern", "[0-9]*");
+        expect(input).toHaveAttribute("inputmode", "decimal");
         expect(input).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
       }
 
@@ -1685,7 +1682,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       fireEvent.change(examInput, { target: { value: "abc" } });
       expect(onSubjectChange).not.toHaveBeenCalled();
 
-      // Direct class input (no SBA components) also uses text numeric attributes and guards non-numeric input
+      // Direct class input (no SBA components) also uses text decimal attributes and guards non-numeric input
       rerender(
         <SubjectRow
           subject={{ id: "sub-2", name: "English", classScore: 0, examScore: 0 }}
@@ -1697,8 +1694,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
       );
       const classInput = screen.getByLabelText("English Class Score") as HTMLInputElement;
       expect(classInput).toHaveAttribute("type", "text");
-      expect(classInput).toHaveAttribute("inputmode", "numeric");
-      expect(classInput).toHaveAttribute("pattern", "[0-9]*");
+      expect(classInput).toHaveAttribute("inputmode", "decimal");
       expect(classInput).toHaveClass("text-base", "scroll-mt-24", "scroll-mb-40");
       fireEvent.change(classInput, { target: { value: "abc" } });
       expect(onSubjectChange).not.toHaveBeenCalled();

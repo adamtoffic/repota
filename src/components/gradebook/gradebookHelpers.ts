@@ -3,9 +3,12 @@ import type {
   ProcessedStudent,
   SavedSubject,
 } from "../../types";
+import { parseOptionalNumber } from "../../utils/csv/tabularParser";
+import { normalizeTaskKey } from "../../utils/sbaReconciliation";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
+  resolveExamRawScore,
   updateComponentAndRecalculateClassScore,
 } from "../../utils/scoreConversion";
 
@@ -77,8 +80,8 @@ export function isStudentUnscoredInGradebook(
   const sub = student.subjects.find((s) => s.name === activeSubject);
   if (!sub) return true;
   if (activeFocusColumn.startsWith("COMP:")) {
-    const compName = activeFocusColumn.slice("COMP:".length);
-    const comp = sub.classScoreComponents?.find((c) => c.name === compName);
+    const compKey = normalizeTaskKey(activeFocusColumn.slice("COMP:".length));
+    const comp = sub.classScoreComponents?.find((c) => normalizeTaskKey(c.name) === compKey);
     return !comp || comp.score === 0;
   }
   if (isMockExam || activeFocusColumn === "EXAM_ONLY") {
@@ -110,9 +113,10 @@ export function computeGradebookColumnStats({
   if (!activeSubject || sessionStudents.length === 0) return { scored: 0, avgLabel: "" };
   if (activeTaskConfig) {
     const scores: number[] = [];
+    const targetKey = normalizeTaskKey(activeTaskConfig.name);
     sessionStudents.forEach((student) => {
       const sub = student.subjects.find((s) => s.name === activeSubject);
-      const comp = sub?.classScoreComponents?.find((c) => c.name === activeTaskConfig.name);
+      const comp = sub?.classScoreComponents?.find((c) => normalizeTaskKey(c.name) === targetKey);
       if (comp && comp.score > 0) scores.push(comp.score);
     });
     const avg =
@@ -142,7 +146,10 @@ export function computeGradebookColumnStats({
     sessionStudents.forEach((student) => {
       const sub = student.subjects.find((s) => s.name === activeSubject);
       if (sub && sub.examScore > 0) {
-        rawScores.push(maxExamScore > 0 ? (sub.examScore / maxExamScore) * 100 : 0);
+        const resolved = resolveExamRawScore(sub, maxExamScore);
+        rawScores.push(
+          resolved ?? (maxExamScore > 0 ? Math.round((sub.examScore * 100) / maxExamScore) : 0),
+        );
       }
     });
     const avg =
@@ -194,10 +201,10 @@ export function computeGradebookPastePatches({
 }): Array<{ student: ProcessedStudent; updatedSubject: SavedSubject }> | null {
   if (!text || !/[\r\n]/.test(text)) return null;
 
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
   if (lines.length <= 1) return null;
 
   const startIndex = visibleStudents.findIndex((student) => student.id === startStudentId);
@@ -208,16 +215,18 @@ export function computeGradebookPastePatches({
 
   for (let idx = startIndex; idx < visibleStudents.length && lineOffset < lines.length; idx++) {
     const targetStudent = visibleStudents[idx];
+    const rawCell = lines[lineOffset].split(/\t|,/)[0].trim();
+    lineOffset++;
+    if (rawCell === "") continue;
+    const numeric = parseOptionalNumber(rawCell);
+    if (numeric === undefined || numeric < 0) continue;
+
     const sub = targetStudent.subjects.find((s) => s.name === activeSubject);
     if (!sub) continue;
 
-    const rawCell = lines[lineOffset].split(/\t|,/)[0].trim();
-    lineOffset++;
-    const numeric = Number(rawCell);
-    if (!Number.isFinite(numeric)) continue;
-
     if (field === "comp" && activeComponentName) {
-      const comp = sub.classScoreComponents?.find((c) => c.name === activeComponentName);
+      const targetKey = normalizeTaskKey(activeComponentName);
+      const comp = sub.classScoreComponents?.find((c) => normalizeTaskKey(c.name) === targetKey);
       if (!comp || !sub.classScoreComponents) continue;
       const { updatedComponents, classScore } = updateComponentAndRecalculateClassScore(
         sub.classScoreComponents,

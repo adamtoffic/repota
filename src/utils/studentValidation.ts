@@ -26,12 +26,19 @@ export function getSubjectScoreStatus(
 }
 
 /**
- * Returns `true` when `subjects` is empty or every subject has `classScore <= 0` and `examScore <= 0`.
+ * Returns `true` when `subjects` is empty or every subject has zero entered or stashed scores
+ * (`classScore <= 0`, `examScore <= 0`, no `savedDirectClassScore > 0`, and no SBA component `score > 0`).
  */
 export function hasNoScoresEntered(student: StudentRecord): boolean {
   return (
     student.subjects.length === 0 ||
-    !student.subjects.some((sub) => sub.classScore > 0 || sub.examScore > 0)
+    !student.subjects.some(
+      (sub) =>
+        sub.classScore > 0 ||
+        sub.examScore > 0 ||
+        (sub.savedDirectClassScore !== undefined && sub.savedDirectClassScore > 0) ||
+        Boolean(sub.classScoreComponents?.some((comp) => comp.score > 0)),
+    )
   );
 }
 

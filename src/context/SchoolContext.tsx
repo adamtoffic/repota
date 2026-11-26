@@ -382,8 +382,9 @@ export function SchoolProvider({
   const processedStudents = useMemo(() => {
     const processed = students.map((student) => processStudent(student, settings.level));
     const withSubjectPositions = assignSubjectPositions(processed);
-    return assignPositions(withSubjectPositions);
-  }, [students, settings.level]);
+    return assignPositions(withSubjectPositions, settings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Rank eligibility depends only on level, defaultSubjects, and examType
+  }, [students, settings.level, settings.defaultSubjects, settings.examType]);
 
   const autoGenerateRemarks = useCallback(
     async (onProgress?: (current: number, total: number) => void) => {

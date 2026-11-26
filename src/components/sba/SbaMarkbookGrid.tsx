@@ -196,7 +196,8 @@ export function SbaMarkbookGrid({
       if (!target) return;
 
       const errorKey = `${student.id}:${task.name}`;
-      const isIntermediateDecimal = rawInput.endsWith(".") || rawInput === "0.";
+      const isIntermediateDecimal =
+        rawInput === "." || rawInput.endsWith(".") || /\.\d*0$/.test(rawInput);
       const rawScore = rawInput === "" || rawInput === "." ? 0 : Number(rawInput);
       if (!Number.isFinite(rawScore)) return;
 

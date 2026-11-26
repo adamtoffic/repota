@@ -27,6 +27,8 @@ import { GRADE_COLORS } from "./analyticsShared";
 interface AnalyticsOverviewTabProps {
   classPulseHeadline: string | null;
   classMetrics: ClassPerformanceMetrics;
+  passingCount?: number;
+  excellenceCount?: number;
   scoreDistribution: ScoreDistribution[];
   gradeDistribution: ReturnType<typeof calculateGradeDistribution>;
   genderAnalysis: GenderAnalysis;
@@ -39,6 +41,8 @@ interface AnalyticsOverviewTabProps {
 export function AnalyticsOverviewTab({
   classPulseHeadline,
   classMetrics,
+  passingCount,
+  excellenceCount,
   scoreDistribution,
   gradeDistribution,
   genderAnalysis,
@@ -47,6 +51,11 @@ export function AnalyticsOverviewTab({
   privateFeeSummary,
   onOpenInsights,
 }: AnalyticsOverviewTabProps) {
+  const resolvedPassingCount =
+    passingCount ?? Math.round((classMetrics.passRate / 100) * classMetrics.totalStudents);
+  const resolvedExcellenceCount =
+    excellenceCount ??
+    Math.round((classMetrics.excellenceRate / 100) * classMetrics.totalStudents);
   return (
     <>
       {/* Class Pulse Story Banner */}
@@ -97,14 +106,14 @@ export function AnalyticsOverviewTab({
           value={`${classMetrics.passRate}%`}
           icon={Target}
           color="amber"
-          subtitle={`${Math.round((classMetrics.passRate / 100) * classMetrics.totalStudents)} students`}
+          subtitle={`${resolvedPassingCount} ${resolvedPassingCount === 1 ? "student" : "students"}`}
         />
         <StatCard
           title="Excellence"
           value={`${classMetrics.excellenceRate}%`}
           icon={Award}
           color="purple"
-          subtitle={`${Math.round((classMetrics.excellenceRate / 100) * classMetrics.totalStudents)} students`}
+          subtitle={`${resolvedExcellenceCount} ${resolvedExcellenceCount === 1 ? "student" : "students"}`}
         />
       </div>
 

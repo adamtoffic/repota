@@ -42,7 +42,9 @@ import {
   generateClassPulseHeadline,
   generateClassStory,
 } from "../utils/classStoryGenerator";
+import type { ProcessedStudent } from "../types";
 import { processStudent } from "../utils/gradeCalculator";
+import { stripDerivedStudentFields } from "../utils/studentSanitizer";
 import { exportAnalyticsAsPDF, exportAnalyticsData } from "../utils/analyticsExport";
 import { buildAnalyticsPdfFilename, generateBlocksPdfFile } from "../utils/pdfPrint";
 import { captureEvent } from "../utils/analytics";
@@ -104,47 +106,64 @@ export const Analytics: React.FC = () => {
     });
   };
 
-  // Filter students based on selected filters (reuse ProcessedStudent averageScore when available)
-  const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      const needsScoreCheck =
-        (filters.performanceLevel && filters.performanceLevel !== "All") ||
-        Boolean(filters.scoreRange);
+  // Filter students based on selected filters, scoping subjects when subjectFilter is active
+  const filteredStudents = useMemo<ProcessedStudent[]>(() => {
+    const subjectFilterActive = Boolean(filters.subjectFilter && filters.subjectFilter !== "All");
+    return students
+      .map((student): ProcessedStudent | null => {
+        if (filters.gender && filters.gender !== "All" && student.gender !== filters.gender) {
+          return null;
+        }
 
-      const avgScore = needsScoreCheck
-        ? "averageScore" in student && typeof student.averageScore === "number"
-          ? student.averageScore
-          : processStudent(student, settings.level).averageScore
-        : 0;
+        let scoped: ProcessedStudent = student;
+        if (subjectFilterActive) {
+          const matchingSubjects = student.subjects.filter(
+            (s) => s.name === filters.subjectFilter,
+          );
+          if (matchingSubjects.length === 0) return null;
+          const base = stripDerivedStudentFields(student);
+          scoped = processStudent({ ...base, subjects: matchingSubjects }, settings.level);
+        }
 
-      if (filters.gender && filters.gender !== "All") {
-        if (student.gender !== filters.gender) return false;
-      }
+        const needsScoreCheck =
+          (filters.performanceLevel && filters.performanceLevel !== "All") ||
+          Boolean(filters.scoreRange);
 
-      if (filters.performanceLevel && filters.performanceLevel !== "All") {
-        if (filters.performanceLevel === "Excellence" && avgScore < 80) return false;
-        if (filters.performanceLevel === "Pass" && (avgScore < 50 || avgScore >= 80)) return false;
-        if (filters.performanceLevel === "Fail" && avgScore >= 50) return false;
-      }
+        const avgScore = needsScoreCheck ? scoped.averageScore : 0;
 
-      if (filters.scoreRange) {
-        if (avgScore < filters.scoreRange.min || avgScore > filters.scoreRange.max) return false;
-      }
+        if (filters.performanceLevel && filters.performanceLevel !== "All") {
+          if (filters.performanceLevel === "Excellence" && avgScore < 80) return null;
+          if (filters.performanceLevel === "Pass" && (avgScore < 50 || avgScore >= 80)) return null;
+          if (filters.performanceLevel === "Fail" && avgScore >= 50) return null;
+        }
 
-      if (filters.subjectFilter && filters.subjectFilter !== "All") {
-        const hasSubject = student.subjects.some((s) => s.name === filters.subjectFilter);
-        if (!hasSubject) return false;
-      }
+        if (filters.scoreRange) {
+          if (avgScore < filters.scoreRange.min || avgScore > filters.scoreRange.max) return null;
+        }
 
-      return true;
-    });
+        return scoped;
+      })
+      .filter((s): s is ProcessedStudent => s !== null);
   }, [students, filters, settings]);
 
   const { graded: gradedStudents, ungraded: ungradedStudents } = useMemo(
     () => partitionGradedStudents(filteredStudents),
     [filteredStudents],
   );
-  const analysisStudents = gradedStudents.length > 0 ? gradedStudents : filteredStudents;
+  const analysisStudents = gradedStudents;
+
+  const { passingCount, excellenceCount } = useMemo(() => {
+    if (activeView !== "overview" || analysisStudents.length === 0) {
+      return { passingCount: 0, excellenceCount: 0 };
+    }
+    let passing = 0;
+    let excellence = 0;
+    for (const student of analysisStudents) {
+      if (student.averageScore >= 50) passing++;
+      if (student.averageScore >= 80) excellence++;
+    }
+    return { passingCount: passing, excellenceCount: excellence };
+  }, [activeView, analysisStudents]);
 
   // Calculate analytics data only for the active sub-tab
   const classMetrics = useMemo(
@@ -606,6 +625,16 @@ export const Analytics: React.FC = () => {
             aria-labelledby={`${tabsIdPrefix}-tab-${activeView}`}
             className="space-y-4 sm:space-y-6 lg:col-span-3"
           >
+            {filteredStudents.length > 0 && gradedStudents.length === 0 && (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
+                <span>
+                  No recorded scores yet for the current selection ({filteredStudents.length}{" "}
+                  ungraded student{filteredStudents.length === 1 ? "" : "s"}). Enter scores to
+                  unlock performance metrics.
+                </span>
+              </div>
+            )}
+
             {ungradedStudents.length > 0 && gradedStudents.length > 0 && (
               <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
                 <span>
@@ -620,6 +649,8 @@ export const Analytics: React.FC = () => {
               <AnalyticsOverviewTab
                 classPulseHeadline={classPulseHeadline}
                 classMetrics={classMetrics}
+                passingCount={passingCount}
+                excellenceCount={excellenceCount}
                 scoreDistribution={scoreDistribution}
                 gradeDistribution={gradeDistribution}
                 genderAnalysis={genderAnalysis}

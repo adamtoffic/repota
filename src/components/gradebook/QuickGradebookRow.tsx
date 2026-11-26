@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ExternalLink, PlusCircle } from "lucide-react";
 import type {
   ClassScoreComponentConfig,
@@ -6,6 +7,7 @@ import type {
   SchoolLevel,
 } from "../../types";
 import { calculateGrade } from "../../utils/gradeCalculator";
+import { normalizeTaskKey } from "../../utils/sbaReconciliation";
 import {
   clampDirectClassScore,
   convertExamRawToWeighted,
@@ -75,6 +77,9 @@ export function QuickGradebookRow({
 }: QuickGradebookRowProps) {
   const subject = student.subjects.find((sub) => sub.name === activeSubject);
 
+  const [compDraft, setCompDraft] = useState<{ baseScore: number; raw: string } | null>(null);
+  const [classDraft, setClassDraft] = useState<{ baseScore: number; raw: string } | null>(null);
+
   if (!subject) {
     return (
       <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -107,8 +112,22 @@ export function QuickGradebookRow({
       : getExamRawDisplayValue(subject, maxExamScore);
 
   const activeComponent = activeComponentName
-    ? subject.classScoreComponents?.find((comp) => comp.name === activeComponentName)
+    ? subject.classScoreComponents?.find(
+        (comp) => normalizeTaskKey(comp.name) === normalizeTaskKey(activeComponentName),
+      )
     : undefined;
+  const compDisplayValue =
+    activeComponent && compDraft !== null && compDraft.baseScore === activeComponent.score
+      ? compDraft.raw
+      : activeComponent && activeComponent.score > 0
+        ? String(activeComponent.score)
+        : "";
+  const classDisplayValue =
+    classDraft !== null && classDraft.baseScore === subject.classScore
+      ? classDraft.raw
+      : subject.classScore === 0
+        ? ""
+        : String(subject.classScore);
   const safeStudentId = student.id.replace(/[^a-zA-Z0-9_-]/g, "_");
   const compInputId = `${idPrefix}-comp-${safeStudentId}`;
   const classInputId = `${idPrefix}-class-${safeStudentId}`;
@@ -176,20 +195,21 @@ export function QuickGradebookRow({
                 name={compInputId}
                 ref={(el) => onRegisterInput(`comp:${student.id}`, el)}
                 type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
+                inputMode="decimal"
                 enterKeyHint="next"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
                 aria-label={`${student.name} ${activeComponent.name} Score`}
-                value={activeComponent.score === 0 ? "" : activeComponent.score}
+                value={compDisplayValue}
                 placeholder={`/${activeComponent.maxScore}`}
                 onChange={(e) => {
                   if (!subject.classScoreComponents) return;
                   const raw = e.target.value;
                   if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
-                  const rawScore = raw === "" ? 0 : Number(raw);
+                  const isIntermediateDecimal =
+                    raw === "." || raw.endsWith(".") || /\.\d*0$/.test(raw);
+                  const rawScore = raw === "" || raw === "." ? 0 : Number(raw);
                   if (!Number.isFinite(rawScore)) return;
                   const { updatedComponents, classScore } = updateComponentAndRecalculateClassScore(
                     subject.classScoreComponents,
@@ -197,12 +217,20 @@ export function QuickGradebookRow({
                     rawScore,
                     maxClassScore,
                   );
+                  const committedScore =
+                    updatedComponents.find((c) => c.id === activeComponent.id)?.score ?? 0;
+                  if (isIntermediateDecimal && rawScore <= activeComponent.maxScore) {
+                    setCompDraft({ baseScore: committedScore, raw });
+                  } else if (compDraft !== null) {
+                    setCompDraft(null);
+                  }
                   onCommitSubjectUpdate(student, {
                     ...subject,
                     classScoreComponents: updatedComponents,
                     classScore,
                   });
                 }}
+                onBlur={() => setCompDraft(null)}
                 onPaste={(e) => onColumnPaste(e, "comp", student.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === "ArrowDown") {
@@ -268,27 +296,35 @@ export function QuickGradebookRow({
                   name={classInputId}
                   ref={(el) => onRegisterInput(`class:${student.id}`, el)}
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="decimal"
                   enterKeyHint="next"
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck={false}
                   aria-label={`${student.name} Class Score`}
-                  value={subject.classScore === 0 ? "" : subject.classScore}
+                  value={classDisplayValue}
                   placeholder={`/${maxClassScore}`}
                   onChange={(e) => {
                     const raw = e.target.value;
                     if (raw === "") {
+                      setClassDraft(null);
                       onCommitSubjectUpdate(student, { ...subject, classScore: 0 });
                       return;
                     }
                     if (!/^\d*\.?\d*$/.test(raw)) return;
-                    const numeric = Number(raw);
+                    const isIntermediateDecimal =
+                      raw === "." || raw.endsWith(".") || /\.\d*0$/.test(raw);
+                    const numeric = raw === "." ? 0 : Number(raw);
                     if (!Number.isFinite(numeric)) return;
-                    const { score } = clampDirectClassScore(numeric, maxClassScore);
+                    const { score, wasClamped } = clampDirectClassScore(numeric, maxClassScore);
+                    if (isIntermediateDecimal && !wasClamped) {
+                      setClassDraft({ baseScore: score, raw });
+                    } else if (classDraft !== null) {
+                      setClassDraft(null);
+                    }
                     onCommitSubjectUpdate(student, { ...subject, classScore: score });
                   }}
+                  onBlur={() => setClassDraft(null)}
                   onPaste={(e) => onColumnPaste(e, "class", student.id)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === "ArrowDown") {
@@ -318,8 +354,7 @@ export function QuickGradebookRow({
                   name={examInputId}
                   ref={(el) => onRegisterInput(`exam:${student.id}`, el)}
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="decimal"
                   enterKeyHint="next"
                   autoComplete="off"
                   autoCorrect="off"

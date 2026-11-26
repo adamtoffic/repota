@@ -11,7 +11,7 @@ export function convertExamRawToWeighted(
   const safeRaw = Number.isFinite(rawScore) ? rawScore : 0;
   const wasClamped = safeRaw > 100;
   const clampedRaw = Math.min(Math.max(safeRaw, 0), 100);
-  const weightedScore = Math.round((clampedRaw / 100) * maxExamScore);
+  const weightedScore = Math.round((clampedRaw * maxExamScore) / 100);
   return { clampedRaw, wasClamped, weightedScore };
 }
 
@@ -22,7 +22,7 @@ export function convertExamRawToWeighted(
  */
 export function formatExamWeightedAsRaw(examScore: number, maxExamScore: number): string {
   if (!examScore || maxExamScore <= 0) return "";
-  return Math.round((examScore / maxExamScore) * 100).toString();
+  return Math.round((examScore * 100) / maxExamScore).toString();
 }
 
 /**
@@ -44,7 +44,7 @@ export function resolveExamRawScore(
       return clampedRaw;
     }
   }
-  return Math.round((subject.examScore / maxExamScore) * 100);
+  return Math.round((subject.examScore * 100) / maxExamScore);
 }
 
 /**
@@ -95,13 +95,13 @@ export function updateComponentAndRecalculateClassScore(
     return { ...comp, score: clampedScore };
   });
 
-  const totalActual = updatedComponents.reduce((sum, comp) => sum + comp.score, 0);
+  const totalActual =
+    Math.round(updatedComponents.reduce((sum, comp) => sum + comp.score, 0) * 100) / 100;
   const totalMax = updatedComponents.reduce((sum, comp) => sum + comp.maxScore, 0);
-  const percentage = totalMax > 0 ? totalActual / totalMax : 0;
 
   return {
     updatedComponents,
-    classScore: Math.round(percentage * maxClassScore),
+    classScore: totalMax > 0 ? Math.round((totalActual * maxClassScore) / totalMax) : 0,
     wasClamped,
   };
 }

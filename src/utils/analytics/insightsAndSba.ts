@@ -1,5 +1,6 @@
-import type { SchoolLevel, SchoolSettings, StudentRecord } from "../../types";
-import { processStudent } from "../gradeCalculator";
+import type { SchoolSettings, StudentRecord } from "../../types";
+import { isCoreSubject, processStudent } from "../gradeCalculator";
+import { resolveExamRawScore } from "../scoreConversion";
 import { toProcessedStudent } from "./coreMetrics";
 
 // Calculate at-risk students (low attendance + low performance)
@@ -172,14 +173,16 @@ export function calculateSbaVsExamAnalysis(
   let studentWithScoresCount = 0;
 
   for (const student of students) {
-    const scoredSubs = student.subjects.filter((s) => s.classScore > 0 || s.examScore > 0);
+    const scoredSubs = student.subjects.filter((s) => s.classScore > 0 && s.examScore > 0);
     if (scoredSubs.length === 0) continue;
 
     let stuSbaSum = 0;
     let stuExamSum = 0;
     for (const sub of scoredSubs) {
       const sbaPct = (sub.classScore / settings.classScoreMax) * 100;
-      const examPct = (sub.examScore / settings.examScoreMax) * 100;
+      const examPct =
+        resolveExamRawScore(sub, settings.examScoreMax) ??
+        (sub.examScore / settings.examScoreMax) * 100;
       stuSbaSum += sbaPct;
       stuExamSum += examPct;
 
@@ -337,27 +340,6 @@ export interface CoreVsElectiveStats {
   aggregateBands: Array<{ band: string; count: number; percentage: number }>;
 }
 
-function isCoreName(name: string, level: SchoolLevel): boolean {
-  const n = name.toLowerCase();
-  if (level === "PRIMARY") {
-    return n.includes("english") || n.includes("math") || n.includes("science");
-  }
-  if (level === "JHS") {
-    return (
-      n.includes("english") || n.includes("math") || n.includes("science") || n.includes("social")
-    );
-  }
-  if (level === "SHS") {
-    return (
-      (n.includes("math") && n.includes("core")) ||
-      n.includes("english") ||
-      (n.includes("science") && n.includes("integrated")) ||
-      n.includes("social")
-    );
-  }
-  return false;
-}
-
 export function calculateCoreVsElectiveStats(
   students: StudentRecord[],
   settings: SchoolSettings,
@@ -370,7 +352,7 @@ export function calculateCoreVsElectiveStats(
     const processed = processStudent(student, settings.level);
     if (processed.aggregate !== null) aggregates.push(processed.aggregate);
     for (const sub of processed.subjects) {
-      if (isCoreName(sub.name, settings.level)) coreScores.push(sub.totalScore);
+      if (isCoreSubject(sub.name, settings.level)) coreScores.push(sub.totalScore);
       else electiveScores.push(sub.totalScore);
     }
   }

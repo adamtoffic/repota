@@ -508,30 +508,34 @@ export function AnalyticsInsightsTab({
               </p>
             </div>
           )}
-          {genderAnalysis.maleAverage > genderAnalysis.femaleAverage + 5 && (
-            <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
-              <p className="mb-1 text-sm font-bold text-purple-600 dark:text-purple-400">
-                ⚖️ Gender Performance Gap
-              </p>
-              <p className="text-secondary text-sm">
-                Male students are outperforming female students by{" "}
-                {(genderAnalysis.maleAverage - genderAnalysis.femaleAverage).toFixed(1)}%. Consider
-                targeted support for female students.
-              </p>
-            </div>
-          )}
-          {genderAnalysis.femaleAverage > genderAnalysis.maleAverage + 5 && (
-            <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
-              <p className="mb-1 text-sm font-bold text-purple-600 dark:text-purple-400">
-                ⚖️ Gender Performance Gap
-              </p>
-              <p className="text-secondary text-sm">
-                Female students are outperforming male students by{" "}
-                {(genderAnalysis.femaleAverage - genderAnalysis.maleAverage).toFixed(1)}%. Consider
-                targeted support for male students.
-              </p>
-            </div>
-          )}
+          {genderAnalysis.maleCount > 0 &&
+            genderAnalysis.femaleCount > 0 &&
+            genderAnalysis.maleAverage > genderAnalysis.femaleAverage + 5 && (
+              <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                <p className="mb-1 text-sm font-bold text-purple-600 dark:text-purple-400">
+                  ⚖️ Gender Performance Gap
+                </p>
+                <p className="text-secondary text-sm">
+                  Male students are outperforming female students by{" "}
+                  {(genderAnalysis.maleAverage - genderAnalysis.femaleAverage).toFixed(1)}%.
+                  Consider targeted support for female students.
+                </p>
+              </div>
+            )}
+          {genderAnalysis.maleCount > 0 &&
+            genderAnalysis.femaleCount > 0 &&
+            genderAnalysis.femaleAverage > genderAnalysis.maleAverage + 5 && (
+              <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
+                <p className="mb-1 text-sm font-bold text-purple-600 dark:text-purple-400">
+                  ⚖️ Gender Performance Gap
+                </p>
+                <p className="text-secondary text-sm">
+                  Female students are outperforming male students by{" "}
+                  {(genderAnalysis.femaleAverage - genderAnalysis.maleAverage).toFixed(1)}%.
+                  Consider targeted support for male students.
+                </p>
+              </div>
+            )}
           {classMetrics.excellenceRate > 30 && (
             <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
               <p className="mb-1 text-sm font-bold text-green-600 dark:text-emerald-400">

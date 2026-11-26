@@ -56,41 +56,43 @@ export function AnalyticsDemographicsTab({
         />
       </div>
 
-      {/* Attendance Rate by Gender */}
-      {attendanceByGender.attendanceRanges.length > 0 && (
+      {/* Attendance Rate by Gender & Performance by Age */}
+      {(attendanceByGender.attendanceRanges.length > 0 || performanceByAge.length > 0) && (
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-          <ChartCard title="Attendance Rate Breakdown" icon={Activity}>
-            <ComposedChart
-              data={attendanceByGender.attendanceRanges.map((item) => ({
-                name: item.range,
-                Male: item.maleCount,
-                Female: item.femaleCount,
-              }))}
-              barKeys={[
-                { key: "Male", color: "#3b82f6", name: "Male" },
-                { key: "Female", color: "#ec4899", name: "Female" },
-              ]}
-              height={280}
-            />
-            <div className="border-border mt-4 flex justify-around border-t pt-4">
-              <div className="text-center">
-                <p data-record="true" className="text-muted text-xs">
-                  Male Avg Rate
-                </p>
-                <p className="text-lg font-black text-blue-600 dark:text-blue-400">
-                  {attendanceByGender.maleAttendanceRate}%
-                </p>
+          {attendanceByGender.attendanceRanges.length > 0 && (
+            <ChartCard title="Attendance Rate Breakdown" icon={Activity}>
+              <ComposedChart
+                data={attendanceByGender.attendanceRanges.map((item) => ({
+                  name: item.range,
+                  Male: item.maleCount,
+                  Female: item.femaleCount,
+                }))}
+                barKeys={[
+                  { key: "Male", color: "#3b82f6", name: "Male" },
+                  { key: "Female", color: "#ec4899", name: "Female" },
+                ]}
+                height={280}
+              />
+              <div className="border-border mt-4 flex justify-around border-t pt-4">
+                <div className="text-center">
+                  <p data-record="true" className="text-muted text-xs">
+                    Male Avg Rate
+                  </p>
+                  <p className="text-lg font-black text-blue-600 dark:text-blue-400">
+                    {attendanceByGender.maleAttendanceRate}%
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p data-record="true" className="text-muted text-xs">
+                    Female Avg Rate
+                  </p>
+                  <p className="text-lg font-black text-pink-600 dark:text-pink-400">
+                    {attendanceByGender.femaleAttendanceRate}%
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <p data-record="true" className="text-muted text-xs">
-                  Female Avg Rate
-                </p>
-                <p className="text-lg font-black text-pink-600 dark:text-pink-400">
-                  {attendanceByGender.femaleAttendanceRate}%
-                </p>
-              </div>
-            </div>
-          </ChartCard>
+            </ChartCard>
+          )}
 
           {/* Performance by Age */}
           {performanceByAge.length > 0 && (

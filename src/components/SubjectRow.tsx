@@ -81,7 +81,8 @@ export function SubjectRow({
 
   const sbaTotalCount = components.length;
   const sbaScoredCount = components.filter((comp) => comp.score > 0).length;
-  const sbaRawTotal = components.reduce((sum, comp) => sum + comp.score, 0);
+  const sbaRawTotal =
+    Math.round(components.reduce((sum, comp) => sum + comp.score, 0) * 100) / 100;
   const sbaRawMax = components.reduce((sum, comp) => sum + comp.maxScore, 0);
   const sbaPace = calculateSbaPaceStats(components, maxClassScore);
 
@@ -90,12 +91,23 @@ export function SubjectRow({
   const [componentErrors, setComponentErrors] = useState<Record<string, string | null>>({});
   const timersRef = useRef<Record<string, number>>({});
 
-  // Pair active typing draft with committed examScore so external clears resync immediately.
+  // Pair active typing draft with committed score so external clears resync immediately
+  // and trailing decimal states (e.g. "12.", "12.0") aren't swallowed mid-type.
   const [examDraft, setExamDraft] = useState<{ baseScore: number; raw: string } | null>(null);
+  const [classDraft, setClassDraft] = useState<{ baseScore: number; raw: string } | null>(null);
+  const [componentDrafts, setComponentDrafts] = useState<
+    Record<string, { baseScore: number; raw: string }>
+  >({});
   const examRawInput =
     examDraft !== null && examDraft.baseScore === subject.examScore
       ? examDraft.raw
       : getExamRawDisplayValue(subject, maxExamScore);
+  const classScoreDisplay =
+    classDraft !== null && classDraft.baseScore === subject.classScore
+      ? classDraft.raw
+      : subject.classScore === 0
+        ? ""
+        : String(subject.classScore);
 
   useEffect(() => {
     const timers = timersRef.current;
@@ -166,18 +178,27 @@ export function SubjectRow({
 
   const handleClassChange = (value: string) => {
     if (hasComponents) return;
+    clearTimer("classBlur");
 
     if (value === "") {
+      if (classDraft !== null) setClassDraft(null);
       onChange({ ...subject, classScore: 0 });
       setClassScoreError(null);
       return;
     }
 
     if (!/^\d*\.?\d*$/.test(value)) return;
-    const numeric = Number(value);
+    const isIntermediateDecimal =
+      value === "." || value.endsWith(".") || /\.\d*0$/.test(value);
+    const numeric = value === "." ? 0 : Number(value);
     if (!Number.isFinite(numeric)) return;
 
     const { score, wasClamped } = clampDirectClassScore(numeric, maxClassScore);
+    if (isIntermediateDecimal && !wasClamped) {
+      setClassDraft({ baseScore: score, raw: value });
+    } else if (classDraft !== null) {
+      setClassDraft(null);
+    }
 
     if (wasClamped) {
       setClassScoreError(`Max ${maxClassScore}`);
@@ -192,9 +213,12 @@ export function SubjectRow({
 
   const handleComponentChange = (componentId: string, maxScore: number, value: string) => {
     if (!subject.classScoreComponents) return;
+    clearTimer(`compBlur:${componentId}`);
     if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
 
-    const rawScore = value === "" ? 0 : Number(value);
+    const isIntermediateDecimal =
+      value === "." || value.endsWith(".") || /\.\d*0$/.test(value);
+    const rawScore = value === "" || value === "." ? 0 : Number(value);
     if (!Number.isFinite(rawScore)) return;
 
     const { updatedComponents, classScore, wasClamped } = updateComponentAndRecalculateClassScore(
@@ -203,6 +227,20 @@ export function SubjectRow({
       rawScore,
       maxClassScore,
     );
+    const committedCompScore =
+      updatedComponents.find((c) => c.id === componentId)?.score ?? 0;
+
+    setComponentDrafts((prev) => {
+      if (isIntermediateDecimal && !wasClamped) {
+        return { ...prev, [componentId]: { baseScore: committedCompScore, raw: value } };
+      }
+      if (prev[componentId]) {
+        const next = { ...prev };
+        delete next[componentId];
+        return next;
+      }
+      return prev;
+    });
 
     if (wasClamped) {
       setComponentErrors((prev) => ({ ...prev, [componentId]: `Max ${maxScore}` }));
@@ -365,16 +403,22 @@ export function SubjectRow({
                     name={classInputId}
                     ref={(el) => registerInputRef?.("class", el)}
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="decimal"
                     enterKeyHint="next"
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck={false}
                     aria-label={`${subject.name} Class Score`}
-                    value={subject.classScore === 0 ? "" : subject.classScore}
+                    value={classScoreDisplay}
                     onChange={(e) => handleClassChange(e.target.value)}
-                    onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
+                    onBlur={() => {
+                      if (classDraft === null) return;
+                      scheduleTimer("classBlur", () => setClassDraft(null), 180);
+                    }}
+                    onFocus={(e) => {
+                      clearTimer("classBlur");
+                      selectOnDesktopFocus(e.currentTarget);
+                    }}
                     onKeyDown={(e) => handleFieldKeyDown(e, "class")}
                     className={`placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                       classScoreError
@@ -408,8 +452,7 @@ export function SubjectRow({
               name={examInputId}
               ref={(el) => registerInputRef?.("exam", el)}
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="decimal"
               enterKeyHint={isLastRow ? "done" : "next"}
               autoComplete="off"
               autoCorrect="off"
@@ -546,6 +589,13 @@ export function SubjectRow({
             {components.map((component) => {
               const compInputId = `${inputIdPrefix}-sba-${component.id}`;
               const compError = componentErrors[component.id];
+              const compDraft = componentDrafts[component.id];
+              const compDisplay =
+                compDraft && compDraft.baseScore === component.score
+                  ? compDraft.raw
+                  : component.score === 0
+                    ? ""
+                    : String(component.score);
               return (
                 <div
                   key={component.id}
@@ -565,18 +615,34 @@ export function SubjectRow({
                     name={compInputId}
                     ref={(el) => registerInputRef?.(`comp:${component.id}`, el)}
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="decimal"
                     enterKeyHint="next"
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck={false}
                     aria-label={`${subject.name} ${component.name} Score`}
-                    value={component.score === 0 ? "" : component.score}
+                    value={compDisplay}
                     onChange={(e) =>
                       handleComponentChange(component.id, component.maxScore, e.target.value)
                     }
-                    onFocus={(e) => selectOnDesktopFocus(e.currentTarget)}
+                    onBlur={() => {
+                      if (!componentDrafts[component.id]) return;
+                      scheduleTimer(
+                        `compBlur:${component.id}`,
+                        () =>
+                          setComponentDrafts((prev) => {
+                            if (!prev[component.id]) return prev;
+                            const next = { ...prev };
+                            delete next[component.id];
+                            return next;
+                          }),
+                        180,
+                      );
+                    }}
+                    onFocus={(e) => {
+                      clearTimer(`compBlur:${component.id}`);
+                      selectOnDesktopFocus(e.currentTarget);
+                    }}
                     onKeyDown={(e) => handleFieldKeyDown(e, `comp:${component.id}`)}
                     className={`bg-input text-main placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-md border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:h-9 sm:text-sm ${
                       compError

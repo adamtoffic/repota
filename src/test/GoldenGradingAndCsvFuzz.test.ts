@@ -217,7 +217,14 @@ describe("Golden GES Grading Scenarios across School Modes", () => {
           examType: "MOCK",
           classScoreMax: 0,
           examScoreMax: 100,
-          defaultSubjects: ["English Language", "Mathematics", "Integrated Science", "Social Studies"],
+          defaultSubjects: [
+            "English Language",
+            "Mathematics",
+            "Integrated Science",
+            "Social Studies",
+            "Computing",
+            "R.M.E",
+          ],
         }),
         students: [
           {
@@ -229,6 +236,8 @@ describe("Golden GES Grading Scenarios across School Modes", () => {
               makeSubject("m2", "Mathematics", 0, 91, { classScoreMax: 0, examScoreMax: 100 }),
               makeSubject("m3", "Integrated Science", 0, 82, { classScoreMax: 0, examScoreMax: 100 }),
               makeSubject("m4", "Social Studies", 0, 82, { classScoreMax: 0, examScoreMax: 100 }),
+              makeSubject("m9", "Computing", 0, 90, { classScoreMax: 0, examScoreMax: 100 }),
+              makeSubject("m10", "R.M.E", 0, 85, { classScoreMax: 0, examScoreMax: 100 }),
             ],
           },
           {
@@ -240,11 +249,13 @@ describe("Golden GES Grading Scenarios across School Modes", () => {
               makeSubject("m6", "Mathematics", 0, 91, { classScoreMax: 0, examScoreMax: 100 }),
               makeSubject("m7", "Integrated Science", 0, 82, { classScoreMax: 0, examScoreMax: 100 }),
               makeSubject("m8", "Social Studies", 0, 82, { classScoreMax: 0, examScoreMax: 100 }),
+              makeSubject("m11", "Computing", 0, 90, { classScoreMax: 0, examScoreMax: 100 }),
+              makeSubject("m12", "R.M.E", 0, 85, { classScoreMax: 0, examScoreMax: 100 }),
             ],
           },
         ],
         expectedFirstPosition: "1st",
-        expectedAggregate: 6,
+        expectedAggregate: 9,
         expectedTopGrade: 1,
       },
       {
@@ -275,7 +286,7 @@ describe("Golden GES Grading Scenarios across School Modes", () => {
           },
         ],
         expectedFirstPosition: "1st",
-        expectedAggregate: 3,
+        expectedAggregate: null,
         expectedTopGrade: 1,
       },
     ];
