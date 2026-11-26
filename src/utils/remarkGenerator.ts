@@ -31,19 +31,22 @@ const getSmartRandom = (pool: string[], excludeList: string[] = [], seed?: strin
 // 1. TEACHER REMARK
 /**
  * Selects a remark matching the student's score/attendance tier from `REMARK_BANK`.
- * `EXCELLENT` requires `averageScore >= 80` and attendance `>= 90%` (`attendanceTotal <= 0` defaults to `100%`).
+ * `EXCELLENT` requires `averageScore >= 80` and attendance `>= 90%` (`attendancePresent === undefined`
+ * or `attendanceTotal <= 0` defaults to `100%` so unrecorded attendance does not penalize praise).
  * Unknown `level` values fall back to `"PRIMARY"`; avoids entries in `excludeList` until the tier pool is exhausted.
  */
 export const generateTeacherRemark = (
   student: ProcessedStudent,
-  attendancePresent: number,
+  attendancePresent: number | undefined,
   attendanceTotal: number,
   level: SchoolLevel,
   excludeList: string[] = [],
 ): string => {
   const average = student.averageScore;
   const attendancePercentage =
-    attendanceTotal > 0 ? (attendancePresent / attendanceTotal) * 100 : 100;
+    attendancePresent === undefined || attendanceTotal <= 0
+      ? 100
+      : (attendancePresent / attendanceTotal) * 100;
 
   // Fallback to PRIMARY if level key is missing
   const safeLevel = REMARK_BANK[level] ? level : "PRIMARY";

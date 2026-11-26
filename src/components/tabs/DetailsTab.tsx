@@ -39,7 +39,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
     className: student.className,
     dateOfBirth: student.dateOfBirth || "",
     gender: student.gender || "",
-    attendancePresent: student.attendancePresent || 0,
+    attendancePresent: student.attendancePresent as number | undefined,
     conduct: student.conduct || "",
     interest: student.interest || "",
     teacherRemark: student.teacherRemark || "",
@@ -117,7 +117,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
   const handleAttendanceChange = (value: string) => {
     if (value === "") {
       setAttendanceHint(null);
-      handleImmediateSave({ attendancePresent: 0 });
+      handleImmediateSave({ attendancePresent: undefined });
       return;
     }
 
@@ -176,11 +176,11 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
   };
 
   const attendancePct =
-    formData.attendancePresent > 0
+    formData.attendancePresent !== undefined
       ? Math.round((formData.attendancePresent / totalDays) * 100)
       : 0;
   const attendanceRating =
-    formData.attendancePresent > 0 ? generateAttendanceRating(attendancePct) : null;
+    formData.attendancePresent !== undefined ? generateAttendanceRating(attendancePct) : null;
 
   const attendanceInputId = `${fieldPrefix}-attendance`;
   const promotionSelectId = `${fieldPrefix}-promotion`;
@@ -317,7 +317,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
-                value={formData.attendancePresent === 0 ? "" : formData.attendancePresent}
+                value={formData.attendancePresent === undefined ? "" : formData.attendancePresent}
                 onChange={(e) => handleAttendanceChange(e.target.value)}
                 onFocus={(e) => {
                   if (window.matchMedia?.("(pointer: fine)")?.matches) {
@@ -325,7 +325,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                   }
                 }}
                 className="border-border-strong bg-input text-main placeholder:text-muted focus:border-primary-text focus:ring-primary-text/30 h-11 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-3.5 pr-16 font-mono text-base font-bold transition-colors outline-none focus:ring-2 sm:h-[42px] sm:text-sm"
-                placeholder="0"
+                placeholder="-"
               />
               <span className="text-muted pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs tabular-nums">
                 / {totalDays}

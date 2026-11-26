@@ -286,8 +286,8 @@ export function reconcileStudentsWithSbaConfig(
 
       const totalScore = syncedComponents.reduce((sum, comp) => sum + comp.score, 0);
       const totalMax = syncedComponents.reduce((sum, comp) => sum + comp.maxScore, 0);
-      const percentage = totalMax > 0 ? totalScore / totalMax : 0;
-      const convertedClassScore = Math.round(percentage * settings.classScoreMax);
+      const convertedClassScore =
+        totalMax > 0 ? Math.round((totalScore * settings.classScoreMax) / totalMax) : 0;
 
       if (subject.classScore !== convertedClassScore) {
         subjectModified = true;
@@ -427,7 +427,7 @@ export function countAffectedStudentsForWeightChange(
           const totalActual = sub.classScoreComponents.reduce((sum, c) => sum + c.score, 0);
           const totalMax = sub.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0);
           const nextScaled =
-            nextClassMax > 0 && totalMax > 0 ? Math.round((totalActual / totalMax) * nextClassMax) : 0;
+            nextClassMax > 0 && totalMax > 0 ? Math.round((totalActual * nextClassMax) / totalMax) : 0;
           if (sub.classScore !== nextScaled) {
             studentAffected = true;
             break;
@@ -476,7 +476,7 @@ export function rescaleStudentsForWeightChange(
           const totalActual = sub.classScoreComponents.reduce((sum, c) => sum + c.score, 0);
           const totalMax = sub.classScoreComponents.reduce((sum, c) => sum + c.maxScore, 0);
           nextClassScore =
-            nextClassMax > 0 && totalMax > 0 ? Math.round((totalActual / totalMax) * nextClassMax) : 0;
+            nextClassMax > 0 && totalMax > 0 ? Math.round((totalActual * nextClassMax) / totalMax) : 0;
           nextSavedDirectClassScore = undefined;
           nextSavedDirectClassScoreMax = undefined;
         } else if (nextClassMax === 0 && prevClassMax > 0) {
@@ -495,7 +495,7 @@ export function rescaleStudentsForWeightChange(
               mode === "rescale"
                 ? Math.min(
                     nextClassMax,
-                    Math.max(0, Math.round((sub.savedDirectClassScore / sourceMax) * nextClassMax)),
+                    Math.max(0, Math.round((sub.savedDirectClassScore * nextClassMax) / sourceMax)),
                   )
                 : Math.min(Math.max(sub.savedDirectClassScore, 0), nextClassMax);
             nextSavedDirectClassScore = undefined;
@@ -506,7 +506,7 @@ export function rescaleStudentsForWeightChange(
         } else if (mode === "rescale" && prevClassMax > 0) {
           nextClassScore = Math.min(
             nextClassMax,
-            Math.max(0, Math.round((sub.classScore / prevClassMax) * nextClassMax)),
+            Math.max(0, Math.round((sub.classScore * nextClassMax) / prevClassMax)),
           );
           nextSavedDirectClassScore = undefined;
           nextSavedDirectClassScoreMax = undefined;
@@ -526,7 +526,7 @@ export function rescaleStudentsForWeightChange(
           } else if (prevExamMax > 0 && nextExamMax > 0) {
             nextExamScore = Math.min(
               nextExamMax,
-              Math.max(0, Math.round((sub.examScore / prevExamMax) * nextExamMax)),
+              Math.max(0, Math.round((sub.examScore * nextExamMax) / prevExamMax)),
             );
             nextExamRawScore = undefined;
           } else {
@@ -535,9 +535,8 @@ export function rescaleStudentsForWeightChange(
           }
         } else {
           nextExamScore = Math.min(Math.max(sub.examScore, 0), nextExamMax);
-          if (nextExamScore !== sub.examScore || nextExamScore === 0) {
-            nextExamRawScore = undefined;
-          }
+          // Clamp preserves the weighted number, which shifts its effective /100 meaning
+          nextExamRawScore = undefined;
         }
       }
 
@@ -614,14 +613,15 @@ export function calculateSbaPaceStats(
     }
   }
 
-  const scaledClassScore = rawMax > 0 ? Math.round((rawSum / rawMax) * maxClassScore) : 0;
-  const pacePercent = gradedMax > 0 ? Math.round((rawSum / gradedMax) * 100) : null;
+  const roundedRawSum = Math.round(rawSum * 100) / 100;
+  const scaledClassScore = rawMax > 0 ? Math.round((roundedRawSum * maxClassScore) / rawMax) : 0;
+  const pacePercent = gradedMax > 0 ? Math.round((roundedRawSum * 100) / gradedMax) : null;
   const isPartialMidTerm = gradedTasks > 0 && gradedTasks < totalTasks;
 
   return {
     totalTasks,
     gradedTasks,
-    rawSum,
+    rawSum: roundedRawSum,
     rawMax,
     gradedMax,
     scaledClassScore,

@@ -23,7 +23,7 @@ export function applyAutoRemarksToStudents(
 
     const teacherRemark = generateTeacherRemark(
       processed,
-      student.attendancePresent ?? 0,
+      student.attendancePresent,
       settings.totalAttendanceDays ?? 0,
       settings.level,
       usedTeacherRemarks,

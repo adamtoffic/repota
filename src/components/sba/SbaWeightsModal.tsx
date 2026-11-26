@@ -52,6 +52,13 @@ function SbaWeightsModalContent({
 
   const targetClassMax = examType === "MOCK" ? 0 : classMax;
   const targetExamMax = examType === "MOCK" ? 100 : examMax;
+  const isValidTermlySplit =
+    examType === "MOCK" ||
+    (targetClassMax >= 1 &&
+      targetClassMax <= 90 &&
+      targetExamMax >= 10 &&
+      targetExamMax <= 99 &&
+      targetClassMax + targetExamMax === 100);
 
   const affectedStudentsCount = countAffectedStudentsForWeightChange(
     students,
@@ -79,7 +86,7 @@ function SbaWeightsModalContent({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (disabled) return;
+    if (disabled || !isValidTermlySplit) return;
     onApplyWeights(targetClassMax, targetExamMax, { examType, scoreMode });
     onClose();
   };
@@ -209,8 +216,8 @@ function SbaWeightsModalContent({
                     label="Continuous Assessment %"
                     type="number"
                     inputMode="numeric"
-                    min={0}
-                    max={100}
+                    min={1}
+                    max={90}
                     disabled={disabled}
                     value={classMax}
                     onChange={(e) => handleClassChange(e.target.value)}
@@ -222,8 +229,8 @@ function SbaWeightsModalContent({
                     label="Examination %"
                     type="number"
                     inputMode="numeric"
-                    min={0}
-                    max={100}
+                    min={10}
+                    max={99}
                     disabled={disabled}
                     value={examMax}
                     onChange={(e) => handleExamChange(e.target.value)}
@@ -231,6 +238,15 @@ function SbaWeightsModalContent({
                   />
                 </div>
               </div>
+              {!isValidTermlySplit && (
+                <p
+                  role="alert"
+                  className="text-xs font-semibold text-red-600 dark:text-red-400"
+                >
+                  Termly weights require Class Work 1–90% and Exam 10–99%. Use Mock Exam mode for
+                  0/100.
+                </p>
+              )}
             </>
           ) : (
             <div className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/40 dark:text-amber-200">
@@ -287,7 +303,12 @@ function SbaWeightsModalContent({
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm" disabled={disabled}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={disabled || !isValidTermlySplit}
+          >
             Apply Grading Split
           </Button>
         </div>

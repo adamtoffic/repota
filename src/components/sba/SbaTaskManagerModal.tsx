@@ -325,23 +325,43 @@ function SbaTaskManagerModalContent({
     const nextTasks = currentTasks.filter(
       (t) => normalizeTaskKey(t.name) !== normalizeTaskKey(taskName),
     );
-    const impact = impactOfSbaTaskChange(students, targetSubjects, {
+    const deleteImpact = impactOfSbaTaskChange(students, targetSubjects, {
       type: "delete_task",
       taskName,
     });
+    const uniformImpact =
+      scope === "ALL" && !uniformState.isUniform
+        ? impactOfSbaTaskChange(students, targetSubjects, {
+            type: "replace_all",
+            nextTasks,
+          })
+        : { affectedStudentCount: 0, affectedScoreCount: 0 };
+
+    const totalAffectedStudents = Math.max(
+      deleteImpact.affectedStudentCount,
+      uniformImpact.affectedStudentCount,
+    );
+    const totalAffectedScores = Math.max(
+      deleteImpact.affectedScoreCount,
+      uniformImpact.affectedScoreCount,
+    );
 
     commitOrConfirm(
       {
         title: `Remove "${taskName}"?`,
         warning: `Removing "${taskName}" will delete student marks entered for this task${
           nextTasks.length === 0 ? " (existing total class scores will be preserved)" : ""
+        }${
+          uniformImpact.affectedStudentCount > 0 && deleteImpact.affectedStudentCount === 0
+            ? " and overwrite subject-specific overrides"
+            : ""
         }.`,
         nextMap: buildNextMapForTargets(nextTasks),
         onClearTasks: "preserve_class_score",
         toastMessage: `Removed "${taskName}"`,
       },
-      impact.affectedStudentCount,
-      impact.affectedScoreCount,
+      totalAffectedStudents,
+      totalAffectedScores,
     );
   };
 
