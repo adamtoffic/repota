@@ -134,32 +134,36 @@ export function AnalyticsDemographicsTab({
       {/* Gender Breakdown Table */}
       {ageDistribution.length > 0 && (
         <Card>
-          <h3 data-record="true" className="text-main mb-4 text-base font-bold sm:text-lg">
+          <h2 data-record="true" className="text-main mb-4 text-base font-bold sm:text-lg">
             Gender Breakdown by Age
-          </h3>
+          </h2>
           <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
             <table className="w-full min-w-100">
               <thead className="bg-subtle">
                 <tr className="border-border border-b">
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
                     Age Range
                   </th>
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
                     Male
                   </th>
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
                     Female
                   </th>
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >

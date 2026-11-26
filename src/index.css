@@ -85,6 +85,10 @@
     color: var(--text-primary);
   }
 
+  :where(a, button) {
+    touch-action: manipulation;
+  }
+
   :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
     outline: 2px solid var(--brand-primary-text);
     outline-offset: 2px;

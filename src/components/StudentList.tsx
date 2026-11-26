@@ -311,22 +311,22 @@ export function StudentList({
         <table className="w-full min-w-176 text-left text-sm">
           <thead className="bg-subtle text-secondary sticky top-0 z-10 text-xs font-bold uppercase shadow-sm">
             <tr>
-              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+              <th scope="col" className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Name
               </th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+              <th scope="col" className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Class
               </th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+              <th scope="col" className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Subjects
               </th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+              <th scope="col" className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Avg. Score
               </th>
-              <th className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
+              <th scope="col" className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Position
               </th>
-              <th className="px-4 py-3 text-right sm:px-6 sm:py-4" data-record="true">
+              <th scope="col" className="px-4 py-3 text-right sm:px-6 sm:py-4" data-record="true">
                 Actions
               </th>
             </tr>
@@ -345,9 +345,15 @@ export function StudentList({
             ) : (
               <>
                 {/* Spacer for virtual scroll positioning */}
-                {rowVirtualizer.getVirtualItems().length > 0 && (
-                  <tr style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }} />
-                )}
+                {rowVirtualizer.getVirtualItems().length > 0 &&
+                  rowVirtualizer.getVirtualItems()[0].start > 0 && (
+                    <tr
+                      aria-hidden="true"
+                      style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }}
+                    >
+                      <td colSpan={6} className="p-0" />
+                    </tr>
+                  )}
 
                 {/* Only render visible rows */}
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -378,10 +384,12 @@ export function StudentList({
                         {student.averageScore > 0 ? `${student.averageScore}%` : "-"}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
-                        {student.classPosition.toLowerCase() !== "pending..." && (
+                        {student.classPosition.toLowerCase() !== "pending..." ? (
                           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
                             {student.classPosition}
                           </span>
+                        ) : (
+                          <span className="text-muted">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
@@ -431,18 +439,26 @@ export function StudentList({
                 })}
 
                 {/* Bottom spacer for virtual scroll */}
-                {rowVirtualizer.getVirtualItems().length > 0 && (
-                  <tr
-                    style={{
-                      height: `${
-                        rowVirtualizer.getTotalSize() -
-                        (rowVirtualizer.getVirtualItems()[
-                          rowVirtualizer.getVirtualItems().length - 1
-                        ]?.end || 0)
-                      }px`,
-                    }}
-                  />
-                )}
+                {rowVirtualizer.getVirtualItems().length > 0 &&
+                  rowVirtualizer.getTotalSize() -
+                    (rowVirtualizer.getVirtualItems()[
+                      rowVirtualizer.getVirtualItems().length - 1
+                    ]?.end || 0) >
+                    0 && (
+                    <tr
+                      aria-hidden="true"
+                      style={{
+                        height: `${
+                          rowVirtualizer.getTotalSize() -
+                          (rowVirtualizer.getVirtualItems()[
+                            rowVirtualizer.getVirtualItems().length - 1
+                          ]?.end || 0)
+                        }px`,
+                      }}
+                    >
+                      <td colSpan={6} className="p-0" />
+                    </tr>
+                  )}
               </>
             )}
           </tbody>

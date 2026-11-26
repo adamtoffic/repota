@@ -50,10 +50,10 @@ export function AnalyticsInsightsTab({
         <div className="rounded-xl border border-indigo-200 bg-linear-to-br from-indigo-50 via-white to-purple-50 p-5 shadow-sm sm:p-6 dark:border-indigo-800/70 dark:from-indigo-950/60 dark:via-slate-900 dark:to-purple-950/50">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 data-record="true" className="text-main flex items-center gap-2 text-lg font-black">
+              <h2 data-record="true" className="text-main flex items-center gap-2 text-lg font-black">
                 <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                 AI Class Story &amp; Intervention Brief
-              </h3>
+              </h2>
               <p className="mt-1 text-sm font-bold text-indigo-950 dark:text-indigo-200">
                 {classStory.headline}
               </p>
@@ -77,12 +77,12 @@ export function AnalyticsInsightsTab({
 
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800/70 dark:bg-emerald-950/40">
-              <h4
+              <h3
                 data-record="true"
                 className="mb-2 text-xs font-black tracking-wider text-emerald-900 uppercase dark:text-emerald-200"
               >
                 What&apos;s Working
-              </h4>
+              </h3>
               <ul className="space-y-1.5 text-xs text-emerald-950 dark:text-emerald-200/90">
                 {classStory.strengths.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
@@ -94,12 +94,12 @@ export function AnalyticsInsightsTab({
             </div>
 
             <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-800/70 dark:bg-amber-950/40">
-              <h4
+              <h3
                 data-record="true"
                 className="mb-2 text-xs font-black tracking-wider text-amber-900 uppercase dark:text-amber-200"
               >
                 Watchouts
-              </h4>
+              </h3>
               {classStory.watchouts.length > 0 ? (
                 <ul className="space-y-1.5 text-xs text-amber-950 dark:text-amber-200/90">
                   {classStory.watchouts.map((item, idx) => (
@@ -119,12 +119,12 @@ export function AnalyticsInsightsTab({
 
           {/* Prioritized Next-Week Action Plan */}
           <div className="mt-5 space-y-2.5">
-            <h4
+            <h3
               data-record="true"
               className="text-muted text-xs font-black tracking-wider uppercase"
             >
               Prioritized Teacher Action Plan
-            </h4>
+            </h3>
             {classStory.actionPlan.map((step, idx) => (
               <div
                 key={idx}
@@ -165,13 +165,13 @@ export function AnalyticsInsightsTab({
       {/* Borderline "One Push Away" Cohort */}
       {borderlineStudents.length > 0 && (
         <Card>
-          <h3
+          <h2
             data-record="true"
             className="text-main mb-2 flex items-center gap-2 text-base font-bold sm:text-lg"
           >
             <Target className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             Borderline Cohort (42%–54%): Highest Coaching ROI
-          </h3>
+          </h2>
           <p className="text-muted mb-4 text-xs">
             Students sitting right near the 50% pass threshold and their lowest subjects.
           </p>
@@ -200,13 +200,13 @@ export function AnalyticsInsightsTab({
       {sbaVsExam.available &&
         (sbaVsExam.examUnderperformers.length > 0 || sbaVsExam.lowClassworkStudents.length > 0) && (
           <Card>
-            <h3
+            <h2
               data-record="true"
               className="text-main mb-2 flex items-center gap-2 text-base font-bold sm:text-lg"
             >
               <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               SBA Classwork vs. Exam Discrepancy Spotlight
-            </h3>
+            </h2>
             <p className="text-muted mb-4 text-xs">
               Detects students whose classwork performance differs sharply (18+ pts) from their exam
               scores.
@@ -260,13 +260,13 @@ export function AnalyticsInsightsTab({
       {atRiskStudents.length > 0 && (
         <Card>
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3
+            <h2
               data-record="true"
               className="text-main flex items-center gap-2 text-base font-bold sm:text-lg"
             >
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
               Students Requiring Immediate Attention
-            </h3>
+            </h2>
             <button
               type="button"
               onClick={onReviewStudents}
@@ -325,13 +325,13 @@ export function AnalyticsInsightsTab({
 
       {/* Performance Quartiles */}
       <Card>
-        <h3
+        <h2
           data-record="true"
           className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
         >
           <Brain className="h-5 w-5" />
           Performance Distribution Analysis
-        </h3>
+        </h2>
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-lg bg-green-50 p-4 text-center dark:border dark:border-emerald-800/70 dark:bg-emerald-950/50">
             <p
@@ -382,13 +382,13 @@ export function AnalyticsInsightsTab({
         {/* Struggling Students */}
         {performanceQuartiles.strugglingStudents.length > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800/70 dark:bg-amber-950/35">
-            <h4
+            <h3
               data-record="true"
               className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-200"
             >
               <AlertTriangle className="h-4 w-4" />
               Students Needing Support
-            </h4>
+            </h3>
             <div className="space-y-2">
               {performanceQuartiles.strugglingStudents.map((student) => (
                 <div
@@ -411,13 +411,13 @@ export function AnalyticsInsightsTab({
 
       {/* Attendance Insights */}
       <Card>
-        <h3
+        <h2
           data-record="true"
           className="text-main mb-4 flex items-center gap-2 text-base font-bold sm:text-lg"
         >
           <Activity className="h-5 w-5" />
           Attendance &amp; Performance Correlation
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-lg bg-green-50 p-4 dark:border dark:border-emerald-800/70 dark:bg-emerald-950/50">
             <p
@@ -478,13 +478,13 @@ export function AnalyticsInsightsTab({
 
       {/* Key Recommendations */}
       <div className="rounded-xl border border-blue-200 bg-linear-to-br from-blue-50 to-purple-50 p-6 shadow-sm dark:border-blue-800/70 dark:from-blue-950/50 dark:to-purple-950/50">
-        <h3
+        <h2
           data-record="true"
           className="text-main mb-4 flex items-center gap-2 text-lg font-bold"
         >
           <Brain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           AI-Powered Recommendations
-        </h3>
+        </h2>
         <div className="space-y-3">
           {classMetrics.passRate < 70 && (
             <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
@@ -499,7 +499,7 @@ export function AnalyticsInsightsTab({
           )}
           {subjectInsights.needsAttention.length > 0 && (
             <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
-              <p className="mb-1 text-sm font-bold text-amber-600 dark:text-amber-400">
+              <p className="mb-1 text-sm font-bold text-amber-700 dark:text-amber-400">
                 📚 Subjects Need Attention
               </p>
               <p className="text-secondary text-sm">

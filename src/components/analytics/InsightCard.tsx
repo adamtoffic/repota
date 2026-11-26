@@ -21,14 +21,14 @@ const variantStyles = {
     bg: "bg-green-50/50 dark:bg-emerald-950/40",
     titleColor: "text-green-900 dark:text-emerald-200",
     itemColor: "text-green-800 dark:text-emerald-300",
-    valueColor: "text-green-600 dark:text-emerald-400",
+    valueColor: "text-green-700 dark:text-emerald-400",
   },
   warning: {
     border: "border-amber-200 dark:border-amber-800/70",
     bg: "bg-amber-50/50 dark:bg-amber-950/40",
     titleColor: "text-amber-900 dark:text-amber-200",
     itemColor: "text-amber-800 dark:text-amber-300",
-    valueColor: "text-amber-600 dark:text-amber-400",
+    valueColor: "text-amber-700 dark:text-amber-400",
   },
   danger: {
     border: "border-red-200 dark:border-red-800/70",
@@ -50,13 +50,13 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
   return (
     <div className={`rounded-xl border ${styles.border} ${styles.bg} p-4 shadow-sm sm:p-6`}>
-      <h4
+      <h2
         className={`mb-3 flex items-center gap-2 text-sm font-bold ${styles.titleColor}`}
         data-record="true"
       >
         <Icon className="h-4 w-4" />
         {title}
-      </h4>
+      </h2>
       <div className="space-y-2">
         {items.length > 0
           ? items.map((item, idx) => (

@@ -102,7 +102,8 @@ describe("PostHog configuration", () => {
     });
 
     // Dynamic numeric values in DashboardStats must NOT have data-record="true"
-    const values = dashboardStatsContainer.querySelectorAll("h3");
+    const values = dashboardStatsContainer.querySelectorAll('[data-stat-value="true"]');
+    expect(values.length).toBeGreaterThan(0);
     values.forEach((valEl) => {
       expect(valEl.closest('[data-record="true"]')).toBeNull();
       const text = valEl.textContent || "";
@@ -128,7 +129,7 @@ describe("PostHog configuration", () => {
         <div className="sensitive-chart-content">Grade A: 15 students</div>
       </ChartCard>,
     );
-    const chartTitleEl = chartCardContainer.querySelector('h3[data-record="true"]');
+    const chartTitleEl = chartCardContainer.querySelector('h2[data-record="true"]');
     expect(chartTitleEl).toBeInTheDocument();
     expect(chartTitleEl?.textContent).toContain("Grade Distribution");
     expect(maskTextFn("Grade Distribution", chartTitleEl)).toBe("Grade Distribution");
@@ -146,7 +147,7 @@ describe("PostHog configuration", () => {
         items={[{ name: "Mathematics", value: "85%" }]}
       />,
     );
-    const insightTitleEl = insightCardContainer.querySelector('h4[data-record="true"]');
+    const insightTitleEl = insightCardContainer.querySelector('h2[data-record="true"]');
     expect(insightTitleEl).toBeInTheDocument();
     expect(insightTitleEl?.textContent).toContain("Strongest Subjects");
     expect(maskTextFn("Strongest Subjects", insightTitleEl)).toBe("Strongest Subjects");

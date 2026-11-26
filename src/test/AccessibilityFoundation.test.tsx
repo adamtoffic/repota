@@ -183,11 +183,25 @@ describe("Accessibility foundation (WCAG P0)", () => {
       const main = container.querySelector("main#main-content");
       expect(main).not.toBeNull();
       expect(container.querySelectorAll("h1")).toHaveLength(1);
+      if (to === "/" || to === "/analytics") {
+        const headings = Array.from(container.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+        let prevLevel = 0;
+        for (const h of headings) {
+          const level = Number(h.tagName.slice(1));
+          expect(level).toBeLessThanOrEqual(prevLevel + 1);
+          prevLevel = level;
+        }
+      }
       if (to === "/") {
         const interactiveInsideSrOnly = Array.from(main!.querySelectorAll("a, button")).filter(
           (el) => el.closest(".sr-only, .max-md\\:sr-only"),
         );
         expect(interactiveInsideSrOnly).toHaveLength(0);
+
+        const sidebar = screen.getByLabelText("Sidebar navigation");
+        const countBadge = within(sidebar).getByText(String(demoStudents.length));
+        expect(countBadge.className).toContain("bg-black/25");
+        expect(countBadge.className).not.toContain("bg-white/20");
       }
     }
 
@@ -236,6 +250,11 @@ describe("Accessibility foundation (WCAG P0)", () => {
       renderAppAt("/");
 
       const table = await screen.findByRole("table");
+      const headers = Array.from(table.querySelectorAll("th"));
+      expect(headers.length).toBeGreaterThan(0);
+      headers.forEach((th) => {
+        expect(th).toHaveAttribute("scope", "col");
+      });
       expect(
         within(table).getByRole("button", { name: "Edit scores for Ama Mensah" }),
       ).toBeInTheDocument();

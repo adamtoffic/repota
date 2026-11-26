@@ -416,9 +416,9 @@ export const Analytics: React.FC = () => {
           <h1 className="sr-only">Advanced Analytics</h1>
           <Card padding="lg" className="text-center">
             <BarChart3 size={48} className="text-muted mx-auto mb-4" />
-            <h3 data-record="true" className="text-main mb-2 text-lg font-bold sm:text-xl">
+            <h2 data-record="true" className="text-main mb-2 text-lg font-bold sm:text-xl">
               No Data Available
-            </h3>
+            </h2>
             <p data-record="true" className="text-muted text-sm sm:text-base">
               Add students and their scores to view advanced analytics
             </p>

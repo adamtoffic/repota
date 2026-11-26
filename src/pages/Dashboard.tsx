@@ -383,9 +383,9 @@ export function Dashboard() {
                   <HelpCircle className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-main font-bold" data-record="true">
+                  <h2 className="text-main font-bold" data-record="true">
                     Need help getting started?
-                  </h3>
+                  </h2>
                   <p className="text-muted mt-1 text-sm leading-relaxed" data-record="true">
                     Add your first student or reach out on WhatsApp if you&apos;re stuck.
                   </p>
@@ -574,9 +574,9 @@ export function Dashboard() {
                   <div className="bg-subtle mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
                     <X className="text-muted h-7 w-7" />
                   </div>
-                  <h3 className="text-main text-lg font-bold" data-record="true">
+                  <h2 className="text-main text-lg font-bold" data-record="true">
                     No students found
-                  </h3>
+                  </h2>
                   <p className="text-muted mt-1 text-sm">
                     No results for "{searchQuery}" in{" "}
                     {activeFilter === "ALL"

@@ -38,10 +38,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   return (
     <div className="border-border bg-surface rounded-xl border p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-main flex items-center gap-2 text-base font-bold" data-record="true">
+        <h2 className="text-main flex items-center gap-2 text-base font-bold" data-record="true">
           <Filter className="h-4 w-4" />
           Filters
-        </h3>
+        </h2>
         {hasActiveFilters && (
           <button
             type="button"

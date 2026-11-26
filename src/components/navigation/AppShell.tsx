@@ -41,7 +41,7 @@ function SidebarStudentCountBadge() {
   const students = useSchoolStudents();
   if (students.length === 0) return null;
   return (
-    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+    <span className="rounded-full bg-black/25 px-2 py-0.5 text-xs font-semibold">
       {students.length}
     </span>
   );
