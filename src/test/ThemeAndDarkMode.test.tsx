@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import React from "react";
 import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
@@ -302,6 +304,42 @@ describe("Theme system and Dark Mode invariants", () => {
       expect(document.documentElement.style.colorScheme).toBe("light");
       expect(document.documentElement.dataset.theme).toBe("light");
       expect(meta.getAttribute("content")).toBe("#FFFFFF");
+    });
+
+    it("configures index.html iOS status bar style to default and re-inserts meta[name=theme-color] for WebKit repaints", () => {
+      const html = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf8");
+      const statusMetaMatch = html.match(
+        /<meta\s+name="apple-mobile-web-app-status-bar-style"\s+content="([^"]+)"/i,
+      );
+      expect(statusMetaMatch).not.toBeNull();
+      expect(statusMetaMatch![1]).toBe("default");
+      expect(statusMetaMatch![1]).not.toBe("black");
+      expect(statusMetaMatch![1]).not.toBe("black-translucent");
+
+      const meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      meta.setAttribute("content", LIGHT_THEME_COLOR);
+      document.head.appendChild(meta);
+
+      const insertSpy = vi.spyOn(document.head, "insertBefore");
+      try {
+        applyThemeToDocument("dark");
+        expect(insertSpy).toHaveBeenCalledTimes(1);
+        expect(insertSpy.mock.calls[0][0]).toBe(meta);
+        expect(document.head.querySelector('meta[name="theme-color"]')).toBe(meta);
+        expect(meta.getAttribute("content")).toBe(DARK_THEME_COLOR);
+
+        // No redundant DOM re-insertion when color is already up to date
+        applyThemeToDocument("dark");
+        expect(insertSpy).toHaveBeenCalledTimes(1);
+
+        applyThemeToDocument("light");
+        expect(insertSpy).toHaveBeenCalledTimes(2);
+        expect(document.head.querySelector('meta[name="theme-color"]')).toBe(meta);
+        expect(meta.getAttribute("content")).toBe(LIGHT_THEME_COLOR);
+      } finally {
+        insertSpy.mockRestore();
+      }
     });
   });
 

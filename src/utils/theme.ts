@@ -88,9 +88,18 @@ export function applyThemeToDocument(resolved: ResolvedTheme): void {
   root.style.colorScheme = resolved;
   root.dataset.theme = resolved;
 
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) {
-    meta.setAttribute("content", isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+  const nextThemeColor = isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR;
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (meta && meta.getAttribute("content") !== nextThemeColor) {
+    meta.setAttribute("content", nextThemeColor);
+    // Re-insert the same meta node so iOS Safari / WebKit fires themeColorChanged()
+    // and repaints the Dynamic Island / top safe area immediately on live theme toggles.
+    const parent = meta.parentNode;
+    if (parent) {
+      const nextSibling = meta.nextSibling;
+      parent.removeChild(meta);
+      parent.insertBefore(meta, nextSibling);
+    }
   }
 }
 
