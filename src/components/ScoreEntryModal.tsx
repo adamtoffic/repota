@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import {
   AlertTriangle,
   BookOpen,
@@ -13,6 +13,7 @@ import {
 import type { ProcessedStudent, SchoolLevel, StudentRecord } from "../types";
 import { AcademicTab } from "./tabs/AcademicTab";
 import { DetailsTab } from "./tabs/DetailsTab";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 import { useSwipe } from "../hooks/useSwipe";
 import { useSchoolLifecycle, useSchoolSettings } from "../hooks/useSchoolData";
@@ -224,6 +225,9 @@ export function ScoreEntryModal({
 
   const modalContentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const tabIdPrefix = useId();
+  const academicTabRef = useRef<HTMLButtonElement>(null);
+  const detailsTabRef = useRef<HTMLButtonElement>(null);
 
   const isMockExam = settings.examType === "MOCK";
 
@@ -287,18 +291,19 @@ export function ScoreEntryModal({
     }
   }, [isOpen, student.id, activeTab]);
 
-  // Keyboard shortcuts (Escape guarded when inner ConfirmModal is open; Cmd/Ctrl + Arrows navigate).
+  // Keyboard navigation shortcuts (Cmd/Ctrl + Arrows navigate between students; Escape handled by useDialogA11y stack).
+  useDialogA11y({
+    isOpen,
+    onClose,
+    dialogRef: modalContentRef,
+    closeOnEscape: !hasNestedModal,
+    lockScroll: false,
+  });
+
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (hasNestedModal) return;
-        e.preventDefault();
-        onClose();
-        return;
-      }
-
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (hasNestedModal || !hasNavigation || !allStudents || !onNavigate) return;
 
       if ((e.metaKey || e.ctrlKey) && e.key === "ArrowLeft" && hasPrevious) {
@@ -314,7 +319,6 @@ export function ScoreEntryModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     isOpen,
-    onClose,
     hasNestedModal,
     hasNavigation,
     hasPrevious,
@@ -358,6 +362,31 @@ export function ScoreEntryModal({
       student.classPosition.toLowerCase() !== "pending...",
   );
 
+  const academicTabId = `${tabIdPrefix}-tab-academic`;
+  const detailsTabId = `${tabIdPrefix}-tab-details`;
+  const academicPanelId = `${tabIdPrefix}-panel-academic`;
+  const detailsPanelId = `${tabIdPrefix}-panel-details`;
+
+  const handleEditorTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      let nextTab: "ACADEMIC" | "DETAILS";
+      if (e.key === "Home") {
+        nextTab = "ACADEMIC";
+      } else if (e.key === "End") {
+        nextTab = "DETAILS";
+      } else {
+        nextTab = activeTab === "ACADEMIC" ? "DETAILS" : "ACADEMIC";
+      }
+      setActiveTab(nextTab);
+      if (nextTab === "ACADEMIC") {
+        academicTabRef.current?.focus();
+      } else {
+        detailsTabRef.current?.focus();
+      }
+    }
+  };
+
   return (
     <div
       className="bg-surface relative min-h-dvh w-full sm:animate-fade-in sm:fixed sm:inset-0 sm:z-100 sm:flex sm:items-center sm:justify-center sm:overflow-hidden sm:bg-black/50 sm:p-4 sm:backdrop-blur-sm dark:sm:bg-black/70"
@@ -368,7 +397,8 @@ export function ScoreEntryModal({
     >
       <div
         ref={modalContentRef}
-        className="bg-surface sm:border-border sm:animate-sheet-up flex min-h-dvh w-full max-w-4xl flex-col sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:shadow-2xl dark:sm:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
+        tabIndex={-1}
+        className="bg-surface sm:border-border sm:animate-sheet-up flex min-h-dvh w-full max-w-4xl flex-col focus:outline-none sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:shadow-2xl dark:sm:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="safe-top bg-surface shrink-0 sm:hidden" />
@@ -553,13 +583,19 @@ export function ScoreEntryModal({
         {/* TABS WITH READINESS BADGES */}
         <div
           role="tablist"
+          aria-label="Student editor sections"
           className="border-border bg-surface flex shrink-0 gap-1 border-b px-4 sm:px-5"
         >
           <button
+            ref={academicTabRef}
+            id={academicTabId}
             type="button"
             role="tab"
             aria-selected={activeTab === "ACADEMIC"}
+            aria-controls={academicPanelId}
+            tabIndex={activeTab === "ACADEMIC" ? 0 : -1}
             onClick={() => setActiveTab("ACADEMIC")}
+            onKeyDown={handleEditorTabKeyDown}
             className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold transition-colors ${
               activeTab === "ACADEMIC"
                 ? "border-primary-text text-primary-text"
@@ -582,10 +618,15 @@ export function ScoreEntryModal({
           </button>
 
           <button
+            ref={detailsTabRef}
+            id={detailsTabId}
             type="button"
             role="tab"
             aria-selected={activeTab === "DETAILS"}
+            aria-controls={detailsPanelId}
+            tabIndex={activeTab === "DETAILS" ? 0 : -1}
             onClick={() => setActiveTab("DETAILS")}
+            onKeyDown={handleEditorTabKeyDown}
             className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold transition-colors ${
               activeTab === "DETAILS"
                 ? "border-primary-text text-primary-text"
@@ -612,7 +653,13 @@ export function ScoreEntryModal({
           ref={scrollContainerRef}
           className="bg-background/50 flex-1 p-3 pb-36 sm:overflow-y-auto sm:overscroll-contain sm:p-5 sm:pb-5"
         >
-          <div key={`${student.id}-${activeTab}`} className="sm:animate-page-enter">
+          <div
+            key={`${student.id}-${activeTab}`}
+            id={activeTab === "ACADEMIC" ? academicPanelId : detailsPanelId}
+            role="tabpanel"
+            aria-labelledby={activeTab === "ACADEMIC" ? academicTabId : detailsTabId}
+            className="sm:animate-page-enter"
+          >
             {activeTab === "ACADEMIC" && (
               <AcademicTab
                 key={student.id}

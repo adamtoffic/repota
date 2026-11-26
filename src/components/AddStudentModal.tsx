@@ -27,6 +27,7 @@ function AddStudentModalContent({
   const [newGender, setNewGender] = useState<"Male" | "Female">("Male");
   const [addedCount, setAddedCount] = useState(0);
   const nameInputId = useId();
+  const genderLabelId = `${nameInputId}-gender-label`;
 
   const configuredClass = (settings.className ?? "").trim();
 
@@ -123,13 +124,14 @@ function AddStudentModalContent({
           />
 
           <div>
-            <label
+            <span
+              id={genderLabelId}
               className="text-muted mb-1 block text-xs font-bold uppercase"
               data-record="true"
             >
               Gender *
-            </label>
-            <div className="flex gap-3">
+            </span>
+            <div role="group" aria-labelledby={genderLabelId} className="flex gap-3">
               <button
                 type="button"
                 aria-pressed={newGender === "Male"}

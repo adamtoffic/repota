@@ -14,6 +14,7 @@ export interface AlertProps {
   className?: string;
   icon?: ReactNode;
   showIcon?: boolean;
+  role?: "alert" | "status" | "note" | "region";
 }
 
 const variantStyles = {
@@ -51,14 +52,17 @@ export function Alert({
   className = "",
   icon,
   showIcon = true,
+  role,
 }: AlertProps) {
   const styles = variantStyles[variant];
   const IconComponent = styles.IconComponent;
+  const resolvedRole =
+    role ?? (variant === "error" || variant === "warning" ? "alert" : variant === "success" ? "status" : "note");
 
   return (
     <div
       className={`flex items-start gap-3 rounded-lg border p-4 ${styles.container} ${className}`}
-      role="alert"
+      role={resolvedRole}
     >
       {showIcon && (
         <div className={`mt-0.5 shrink-0 ${styles.icon}`}>

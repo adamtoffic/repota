@@ -19,7 +19,7 @@ describe("PinRecovery", () => {
     render(<PinRecovery onComplete={onComplete} onCancel={onCancel} />);
 
     // Security questions not configured -> switcher should not be shown
-    expect(screen.queryByRole("button", { name: "Security Questions" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Security Questions" })).not.toBeInTheDocument();
 
     const codeInput = screen.getByPlaceholderText("000000");
     await user.type(codeInput, "111111");
@@ -82,7 +82,7 @@ describe("PinRecovery", () => {
 
     render(<PinRecovery onComplete={onComplete} onCancel={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: "Security Questions" }));
+    await user.click(screen.getByRole("tab", { name: "Security Questions" }));
 
     const answer1 = screen.getByPlaceholderText("e.g., Takoradi");
     const answer2 = screen.getByPlaceholderText("e.g., Mathematics");

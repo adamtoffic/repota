@@ -367,7 +367,16 @@ export function StudentList({
                       ref={rowVirtualizer.measureElement}
                     >
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
-                        <p className="text-main font-bold">{student.name}</p>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditStudent(student);
+                          }}
+                          className="text-main hover:text-primary-text rounded text-left font-bold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text"
+                        >
+                          {student.name}
+                        </button>
                       </td>
                       <td className="text-secondary px-4 py-3 sm:px-6 sm:py-4">
                         {student.className}

@@ -331,7 +331,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
               </span>
             </div>
             {attendanceHint && (
-              <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+              <p role="status" className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
                 {attendanceHint}
               </p>
             )}
@@ -395,19 +395,18 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
         <div className="space-y-4">
           {/* CONDUCT */}
           <Input
-            label={
-              <span className="flex items-center justify-between gap-2">
-                <span>Conduct / Character</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleImmediateSave({ conduct: getRandomConductTrait(formData.conduct) })
-                  }
-                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                >
-                  <RefreshCw className="h-3 w-3" /> Shuffle
-                </button>
-              </span>
+            label="Conduct / Character"
+            labelAction={
+              <button
+                type="button"
+                aria-label="Shuffle conduct trait"
+                onClick={() =>
+                  handleImmediateSave({ conduct: getRandomConductTrait(formData.conduct) })
+                }
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-950/50"
+              >
+                <RefreshCw className="h-3 w-3" /> Shuffle
+              </button>
             }
             type="text"
             placeholder="e.g. Respectful and neat"
@@ -417,19 +416,18 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
 
           {/* INTEREST */}
           <Input
-            label={
-              <span className="flex items-center justify-between gap-2">
-                <span>Interest / Talent</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleImmediateSave({ interest: getRandomInterest(formData.interest) })
-                  }
-                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                >
-                  <RefreshCw className="h-3 w-3" /> Shuffle
-                </button>
-              </span>
+            label="Interest / Talent"
+            labelAction={
+              <button
+                type="button"
+                aria-label="Shuffle interest or talent"
+                onClick={() =>
+                  handleImmediateSave({ interest: getRandomInterest(formData.interest) })
+                }
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-950/50"
+              >
+                <RefreshCw className="h-3 w-3" /> Shuffle
+              </button>
             }
             type="text"
             placeholder="e.g. Football"

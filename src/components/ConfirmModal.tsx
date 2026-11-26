@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Modal } from "./ui/Modal";
@@ -43,6 +43,8 @@ function ConfirmModalContent({
 }: Props) {
   const [typedKeyword, setTypedKeyword] = useState("");
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const messageId = useId();
 
   const handleCancel = useCallback(() => {
     if (isLoading) return;
@@ -54,30 +56,20 @@ function ConfirmModalContent({
     !confirmKeyword || typedKeyword.trim().toUpperCase() === confirmKeyword.trim().toUpperCase();
   const isConfirmDisabled = isLoading || !keywordMatches;
 
-  // Focus cancel button when modal opens & trap Escape key
+  // Focus cancel button when modal opens (Escape is handled by Modal's useDialogA11y stack)
   useEffect(() => {
     if (!isOpen) return;
-
-    // Focus cancel button
     cancelButtonRef.current?.focus();
-
-    // Handle Escape key
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleCancel();
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [isOpen, handleCancel]);
+  }, [isOpen]);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      closeOnBackdrop={Boolean(onCancel) && !isLoading}
+      closeOnBackdrop={!isLoading}
       closeOnEscape={!isLoading}
+      ariaLabelledBy={titleId}
+      ariaDescribedBy={messageId}
       className="max-w-sm"
     >
       <div className="p-5 sm:p-6">
@@ -91,10 +83,16 @@ function ConfirmModalContent({
             />
           </div>
           <div className="min-w-0">
-            <h3 className="text-main text-lg leading-tight font-bold" data-record="true">
+            <h2
+              id={titleId}
+              className="text-main text-lg leading-tight font-bold"
+              data-record="true"
+            >
               {title}
-            </h3>
-            <p className="text-muted mt-1 text-sm leading-relaxed">{message}</p>
+            </h2>
+            <p id={messageId} className="text-muted mt-1 text-sm leading-relaxed">
+              {message}
+            </p>
           </div>
         </div>
 

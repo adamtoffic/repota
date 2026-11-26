@@ -570,8 +570,8 @@ describe("ScoreImportModal & QuickGradebook column paste", () => {
       );
     }
 
-    const { container } = render(<StatefulHarness />);
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const { baseElement } = render(<StatefulHarness />);
+    const fileInput = baseElement.querySelector('input[type="file"]') as HTMLInputElement;
 
     // 1. Upload CSV for 1 SBA component ("Group Work (/10)") named English_Group_Work_Template.csv
     const csv1 = new File(['"Name","Group Work (/10)"\n"Kwame Mensah","8"'], "English_Group_Work_Template.csv", {

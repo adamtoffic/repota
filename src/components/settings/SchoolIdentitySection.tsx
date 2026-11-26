@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Briefcase, RotateCcw, School } from "lucide-react";
 import { ConfirmModal } from "../ConfirmModal";
 import { ImageUploader } from "../ImageUploader";
@@ -18,6 +18,7 @@ export function SchoolIdentitySection() {
   const { formData, setFormData, isPersistenceSuspended } = useSettingsForm();
   const { showToast } = useToast();
   const [showResetFeeLabelsModal, setShowResetFeeLabelsModal] = useState(false);
+  const curriculumLabelId = useId();
   const feeSlots = resolveEditablePrivateFeeItems(formData);
   const showFeeSchedule = formData.showFeeSchedule !== false;
 
@@ -138,10 +139,17 @@ export function SchoolIdentitySection() {
 
             {/* School Type */}
             <div>
-              <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+              <span
+                id={curriculumLabelId}
+                className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase"
+              >
                 Curriculum Type
-              </label>
-              <div className="bg-background border-border-subtle flex flex-wrap gap-4 rounded-lg border p-3">
+              </span>
+              <div
+                role="radiogroup"
+                aria-labelledby={curriculumLabelId}
+                className="bg-background border-border-subtle flex flex-wrap gap-4 rounded-lg border p-3"
+              >
                 <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"

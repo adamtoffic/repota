@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { Key, AlertCircle, X, HelpCircle } from "lucide-react";
 import {
   verifyRecoveryCode,
@@ -10,6 +10,7 @@ import {
   isSameAsCurrentPin,
 } from "../utils/pinSecurity";
 import { SECURITY_QUESTIONS } from "../constants/securityQuestions";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 
 interface Props {
   onComplete: () => void;
@@ -24,10 +25,42 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const codeTabRef = useRef<HTMLButtonElement>(null);
+  const questionsTabRef = useRef<HTMLButtonElement>(null);
+  const idPrefix = useId();
+  const titleId = `${idPrefix}-title`;
+
+  useDialogA11y({
+    isOpen: true,
+    onClose: onCancel,
+    dialogRef,
+  });
 
   // Security questions state
   const [answers, setAnswers] = useState<string[]>(["", "", ""]);
   const savedQuestionIds = getSavedSecurityQuestionIds();
+
+  const handleMethodTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      let nextMethod: "code" | "questions";
+      if (e.key === "Home") {
+        nextMethod = "code";
+      } else if (e.key === "End") {
+        nextMethod = "questions";
+      } else {
+        nextMethod = method === "code" ? "questions" : "code";
+      }
+      setMethod(nextMethod);
+      setError("");
+      if (nextMethod === "code") {
+        codeTabRef.current?.focus();
+      } else {
+        questionsTabRef.current?.focus();
+      }
+    }
+  };
 
   const handleVerifyRecovery = async () => {
     if (recoveryCode.length !== 6) {
@@ -105,11 +138,19 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   };
 
   if (step === "verify") {
+    const codeTabId = `${idPrefix}-tab-code`;
+    const questionsTabId = `${idPrefix}-tab-questions`;
+    const codePanelId = `${idPrefix}-panel-code`;
+    const questionsPanelId = `${idPrefix}-panel-questions`;
+
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm focus:outline-none dark:bg-black/70"
       >
         <div className="animate-sheet-up border-border bg-elevated relative my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border p-6 shadow-2xl sm:p-8">
           <button
@@ -131,7 +172,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             </div>
           </div>
 
-          <h1 className="text-main mb-3 text-center text-2xl font-bold">
+          <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
             {method === "code" ? "Enter Recovery Code" : "Answer Security Questions"}
           </h1>
           <p className="text-muted mb-6 text-center text-sm">
@@ -142,13 +183,24 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
           {/* Method switcher tabs */}
           {hasSecurityQuestions && (
-            <div className="bg-subtle border-border mb-6 flex gap-2 rounded-lg border p-1">
+            <div
+              role="tablist"
+              aria-label="PIN recovery method"
+              className="bg-subtle border-border mb-6 flex gap-2 rounded-lg border p-1"
+            >
               <button
+                ref={codeTabRef}
+                id={codeTabId}
                 type="button"
+                role="tab"
+                aria-selected={method === "code"}
+                aria-controls={codePanelId}
+                tabIndex={method === "code" ? 0 : -1}
                 onClick={() => {
                   setMethod("code");
                   setError("");
                 }}
+                onKeyDown={handleMethodTabKeyDown}
                 className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
                   method === "code"
                     ? "bg-surface text-main shadow-sm"
@@ -158,11 +210,18 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
                 Recovery Code
               </button>
               <button
+                ref={questionsTabRef}
+                id={questionsTabId}
                 type="button"
+                role="tab"
+                aria-selected={method === "questions"}
+                aria-controls={questionsPanelId}
+                tabIndex={method === "questions" ? 0 : -1}
                 onClick={() => {
                   setMethod("questions");
                   setError("");
                 }}
+                onKeyDown={handleMethodTabKeyDown}
                 className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
                   method === "questions"
                     ? "bg-surface text-main shadow-sm"
@@ -176,11 +235,17 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
           {/* Recovery Code Form */}
           {method === "code" && (
-            <div className="mb-6">
+            <div
+              id={codePanelId}
+              role={hasSecurityQuestions ? "tabpanel" : undefined}
+              aria-labelledby={hasSecurityQuestions ? codeTabId : undefined}
+              className="mb-6"
+            >
               <input
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
+                aria-label="6-digit recovery code"
                 data-large-input="true"
                 value={recoveryCode}
                 onChange={(e) => {
@@ -198,20 +263,30 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
 
           {/* Security Questions Form */}
           {method === "questions" && (
-            <div className="mb-6 space-y-4">
+            <div
+              id={questionsPanelId}
+              role={hasSecurityQuestions ? "tabpanel" : undefined}
+              aria-labelledby={hasSecurityQuestions ? questionsTabId : undefined}
+              className="mb-6 space-y-4"
+            >
               {savedQuestionIds.map((questionId, index) => {
                 const question = SECURITY_QUESTIONS.find((q) => q.id === questionId);
                 if (!question) return null;
+                const answerInputId = `${idPrefix}-answer-${index}`;
 
                 return (
                   <div
                     key={questionId}
                     className="border-border bg-subtle rounded-lg border-2 p-4"
                   >
-                    <label className="text-secondary mb-2 block text-sm font-bold">
+                    <label
+                      htmlFor={answerInputId}
+                      className="text-secondary mb-2 block text-sm font-bold"
+                    >
                       {question.question}
                     </label>
                     <input
+                      id={answerInputId}
                       type="text"
                       value={answers[index]}
                       onChange={(e) => {
@@ -231,7 +306,10 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           )}
 
           {error && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -257,9 +335,12 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   if (step === "newPin") {
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm focus:outline-none dark:bg-black/70"
       >
         <div className="animate-sheet-up border-border bg-elevated relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-2xl sm:p-8">
           <button
@@ -271,7 +352,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             <X className="h-5 w-5" />
           </button>
 
-          <h1 className="text-main mb-3 text-center text-2xl font-bold">Create New PIN</h1>
+          <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
+            Create New PIN
+          </h1>
           <p className="text-muted mb-6 text-center text-sm">Enter your new 4-digit PIN.</p>
 
           <div className="mb-6">
@@ -279,6 +362,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
               type="password"
               inputMode="numeric"
               maxLength={4}
+              aria-label="New 4-digit PIN"
               data-large-input="true"
               value={newPin}
               onChange={(e) => {
@@ -293,7 +377,10 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             />
 
             {error && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+              <div
+                role="alert"
+                className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+              >
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -316,9 +403,12 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   // step === "confirm"
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70"
+      aria-labelledby={titleId}
+      className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm focus:outline-none dark:bg-black/70"
     >
       <div className="animate-sheet-up border-border bg-elevated relative my-auto w-full max-w-md rounded-3xl border p-6 shadow-2xl sm:p-8">
         <button
@@ -330,7 +420,9 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           <X className="h-5 w-5" />
         </button>
 
-        <h1 className="text-main mb-3 text-center text-2xl font-bold">Confirm New PIN</h1>
+        <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
+          Confirm New PIN
+        </h1>
         <p className="text-muted mb-6 text-center text-sm">Re-enter your PIN to confirm.</p>
 
         <div className="mb-6">
@@ -338,6 +430,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             type="password"
             inputMode="numeric"
             maxLength={4}
+            aria-label="Confirm new 4-digit PIN"
             data-large-input="true"
             value={confirmPin}
             onChange={(e) => {
@@ -352,7 +445,10 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           />
 
           {error && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>

@@ -1,5 +1,5 @@
 // src/components/analytics/FilterPanel.tsx
-import React from "react";
+import React, { useId } from "react";
 import { X, Filter } from "lucide-react";
 
 export interface AnalyticsFilters {
@@ -20,6 +20,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   onFilterChange,
   availableSubjects,
 }) => {
+  const filterId = useId();
   const hasActiveFilters =
     filters.gender !== "All" ||
     filters.performanceLevel !== "All" ||
@@ -59,12 +60,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         {/* Gender Filter */}
         <div>
           <label
+            htmlFor={`${filterId}-gender`}
             className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
             data-record="true"
           >
             Gender
           </label>
           <select
+            id={`${filterId}-gender`}
             value={filters.gender || "All"}
             onChange={(e) =>
               onFilterChange({
@@ -83,12 +86,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         {/* Performance Level Filter */}
         <div>
           <label
+            htmlFor={`${filterId}-performance`}
             className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
             data-record="true"
           >
             Performance Level
           </label>
           <select
+            id={`${filterId}-performance`}
             value={filters.performanceLevel || "All"}
             onChange={(e) =>
               onFilterChange({
@@ -108,12 +113,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         {/* Subject Filter */}
         <div>
           <label
+            htmlFor={`${filterId}-subject`}
             className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
             data-record="true"
           >
             Subject Focus
           </label>
           <select
+            id={`${filterId}-subject`}
             value={filters.subjectFilter || "All"}
             onChange={(e) =>
               onFilterChange({
@@ -134,16 +141,18 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {/* Score Range Filter */}
         <div>
-          <label
+          <span
+            id={`${filterId}-score-range`}
             className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
             data-record="true"
           >
             Score Range
-          </label>
-          <div className="space-y-2">
+          </span>
+          <div className="space-y-2" role="group" aria-labelledby={`${filterId}-score-range`}>
             <div className="flex items-center gap-2">
               <input
                 type="number"
+                aria-label="Minimum average score"
                 min="0"
                 max="100"
                 value={filters.scoreRange?.min ?? 0}
@@ -162,6 +171,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               <span className="text-muted">-</span>
               <input
                 type="number"
+                aria-label="Maximum average score"
                 min="0"
                 max="100"
                 value={filters.scoreRange?.max ?? 100}

@@ -1,3 +1,4 @@
+import { useRef, type KeyboardEvent } from "react";
 import { Check } from "lucide-react";
 import type { ClassScoreComponentConfig, ProcessedStudent } from "../../types";
 import { normalizeTaskKey } from "../../utils/sbaReconciliation";
@@ -46,17 +47,51 @@ export function SbaMarkbookMobileView({
   onFocusMobileRow,
   onAddSubjectToStudent,
 }: SbaMarkbookMobileViewProps) {
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const mobileTabPanelId = `${idPrefix}-mobile-tabpanel`;
+  const pillKeys = [...tasks.map((task) => task.name), "__SUMMARY__"];
+
+  const activePillIndex = pillKeys.findIndex((pill) =>
+    pill === "__SUMMARY__"
+      ? activeMobilePill === "__SUMMARY__"
+      : activeMobilePill !== "__SUMMARY__" &&
+        normalizeTaskKey(activeMobilePill) === normalizeTaskKey(pill),
+  );
+  const resolvedActiveIdx = activePillIndex >= 0 ? activePillIndex : 0;
+  const activeTabId = `${idPrefix}-mobile-tab-${resolvedActiveIdx}`;
+
+  const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (pillKeys.length === 0) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      let nextIdx: number;
+      if (e.key === "ArrowRight") {
+        nextIdx = (index + 1) % pillKeys.length;
+      } else if (e.key === "ArrowLeft") {
+        nextIdx = (index - 1 + pillKeys.length) % pillKeys.length;
+      } else if (e.key === "Home") {
+        nextIdx = 0;
+      } else {
+        nextIdx = pillKeys.length - 1;
+      }
+      onSelectMobilePill(pillKeys[nextIdx]);
+      tabRefs.current[nextIdx]?.focus();
+    }
+  };
+
   return (
     <div data-testid="sba-mobile-view">
       {/* Horizontal Task Pill Strip */}
       <div
+        role="tablist"
+        aria-label="SBA assessment tasks"
         className={`border-border bg-subtle no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b px-3 py-2.5 ${
           isHeaderSticky
             ? "sticky top-[calc(4rem+env(safe-area-inset-top,0px))] z-20"
             : "relative"
         }`}
       >
-        {tasks.map((task) => {
+        {tasks.map((task, idx) => {
           const isActive =
             activeMobilePill !== "__SUMMARY__" &&
             normalizeTaskKey(activeMobilePill) === normalizeTaskKey(task.name);
@@ -66,8 +101,17 @@ export function SbaMarkbookMobileView({
           return (
             <button
               key={task.name}
+              ref={(el) => {
+                tabRefs.current[idx] = el;
+              }}
+              id={`${idPrefix}-mobile-tab-${idx}`}
               type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={mobileTabPanelId}
+              tabIndex={isActive ? 0 : -1}
               onClick={() => onSelectMobilePill(task.name)}
+              onKeyDown={(e) => handleTabKeyDown(e, idx)}
               className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
                 isActive
                   ? "bg-purple-700 text-white shadow-xs"
@@ -93,8 +137,17 @@ export function SbaMarkbookMobileView({
           );
         })}
         <button
+          ref={(el) => {
+            tabRefs.current[tasks.length] = el;
+          }}
+          id={`${idPrefix}-mobile-tab-${tasks.length}`}
           type="button"
+          role="tab"
+          aria-selected={activeMobilePill === "__SUMMARY__"}
+          aria-controls={mobileTabPanelId}
+          tabIndex={activeMobilePill === "__SUMMARY__" ? 0 : -1}
           onClick={() => onSelectMobilePill("__SUMMARY__")}
+          onKeyDown={(e) => handleTabKeyDown(e, tasks.length)}
           className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
             activeMobilePill === "__SUMMARY__"
               ? "bg-slate-900 text-white dark:bg-elevated dark:text-main"
@@ -105,29 +158,31 @@ export function SbaMarkbookMobileView({
         </button>
       </div>
 
-      <form onSubmit={(e) => e.preventDefault()} noValidate className="divide-border-subtle divide-y">
-        {visibleStudents.map((student, studentIdx) => (
-          <MobileSbaRow
-            key={student.id}
-            student={student}
-            studentIdx={studentIdx}
-            activeSubject={activeSubject}
-            tasks={tasks}
-            maxClassScore={maxClassScore}
-            idPrefix={idPrefix}
-            disabled={disabled}
-            activeMobileTask={activeMobileTask}
-            isLastStudent={studentIdx === visibleStudents.length - 1}
-            cellErrors={cellErrors}
-            cellDrafts={cellDrafts}
-            onRegisterMobileInput={onRegisterMobileInput}
-            onScoreEdit={onScoreEdit}
-            onClearCellDraft={onClearCellDraft}
-            onFocusMobileRow={onFocusMobileRow}
-            onAddSubjectToStudent={onAddSubjectToStudent}
-          />
-        ))}
-      </form>
+      <div id={mobileTabPanelId} role="tabpanel" aria-labelledby={activeTabId}>
+        <form onSubmit={(e) => e.preventDefault()} noValidate className="divide-border-subtle divide-y">
+          {visibleStudents.map((student, studentIdx) => (
+            <MobileSbaRow
+              key={student.id}
+              student={student}
+              studentIdx={studentIdx}
+              activeSubject={activeSubject}
+              tasks={tasks}
+              maxClassScore={maxClassScore}
+              idPrefix={idPrefix}
+              disabled={disabled}
+              activeMobileTask={activeMobileTask}
+              isLastStudent={studentIdx === visibleStudents.length - 1}
+              cellErrors={cellErrors}
+              cellDrafts={cellDrafts}
+              onRegisterMobileInput={onRegisterMobileInput}
+              onScoreEdit={onScoreEdit}
+              onClearCellDraft={onClearCellDraft}
+              onFocusMobileRow={onFocusMobileRow}
+              onAddSubjectToStudent={onAddSubjectToStudent}
+            />
+          ))}
+        </form>
+      </div>
     </div>
   );
 }

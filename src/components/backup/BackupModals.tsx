@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Eye, EyeOff, Lock, X } from "lucide-react";
 import { ConfirmModal } from "../ConfirmModal";
 import { Input } from "../ui";
@@ -73,6 +74,10 @@ export function BackupModals({
   onCancelImportPasswordModal,
   onDecryptAndImport,
 }: BackupModalsProps) {
+  const modalIdPrefix = useId();
+  const exportPasswordId = `${modalIdPrefix}-export-password`;
+  const importPasswordId = `${modalIdPrefix}-import-password`;
+
   return (
     <>
       {showReloadOverlay && (
@@ -144,11 +149,15 @@ export function BackupModals({
 
           <div className="space-y-3">
             <div>
-              <label className="text-secondary mb-1 block text-sm font-medium">
+              <label
+                htmlFor={exportPasswordId}
+                className="text-secondary mb-1 block text-sm font-medium"
+              >
                 Password (min 4 characters)
               </label>
               <div className="relative">
                 <Input
+                  id={exportPasswordId}
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => onPasswordChange(e.target.value)}
@@ -249,9 +258,15 @@ export function BackupModals({
 
           <div className="space-y-3">
             <div>
-              <label className="text-secondary mb-1 block text-sm font-medium">Password</label>
+              <label
+                htmlFor={importPasswordId}
+                className="text-secondary mb-1 block text-sm font-medium"
+              >
+                Password
+              </label>
               <div className="relative">
                 <Input
+                  id={importPasswordId}
                   type={showImportPassword ? "text" : "password"}
                   value={importPassword}
                   onChange={(e) => onImportPasswordChange(e.target.value)}

@@ -1,6 +1,7 @@
 // src/components/WelcomeTour.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 
 interface TourStep {
   title: string;
@@ -20,6 +21,7 @@ interface Props {
 export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_completed" }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const handleComplete = useCallback(() => {
     localStorage.setItem(storageKey, "true");
@@ -42,16 +44,11 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
     }
   }, [storageKey]);
 
-  useEffect(() => {
-    if (!isVisible) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleSkip();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isVisible, handleSkip]);
+  useDialogA11y({
+    isOpen: isVisible && steps.length > 0,
+    onClose: handleSkip,
+    dialogRef,
+  });
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -67,13 +64,15 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="welcome-tour-title"
-      className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-    >
-      <div className="animate-slide-in-up border-border bg-elevated w-full max-w-md rounded-2xl border p-5 shadow-2xl sm:p-6">
+    <div className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-tour-title"
+        className="animate-slide-in-up border-border bg-elevated w-full max-w-md rounded-2xl border p-5 shadow-2xl focus:outline-none sm:p-6"
+      >
         {/* Progress indicator + non-overlapping Close button */}
         <div className="mb-5 flex items-center gap-3">
           <div className="flex flex-1 gap-1.5">
