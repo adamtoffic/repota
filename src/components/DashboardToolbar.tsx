@@ -208,7 +208,7 @@ export function DashboardToolbar({
             onClick={() => setShowMenu((prev) => !prev)}
             aria-expanded={showMenu}
             aria-haspopup="menu"
-            className="hover:bg-subtle border-border-strong bg-surface text-secondary flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold shadow-sm active:scale-95 sm:text-sm"
+            className="hover:bg-subtle border-border-strong bg-surface text-secondary flex min-h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold shadow-sm active:scale-95 sm:h-9 sm:min-h-0 sm:text-sm"
             data-record="true"
           >
             <SlidersHorizontal size={14} className="text-primary-text" />
@@ -241,7 +241,7 @@ export function DashboardToolbar({
                       type="button"
                       onClick={() => setShowMenu(false)}
                       aria-label="Close Class Tools"
-                      className="text-muted hover:bg-subtle hover:text-main rounded-full p-1"
+                      className="text-muted hover:bg-subtle hover:text-main rounded-full p-2"
                     >
                       <X size={16} />
                     </button>
@@ -471,7 +471,7 @@ function FilterButton({
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`flex items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
+      className={`flex min-h-10 items-center gap-1 rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-colors sm:min-h-0 sm:py-1.5 ${
         isActive ? activeStyle : `border-border bg-surface text-secondary ${hoverColor}`
       }`}
       data-record="true"

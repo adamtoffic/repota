@@ -101,7 +101,7 @@ function MobileStudentCard({
         <button
           type="button"
           onClick={() => onEditStudent(student)}
-          className="bg-primary/10 text-primary-text hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
+          className="bg-primary/10 text-primary-text hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors"
         >
           <Edit2 className="h-3.5 w-3.5" />
           <span>Edit Scores</span>
@@ -112,7 +112,7 @@ function MobileStudentCard({
             to="/print"
             search={{ id: student.id }}
             aria-label={`Print report for ${student.name}`}
-            className="flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
+            className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
             title="Print Report"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -124,7 +124,7 @@ function MobileStudentCard({
           type="button"
           onClick={() => onDeleteRequest(student.id)}
           aria-label={`Delete ${student.name}`}
-          className="flex min-h-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/80"
+          className="flex min-h-11 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 hover:bg-red-100 dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/80"
           title="Delete Student"
         >
           <Trash2 className="h-4 w-4" />
@@ -252,13 +252,13 @@ export function StudentList({
         </div>
       </div>
 
-      {/* MOBILE CARDS (Virtualized for large classes) */}
+      {/* MOBILE CARDS (Virtualized for large classes; kept up to <lg so 768px-1023px sidebar viewports avoid squeezed 6-col table) */}
       {students.length === 0 ? (
-        <div className="text-muted px-4 py-10 text-center text-sm md:hidden" data-record="true">
+        <div className="text-muted px-4 py-10 text-center text-sm lg:hidden" data-record="true">
           No students found. Click "Add Student" to start.
         </div>
       ) : !shouldVirtualizeMobile ? (
-        <div className="md:hidden">
+        <div className="lg:hidden">
           {students.map((student) => (
             <MobileStudentCard
               key={student.id}
@@ -273,7 +273,7 @@ export function StudentList({
         <div
           ref={mobileParentRef}
           data-scroll-region="student-list"
-          className="max-h-[68vh] overflow-y-auto overscroll-contain md:hidden"
+          className="max-h-[68vh] overflow-y-auto overscroll-contain lg:hidden"
         >
           <div
             className="relative w-full"
@@ -302,7 +302,7 @@ export function StudentList({
       <div
         ref={parentRef}
         data-scroll-region="student-list"
-        className="hidden w-full overflow-x-auto md:block"
+        className="hidden w-full overflow-x-auto lg:block"
         style={{
           maxHeight: "600px",
           overflow: "auto",
@@ -394,7 +394,7 @@ export function StudentList({
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         {student.classPosition.toLowerCase() !== "pending..." ? (
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
+                          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
                             {student.classPosition}
                           </span>
                         ) : (

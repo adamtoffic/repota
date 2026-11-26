@@ -109,7 +109,7 @@ export function AnalyticsOverviewTab({
       </div>
 
       {/* Score & Grade Distribution */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <ChartCard title="Score Distribution" icon={BarChart3}>
           <BarChart
             data={scoreDistribution.map((item) => ({
@@ -119,6 +119,7 @@ export function AnalyticsOverviewTab({
             height={280}
             showValues={true}
             gradient={true}
+            valueFormatter={(v) => `${v} ${v === 1 ? "student" : "students"}`}
           />
         </ChartCard>
 
@@ -147,7 +148,7 @@ export function AnalyticsOverviewTab({
       </div>
 
       {/* Gender Analysis & Top Performers */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Gender Analysis */}
         <ChartCard title="Gender Distribution" icon={PieChartIcon}>
           {genderAnalysis.totalCount > 0 ? (
@@ -257,7 +258,7 @@ export function AnalyticsOverviewTab({
 
       {/* Core vs Elective & Aggregate Bands */}
       {(coreVsElective.coreAverage > 0 || coreVsElective.aggregateBands.length > 0) && (
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
           <Card>
             <h2
               data-record="true"
@@ -343,7 +344,7 @@ export function AnalyticsOverviewTab({
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-lg bg-emerald-50 p-3 text-center dark:border dark:border-emerald-800/70 dark:bg-emerald-950/50">
-                <p className="text-[10px] font-bold text-emerald-700 uppercase dark:text-emerald-300">
+                <p className="text-xs font-bold text-emerald-700 uppercase dark:text-emerald-300">
                   Paid
                 </p>
                 <p className="text-xl font-black text-emerald-900 dark:text-emerald-200">
@@ -351,7 +352,7 @@ export function AnalyticsOverviewTab({
                 </p>
               </div>
               <div className="rounded-lg bg-amber-50 p-3 text-center dark:border dark:border-amber-800/70 dark:bg-amber-950/50">
-                <p className="text-[10px] font-bold text-amber-700 uppercase dark:text-amber-300">
+                <p className="text-xs font-bold text-amber-700 uppercase dark:text-amber-300">
                   Part-Paid
                 </p>
                 <p className="text-xl font-black text-amber-900 dark:text-amber-200">
@@ -359,7 +360,7 @@ export function AnalyticsOverviewTab({
                 </p>
               </div>
               <div className="rounded-lg bg-red-50 p-3 text-center dark:border dark:border-red-800/70 dark:bg-red-950/50">
-                <p className="text-[10px] font-bold text-red-700 uppercase dark:text-red-300">
+                <p className="text-xs font-bold text-red-700 uppercase dark:text-red-300">
                   Owing
                 </p>
                 <p className="text-xl font-black text-red-900 dark:text-red-200">
@@ -367,7 +368,7 @@ export function AnalyticsOverviewTab({
                 </p>
               </div>
               <div className="rounded-lg bg-blue-50 p-3 text-center dark:border dark:border-blue-800/70 dark:bg-blue-950/50">
-                <p className="text-[10px] font-bold text-blue-700 uppercase dark:text-blue-300">
+                <p className="text-xs font-bold text-blue-700 uppercase dark:text-blue-300">
                   Scholarship
                 </p>
                 <p className="text-xl font-black text-blue-900 dark:text-blue-200">

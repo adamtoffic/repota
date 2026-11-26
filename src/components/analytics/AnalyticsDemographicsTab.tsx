@@ -32,7 +32,7 @@ export function AnalyticsDemographicsTab({
   return (
     <>
       {/* Demographic Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         <StatCard
           title="Male Students"
           value={genderAnalysis.maleCount}
@@ -58,7 +58,7 @@ export function AnalyticsDemographicsTab({
 
       {/* Attendance Rate by Gender */}
       {attendanceByGender.attendanceRanges.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
           <ChartCard title="Attendance Rate Breakdown" icon={Activity}>
             <ComposedChart
               data={attendanceByGender.attendanceRanges.map((item) => ({
@@ -103,6 +103,7 @@ export function AnalyticsDemographicsTab({
                 height={280}
                 showValues={true}
                 gradient={true}
+                valueFormatter={(v) => `${v}%`}
               />
               <div className="border-border mt-4 border-t pt-3">
                 <p className="text-muted text-center text-xs">
@@ -127,6 +128,7 @@ export function AnalyticsDemographicsTab({
             height={280}
             showValues={true}
             gradient={true}
+            valueFormatter={(v) => `${v} ${v === 1 ? "student" : "students"}`}
           />
         </ChartCard>
       )}

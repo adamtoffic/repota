@@ -112,7 +112,7 @@ export function SbaMarkbookMobileView({
               tabIndex={isActive ? 0 : -1}
               onClick={() => onSelectMobilePill(task.name)}
               onKeyDown={(e) => handleTabKeyDown(e, idx)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+              className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-colors ${
                 isActive
                   ? "bg-purple-700 text-white shadow-xs"
                   : "border-border bg-surface text-secondary border hover:text-main"
@@ -121,7 +121,7 @@ export function SbaMarkbookMobileView({
               <span>{task.name}</span>
               {totalStudentCount > 0 && (
                 <span
-                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs tabular-nums ${
                     isActive
                       ? "bg-white/20 text-white"
                       : isComplete
@@ -148,7 +148,7 @@ export function SbaMarkbookMobileView({
           tabIndex={activeMobilePill === "__SUMMARY__" ? 0 : -1}
           onClick={() => onSelectMobilePill("__SUMMARY__")}
           onKeyDown={(e) => handleTabKeyDown(e, tasks.length)}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+          className={`min-h-10 shrink-0 rounded-full px-3 py-2 text-xs font-bold transition-colors ${
             activeMobilePill === "__SUMMARY__"
               ? "bg-slate-900 text-white dark:bg-elevated dark:text-main"
               : "border-border bg-surface text-secondary border hover:text-main"
