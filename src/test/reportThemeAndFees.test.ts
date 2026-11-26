@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatReportDate,
   getActivePrivateFeeItems,
   resolveEditablePrivateFeeItems,
   resolvePositionVisibility,
@@ -82,7 +83,7 @@ describe("privateSchoolFees", () => {
     });
 
     expect(resolvePositionVisibility({ level: "KG" })).toEqual({
-      showClassPositionHeader: true,
+      showClassPositionHeader: false,
       showClassPositionSummary: false,
       showSubjectPosition: false,
     });
@@ -120,7 +121,15 @@ describe("reportTheme", () => {
     expect(isValidHexColor("blue")).toBe(false);
 
     expect(getContrastTextColor("#1e3a8a")).toBe("#ffffff");
+    expect(getContrastTextColor("#d97706")).toBe("#0f172a");
     expect(getContrastTextColor("#fcd34d")).toBe("#0f172a");
+  });
+
+  it("formats report dates on local calendar without UTC off-by-one shift or Invalid Date", () => {
+    expect(formatReportDate("2026-09-07", "TBA")).toBe("07/09/2026");
+    expect(formatReportDate("not-a-date", "TBA")).toBe("not-a-date");
+    expect(formatReportDate("not-a-date", "TBA")).not.toBe("Invalid Date");
+    expect(formatReportDate("", "TBA")).toBe("TBA");
   });
 
   it("mixes solid hex tints cleanly", () => {
