@@ -366,7 +366,7 @@ export function Dashboard() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 focus:outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-3.5 focus:outline-none sm:px-6 sm:py-5 lg:px-8 lg:py-6"
       >
         {/* MAIN CONTENT AREA */}
         {students.length === 0 ? (
@@ -407,22 +407,22 @@ export function Dashboard() {
         ) : (
           <>
             {/* CLASS CONTEXT HEADER (responsive strip visible on both mobile and desktop) */}
-            <div className="mb-4 flex flex-col gap-3 sm:mb-5 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="mb-3.5 flex flex-col gap-3 sm:mb-4 md:flex-row md:items-center md:justify-between md:gap-4">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-main truncate text-xl font-black tracking-tight sm:text-2xl">
+                  <h1 className="text-main truncate text-xl font-bold tracking-tight sm:text-2xl">
                     {settings.className || "My Class"}
                   </h1>
                   {settings.examType === "MOCK" ? (
                     <Link
                       to="/settings/academic"
-                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
+                      className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100/80 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
                       title="Change exam mode in Settings"
                     >
                       Mock Exam (0/100)
                     </Link>
                   ) : (
-                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300">
+                    <span className="border-border bg-surface text-secondary inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
                       Termly ({settings.classScoreMax}/{settings.examScoreMax})
                     </span>
                   )}
@@ -443,7 +443,7 @@ export function Dashboard() {
                   className="border-border bg-surface text-secondary hover:bg-subtle inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold shadow-xs transition-colors active:scale-95 md:min-h-0"
                   data-record="true"
                 >
-                  <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Upload className="text-primary-text h-4 w-4" />
                   <span>Import Scores</span>
                 </button>
                 <button

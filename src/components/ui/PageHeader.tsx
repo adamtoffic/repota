@@ -47,7 +47,7 @@ export function PageHeader({
 
             {/* App Name + School Context */}
             <div className="min-w-0 flex-1">
-              <span className="text-main block text-lg leading-none font-black tracking-tight">
+              <span className="text-main block text-lg leading-none font-extrabold tracking-tight">
                 REPOTA
               </span>
               <p className="text-muted truncate text-xs font-medium">

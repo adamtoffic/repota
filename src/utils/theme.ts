@@ -11,7 +11,7 @@ export const THEME_STORAGE_KEY = "repota_theme";
 export const THEME_CHANGE_EVENT = "repota:theme-change";
 
 export const LIGHT_THEME_COLOR = "#FFFFFF";
-export const DARK_THEME_COLOR = "#090C12";
+export const DARK_THEME_COLOR = "#0B101B";
 
 export interface ChartThemeColors {
   grid: string;
@@ -24,26 +24,28 @@ export interface ChartThemeColors {
 }
 
 const LIGHT_CHART_COLORS: ChartThemeColors = {
-  grid: "#e5e7eb",
-  axis: "#6b7280",
+  grid: "#e6e4de",
+  axis: "#525866",
   label: "#374151",
-  cursor: "rgba(59, 130, 246, 0.06)",
+  cursor: "rgba(30, 58, 138, 0.06)",
   tooltipBg: "#ffffff",
-  tooltipBorder: "#e5e7eb",
-  tooltipText: "#0f172a",
+  tooltipBorder: "#e6e4de",
+  tooltipText: "#14181f",
 };
 
 const DARK_CHART_COLORS: ChartThemeColors = {
-  grid: "#20293a",
-  axis: "#8b98b0",
+  grid: "#222e44",
+  axis: "#93a3bd",
   label: "#e2e8f0",
-  cursor: "rgba(96, 165, 250, 0.10)",
-  tooltipBg: "#111620",
-  tooltipBorder: "#2f3c54",
+  cursor: "rgba(122, 167, 255, 0.10)",
+  tooltipBg: "#121927",
+  tooltipBorder: "#324360",
   tooltipText: "#f1f5f9",
 };
 
 const DARK_TO_LIGHT_SVG_COLOR: Record<string, string> = {
+  "#222e44": "#e5e7eb",
+  "#93a3bd": "#6b7280",
   "#20293a": "#e5e7eb",
   "#8b98b0": "#6b7280",
   "#334155": "#e5e7eb",

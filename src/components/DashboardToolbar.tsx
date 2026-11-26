@@ -104,7 +104,7 @@ export function DashboardToolbar({
           </div>
           <input
             type="text"
-            className="border-border-strong bg-input text-main placeholder:text-muted block w-full rounded-lg border py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border-border-strong bg-input text-main placeholder:text-muted focus:border-primary-text focus:ring-primary-text block w-full rounded-lg border py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:ring-1"
             placeholder="Search students..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -114,7 +114,7 @@ export function DashboardToolbar({
               className="pointer-events-none absolute inset-y-0 right-3 flex items-center"
               aria-label="Searching"
             >
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              <Loader2 className="text-primary-text h-4 w-4 animate-spin" />
             </div>
           ) : (
             searchQuery && (
@@ -135,7 +135,7 @@ export function DashboardToolbar({
             aria-label="Sort students"
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value as StudentSortOption)}
-            className="hover:bg-subtle border-border-strong bg-input text-secondary h-[42px] shrink-0 rounded-lg border px-2.5 text-xs font-bold shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:px-3 sm:text-sm"
+            className="hover:bg-subtle border-border-strong bg-input text-secondary focus:border-primary-text focus:ring-primary-text h-[42px] shrink-0 rounded-lg border px-2.5 text-xs font-bold shadow-sm outline-none focus:ring-1 sm:px-3 sm:text-sm"
             data-record="true"
           >
             <option value="DEFAULT">Sort: Roll Order</option>
@@ -262,10 +262,10 @@ export function DashboardToolbar({
                     onAutoRemarks();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl bg-purple-50 px-3 py-3 text-left text-sm font-bold text-purple-700 hover:bg-purple-100 sm:py-2.5 dark:bg-purple-950/60 dark:text-purple-300 dark:hover:bg-purple-950/90"
+                  className="flex w-full items-center gap-2.5 rounded-xl bg-amber-50/90 px-3 py-3 text-left text-sm font-bold text-amber-900 hover:bg-amber-100/80 sm:py-2.5 dark:bg-amber-500/12 dark:text-amber-300 dark:hover:bg-amber-500/20"
                   data-record="true"
                 >
-                  <Wand2 size={16} className="shrink-0 text-purple-600 dark:text-purple-400" /> Auto-Fill Teacher Remarks
+                  <Wand2 size={16} className="shrink-0 text-amber-700 dark:text-amber-400" /> Auto-Fill Teacher Remarks
                 </button>
 
                 {/* Group 2: Import & Bulk Operations */}
@@ -464,7 +464,7 @@ function FilterButton({
 }: FilterButtonProps) {
   const activeStyle = activeColor
     ? `${activeColor} border-transparent text-white shadow-md`
-    : "bg-slate-900 border-transparent text-white shadow-sm dark:bg-elevated dark:text-main dark:border-border-strong dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+    : "bg-primary border-transparent text-white shadow-sm";
 
   return (
     <button
