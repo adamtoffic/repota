@@ -94,7 +94,8 @@ export function parseTabularText(rawText: string): string[][] {
       continue;
     }
 
-    if (char === '"') {
+    if (char === '"' && currentCell.trim().length === 0) {
+      currentCell = "";
       inQuotes = true;
     } else if (char === delimiter) {
       currentRow.push(currentCell.trim());
@@ -278,9 +279,14 @@ export function parseFeeStatusValue(raw: string | undefined): FeeStatus | undefi
 }
 
 export function parseOptionalNumber(raw: string | undefined): number | undefined {
-  if (!raw || raw.trim() === "" || raw.trim() === "-") return undefined;
-  const cleaned = raw.replace(/[^0-9.-]/g, "");
-  const parsed = Number(cleaned);
+  if (raw === undefined) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const match = trimmed.match(
+    /^(?:(?:GH₵|GHS|₵)\s*)?([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|[+-]?\.\d+)\s*%?$/i,
+  );
+  if (!match) return undefined;
+  const parsed = Number(match[1].replace(/,/g, ""));
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 

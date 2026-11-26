@@ -493,12 +493,18 @@ export function parseSbaScoreImport({
       };
     });
 
+    const hasExistingComponents = Boolean(
+      existingSubject?.classScoreComponents && existingSubject.classScoreComponents.length > 0,
+    );
     let computedClassScore =
-      !isMock && taskColMap.size > 0 && workingComponents.length > 0
+      !isMock &&
+      taskColMap.size > 0 &&
+      workingComponents.length > 0 &&
+      (hasExistingComponents || (existingSubject?.classScore ?? 0) === 0)
         ? (() => {
             const totalActual = workingComponents.reduce((sum, c) => sum + c.score, 0);
             const totalMax = workingComponents.reduce((sum, c) => sum + c.maxScore, 0);
-            return totalMax > 0 ? Math.round((totalActual / totalMax) * settings.classScoreMax) : 0;
+            return totalMax > 0 ? Math.round((totalActual * settings.classScoreMax) / totalMax) : 0;
           })()
         : (existingSubject?.classScore ?? 0);
 
@@ -630,7 +636,8 @@ export function parseSbaScoreImport({
       }
     }
 
-    const sbaRawSum = workingComponents.reduce((sum, c) => sum + c.score, 0);
+    const sbaRawSum =
+      Math.round(workingComponents.reduce((sum, c) => sum + c.score, 0) * 100) / 100;
     const sbaMaxSum = workingComponents.reduce((sum, c) => sum + c.maxScore, 0);
     const existingExamWeighted = existingSubject?.examScore ?? 0;
     const effectiveExamWeighted =

@@ -1,4 +1,6 @@
 // src/utils/analyticsExport.ts
+import { escapeCsvCell } from "./csv/tabularParser";
+import { downloadBlob } from "./fileDownload";
 import { normalizeChartSvgForLightExport } from "./theme";
 
 /**
@@ -162,18 +164,14 @@ export function exportAnalyticsData(
       throw new Error("No data columns found");
     }
 
-    // Build CSV content
+    // Build CSV content with RFC-4180 quoting and CSV formula-injection neutralization
     const csvRows = [
-      csvHeaders.join(","), // Header row
+      csvHeaders.map((header) => escapeCsvCell(header)).join(","),
       ...data.map((row) =>
         csvHeaders
           .map((header) => {
             const value = row[header];
-            // Escape quotes and wrap in quotes if contains comma
-            const stringValue = String(value ?? "");
-            return stringValue.includes(",") || stringValue.includes('"')
-              ? `"${stringValue.replace(/"/g, '""')}"`
-              : stringValue;
+            return escapeCsvCell(typeof value === "boolean" ? String(value) : value);
           })
           .join(","),
       ),
@@ -181,14 +179,7 @@ export function exportAnalyticsData(
 
     const csvContent = csvRows.join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, filename);
   } catch (error) {
     console.error("Analytics Export Error:", error);
     throw error;

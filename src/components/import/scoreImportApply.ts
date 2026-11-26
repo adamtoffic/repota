@@ -8,6 +8,7 @@ import type {
 import {
   buildDefaultSubjectsForStudent,
   normalizeComponentNameKey,
+  normalizeStudentNameKey,
   parseSbaScoreImport,
   type NewSbaColumnOverride,
   type SbaConflictPolicy,
@@ -62,10 +63,13 @@ export function applyScoreRowToSubject({
     examScore: 0,
   };
 
+  const keepExistingExam = conflictPolicy === "KEEP_EXISTING" && baseSubject.examScore > 0;
   const nextExamScore =
-    row.examRawScore !== undefined ? row.examRawScore.weighted : baseSubject.examScore;
+    row.examRawScore !== undefined && !keepExistingExam
+      ? row.examRawScore.weighted
+      : baseSubject.examScore;
   const nextExamRawScore =
-    row.examRawScore !== undefined
+    row.examRawScore !== undefined && !keepExistingExam
       ? nextExamScore > 0
         ? row.examRawScore.raw
         : undefined
@@ -80,11 +84,19 @@ export function applyScoreRowToSubject({
     return target;
   };
 
-  // Exam-only imports preserve existing SBA components & classScore untouched
+  const hadExistingComponents = Boolean(
+    baseSubject.classScoreComponents && baseSubject.classScoreComponents.length > 0,
+  );
+
+  // Exam-only imports (and direct-mode subjects whose row had no SBA cells) preserve existing class work untouched
   if (
-    activeMode === "EXAM_ONLY" &&
-    row.componentScores.length === 0 &&
-    !row.directClassScore
+    (activeMode === "EXAM_ONLY" &&
+      row.componentScores.length === 0 &&
+      !row.directClassScore) ||
+    (!hadExistingComponents &&
+      row.componentScores.length === 0 &&
+      !row.directClassScore &&
+      baseSubject.classScore > 0)
   ) {
     return withExam({
       ...baseSubject,
@@ -156,11 +168,12 @@ export function applyScoreRowToSubject({
         nextComponents.push(target);
       }
 
+      const liveExisting = target.score > 0 ? target.score : compPatch.existingScore;
       const shouldKeepExisting =
         conflictPolicy === "KEEP_EXISTING" &&
-        compPatch.existingScore !== undefined &&
-        compPatch.existingScore > 0;
-      const scoreToApply = shouldKeepExisting ? compPatch.existingScore! : compPatch.score;
+        liveExisting !== undefined &&
+        liveExisting > 0;
+      const scoreToApply = shouldKeepExisting ? liveExisting! : compPatch.score;
 
       const res = updateComponentAndRecalculateClassScore(
         nextComponents,
@@ -172,13 +185,21 @@ export function applyScoreRowToSubject({
       nextClassScore = res.classScore;
     }
   } else if (row.directClassScore) {
+    const liveExistingCls =
+      baseSubject.classScore > 0 ? baseSubject.classScore : row.directClassScore.existingScore;
     const shouldKeepExisting =
       conflictPolicy === "KEEP_EXISTING" &&
-      row.directClassScore.existingScore !== undefined &&
-      row.directClassScore.existingScore > 0;
-    nextClassScore = shouldKeepExisting
-      ? row.directClassScore.existingScore!
-      : row.directClassScore.score;
+      liveExistingCls !== undefined &&
+      liveExistingCls > 0;
+    nextClassScore = shouldKeepExisting ? liveExistingCls! : row.directClassScore.score;
+  } else if (nextComponents && nextComponents.length > 0) {
+    const totalActual =
+      Math.round(nextComponents.reduce((sum, c) => sum + c.score, 0) * 100) / 100;
+    const totalMax = nextComponents.reduce((sum, c) => sum + c.maxScore, 0);
+    nextClassScore =
+      totalMax > 0 && classScoreMax > 0
+        ? Math.round((totalActual * classScoreMax) / totalMax)
+        : 0;
   }
 
   return withExam({
@@ -280,10 +301,8 @@ export function buildScoreImportPlan({
   // 2. Collect matched updates & new students, plus new-task sync patches, before committing atomically
   const studentMap = new Map<string, StudentRecord>(students.map((s) => [s.id, s]));
   const updatedRecords = new Map<string, StudentRecord>();
-  const newRecords: StudentRecord[] = [];
+  const newRecordsByKey = new Map<string, StudentRecord>();
   const touchedStudentIds = new Set<string>();
-  let updatedCount = 0;
-  let createdCount = 0;
 
   parsedResult.rows.forEach((row, idx) => {
     if (row.matchedStudentId && studentMap.has(row.matchedStudentId)) {
@@ -310,11 +329,34 @@ export function buildScoreImportPlan({
       studentMap.set(student.id, nextRecord);
       touchedStudentIds.add(student.id);
       updatedRecords.set(student.id, nextRecord);
-      updatedCount++;
       return;
     }
 
     if (createUnmatched && row.isNewStudent) {
+      const nameKey = normalizeStudentNameKey(row.studentName);
+      const existingNewStudent = newRecordsByKey.get(nameKey);
+      if (existingNewStudent) {
+        const existingSub = existingNewStudent.subjects.find(
+          (s) => s.name.trim().toLowerCase() === activeSubject.trim().toLowerCase(),
+        );
+        const updatedSub = applyScoreRowToSubject({
+          existingSubject: existingSub,
+          row,
+          tasks: mergedTasksForCreation,
+          activeSubject,
+          activeMode,
+          conflictPolicy,
+          classScoreMax: settings.classScoreMax,
+        });
+        const nextSubjects = existingSub
+          ? existingNewStudent.subjects.map((s) =>
+              s === existingSub || (existingSub.id && s.id === existingSub.id) ? updatedSub : s,
+            )
+          : [...existingNewStudent.subjects, updatedSub];
+        newRecordsByKey.set(nameKey, { ...existingNewStudent, subjects: nextSubjects });
+        return;
+      }
+
       const defaultSubs = buildDefaultSubjectsForStudent(effectiveSettings);
       const targetExisting = defaultSubs.find(
         (s) => s.name.trim().toLowerCase() === activeSubject.trim().toLowerCase(),
@@ -341,12 +383,14 @@ export function buildScoreImportPlan({
         gender: "Male",
         className: effectiveSettings.className || "Class",
         subjects: nextSubjects,
-        attendancePresent: 0,
       };
-      newRecords.push(newStudent);
-      createdCount++;
+      newRecordsByKey.set(nameKey, newStudent);
     }
   });
+
+  const newRecords = Array.from(newRecordsByKey.values());
+  const updatedCount = touchedStudentIds.size;
+  const createdCount = newRecords.length;
 
   // 3. Keep remaining existing students synced with active + newly created SBA tasks (score: 0)
   if (enabledNewTasks.length > 0 && updatedCount + createdCount > 0) {
@@ -358,6 +402,7 @@ export function buildScoreImportPlan({
       if (!existingSub) return;
 
       const existingComps = existingSub.classScoreComponents ?? [];
+      if (existingComps.length === 0 && existingSub.classScore > 0) return;
       const additions = mergedTasksForCreation
         .filter(
           (t) =>
@@ -378,7 +423,7 @@ export function buildScoreImportPlan({
       const totalActual = nextComps.reduce((sum, c) => sum + c.score, 0);
       const totalMax = nextComps.reduce((sum, c) => sum + c.maxScore, 0);
       const nextClassScore =
-        totalMax > 0 ? Math.round((totalActual / totalMax) * settings.classScoreMax) : 0;
+        totalMax > 0 ? Math.round((totalActual * settings.classScoreMax) / totalMax) : 0;
 
       updatedRecords.set(student.id, {
         ...student,
