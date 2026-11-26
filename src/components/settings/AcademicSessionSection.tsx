@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Plus, Users, X } from "lucide-react";
 import type { AcademicPeriod, ExamType, SchoolLevel } from "../../types";
@@ -8,6 +8,7 @@ import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { useSchoolActions, useSchoolStudents } from "../../hooks/useSchoolData";
 
 export function AcademicSessionSection() {
+  const sectionId = useId();
   const {
     formData,
     setFormData,
@@ -59,14 +60,22 @@ export function AcademicSessionSection() {
         <div className="grid gap-6">
           {/* LEVEL SELECTOR */}
           <div>
-            <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+            <span
+              id={`${sectionId}-school-level`}
+              className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase"
+            >
               School Level
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            </span>
+            <div
+              role="group"
+              aria-labelledby={`${sectionId}-school-level`}
+              className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+            >
               {(["KG", "PRIMARY", "JHS", "SHS"] as SchoolLevel[]).map((lvl) => (
                 <button
                   key={lvl}
                   type="button"
+                  aria-pressed={formData.level === lvl}
                   onClick={() => handleLevelChange(lvl)}
                   className={`rounded-lg border-2 px-3 py-3 text-sm font-bold shadow-sm transition-all active:scale-95 sm:px-4 sm:py-2.5 ${
                     formData.level === lvl
@@ -93,11 +102,15 @@ export function AcademicSessionSection() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+              <label
+                htmlFor={`${sectionId}-class-name`}
+                className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase"
+              >
                 Class Name
               </label>
               <div className="relative">
                 <Input
+                  id={`${sectionId}-class-name`}
                   type="text"
                   required
                   value={formData.className || ""}
@@ -164,10 +177,14 @@ export function AcademicSessionSection() {
               placeholder="e.g. 2025/2026"
             />
             <div>
-              <label className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase">
+              <label
+                htmlFor={`${sectionId}-term`}
+                className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase"
+              >
                 Term / Semester
               </label>
               <select
+                id={`${sectionId}-term`}
                 value={formData.term}
                 onChange={(e) =>
                   setFormData({ ...formData, term: e.target.value as AcademicPeriod })
@@ -183,10 +200,17 @@ export function AcademicSessionSection() {
 
           {/* EXAM TYPE SELECTOR */}
           <div>
-            <label className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase">
+            <span
+              id={`${sectionId}-exam-type`}
+              className="text-muted mb-2 block text-xs font-bold tracking-wide uppercase"
+            >
               Exam Type
-            </label>
-            <div className="grid grid-cols-2 gap-2">
+            </span>
+            <div
+              role="group"
+              aria-labelledby={`${sectionId}-exam-type`}
+              className="grid grid-cols-2 gap-2"
+            >
               {(["TERMLY", "MOCK"] as ExamType[]).map((type) => (
                 <button
                   key={type}
@@ -246,6 +270,7 @@ export function AcademicSessionSection() {
         <div className="mb-4 flex gap-2">
           <Input
             type="text"
+            aria-label="New subject name"
             value={newSubject}
             onChange={(e) => setNewSubject(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSubject())}

@@ -78,6 +78,9 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
       className="animate-fade-in bottom-safe-nav pointer-events-none fixed left-4 z-30 md:left-72 print:hidden"
     >
       <div
+        role={error ? "alert" : "status"}
+        aria-live={error ? "assertive" : "polite"}
+        aria-atomic="true"
         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium shadow-lg ${
           error
             ? "border border-red-200 bg-red-50 text-red-700 dark:border-red-800/70 dark:bg-red-950/90 dark:text-red-300"

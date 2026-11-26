@@ -508,6 +508,9 @@ export function Dashboard() {
             />
 
             <div className="space-y-3">
+              <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {`Showing ${filteredStudents.length} of ${students.length} ${students.length === 1 ? "student" : "students"}`}
+              </div>
               <div className="flex items-center justify-between gap-2">
                 <div
                   role="group"

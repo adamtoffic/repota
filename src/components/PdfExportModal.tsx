@@ -1,4 +1,7 @@
+import { useRef } from "react";
+import { createPortal } from "react-dom";
 import { Download, Loader2, Share2, X } from "lucide-react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 import type { PdfExportModalProps } from "../hooks/usePdfShareFlow";
 
 export function PdfExportModal({
@@ -14,20 +17,39 @@ export function PdfExportModal({
   onShare,
   onDownload,
 }: PdfExportModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const canDismiss = status !== "generating";
+
+  useDialogA11y({
+    isOpen,
+    onClose,
+    dialogRef,
+    closeOnEscape: canDismiss,
+  });
+
   if (!isOpen) return null;
 
   const total = progress?.total ?? totalCount;
   const current = progress?.current ?? 0;
   const pct = total > 0 ? Math.round((current / total) * 100) : 10;
 
-  return (
+  const modalContent = (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ios-pdf-modal-title"
+      onClick={(e) => {
+        if (canDismiss && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs print:hidden"
     >
-      <div className="bg-surface border-border w-full max-w-sm rounded-2xl border p-5 shadow-2xl">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ios-pdf-modal-title"
+        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-5 shadow-2xl focus:outline-none"
+      >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 id="ios-pdf-modal-title" className="text-main text-base font-bold">
@@ -37,7 +59,10 @@ export function PdfExportModal({
                   ? "PDF Preparation Failed"
                   : "PDF Ready to Print or Save"}
             </h2>
-            <p className="text-muted mt-0.5 text-xs">
+            <p
+              role={status === "error" ? "alert" : undefined}
+              className="text-muted mt-0.5 text-xs"
+            >
               {status === "generating"
                 ? `Rendering ${itemLabel} ${current} of ${total}`
                 : status === "error"
@@ -56,7 +81,7 @@ export function PdfExportModal({
         </div>
 
         {status === "generating" && (
-          <div className="my-4">
+          <div className="my-4" role="status" aria-live="polite">
             <div className="text-secondary flex items-center justify-center gap-2 py-2 text-sm font-medium">
               <Loader2 className="text-primary-text h-5 w-5 animate-spin" />
               <span>{total > 0 ? `${pct}%` : "Starting…"}</span>
@@ -72,7 +97,11 @@ export function PdfExportModal({
 
         {status === "ready" && file && (
           <div className="mt-4 flex flex-col gap-2">
-            {error && <p className="text-xs text-amber-700 dark:text-amber-400">{error}</p>}
+            {error && (
+              <p role="alert" className="text-xs text-amber-700 dark:text-amber-400">
+                {error}
+              </p>
+            )}
             <button
               type="button"
               onClick={onShare}
@@ -113,4 +142,6 @@ export function PdfExportModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }

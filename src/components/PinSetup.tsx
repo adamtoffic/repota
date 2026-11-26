@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { captureEvent } from "../utils/analytics";
 import {
   Lock,
@@ -19,6 +19,7 @@ import {
 } from "../utils/pinSecurity";
 import { isBiometricAvailable, enrollBiometric, getBiometricName } from "../utils/biometricAuth";
 import { SECURITY_QUESTIONS } from "../constants/securityQuestions";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 
 interface Props {
   onComplete: () => void;
@@ -46,6 +47,16 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   const [enrollingBiometric, setEnrollingBiometric] = useState(false);
   const securityQuestionsSavedRef = useRef(false);
   const wasChangingPinRef = useRef(isChangingPin);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const idPrefix = useId();
+  const titleId = `${idPrefix}-title`;
+
+  useDialogA11y({
+    isOpen: true,
+    onClose: onCancel ?? (() => {}),
+    closeOnEscape: Boolean(onCancel),
+    dialogRef,
+  });
 
   // Check biometric availability on mount
   useEffect(() => {
@@ -177,9 +188,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "intro") {
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
         style={{
           backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
@@ -202,7 +216,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             </div>
           </div>
 
-          <h1 className="text-main mb-3 text-center text-2xl font-bold">
+          <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
             {isChangingPin ? "Change Your PIN" : "Secure Your Data"}
           </h1>
           <p className="text-muted mb-6 text-center text-sm">
@@ -239,11 +253,15 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   }
 
   if (step === "create") {
+    const createPinInputId = `${idPrefix}-create-pin`;
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
         style={{
           backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
@@ -263,7 +281,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           <p className="text-primary-text mb-1 text-center text-xs font-bold tracking-wider uppercase">
             Step 1 of 4
           </p>
-          <h2 className="text-main mb-2 text-center text-xl font-bold">
+          <h2 id={titleId} className="text-main mb-2 text-center text-xl font-bold">
             {isChangingPin ? "Enter New PIN" : "Create Your PIN"}
           </h2>
           <p className="text-muted mb-6 text-center text-sm">
@@ -273,10 +291,14 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           </p>
 
           <div className="mb-6">
-            <label className="text-secondary mb-2 block text-sm font-medium">
+            <label
+              htmlFor={createPinInputId}
+              className="text-secondary mb-2 block text-sm font-medium"
+            >
               Enter 4-digit PIN
             </label>
             <input
+              id={createPinInputId}
               type="password"
               inputMode="numeric"
               maxLength={4}
@@ -298,7 +320,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -329,11 +354,15 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   }
 
   if (step === "confirm") {
+    const confirmPinInputId = `${idPrefix}-confirm-pin`;
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
         style={{
           backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
@@ -353,14 +382,20 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           <p className="text-primary-text mb-1 text-center text-xs font-bold tracking-wider uppercase">
             Step 2 of 4
           </p>
-          <h2 className="text-main mb-2 text-center text-xl font-bold">Confirm Your PIN</h2>
+          <h2 id={titleId} className="text-main mb-2 text-center text-xl font-bold">
+            Confirm Your PIN
+          </h2>
           <p className="text-muted mb-6 text-center text-sm">Re-enter your PIN to confirm</p>
 
           <div className="mb-6">
-            <label className="text-secondary mb-2 block text-sm font-medium">
+            <label
+              htmlFor={confirmPinInputId}
+              className="text-secondary mb-2 block text-sm font-medium"
+            >
               Re-enter your 4-digit PIN
             </label>
             <input
+              id={confirmPinInputId}
               type="password"
               inputMode="numeric"
               maxLength={4}
@@ -382,7 +417,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -418,9 +456,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   if (step === "recovery") {
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
         style={{
           backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
@@ -446,7 +487,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           <p className="mb-1 text-center text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400">
             Step 3 of 4
           </p>
-          <h2 className="text-main mb-2 text-center text-xl font-bold">
+          <h2 id={titleId} className="text-main mb-2 text-center text-xl font-bold">
             Save Your Recovery Code
           </h2>
           <p className="text-muted mb-6 text-center text-sm">
@@ -474,7 +515,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -514,9 +558,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
         style={{
           backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
@@ -542,7 +589,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           <p className="mb-1 text-center text-xs font-bold tracking-wider text-green-600 uppercase dark:text-emerald-400">
             Step 4 of 4
           </p>
-          <h2 className="text-main mb-2 text-center text-xl font-bold">
+          <h2 id={titleId} className="text-main mb-2 text-center text-xl font-bold">
             Set Security Questions (Optional)
           </h2>
           <p className="text-muted mb-6 text-center text-sm">
@@ -554,13 +601,18 @@ export function PinSetup({ onComplete, onCancel }: Props) {
               const selectedQuestion = SECURITY_QUESTIONS.find(
                 (q) => q.id === selectedQuestions[index],
               );
+              const questionSelectId = `${idPrefix}-question-${index}`;
 
               return (
                 <div key={index} className="border-border bg-subtle rounded-lg border-2 p-4">
-                  <label className="text-secondary mb-2 block text-sm font-bold">
+                  <label
+                    htmlFor={questionSelectId}
+                    className="text-secondary mb-2 block text-sm font-bold"
+                  >
                     Question {index + 1}
                   </label>
                   <select
+                    id={questionSelectId}
                     value={selectedQuestions[index]}
                     onChange={(e) => {
                       const newQuestions = [...selectedQuestions];
@@ -581,6 +633,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
                   {selectedQuestion && (
                     <input
                       type="text"
+                      aria-label={`Answer for question ${index + 1}`}
                       value={answers[index]}
                       onChange={(e) => {
                         const newAnswers = [...answers];
@@ -598,7 +651,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -648,9 +704,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
 
     return (
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4"
+        aria-labelledby={titleId}
+        className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 focus:outline-none"
         style={{
           backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         }}
@@ -673,7 +732,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             </div>
           </div>
 
-          <h2 className="text-main mb-3 text-center text-xl font-bold">
+          <h2 id={titleId} className="text-main mb-3 text-center text-xl font-bold">
             Enable {biometricName}?
           </h2>
           <p className="text-muted mb-6 text-center text-sm">
@@ -696,7 +755,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300">
+            <div
+              role="alert"
+              className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:border dark:border-red-800/70 dark:bg-red-950/50 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>

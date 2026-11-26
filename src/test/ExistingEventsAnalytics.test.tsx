@@ -269,13 +269,13 @@ describe("Hardened existing PostHog events", () => {
     firstRender.unmount();
 
     // 2. CSV file upload import (explicit genders)
-    const { container } = render(
+    const { baseElement } = render(
       <SchoolContext.Provider value={schoolCtx}>
         <BulkImportModal isOpen={true} onClose={vi.fn()} />
       </SchoolContext.Provider>,
     );
 
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = baseElement.querySelector('input[type="file"]') as HTMLInputElement;
     const csvFile = new File(["Name,Gender\nAbena Boateng,Female"], "roster.csv", {
       type: "text/csv",
     });

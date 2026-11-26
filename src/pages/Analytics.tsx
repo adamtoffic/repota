@@ -1,5 +1,5 @@
 // src/pages/Analytics.tsx
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { BarChart3, Download, FileText, Filter, X } from "lucide-react";
 import { useSchoolSettings, useSchoolStudents } from "../hooks/useSchoolData";
@@ -65,6 +65,27 @@ export const Analytics: React.FC = () => {
   const [copiedBrief, setCopiedBrief] = useState(false);
   const analyticsHeaderRef = useRef<HTMLDivElement>(null);
   const analyticsContentRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Partial<Record<AnalyticsViewId, HTMLButtonElement | null>>>({});
+  const tabsIdPrefix = useId();
+
+  const handleViewTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      let nextIdx: number;
+      if (e.key === "ArrowRight") {
+        nextIdx = (index + 1) % ANALYTICS_VIEWS.length;
+      } else if (e.key === "ArrowLeft") {
+        nextIdx = (index - 1 + ANALYTICS_VIEWS.length) % ANALYTICS_VIEWS.length;
+      } else if (e.key === "Home") {
+        nextIdx = 0;
+      } else {
+        nextIdx = ANALYTICS_VIEWS.length - 1;
+      }
+      const nextView = ANALYTICS_VIEWS[nextIdx].id;
+      setActiveView(nextView);
+      tabRefs.current[nextView]?.focus();
+    }
+  };
 
   const activeFilterCount = [
     filters.gender !== "All",
@@ -496,17 +517,31 @@ export const Analytics: React.FC = () => {
 
         {/* View Toggle & Mobile Filter Button */}
         <div className="mb-4 flex flex-col gap-3 sm:mb-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-            {ANALYTICS_VIEWS.map((view) => {
+          <div
+            role="tablist"
+            aria-label="Analytics views"
+            className="no-scrollbar flex gap-2 overflow-x-auto pb-1"
+          >
+            {ANALYTICS_VIEWS.map((view, idx) => {
               const Icon = view.icon;
+              const isSelected = activeView === view.id;
               return (
                 <button
                   key={view.id}
+                  ref={(el) => {
+                    tabRefs.current[view.id] = el;
+                  }}
+                  id={`${tabsIdPrefix}-tab-${view.id}`}
                   type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-controls={`${tabsIdPrefix}-panel-${view.id}`}
+                  tabIndex={isSelected ? 0 : -1}
                   data-record="true"
                   onClick={() => setActiveView(view.id)}
+                  onKeyDown={(e) => handleViewTabKeyDown(e, idx)}
                   className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all active:scale-95 ${
-                    activeView === view.id
+                    isSelected
                       ? "bg-primary text-white shadow-md"
                       : "border-border bg-surface text-secondary hover:bg-subtle border"
                   }`}
@@ -564,7 +599,13 @@ export const Analytics: React.FC = () => {
           </div>
 
           {/* Main Content */}
-          <div ref={analyticsContentRef} className="space-y-4 sm:space-y-6 lg:col-span-3">
+          <div
+            ref={analyticsContentRef}
+            id={`${tabsIdPrefix}-panel-${activeView}`}
+            role="tabpanel"
+            aria-labelledby={`${tabsIdPrefix}-tab-${activeView}`}
+            className="space-y-4 sm:space-y-6 lg:col-span-3"
+          >
             {ungradedStudents.length > 0 && gradedStudents.length > 0 && (
               <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-200">
                 <span>

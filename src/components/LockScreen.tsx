@@ -295,7 +295,11 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
           </div>
 
           {isVerifying && (
-            <div className="text-muted mt-3 flex items-center justify-center gap-2 text-xs font-medium">
+            <div
+              role="status"
+              aria-live="polite"
+              className="text-muted mt-3 flex items-center justify-center gap-2 text-xs font-medium"
+            >
               <div className="border-primary/25 border-t-primary h-3.5 w-3.5 animate-spin rounded-full border-2" />
               <span>Verifying...</span>
             </div>
@@ -303,7 +307,11 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
 
           {/* Error / Cooldown Banner */}
           {(cooldownSeconds > 0 || error) && (
-            <div className="animate-slide-in-down mt-3 flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="animate-slide-in-down mt-3 flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>
                 {cooldownSeconds > 0

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { AlertCircle, Scale, X } from "lucide-react";
 import type { ExamType, SchoolSettings, StudentRecord } from "../../types";
 import {
@@ -48,6 +48,7 @@ function SbaWeightsModalContent({
     settings.examType === "MOCK" ? 100 - defaultTermlyClassMax : settings.examScoreMax,
   );
   const [scoreMode, setScoreMode] = useState<"rescale" | "clamp">("rescale");
+  const weightsIdPrefix = useId();
 
   const targetClassMax = examType === "MOCK" ? 0 : classMax;
   const targetExamMax = examType === "MOCK" ? 100 : examMax;
@@ -113,16 +114,24 @@ function SbaWeightsModalContent({
         <div className="flex-1 space-y-4 overflow-y-auto p-3.5 sm:p-5">
           {/* Exam Type Switcher */}
           <div>
-            <label className="text-muted mb-1.5 block text-xs font-bold tracking-wide uppercase">
+            <span
+              id={`${weightsIdPrefix}-exam-mode`}
+              className="text-muted mb-1.5 block text-xs font-bold tracking-wide uppercase"
+            >
               Exam Mode
-            </label>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            </span>
+            <div
+              role="group"
+              aria-labelledby={`${weightsIdPrefix}-exam-mode`}
+              className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+            >
               {(["TERMLY", "MOCK"] as ExamType[]).map((modeOption) => {
                 const isSelected = examType === modeOption;
                 return (
                   <button
                     key={modeOption}
                     type="button"
+                    aria-pressed={isSelected}
                     disabled={disabled}
                     onClick={() => setExamType(modeOption)}
                     className={`rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
@@ -151,10 +160,17 @@ function SbaWeightsModalContent({
             <>
               {/* One-Tap GES Weight Presets */}
               <div>
-                <label className="text-muted mb-1.5 block text-xs font-bold tracking-wide uppercase">
+                <span
+                  id={`${weightsIdPrefix}-presets`}
+                  className="text-muted mb-1.5 block text-xs font-bold tracking-wide uppercase"
+                >
                   Standard Presets
-                </label>
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby={`${weightsIdPrefix}-presets`}
+                  className="grid grid-cols-3 gap-1.5 sm:gap-2"
+                >
                   {WEIGHT_PRESETS.map((preset) => {
                     const active =
                       classMax === preset.classScoreMax && examMax === preset.examScoreMax;
@@ -162,6 +178,7 @@ function SbaWeightsModalContent({
                       <button
                         key={preset.id}
                         type="button"
+                        aria-pressed={active}
                         disabled={disabled}
                         onClick={() => {
                           setClassMax(preset.classScoreMax);
