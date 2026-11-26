@@ -379,10 +379,17 @@ function ScoreImportModalContent({
       ];
 
   return (
-    <Modal isOpen={isOpen} onClose={resetAndClose} closeOnBackdrop={false} className="max-w-3xl">
-      <div className="flex max-h-[90vh] flex-col overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={resetAndClose}
+      closeOnBackdrop={false}
+      ariaLabelledBy="score-import-modal-title"
+      className="max-w-3xl"
+    >
+      <div className="flex max-h-[90dvh] flex-col overflow-hidden">
         <div className="border-border-subtle flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3.5 sm:px-5 sm:py-4">
           <h3
+            id="score-import-modal-title"
             className="text-main flex min-w-0 items-center gap-2 text-base font-bold sm:text-lg"
             data-record="true"
           >

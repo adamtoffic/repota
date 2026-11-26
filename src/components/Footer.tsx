@@ -30,7 +30,6 @@ export function Footer() {
 
               {/* WhatsApp Support */}
               <a
-                /* 🔴 EDIT THIS: Put your real WhatsApp number below (e.g. 233541234567) */
                 href="https://wa.me/233248140806?text=Hi!%20I%20need%20help%20with%20Repota"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -43,7 +42,6 @@ export function Footer() {
 
               {/* Email */}
               <a
-                /* 🔴 EDIT THIS: Put your real email below */
                 href="mailto:repota.team@proton.me"
                 className="hover:text-primary-text flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
               >
@@ -54,7 +52,6 @@ export function Footer() {
 
               {/* GitHub */}
               <a
-                /* 🔴 EDIT THIS: Put your GitHub username below */
                 href="https://github.com/adamtoffic"
                 target="_blank"
                 rel="noopener noreferrer"

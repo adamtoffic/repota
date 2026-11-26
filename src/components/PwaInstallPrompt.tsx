@@ -21,6 +21,33 @@ const isSafari = () => {
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 };
 
+const isStandaloneMode = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  );
+};
+
+const safeReadDismissedAt = (): number | null => {
+  try {
+    const raw = localStorage.getItem("pwa-install-dismissed");
+    if (!raw) return null;
+    const parsed = parseInt(raw, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const safeWriteDismissedAt = (timestamp: number): void => {
+  try {
+    localStorage.setItem("pwa-install-dismissed", timestamp.toString());
+  } catch {
+    // Ignore storage quota / private mode failures
+  }
+};
+
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOSDevice] = useState(isIOS());
@@ -29,14 +56,13 @@ export function PwaInstallPrompt() {
   // Check if app is already installed or dismissed recently
   const getInitialShowPrompt = () => {
     // Don't show if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (isStandaloneMode()) {
       return false;
     }
 
     // Don't show if dismissed recently (within 7 days)
-    const dismissed = localStorage.getItem("pwa-install-dismissed");
-    if (dismissed) {
-      const dismissedTime = parseInt(dismissed);
+    const dismissedTime = safeReadDismissedAt();
+    if (dismissedTime !== null) {
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
       if (Date.now() - dismissedTime < sevenDays) {
         return false;
@@ -57,12 +83,11 @@ export function PwaInstallPrompt() {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
       // Only show if not already installed and not recently dismissed
-      if (!window.matchMedia("(display-mode: standalone)").matches) {
-        const dismissed = localStorage.getItem("pwa-install-dismissed");
-        if (!dismissed) {
+      if (!isStandaloneMode()) {
+        const dismissedTime = safeReadDismissedAt();
+        if (dismissedTime === null) {
           setShowPrompt(true);
         } else {
-          const dismissedTime = parseInt(dismissed);
           const sevenDays = 7 * 24 * 60 * 60 * 1000;
           if (Date.now() - dismissedTime >= sevenDays) {
             setShowPrompt(true);
@@ -77,12 +102,11 @@ export function PwaInstallPrompt() {
     // (beforeinstallprompt won't fire on iOS)
     if (isIOSDevice && isSafari()) {
       const timer = setTimeout(() => {
-        if (!window.matchMedia("(display-mode: standalone)").matches) {
-          const dismissed = localStorage.getItem("pwa-install-dismissed");
-          if (!dismissed) {
+        if (!isStandaloneMode()) {
+          const dismissedTime = safeReadDismissedAt();
+          if (dismissedTime === null) {
             setShowPrompt(true);
           } else {
-            const dismissedTime = parseInt(dismissed);
             const sevenDays = 7 * 24 * 60 * 60 * 1000;
             if (Date.now() - dismissedTime >= sevenDays) {
               setShowPrompt(true);
@@ -103,26 +127,25 @@ export function PwaInstallPrompt() {
   const handleInstall = async () => {
     if (!deferredPrompt) return;
 
-    // Show the install prompt
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-
-    captureEvent("Pwa_Install_Prompt_Action", {
-      outcome,
-      platform: "chromium",
-    });
-
-    // Clear the deferredPrompt
-    setDeferredPrompt(null);
-    setShowPrompt(false);
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      captureEvent("Pwa_Install_Prompt_Action", {
+        outcome,
+        platform: "chromium",
+      });
+    } catch {
+      // Ignore user-agent / prompt rejection errors
+    } finally {
+      setDeferredPrompt(null);
+      setShowPrompt(false);
+    }
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
     // Store dismissal in localStorage to not show again for a while
-    localStorage.setItem("pwa-install-dismissed", Date.now().toString());
+    safeWriteDismissedAt(Date.now());
     captureEvent("Pwa_Install_Prompt_Action", {
       outcome: "dismissed",
       platform: isIOSDevice && isSafari() ? "ios_instructions" : "chromium",
@@ -139,7 +162,7 @@ export function PwaInstallPrompt() {
       <div
         aria-hidden={isEditableFocused || undefined}
         data-hide-on-mobile-sheet="true"
-        className={`animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 print:hidden ${keyboardHiddenClass}`}
+        className={`animate-slide-in-up bottom-[calc(8.25rem+max(0.625rem,calc(env(safe-area-inset-bottom,0px)-0.875rem)))] fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 md:bottom-20 print:hidden ${keyboardHiddenClass}`}
       >
         <div className="bg-elevated rounded-lg border border-blue-200 p-4 shadow-lg dark:border-blue-800/70">
           <div className="flex items-start gap-3">
@@ -196,7 +219,7 @@ export function PwaInstallPrompt() {
     <div
       aria-hidden={isEditableFocused || undefined}
       data-hide-on-mobile-sheet="true"
-      className={`animate-slide-in-up bottom-safe-nav fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 print:hidden ${keyboardHiddenClass}`}
+      className={`animate-slide-in-up bottom-[calc(8.25rem+max(0.625rem,calc(env(safe-area-inset-bottom,0px)-0.875rem)))] fixed right-4 left-4 z-50 transition-opacity duration-150 sm:left-auto sm:w-96 md:bottom-20 print:hidden ${keyboardHiddenClass}`}
     >
       <div className="bg-elevated rounded-lg border border-blue-200 p-4 shadow-lg dark:border-blue-800/70">
         <div className="flex items-start gap-3">

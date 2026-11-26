@@ -644,7 +644,7 @@ export function DataBackup({
         )}
 
         <label
-          className={`bg-background border-border-strong text-secondary flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-3 font-bold transition-colors ${
+          className={`bg-background border-border-strong text-secondary focus-within:ring-primary-text focus-within:ring-offset-surface flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-3 font-bold transition-colors focus-within:ring-2 focus-within:ring-offset-2 ${
             isImporting || isRecoveryBusy
               ? "pointer-events-none cursor-not-allowed opacity-50"
               : "cursor-pointer hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 active:scale-95 dark:hover:border-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-300"
@@ -663,7 +663,7 @@ export function DataBackup({
             accept={isIOS ? undefined : ".json,.repota"}
             disabled={isImporting || isRecoveryBusy}
             onChange={handleFileSelect}
-            className="hidden"
+            className="sr-only"
           />
         </label>
       </div>

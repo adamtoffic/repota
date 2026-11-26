@@ -19,16 +19,12 @@ interface PageHeaderProps {
 export function PageHeader({
   schoolName,
   actions,
-  variant = "solid",
   hideOnDesktop = false,
   sticky = true,
 }: PageHeaderProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const bgClass =
-    variant === "transparent"
-      ? "bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-[160%]"
-      : "bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-[160%]";
+  const bgClass = "bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-[160%]";
 
   return (
     <header

@@ -192,11 +192,21 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} closeOnBackdrop={false} className="max-w-2xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      closeOnBackdrop={false}
+      ariaLabelledBy="bulk-import-modal-title"
+      className="max-w-2xl"
+    >
       <div className="flex max-h-[88dvh] flex-col overflow-hidden">
         {/* Header */}
         <div className="border-border-subtle flex shrink-0 items-center justify-between border-b p-4">
-          <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
+          <h3
+            id="bulk-import-modal-title"
+            className="text-main flex items-center gap-2 text-lg font-bold"
+            data-record="true"
+          >
             <Upload className="text-primary-text h-5 w-5" />
             Bulk Import &amp; Setup Students
           </h3>
@@ -231,20 +241,21 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
                     <Download className="h-3.5 w-3.5" />
                     Template (CSV)
                   </button>
-                  <label className="bg-primary hover:bg-primary/90 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white">
+                  <label className="bg-primary hover:bg-primary/90 focus-within:ring-primary-text focus-within:ring-offset-surface inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white focus-within:ring-2 focus-within:ring-offset-2">
                     <FileSpreadsheet className="h-3.5 w-3.5" />
                     <span>Upload CSV</span>
                     <input
                       type="file"
                       accept=".csv,.tsv,.txt,text/csv"
                       onChange={handleFileUpload}
-                      className="hidden"
+                      className="sr-only"
                     />
                   </label>
                 </div>
               </div>
 
               <Textarea
+                aria-label="Paste student list or CSV rows"
                 value={text}
                 onChange={(e) => {
                   setImportSource("paste");

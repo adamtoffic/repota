@@ -445,7 +445,7 @@ export const Analytics: React.FC = () => {
 
   if (students.length === 0) {
     return (
-      <div className="bg-background flex min-h-screen flex-col font-sans">
+      <div className="bg-background flex min-h-dvh flex-col font-sans">
         <PageHeader schoolName={settings.schoolName} />
 
         <main
@@ -477,7 +477,7 @@ export const Analytics: React.FC = () => {
   }
 
   return (
-    <div className="bg-background flex min-h-screen flex-col font-sans">
+    <div className="bg-background flex min-h-dvh flex-col font-sans">
       <PageHeader schoolName={settings.schoolName} />
 
       <main

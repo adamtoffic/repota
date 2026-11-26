@@ -16,8 +16,8 @@ import {
   GraduationCap,
   Table2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import type { DashboardFilter, StudentSortOption } from "../utils/studentValidation";
 
 export interface DashboardFilterCounts {
@@ -55,6 +55,8 @@ interface ToolbarProps {
 // 2. Define Props for the Helper Button
 interface FilterButtonProps {
   label: string;
+  count?: number;
+  dismissible?: boolean;
   isActive: boolean;
   onClick: () => void;
   icon?: ReactNode;
@@ -84,15 +86,56 @@ export function DashboardToolbar({
   onExportStudentList,
 }: ToolbarProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setShowMenu(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }, []);
 
   useEffect(() => {
     if (!showMenu) return;
+    const focusTimer = requestAnimationFrame(() => {
+      const firstItem = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
+      firstItem?.focus();
+    });
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowMenu(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMenu(true);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showMenu]);
+    return () => {
+      cancelAnimationFrame(focusTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeMenu, showMenu]);
+
+  const handleMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [],
+    );
+    if (items.length === 0) return;
+
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      items[(currentIndex + 1) % items.length]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      items[(currentIndex - 1 + items.length) % items.length]?.focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      items[0]?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      items[items.length - 1]?.focus();
+    }
+  };
 
   return (
     <div className="mb-4 flex flex-col gap-3 sm:mb-5">
@@ -104,6 +147,7 @@ export function DashboardToolbar({
           </div>
           <input
             type="text"
+            aria-label="Search students"
             className="border-border-strong bg-input text-main placeholder:text-muted focus:border-primary-text focus:ring-primary-text block w-full rounded-lg border py-2.5 pr-10 pl-10 text-sm transition-all outline-none focus:ring-1"
             placeholder="Search students..."
             value={searchQuery}
@@ -153,19 +197,22 @@ export function DashboardToolbar({
         {/* Scrollable Filters */}
         <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto pb-1">
           <FilterButton
-            label={counts ? `All (${counts.all})` : "All"}
+            label="All"
+            count={counts?.all}
             isActive={activeFilter === "ALL"}
             onClick={() => onFilterChange("ALL")}
           />
           <FilterButton
-            label={counts ? `Incomplete (${counts.pending})` : "Incomplete"}
+            label="Incomplete"
+            count={counts?.pending}
             isActive={activeFilter === "PENDING"}
             onClick={() => onFilterChange(activeFilter === "PENDING" ? "ALL" : "PENDING")}
             activeColor="bg-orange-700"
           />
           {((counts?.missingPhotos ?? 0) > 0 || activeFilter === "MISSING_PHOTOS") && (
             <FilterButton
-              label={counts ? `Missing Photos (${counts.missingPhotos})` : "Missing Photos"}
+              label="Missing Photos"
+              count={counts?.missingPhotos}
               isActive={activeFilter === "MISSING_PHOTOS"}
               onClick={() =>
                 onFilterChange(activeFilter === "MISSING_PHOTOS" ? "ALL" : "MISSING_PHOTOS")
@@ -174,14 +221,17 @@ export function DashboardToolbar({
             />
           )}
           <FilterButton
-            label={counts ? `Failing (${counts.failing})` : "Failing"}
+            label="Failing"
+            count={counts?.failing}
             isActive={activeFilter === "FAILING"}
             onClick={() => onFilterChange(activeFilter === "FAILING" ? "ALL" : "FAILING")}
             activeColor="bg-red-600"
           />
           {activeFilter === "NO_SCORES" && (
             <FilterButton
-              label={counts ? `No Scores (${counts.noScores}) ×` : "No Scores ×"}
+              label="No Scores"
+              count={counts?.noScores}
+              dismissible
               isActive={true}
               onClick={() => onFilterChange("ALL")}
               activeColor="bg-red-600"
@@ -189,11 +239,9 @@ export function DashboardToolbar({
           )}
           {activeFilter === "PARTIAL_SCORES" && (
             <FilterButton
-              label={
-                counts && counts.partialScores !== undefined
-                  ? `Partial Scores (${counts.partialScores}) ×`
-                  : "Partial Scores ×"
-              }
+              label="Partial Scores"
+              count={counts?.partialScores}
+              dismissible
               isActive={true}
               onClick={() => onFilterChange("ALL")}
               activeColor="bg-orange-700"
@@ -204,6 +252,7 @@ export function DashboardToolbar({
         {/* Fixed Class Tools Dropdown / Mobile Bottom Sheet */}
         <div className="relative shrink-0">
           <button
+            ref={triggerRef}
             type="button"
             onClick={() => setShowMenu((prev) => !prev)}
             aria-expanded={showMenu}
@@ -222,16 +271,18 @@ export function DashboardToolbar({
           {showMenu && (
             <>
               <div
-                className="fixed inset-0 z-[45] bg-black/30 backdrop-blur-[1px] sm:z-10 sm:bg-transparent sm:backdrop-blur-none dark:bg-black/60 sm:dark:bg-transparent"
-                onClick={() => setShowMenu(false)}
+                className="fixed inset-0 z-[45] bg-black/30 backdrop-blur-[1px] md:z-30 md:bg-transparent md:backdrop-blur-none dark:bg-black/60 md:dark:bg-transparent"
+                onClick={() => closeMenu(false)}
               />
               <div
+                ref={menuRef}
                 role="menu"
                 aria-label="Class Tools"
-                className="border-border bg-elevated fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-t-3xl border-t p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl sm:absolute sm:inset-auto sm:top-full sm:right-0 sm:z-20 sm:mt-2 sm:max-h-[75vh] sm:w-72 sm:rounded-2xl sm:border sm:p-1.5 sm:pb-1.5 sm:shadow-xl"
+                onKeyDown={handleMenuKeyDown}
+                className="border-border bg-elevated fixed inset-x-0 bottom-0 z-50 max-h-[82dvh] overflow-y-auto rounded-t-3xl border-t p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl md:absolute md:inset-auto md:top-full md:right-0 md:z-40 md:mt-2 md:max-h-[75dvh] md:w-72 md:rounded-2xl md:border md:p-1.5 md:pb-1.5 md:shadow-xl"
               >
                 {/* Mobile Drag Handle & Header */}
-                <div className="mb-3 flex flex-col items-center sm:hidden">
+                <div className="mb-3 flex flex-col items-center md:hidden">
                   <div className="bg-border-strong mb-2 h-1 w-10 rounded-full" />
                   <div className="flex w-full items-center justify-between px-1">
                     <span className="text-main text-sm font-bold" data-record="true">
@@ -239,7 +290,7 @@ export function DashboardToolbar({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setShowMenu(false)}
+                      onClick={() => closeMenu(true)}
                       aria-label="Close Class Tools"
                       className="text-muted hover:bg-subtle hover:text-main rounded-full p-2"
                     >
@@ -426,7 +477,7 @@ export function DashboardToolbar({
                     onClearScores();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-orange-600 hover:bg-orange-50 sm:py-2.5 dark:text-orange-400 dark:hover:bg-orange-950/50"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-orange-700 hover:bg-orange-50 sm:py-2.5 dark:text-orange-400 dark:hover:bg-orange-950/50"
                   data-record="true"
                 >
                   <Eraser size={16} className="shrink-0" /> Clear All Scores
@@ -438,11 +489,13 @@ export function DashboardToolbar({
                     onDeletePending();
                     setShowMenu(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 sm:py-2.5 dark:text-red-400 dark:hover:bg-red-950/50"
-                  data-record="true"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-700 hover:bg-red-50 sm:py-2.5 dark:text-red-400 dark:hover:bg-red-950/50"
                 >
-                  <Trash2 size={16} className="shrink-0" /> Remove Incomplete Students
-                  {counts && counts.pending > 0 ? ` (${counts.pending})` : ""}
+                  <Trash2 size={16} className="shrink-0" />
+                  <span>
+                    <span data-record="true">Remove Incomplete Students</span>
+                    {counts && counts.pending > 0 ? ` (${counts.pending})` : ""}
+                  </span>
                 </button>
               </div>
             </>
@@ -456,6 +509,8 @@ export function DashboardToolbar({
 // 3. The Helper Component
 function FilterButton({
   label,
+  count,
+  dismissible = false,
   icon,
   isActive,
   onClick,
@@ -474,9 +529,11 @@ function FilterButton({
       className={`flex min-h-10 items-center gap-1 rounded-full border px-4 py-2 text-xs font-bold whitespace-nowrap transition-colors sm:min-h-0 sm:py-1.5 ${
         isActive ? activeStyle : `border-border bg-surface text-secondary ${hoverColor}`
       }`}
-      data-record="true"
     >
-      {icon} {label}
+      {icon}
+      <span data-record="true">{label}</span>
+      {count !== undefined ? ` (${count})` : ""}
+      {dismissible ? " ×" : ""}
     </button>
   );
 }

@@ -263,14 +263,14 @@ export function ScoreImportConfigAndInput({
               <Download className="h-3.5 w-3.5" />
               Download Template (CSV)
             </button>
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white hover:bg-purple-800">
+            <label className="focus-within:ring-primary-text focus-within:ring-offset-surface inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white hover:bg-purple-800 focus-within:ring-2 focus-within:ring-offset-2">
               <FileSpreadsheet className="h-3.5 w-3.5" />
               <span>Upload CSV</span>
               <input
                 type="file"
                 accept=".csv,.tsv,.txt,text/csv"
                 onChange={onFileUpload}
-                className="hidden"
+                className="sr-only"
               />
             </label>
           </div>
@@ -284,6 +284,7 @@ export function ScoreImportConfigAndInput({
             completed CSV template above. Blank cells leave existing scores intact.
           </p>
           <Textarea
+            aria-label="Paste subject scores or CSV rows"
             value={rawText}
             onChange={(e) => onRawTextChange(e.target.value)}
             placeholder={

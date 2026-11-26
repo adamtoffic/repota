@@ -429,7 +429,7 @@ export function AnalyticsInsightsTab({
             <p className="mt-2 text-2xl font-black text-green-900 dark:text-emerald-200">
               {attendanceInsights.perfectAttendance}
             </p>
-            <p data-record="true" className="mt-1 text-xs text-green-600 dark:text-emerald-400">
+            <p data-record="true" className="mt-1 text-xs text-green-700 dark:text-emerald-400">
               students
             </p>
           </div>
@@ -443,7 +443,7 @@ export function AnalyticsInsightsTab({
             <p className="mt-2 text-2xl font-black text-red-900 dark:text-red-200">
               {attendanceInsights.poorAttendance}
             </p>
-            <p data-record="true" className="mt-1 text-xs text-red-600 dark:text-red-400">
+            <p data-record="true" className="mt-1 text-xs text-red-700 dark:text-red-400">
               students &lt;70%
             </p>
           </div>
@@ -461,8 +461,8 @@ export function AnalyticsInsightsTab({
                   ? "Negative ↓"
                   : "Neutral →"}
             </p>
-            <p data-record="true" className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-              Pearson r = {attendanceInsights.correlationCoefficient}
+            <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              <span data-record="true">Pearson r</span> = {attendanceInsights.correlationCoefficient}
             </p>
           </div>
         </div>
@@ -538,7 +538,7 @@ export function AnalyticsInsightsTab({
             )}
           {classMetrics.excellenceRate > 30 && (
             <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
-              <p className="mb-1 text-sm font-bold text-green-600 dark:text-emerald-400">
+              <p className="mb-1 text-sm font-bold text-green-700 dark:text-emerald-400">
                 🌟 Excellence Rate
               </p>
               <p className="text-secondary text-sm">
@@ -549,7 +549,7 @@ export function AnalyticsInsightsTab({
           )}
           {performanceQuartiles.strugglingStudents.length > 5 && (
             <div className="bg-surface border-border rounded-lg border p-4 shadow-sm">
-              <p className="mb-1 text-sm font-bold text-red-600 dark:text-red-400">
+              <p className="mb-1 text-sm font-bold text-red-700 dark:text-red-400">
                 👥 Struggling Students
               </p>
               <p className="text-secondary text-sm">

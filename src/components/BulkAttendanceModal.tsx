@@ -91,10 +91,20 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-xl">
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      closeOnBackdrop={false}
+      ariaLabelledBy="bulk-attendance-modal-title"
+      className="max-w-xl"
+    >
       <div className="flex max-h-[88dvh] flex-col overflow-hidden">
         <div className="border-border-subtle flex shrink-0 items-center justify-between border-b p-4">
-          <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
+          <h3
+            id="bulk-attendance-modal-title"
+            className="text-main flex items-center gap-2 text-lg font-bold"
+            data-record="true"
+          >
             <CalendarCheck className="text-primary-text h-5 w-5" />
             Bulk Attendance Entry
           </h3>

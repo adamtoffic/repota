@@ -66,10 +66,10 @@ function ModalSaveStatus() {
       <span
         className="inline-flex h-8 items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300"
         title={saveError}
-        role="status"
+        role="alert"
       >
         <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden md:inline" data-record="true">
+        <span className="sr-only md:not-sr-only md:inline" data-record="true">
           Save failed
         </span>
       </span>
@@ -83,7 +83,7 @@ function ModalSaveStatus() {
         title="Offline — changes save locally"
       >
         <WifiOff className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden md:inline" data-record="true">
+        <span className="sr-only md:not-sr-only md:inline" data-record="true">
           Offline
         </span>
       </span>
@@ -97,7 +97,7 @@ function ModalSaveStatus() {
         title="Saving changes..."
       >
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-        <span className="hidden md:inline" data-record="true">
+        <span className="sr-only md:not-sr-only md:inline" data-record="true">
           Saving…
         </span>
       </span>
@@ -111,7 +111,7 @@ function ModalSaveStatus() {
         title="All changes saved"
       >
         <Check className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden md:inline" data-record="true">
+        <span className="sr-only md:not-sr-only md:inline" data-record="true">
           Saved
         </span>
       </span>
@@ -398,7 +398,7 @@ export function ScoreEntryModal({
       <div
         ref={modalContentRef}
         tabIndex={-1}
-        className="bg-surface sm:border-border sm:animate-sheet-up flex min-h-dvh w-full max-w-4xl flex-col focus:outline-none sm:h-[min(86vh,780px)] sm:max-h-[90vh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:shadow-2xl dark:sm:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
+        className="bg-surface sm:border-border sm:animate-sheet-up flex min-h-dvh w-full max-w-4xl flex-col focus:outline-none sm:h-[min(86dvh,780px)] sm:max-h-[90dvh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:shadow-2xl dark:sm:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="safe-top bg-surface shrink-0 sm:hidden" />
@@ -419,26 +419,30 @@ export function ScoreEntryModal({
 
             <div className="min-w-0 flex-1">
               {hasNavigation && allStudents && onNavigate ? (
-                <select
-                  id="score-entry-modal-title"
-                  aria-label="Switch student"
-                  value={student.id}
-                  onChange={(e) => onNavigate(e.target.value)}
-                  className="border-border-strong bg-input text-main hover:border-muted focus:border-primary-text focus:ring-primary-text/25 w-full max-w-full truncate rounded-lg border px-2.5 py-1.5 text-base font-bold transition-colors outline-none focus:ring-2 sm:max-w-xs"
-                >
-                  {allStudents.map((s, idx) => {
-                    const counts = getScoredSubjectCounts(s, isMockExam);
-                    const statusCue =
-                      counts.total > 0 && counts.completed === counts.total
-                        ? "✓"
-                        : `(${counts.completed}/${counts.total})`;
-                    return (
-                      <option key={s.id} value={s.id}>
-                        {idx + 1}. {s.name} {statusCue}
-                      </option>
-                    );
-                  })}
-                </select>
+                <>
+                  <h2 id="score-entry-modal-title" className="sr-only">
+                    Score entry for {student.name}
+                  </h2>
+                  <select
+                    aria-label="Switch student"
+                    value={student.id}
+                    onChange={(e) => onNavigate(e.target.value)}
+                    className="border-border-strong bg-input text-main hover:border-muted focus:border-primary-text focus:ring-primary-text/25 w-full max-w-full truncate rounded-lg border px-2.5 py-1.5 text-base font-bold transition-colors outline-none focus:ring-2 sm:max-w-xs"
+                  >
+                    {allStudents.map((s, idx) => {
+                      const counts = getScoredSubjectCounts(s, isMockExam);
+                      const statusCue =
+                        counts.total > 0 && counts.completed === counts.total
+                          ? "✓"
+                          : `(${counts.completed}/${counts.total})`;
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {idx + 1}. {s.name} {statusCue}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </>
               ) : (
                 <h2
                   id="score-entry-modal-title"

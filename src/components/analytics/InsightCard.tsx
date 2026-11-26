@@ -35,7 +35,7 @@ const variantStyles = {
     bg: "bg-red-50/50 dark:bg-red-950/40",
     titleColor: "text-red-900 dark:text-red-200",
     itemColor: "text-red-800 dark:text-red-300",
-    valueColor: "text-red-600 dark:text-red-400",
+    valueColor: "text-red-700 dark:text-red-400",
   },
 };
 

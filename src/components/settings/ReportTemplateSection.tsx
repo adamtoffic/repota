@@ -200,7 +200,7 @@ export function ReportTemplateSection() {
               onClick={() => setPreviewPrintMode("bw")}
               className={`rounded-md px-2.5 py-1 transition-colors ${
                 previewPrintMode === "bw"
-                  ? "bg-slate-800 text-white"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                   : "text-muted hover:text-main"
               }`}
             >
@@ -229,6 +229,7 @@ export function ReportTemplateSection() {
                 key={template.id}
                 ref={isActive ? activeCardRef : undefined}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => {
                   if (activeTemplateId === template.id) return;
                   setFormData({ ...formData, templateId: template.id });
@@ -259,7 +260,10 @@ export function ReportTemplateSection() {
 
                 {/* Active Checkmark */}
                 {isActive && (
-                  <div className="absolute top-3 right-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
+                  <div
+                    aria-hidden="true"
+                    className="absolute top-3 right-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs"
+                  >
                     ✓
                   </div>
                 )}
@@ -320,6 +324,7 @@ export function ReportTemplateSection() {
                   <button
                     key={preset.id}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => {
                       setPrimaryHexDraft(null);
                       setAccentHexDraft(null);
@@ -492,7 +497,7 @@ export function ReportTemplateSection() {
                     onClick={() => setPreviewPrintMode("bw")}
                     className={`rounded-xs px-2 py-0.5 transition-colors ${
                       previewPrintMode === "bw"
-                        ? "bg-slate-800 text-white"
+                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                         : "text-muted hover:text-main"
                     }`}
                   >

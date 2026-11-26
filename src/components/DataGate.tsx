@@ -30,7 +30,7 @@ export function DataGate({ children }: DataGateProps) {
 
   if (loadError || isRollbackIncomplete) {
     return (
-      <div className="bg-background flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <div className="bg-background flex min-h-dvh items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-xl">
           <Alert variant="error" title="Saved data could not be loaded">
             Changes will not be saved while storage is unavailable. Try again, or restore a backup

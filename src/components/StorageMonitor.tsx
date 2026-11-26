@@ -19,7 +19,7 @@ export function StorageMonitor() {
   return (
     <div className="border-border bg-surface rounded-xl border p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-main text-lg font-bold">Storage Information</h3>
+        <h2 className="text-main text-lg font-bold">Storage Information</h2>
         <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
       </div>
 
@@ -44,7 +44,7 @@ export function StorageMonitor() {
 
       {/* Student Photos Info */}
       <div className="space-y-3">
-        <h4 className="text-secondary text-sm font-semibold">Current Usage</h4>
+        <h3 className="text-secondary text-sm font-semibold">Current Usage</h3>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted">Students with Photos</span>
           <span className="text-main font-medium">{studentsWithPhotos}</span>

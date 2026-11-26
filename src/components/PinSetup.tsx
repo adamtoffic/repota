@@ -235,9 +235,9 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             </div>
           </div>
 
-          <h1 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
+          <h2 id={titleId} className="text-main mb-3 text-center text-2xl font-bold">
             {isChangingPin ? "Change Your PIN" : "Secure Your Data"}
-          </h1>
+          </h2>
           <p className="text-muted mb-6 text-center text-sm">
             {isChangingPin
               ? "Set a new 4-digit PIN to protect your student records."
@@ -575,7 +575,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
         aria-labelledby={titleId}
         className="safe-y animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 focus:outline-none dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647]"
       >
-        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
+        <div className="animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-3xl border p-6 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 sm:p-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10">
           {onCancel && (
             <button
               type="button"

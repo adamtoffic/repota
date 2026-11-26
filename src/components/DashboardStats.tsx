@@ -119,6 +119,11 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           alertColor="orange"
           isActive={activeFilter === "PENDING"}
           isActionable={Boolean(onFilterChange)}
+          actionAriaLabel={
+            stats.pending > 0
+              ? `Pending Entry: ${stats.pending} incomplete students. Click to ${activeFilter === "PENDING" ? "show all students" : "filter incomplete students"}.`
+              : "Pending Entry: 0 incomplete students."
+          }
           onClick={
             onFilterChange && stats.pending > 0
               ? () => onFilterChange(activeFilter === "PENDING" ? "ALL" : "PENDING")
@@ -158,8 +163,14 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           }
           alert={stats.failing > 0}
           alertColor="red"
+          alertLabel={stats.failing > 0 ? `${stats.failing} failing` : undefined}
           isActive={activeFilter === "FAILING"}
           isActionable={Boolean(onFilterChange)}
+          actionAriaLabel={
+            stats.failing > 0
+              ? `Pass Rate: ${stats.passRate}%, ${stats.failing} failing students. Click to ${activeFilter === "FAILING" ? "show all students" : "filter failing students"}.`
+              : `Pass Rate: ${stats.passRate}%.`
+          }
           onClick={
             onFilterChange && stats.failing > 0
               ? () => onFilterChange(activeFilter === "FAILING" ? "ALL" : "FAILING")
@@ -180,8 +191,10 @@ interface StatCardProps {
   iconWellClass?: string;
   alert?: boolean;
   alertColor?: "orange" | "red";
+  alertLabel?: string;
   isActive?: boolean;
   isActionable?: boolean;
+  actionAriaLabel?: string;
   onClick?: () => void;
 }
 
@@ -193,8 +206,10 @@ function StatCard({
   iconWellClass = "bg-surface/80 border-border/60",
   alert,
   alertColor = "orange",
+  alertLabel,
   isActive = false,
   isActionable = false,
+  actionAriaLabel,
   onClick,
 }: StatCardProps) {
   const alertColors = {
@@ -221,7 +236,14 @@ function StatCard({
             {value}
           </p>
           {alert && (
-            <span className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
+            <>
+              <span className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
+              {alertLabel && (
+                <span className="text-[10px] font-bold text-red-700 dark:text-red-400">
+                  {alertLabel}
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -245,6 +267,7 @@ function StatCard({
         type="button"
         disabled={!isInteractive}
         onClick={onClick}
+        aria-label={actionAriaLabel}
         aria-pressed={isInteractive ? isActive : undefined}
         className={`flex w-full items-center justify-between rounded-xl border p-3 text-left shadow-sm transition-colors sm:p-4 ${
           isInteractive

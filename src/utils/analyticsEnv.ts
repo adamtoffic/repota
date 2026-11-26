@@ -77,15 +77,12 @@ export function resolveAppEnv(options?: ResolveAppEnvOptions): AppEnv {
   if (normalizedHost.endsWith(".vercel.app") && !PRODUCTION_HOSTS.has(normalizedHost)) {
     return "preview";
   }
-  if (vercelEnv === "production") {
-    return "production";
-  }
 
   if (PRODUCTION_HOSTS.has(normalizedHost)) {
     return "production";
   }
 
-  return isDevBuild ? "development" : "production";
+  return isDevBuild ? "development" : "preview";
 }
 
 /**

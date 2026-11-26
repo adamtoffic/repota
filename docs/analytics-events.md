@@ -1,17 +1,17 @@
 # PostHog analytics events inventory
 
-This repo uses PostHog via `posthog-js`, initialized in `src/main.tsx` alongside environment gating (`src/utils/analyticsEnv.ts`) and safe event/context helpers (`src/utils/analytics.ts`).
+This repo uses PostHog via `posthog-js`, lazy-loaded from `src/main.tsx` alongside environment gating (`src/utils/analyticsEnv.ts`) and event/context configuration (`src/utils/analytics.ts`).
 
 ## Tracking setup, SPA pageviews & privacy gating
 
-- **Config (`src/main.tsx`)**:
+- **Config (`src/utils/analytics.ts`, initialized via `src/main.tsx`)**:
   - `api_host` from `VITE_POSTHOG_HOST`
   - `person_profiles: "identified_only"`
   - `capture_pageview: "history_change"` & `capture_pageleave: "if_capture_pageview"` (tracks TanStack Router client-side route transitions as well as initial load)
   - `autocapture: true` with `mask_all_text: true`, `mask_all_element_attributes: true`, `maskAllInputs: true`, `blockSelector: "img"`, and `data-record="true"` static-label allowlisting
   - `persistence: "localStorage"` (queues events while offline)
   - `disable_session_recording: !isAnalyticsEnabled`
-- **`before_send` pipeline (`src/main.tsx`)**:
+- **`before_send` pipeline (`src/utils/analytics.ts`)**:
   - Drops all events (`return null`) unless `app_env === "production"`
   - Sanitizes `$current_url` via `sanitizePostHogUrl()` in `src/utils/analytics.ts` (removes `?id=` on `/print` so single-student previews do not fragment URLs or leak IDs)
   - Stamps every event with zero-PII global context:
@@ -22,7 +22,7 @@ This repo uses PostHog via `posthog-js`, initialized in `src/main.tsx` alongside
 - **Environment resolution (`src/utils/analyticsEnv.ts`)**:
   - Localhost, loopback, `.local`, and RFC1918 LAN IPv4 hosts always resolve to `"development"` (never sent).
   - Vercel preview deployments (`VERCEL_ENV === "preview"` or `*.vercel.app` subdomains other than `repota.vercel.app`) resolve to `"preview"` (never sent).
-  - Live production hosts (`repota.app`, `www.repota.app`, and `repota.vercel.app` on production `main`) resolve to `"production"` (`shouldSendAnalytics` returns `true`).
+  - Live production hosts (`repota.app`, `www.repota.app`, and `repota.vercel.app`) resolve to `"production"` (`shouldSendAnalytics` returns `true`); non-allowlisted hosts fail closed to `"preview"`.
 
 ---
 
@@ -87,7 +87,7 @@ This repo uses PostHog via `posthog-js`, initialized in `src/main.tsx` alongside
 - Properties: `entry_mode` (`"quick_gradebook" | "score_modal" | "sba_markbook"`), `used_column_paste`, `school_level`, `exam_type`.
 
 #### 12) Data_Loss_Detected
-- Trigger: `SchoolContext` (`src/context/SchoolContext.tsx`) when `detectDataLoss()` returns `true` on startup.
+- Trigger: `useSchoolStorageLifecycle` (`src/context/school/useSchoolStorageLifecycle.ts`) when `detectDataLoss()` returns `true` on startup.
 - Properties: `storage_type`.
 
 #### 13) Storage_Quota_Exceeded
