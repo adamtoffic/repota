@@ -10,6 +10,7 @@ import {
   getReportPalette,
   isValidHexColor,
   mixHex,
+  SCHOOL_COLOR_PRESETS,
 } from "../utils/reportTheme";
 
 describe("privateSchoolFees", () => {
@@ -142,6 +143,11 @@ describe("reportTheme", () => {
     expect(bwPalette.isCustomActive).toBe(false);
     expect(bwPalette.primary).toBe("#000000");
     expect(bwPalette.primarySoft).toBe("#f3f4f6");
+    expect(bwPalette.bannerBg).toBe("#f3f4f6");
+    expect(bwPalette.bannerText).toBe("#000000");
+    expect(bwPalette.highlightBg).toBe("#e5e7eb");
+    expect(bwPalette.highlightText).toBe("#000000");
+    expect(bwPalette.barFill).toBe("#374151");
   });
 
   it("uses school custom colors when enabled in color mode", () => {
@@ -159,5 +165,18 @@ describe("reportTheme", () => {
     expect(customPalette.primary).toBe("#881337");
     expect(customPalette.accent).toBe("#d97706");
     expect(customPalette.onPrimary).toBe("#ffffff");
+    expect(customPalette.bannerBg).toBe("#881337");
+    expect(customPalette.bannerText).toBe("#ffffff");
+    expect(customPalette.highlightBg).toBe("#881337");
+    expect(customPalette.barFill).toBe("#881337");
+  });
+
+  it("provides 10 print-safe school color presets with valid hex values", () => {
+    expect(SCHOOL_COLOR_PRESETS).toHaveLength(10);
+    for (const preset of SCHOOL_COLOR_PRESETS) {
+      expect(isValidHexColor(preset.primary)).toBe(true);
+      expect(isValidHexColor(preset.accent)).toBe(true);
+      expect(getContrastTextColor(preset.primary)).toBe("#ffffff");
+    }
   });
 });

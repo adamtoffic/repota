@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../constants/defaultSettings";
 import { ClassicTemplate } from "../templates/ClassicTemplate";
 import { ExecutiveTemplate } from "../templates/ExecutiveTemplate";
+import { HeritageTemplate } from "../templates/HeritageTemplate";
 import { MinimalTemplate } from "../templates/MinimalTemplate";
 import { ModernTemplate } from "../templates/ModernTemplate";
 import { OriginalTemplate } from "../templates/OriginalTemplate";
+import { ScholarTemplate } from "../templates/ScholarTemplate";
 import type { ProcessedStudent, SchoolSettings } from "../types";
 
 const baseStudent: ProcessedStudent = {
@@ -82,6 +84,8 @@ const TEMPLATES = [
   { name: "ModernTemplate", Component: ModernTemplate },
   { name: "MinimalTemplate", Component: MinimalTemplate },
   { name: "ExecutiveTemplate", Component: ExecutiveTemplate },
+  { name: "HeritageTemplate", Component: HeritageTemplate },
+  { name: "ScholarTemplate", Component: ScholarTemplate },
 ] as const;
 
 describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colors", () => {
@@ -181,4 +185,33 @@ describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colo
       expect(screen.queryByText(/^Crest$/i)).not.toBeInTheDocument();
     },
   );
+
+  it.each([
+    { name: "ExecutiveTemplate", Component: ExecutiveTemplate },
+    { name: "HeritageTemplate", Component: HeritageTemplate },
+    { name: "ScholarTemplate", Component: ScholarTemplate },
+  ])(
+    "$name uses light gray B&W header/highlight surfaces (rgb(243, 244, 246)) instead of solid black toner slabs",
+    ({ Component }) => {
+      const { container } = render(
+        <Component student={baseStudent} settings={baseSettings} printMode="bw" />,
+      );
+
+      expect(container.innerHTML).toMatch(/rgb\(243,\s*244,\s*246\)|#f3f4f6/i);
+    },
+  );
+
+  it("ScholarTemplate renders proportional mastery bars and hides class/exam columns in MOCK mode", () => {
+    render(
+      <ScholarTemplate
+        student={baseStudent}
+        settings={{ ...baseSettings, examType: "MOCK" }}
+        printMode="color"
+      />,
+    );
+
+    expect(screen.getByText(/Mock Assessment/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Class \(30\)/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Score & Mastery/i)).toBeInTheDocument();
+  });
 });

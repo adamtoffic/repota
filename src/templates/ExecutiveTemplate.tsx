@@ -74,10 +74,10 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
           1. EXECUTIVE CREST HEADER BANNER
          ===================================================================== */}
       <header className="relative z-10 overflow-hidden rounded-lg border-2" style={borderStyle}>
-        {/* Top institutional color band */}
+        {/* Top institutional color band (light bordered band in B&W to save toner) */}
         <div
-          className="flex items-center justify-between gap-4 px-4 py-3"
-          style={{ backgroundColor: palette.primary, color: palette.onPrimary }}
+          className={`flex items-center justify-between gap-4 px-4 py-3 ${isBW ? "border-b-2 border-black" : ""}`}
+          style={{ backgroundColor: palette.bannerBg, color: palette.bannerText }}
         >
           {/* Left: School Crest */}
           {settings.logoUrl ? (
@@ -195,8 +195,8 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
             </div>
             {showClassPositionHeader && (
               <div
-                className="px-2 py-1.5 text-center"
-                style={{ backgroundColor: palette.primary, color: palette.onPrimary }}
+                className={`px-2 py-1.5 text-center ${isBW ? "border-l border-black" : ""}`}
+                style={{ backgroundColor: palette.highlightBg, color: palette.highlightText }}
               >
                 <span className="block text-[8px] font-black uppercase opacity-90">Position</span>
                 <span className="block text-base leading-tight font-black">
@@ -384,8 +384,8 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
           )}
           {showAggregate && (
             <div
-              className="px-4 py-1.5 text-center"
-              style={{ backgroundColor: palette.primary, color: palette.onPrimary }}
+              className={`px-4 py-1.5 text-center ${isBW ? "border-l border-black" : ""}`}
+              style={{ backgroundColor: palette.highlightBg, color: palette.highlightText }}
             >
               <span className="block text-[8px] font-black uppercase opacity-90">Aggregate</span>
               <span className="text-lg leading-none font-black">{student.aggregate}</span>
@@ -473,8 +473,10 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
                 ))}
                 {showArrears && (
                   <div className="text-xs">
-                    <span className="font-bold text-red-700">Arrears:</span>{" "}
-                    <span className="font-black text-red-700">
+                    <span className={`font-bold ${isBW ? "text-black" : "text-red-700"}`}>
+                      Arrears:
+                    </span>{" "}
+                    <span className={`font-black ${isBW ? "text-black underline" : "text-red-700"}`}>
                       GH₵{student.feeArrears!.toFixed(2)}
                     </span>
                   </div>
