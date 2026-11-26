@@ -95,6 +95,12 @@ export function PinSetup({ onComplete, onCancel }: Props) {
     setStep("recovery");
   };
 
+  const [isFinishing, setIsFinishing] = useState(false);
+  const pendingSecurityQuestionsRef = useRef<Array<{ questionId: string; answer: string }> | null>(
+    null,
+  );
+  const finishingRef = useRef(false);
+
   const handleSaveSecurityQuestions = async () => {
     // Validate all questions are selected and answered
     if (selectedQuestions.some((q) => !q)) {
@@ -119,21 +125,18 @@ export function PinSetup({ onComplete, onCancel }: Props) {
       answer: answers[index],
     }));
 
-    const success = await saveSecurityQuestions(questionsToSave);
-    if (success) {
-      securityQuestionsSavedRef.current = true;
-      // Check if biometric is available, if so go to biometric step
-      if (biometricAvailable) {
-        setStep("biometric");
-      } else {
-        await handleFinishSetup(false);
-      }
+    pendingSecurityQuestionsRef.current = questionsToSave;
+    // Check if biometric is available, if so go to biometric step before committing PIN/questions
+    if (biometricAvailable) {
+      setError("");
+      setStep("biometric");
     } else {
-      setError("Failed to save security questions. Please try again.");
+      await handleFinishSetup(false);
     }
   };
 
   const handleEnrollBiometric = async () => {
+    if (enrollingBiometric || finishingRef.current) return;
     setEnrollingBiometric(true);
     setError("");
 
@@ -153,20 +156,39 @@ export function PinSetup({ onComplete, onCancel }: Props) {
   };
 
   const handleFinishSetup = async (biometricEnrolled = false) => {
-    const success = await setupPin(pin, recoveryCode);
-    if (success) {
-      captureEvent("Pin_Lock_Configured", {
-        is_change: wasChangingPinRef.current,
-        biometric_enabled: biometricEnrolled,
-        security_questions_configured: securityQuestionsSavedRef.current,
-      });
-      onComplete();
-    } else {
-      setError("Failed to set up PIN. Please try again.");
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setIsFinishing(true);
+    try {
+      const success = await setupPin(pin, recoveryCode);
+      if (success) {
+        let questionsSaved = false;
+        if (pendingSecurityQuestionsRef.current) {
+          questionsSaved = await saveSecurityQuestions(pendingSecurityQuestionsRef.current);
+          securityQuestionsSavedRef.current = questionsSaved;
+        }
+        captureEvent("Pin_Lock_Configured", {
+          is_change: wasChangingPinRef.current,
+          biometric_enabled: biometricEnrolled,
+          security_questions_configured: securityQuestionsSavedRef.current,
+        });
+        onComplete();
+      } else {
+        if (biometricEnrolled) {
+          localStorage.removeItem("biometric_credential_id");
+          localStorage.removeItem("biometric_enabled");
+        }
+        setError("Failed to set up PIN. Please try again.");
+      }
+    } finally {
+      finishingRef.current = false;
+      setIsFinishing(false);
     }
   };
 
   const handleSkipSecurityQuestions = async () => {
+    pendingSecurityQuestionsRef.current = null;
+    securityQuestionsSavedRef.current = false;
     setError("");
     if (biometricAvailable) {
       setStep("biometric");
@@ -666,16 +688,18 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             <button
               type="button"
               onClick={() => void handleSkipSecurityQuestions()}
-              className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border-2 py-3 font-semibold transition-colors"
+              disabled={isFinishing}
+              className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border-2 py-3 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               Skip
             </button>
             <button
               type="button"
               onClick={handleSaveSecurityQuestions}
-              className="flex-1 rounded-lg bg-green-700 px-3 py-3 font-semibold text-white transition-colors hover:bg-green-800"
+              disabled={isFinishing}
+              className="flex-1 rounded-lg bg-green-700 px-3 py-3 font-semibold text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {biometricAvailable ? "Next" : "Complete Setup"}
+              {isFinishing ? "Saving..." : biometricAvailable ? "Next" : "Complete Setup"}
             </button>
           </div>
         </div>
@@ -750,7 +774,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             <button
               type="button"
               onClick={handleSkipBiometric}
-              disabled={enrollingBiometric}
+              disabled={enrollingBiometric || isFinishing}
               className="border-border-strong text-secondary hover:bg-subtle flex-1 rounded-lg border-2 py-3 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               Skip for Now
@@ -758,10 +782,10 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             <button
               type="button"
               onClick={handleEnrollBiometric}
-              disabled={enrollingBiometric}
+              disabled={enrollingBiometric || isFinishing}
               className="flex-1 rounded-lg bg-indigo-600 py-3 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {enrollingBiometric ? "Setting up..." : `Enable ${biometricName}`}
+              {enrollingBiometric || isFinishing ? "Setting up..." : `Enable ${biometricName}`}
             </button>
           </div>
         </div>

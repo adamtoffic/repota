@@ -95,7 +95,9 @@ describe("PinRecovery", () => {
     await user.click(screen.getByRole("button", { name: "Verify Answers" }));
 
     expect(
-      await screen.findByText("Only 1/3 correct. You need at least 2 correct answers."),
+      await screen.findByText(
+        "Security answers did not match. Please check your answers and try again.",
+      ),
     ).toBeInTheDocument();
 
     // 2 of 3 correct answers (case-insensitive / trimmed) -> accepted

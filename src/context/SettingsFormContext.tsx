@@ -133,6 +133,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
   const latestLastSavedClassNameRef = useRef(lastSavedSettings.className);
   const latestIsPersistenceSuspendedRef = useRef(isPersistenceSuspended);
   const setSettingsRef = useRef(setSettings);
+  const lastCommittedByFormRef = useRef<SchoolSettings>(settings);
 
   useEffect(() => {
     latestFormDataRef.current = formData;
@@ -150,24 +151,46 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     setSettingsRef.current = setSettings;
   }, [setSettings]);
 
-  useEffect(() => {
-    return () => {
-      if (latestIsPersistenceSuspendedRef.current) return;
-      const latestForm = latestFormDataRef.current;
-      const savedClassName = latestLastSavedClassNameRef.current;
-      const classNameChanged = latestForm.className !== savedClassName;
-      const isClassNameEmpty = !(latestForm.className ?? "").trim();
-      const toSave =
-        (classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty
-          ? { ...latestForm, className: savedClassName }
-          : latestForm;
+  const flushLatestDraftOnLeaveOrUnmount = useCallback(() => {
+    if (latestIsPersistenceSuspendedRef.current) return;
+    const latestForm = latestFormDataRef.current;
+    const savedClassName = latestLastSavedClassNameRef.current;
+    const classNameChanged = latestForm.className !== savedClassName;
+    const isClassNameEmpty = !(latestForm.className ?? "").trim();
+    const toSave =
+      (classNameChanged && studentsCountRef.current > 0) || isClassNameEmpty
+        ? { ...latestForm, className: savedClassName }
+        : latestForm;
 
-      if (areSettingsEqual(toSave, lastAutoSaveSettingsRef.current)) return;
+    if (areSettingsEqual(toSave, lastAutoSaveSettingsRef.current)) return;
 
-      lastAutoSaveSettingsRef.current = toSave;
-      setSettingsRef.current(toSave);
-    };
+    lastAutoSaveSettingsRef.current = toSave;
+    lastCommittedByFormRef.current = toSave;
+    setSettingsRef.current(toSave);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return () => {
+        flushLatestDraftOnLeaveOrUnmount();
+      };
+    }
+
+    const handlePageHide = () => flushLatestDraftOnLeaveOrUnmount();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushLatestDraftOnLeaveOrUnmount();
+      }
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      flushLatestDraftOnLeaveOrUnmount();
+    };
+  }, [flushLatestDraftOnLeaveOrUnmount]);
 
   const hasUnsavedChanges = useMemo(
     () => !areSettingsEqual(formData, lastSavedSettings),
@@ -190,6 +213,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
         className: lastSavedSettings.className,
       };
       if (areSettingsEqual(savedFormData, lastAutoSaveSettingsRef.current)) return;
+      lastCommittedByFormRef.current = savedFormData;
       setSettings(savedFormData);
       lastAutoSaveSettingsRef.current = savedFormData;
 
@@ -202,6 +226,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       return;
     }
 
+    lastCommittedByFormRef.current = debouncedFormData;
     setSettings(debouncedFormData);
     lastAutoSaveSettingsRef.current = debouncedFormData;
 
@@ -367,6 +392,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
       immediateSaveGenRef.current = formGenerationRef.current;
       latestFormDataRef.current = updated;
       latestLastSavedClassNameRef.current = trimmed;
+      lastCommittedByFormRef.current = updated;
       setSettings(updated);
       ++baselineSeqRef.current;
       setLastSavedSettings(updated);
@@ -394,6 +420,7 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     immediateSaveGenRef.current = formGenerationRef.current;
     latestFormDataRef.current = toSave;
     latestLastSavedClassNameRef.current = toSave.className;
+    lastCommittedByFormRef.current = toSave;
     setSettings(toSave);
     lastAutoSaveSettingsRef.current = toSave;
     ++baselineSeqRef.current;
@@ -408,10 +435,21 @@ function SettingsFormProviderInner({ children }: { children: ReactNode }) {
     latestFormDataRef.current = nextSettings;
     latestLastSavedClassNameRef.current = nextSettings.className;
     lastAutoSaveSettingsRef.current = nextSettings;
+    lastCommittedByFormRef.current = nextSettings;
     ++baselineSeqRef.current;
     setFormPayload({ data: nextSettings, generation: nextGen });
     setLastSavedSettings(nextSettings);
   }, []);
+
+  // Reconcile external/cross-tab/backup settings updates into the local Settings draft
+  useEffect(() => {
+    if (
+      !Object.is(settings, lastCommittedByFormRef.current) &&
+      !areSettingsEqual(settings, lastCommittedByFormRef.current)
+    ) {
+      syncCommittedSettings(settings);
+    }
+  }, [settings, syncCommittedSettings]);
 
   const contextValue = useMemo<SettingsFormContextType>(
     () => ({

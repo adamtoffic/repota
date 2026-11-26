@@ -26,6 +26,7 @@ vi.mock("../hooks/useIdleTimer", () => ({
 }));
 
 vi.mock("../utils/pinSecurity", () => ({
+  PIN_CONFIG_CHANGED_EVENT: "repota:pin-config-changed",
   isPinConfigured: () => state.pinConfigured,
 }));
 

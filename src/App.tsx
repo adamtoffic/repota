@@ -7,7 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineDetector } from "./components/OfflineDetector";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
-import { isPinConfigured } from "./utils/pinSecurity";
+import { PIN_CONFIG_CHANGED_EVENT, isPinConfigured } from "./utils/pinSecurity";
 import { LockScreen } from "./components/LockScreen";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { useIdleTimer } from "./hooks/useIdleTimer";
@@ -32,6 +32,7 @@ function AppContent({
   setIsLocked?: React.Dispatch<React.SetStateAction<boolean>>;
 } = {}) {
   const [localIsLocked, setLocalIsLocked] = useState(() => isPinConfigured());
+  const [pinConfigured, setPinConfigured] = useState(() => isPinConfigured());
   const isLocked = propIsLocked ?? localIsLocked;
   const setIsLocked = propSetIsLocked ?? setLocalIsLocked;
   const [showRecovery, setShowRecovery] = useState(false);
@@ -52,6 +53,17 @@ function AppContent({
   const printTimeoutRef = useRef<number | null>(null);
   const [isPrintSuppressed, setIsPrintSuppressed] = useState(false);
 
+  useEffect(() => {
+    const syncPinConfigured = () => setPinConfigured(isPinConfigured());
+    syncPinConfigured();
+    window.addEventListener(PIN_CONFIG_CHANGED_EVENT, syncPinConfigured);
+    window.addEventListener("storage", syncPinConfigured);
+    return () => {
+      window.removeEventListener(PIN_CONFIG_CHANGED_EVENT, syncPinConfigured);
+      window.removeEventListener("storage", syncPinConfigured);
+    };
+  }, []);
+
   // Auto-lock after idle time
   const handleIdle = useCallback(() => {
     if (isPinConfigured() && !isLocked && !printInProgressRef.current) {
@@ -62,7 +74,7 @@ function AppContent({
   useIdleTimer({
     timeout: idleTimeout,
     onIdle: handleIdle,
-    enabled: isPinConfigured() && !isLocked && !isPrintSuppressed,
+    enabled: pinConfigured && !isLocked && !isPrintSuppressed,
   });
 
   // Lock app when it becomes hidden (user switches tabs/apps)

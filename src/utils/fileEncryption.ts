@@ -54,7 +54,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: salt.buffer as ArrayBuffer,
+      salt: salt as BufferSource,
       iterations: PBKDF2_ITERATIONS,
       hash: "SHA-256",
     },
@@ -220,20 +220,22 @@ export async function decryptBackupFile<T>(
     const jsonData = decoder.decode(plainBytes);
     return JSON.parse(jsonData) as T;
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message.includes("operation-specific") ||
+    const needsPasswordForFile = requiresPassword(encryptedFile);
+    if (error instanceof Error) {
+      if (
+        error.message.includes("Password is required") ||
         error.message.includes("Invalid encrypted file format") ||
-        error.message.includes("not open compressed backups"))
-    ) {
-      if (error.message.includes("operation-specific")) {
+        error.message.includes("not open compressed backups")
+      ) {
+        throw error;
+      }
+      if (error.message.includes("operation-specific") && needsPasswordForFile) {
         throw new Error("Incorrect password. Please try again.", { cause: error });
       }
-      throw error;
     }
     console.error("Decryption error:", error);
     throw new Error(
-      requiresPassword(encryptedFile)
+      needsPasswordForFile
         ? "Failed to decrypt file. The password may be incorrect."
         : "Failed to read protected backup file. The file may be corrupted.",
       { cause: error },
