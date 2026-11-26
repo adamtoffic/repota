@@ -67,23 +67,21 @@ export function calculateSubjectGenderComparison(
     });
   });
 
-  const comparison = Array.from(subjectMap.entries()).map(([subject, scores]) => {
-    const maleAvg =
-      scores.maleScores.length > 0
-        ? scores.maleScores.reduce((sum, s) => sum + s, 0) / scores.maleScores.length
-        : 0;
-    const femaleAvg =
-      scores.femaleScores.length > 0
-        ? scores.femaleScores.reduce((sum, s) => sum + s, 0) / scores.femaleScores.length
-        : 0;
+  const comparison = Array.from(subjectMap.entries())
+    .filter(([, scores]) => scores.maleScores.length > 0 && scores.femaleScores.length > 0)
+    .map(([subject, scores]) => {
+      const maleAvg =
+        scores.maleScores.reduce((sum, s) => sum + s, 0) / scores.maleScores.length;
+      const femaleAvg =
+        scores.femaleScores.reduce((sum, s) => sum + s, 0) / scores.femaleScores.length;
 
-    return {
-      subject,
-      maleAvg: Math.round(maleAvg * 10) / 10,
-      femaleAvg: Math.round(femaleAvg * 10) / 10,
-      gap: Math.round((maleAvg - femaleAvg) * 10) / 10,
-    };
-  });
+      return {
+        subject,
+        maleAvg: Math.round(maleAvg * 10) / 10,
+        femaleAvg: Math.round(femaleAvg * 10) / 10,
+        gap: Math.round((maleAvg - femaleAvg) * 10) / 10,
+      };
+    });
 
   return comparison.sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
 }
@@ -129,15 +127,18 @@ export function calculatePerformanceQuartiles(
   const q2Index = Math.floor(processed.length * 0.5);
   const q3Index = Math.floor(processed.length * 0.75);
 
-  const strugglingStudents = processed
-    .slice(0, Math.min(5, q1Index || processed.length))
-    .map((student) => ({
-      id: student.id,
-      name: student.name,
-      averageScore: student.averageScore,
-      totalScore: student.totalScore,
-      gender: student.gender,
-    }));
+  const strugglingSource =
+    processed.length >= 4
+      ? processed.slice(0, Math.max(1, q1Index))
+      : processed.filter((student) => student.averageScore < 50);
+
+  const strugglingStudents = strugglingSource.map((student) => ({
+    id: student.id,
+    name: student.name,
+    averageScore: student.averageScore,
+    totalScore: student.totalScore,
+    gender: student.gender,
+  }));
 
   return {
     q1: processed[q1Index]?.averageScore || 0,

@@ -64,15 +64,14 @@ export function generateClassPulseHeadline(
   precomputedMetrics?: ReturnType<typeof calculateClassMetrics>,
 ): string {
   const { graded } = partitionGradedStudents(students);
-  const analysisPool = graded.length > 0 ? graded : students;
   const classLabel = settings.className || "This class";
 
-  if (analysisPool.length === 0) {
+  if (graded.length === 0) {
     return `${classLabel} has no recorded scores yet.`;
   }
 
-  const metrics = precomputedMetrics ?? calculateClassMetrics(analysisPool, settings);
-  const subjectInsights = calculateSubjectInsights(analysisPool, settings);
+  const metrics = precomputedMetrics ?? calculateClassMetrics(graded, settings);
+  const subjectInsights = calculateSubjectInsights(graded, settings);
   return formatClassHeadline(classLabel, graded.length, metrics, subjectInsights);
 }
 
@@ -85,10 +84,9 @@ export function generateClassStory(
   settings: SchoolSettings,
 ): ClassStory {
   const { graded, ungraded } = partitionGradedStudents(students);
-  const analysisPool = graded.length > 0 ? graded : students;
   const classLabel = settings.className || "This class";
 
-  if (analysisPool.length === 0) {
+  if (graded.length === 0) {
     return {
       headline: `${classLabel} has no recorded scores yet.`,
       narrativeParagraphs: [
@@ -103,17 +101,17 @@ export function generateClassStory(
     };
   }
 
-  const metrics = calculateClassMetrics(analysisPool, settings);
-  const subjectInsights = calculateSubjectInsights(analysisPool, settings);
-  const variance = calculateSubjectVariance(analysisPool, settings);
-  const genderStats = calculateGenderAnalysis(analysisPool, settings);
-  const subjectGender = calculateSubjectGenderComparison(analysisPool, settings);
-  const attendance = calculateAttendanceInsights(analysisPool, settings);
-  const atRisk = calculateAtRiskStudents(analysisPool, settings);
-  const borderline = calculateBorderlineStudents(analysisPool, settings);
-  const sbaExam = calculateSbaVsExamAnalysis(analysisPool, settings);
-  const sbaMastery = calculateSbaCategoryMastery(analysisPool);
-  const coreElective = calculateCoreVsElectiveStats(analysisPool, settings);
+  const metrics = calculateClassMetrics(graded, settings);
+  const subjectInsights = calculateSubjectInsights(graded, settings);
+  const variance = calculateSubjectVariance(graded, settings);
+  const genderStats = calculateGenderAnalysis(graded, settings);
+  const subjectGender = calculateSubjectGenderComparison(graded, settings);
+  const attendance = calculateAttendanceInsights(graded, settings);
+  const atRisk = calculateAtRiskStudents(graded, settings);
+  const borderline = calculateBorderlineStudents(graded, settings);
+  const sbaExam = calculateSbaVsExamAnalysis(graded, settings);
+  const sbaMastery = calculateSbaCategoryMastery(graded);
+  const coreElective = calculateCoreVsElectiveStats(graded, settings);
   const feeSummary = calculatePrivateFeeSummary(students);
 
   // 1. Headline
