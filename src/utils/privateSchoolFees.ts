@@ -120,6 +120,37 @@ export function syncLegacyFeesFromItems(items: PrivateFeeItem[]): {
 }
 
 /**
+ * Formats an ISO `YYYY-MM-DD` (or parseable) date string in local calendar coordinates without
+ * UTC midnight timezone shifts or `"Invalid Date"` strings.
+ */
+export function formatReportDate(rawDate: string | undefined, fallback: string): string {
+  const trimmed = rawDate?.trim();
+  if (!trimmed) return fallback;
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]);
+    const day = Number(isoMatch[3]);
+    const localDate = new Date(year, month - 1, day);
+    if (
+      localDate.getFullYear() === year &&
+      localDate.getMonth() === month - 1 &&
+      localDate.getDate() === day
+    ) {
+      return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+    }
+    return trimmed;
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+  return parsed.toLocaleDateString("en-GB");
+}
+
+/**
  * Resolves position visibility across templates while preserving legacy KG behavior when toggles
  * are not explicitly set.
  */
@@ -133,7 +164,7 @@ export function resolvePositionVisibility(
   const isKG = settings.level === "KG";
   return {
     showClassPositionHeader:
-      settings.showClassPosition !== undefined ? settings.showClassPosition : true,
+      settings.showClassPosition !== undefined ? settings.showClassPosition : !isKG,
     showClassPositionSummary:
       settings.showClassPosition !== undefined ? settings.showClassPosition : !isKG,
     showSubjectPosition:

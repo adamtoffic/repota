@@ -2,6 +2,7 @@ import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
 import {
   DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
   getActivePrivateFeeItems,
   resolvePositionVisibility,
 } from "../utils/privateSchoolFees";
@@ -58,13 +59,11 @@ export const ScholarTemplate = memo(function ScholarTemplate({
 
   const softBorderStyle = { borderColor: palette.primaryBorder };
   const ruleStyle = { borderColor: palette.primaryDark };
-  const nextTermLabel = settings.nextTermStarts
-    ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-    : "TBD";
+  const nextTermLabel = formatReportDate(settings.nextTermStarts, "TBD");
 
   return (
     <div
-      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_auto_1fr_auto_auto] gap-3 bg-white p-[9mm] text-gray-900 print:h-[297mm] print:overflow-hidden ${
+      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_auto_1fr_auto_auto] gap-3 bg-white p-[9mm] text-gray-900 print:h-[296.5mm] print:overflow-hidden ${
         isIslamic ? "font-arabic" : "font-sans"
       }`}
     >
@@ -130,7 +129,7 @@ export const ScholarTemplate = memo(function ScholarTemplate({
               {settings.term}
             </p>
             <p className="font-bold text-gray-700">{settings.academicYear}</p>
-            <p className="text-gray-500">{student.className || settings.className || settings.level}</p>
+            <p className="text-gray-500">{settings.className || student.className || settings.level}</p>
           </div>
           {settings.logoUrl ? (
             <div
@@ -425,13 +424,13 @@ export const ScholarTemplate = memo(function ScholarTemplate({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
           <div className="rounded-md border px-3 py-2" style={softBorderStyle}>
             <span className="block text-[9px] font-bold tracking-wider text-gray-500 uppercase">
               Teacher&apos;s Assessment
             </span>
             <p className="mt-0.5 text-gray-800">
-              {student.teacherRemark || "Consistent engagement across term subjects."}
+              {student.teacherRemark?.trim() || "\u00A0"}
             </p>
           </div>
           <div className="rounded-md border px-3 py-2" style={softBorderStyle}>
@@ -471,10 +470,13 @@ export const ScholarTemplate = memo(function ScholarTemplate({
             </div>
 
             {hasAnyFee && (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
                 {activeFees.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-2">
-                    <span className="text-gray-700">{item.label}:</span>
+                    <span className="text-gray-700">
+                      {item.label}
+                      {item.cycle ? ` (${item.cycle})` : ""}:
+                    </span>
                     <span className="font-bold text-gray-900 tabular-nums">
                       GH₵{item.amount.toFixed(2)}
                     </span>

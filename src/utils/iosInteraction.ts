@@ -52,11 +52,12 @@ export const getSafariMajorVersion = (ua: string = navigator.userAgent): number 
 };
 
 /**
- * On iOS 27+ (Safari/WebKit Version/27+) Home Screen web apps, `window.print()` is
- * silently dropped by the standalone container. Use PDF + Share Sheet instead.
+ * On iOS 27+ Home Screen web apps, `window.print()` is silently dropped by the standalone
+ * container. Apple omits `Version/XX` from real Home Screen PWA user agents, so when
+ * `safariMajor === null` inside `isIOSPWA()` we enable the PDF + Share Sheet fallback too.
  */
 export const shouldUseIOSPdfPrintFallback = (): boolean => {
   if (!isIOSPWA()) return false;
   const safariMajor = getSafariMajorVersion();
-  return safariMajor !== null && safariMajor >= 27;
+  return safariMajor === null || safariMajor >= 27;
 };

@@ -1,6 +1,11 @@
 import { Fragment, memo } from "react";
 import type { ReportTemplateProps } from "../types";
-import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
+import {
+  DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
+  getActivePrivateFeeItems,
+  resolvePositionVisibility,
+} from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
@@ -9,6 +14,7 @@ export const MinimalTemplate = memo(function MinimalTemplate({
   settings,
   printMode,
 }: ReportTemplateProps) {
+  const isIslamic = settings.schoolType === "ISLAMIC";
   const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
@@ -20,6 +26,7 @@ export const MinimalTemplate = memo(function MinimalTemplate({
     Boolean(settings.showStudentFeeArrearsOnReport) &&
     typeof student.feeArrears === "number" &&
     student.feeArrears > 0;
+  const paymentNote = settings.feePaymentNote?.trim() || DEFAULT_PAYMENT_NOTE;
   const { showClassPositionSummary, showSubjectPosition } = resolvePositionVisibility(settings);
   const headmasterRemark = generateHeadmasterRemark(
     student.averageScore,
@@ -65,12 +72,50 @@ export const MinimalTemplate = memo(function MinimalTemplate({
       }
     : undefined;
 
+  const subjectCount = student.subjects.length;
+  const density =
+    subjectCount > 14
+      ? {
+          rowPy: "py-0.5",
+          headerPy: "py-1",
+          textSize: "text-[11px]",
+          sectionMb: "mb-2.5",
+          footerMb: "mb-3",
+          headerPb: "mb-3 pb-3",
+        }
+      : subjectCount > 10
+        ? {
+            rowPy: "py-1",
+            headerPy: "py-1.5",
+            textSize: "text-xs",
+            sectionMb: "mb-4",
+            footerMb: "mb-4",
+            headerPb: "mb-4 pb-4",
+          }
+        : {
+            rowPy: "py-2.5",
+            headerPy: "py-2.5",
+            textSize: "text-[13px]",
+            sectionMb: "mb-6",
+            footerMb: "mb-6",
+            headerPb: "mb-6 pb-6",
+          };
+
   return (
-    <div className="mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] bg-white p-[12mm] font-serif text-black print:h-[297mm] print:overflow-hidden print:border-none">
+    <div
+      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] bg-white p-[12mm] text-black print:h-[296.5mm] print:overflow-hidden print:border-none ${
+        isIslamic ? "font-arabic" : "font-serif"
+      }`}
+    >
       {/* ==========================================
           HEADER: Centered, Formal, Academic
           ========================================== */}
-      <header className={`relative mb-6 border-b-2 ${headerBorder} pb-6 text-center`} style={customBorder}>
+      <header className={`relative ${density.headerPb} border-b-2 ${headerBorder} text-center`} style={customBorder}>
+        {isIslamic && (
+          <p className="font-arabic mb-1 text-sm font-bold" style={customTitleColor}>
+            بسم الله الرحمن الرحيم
+          </p>
+        )}
         {settings.logoUrl && (
           <div className="absolute top-0 left-0 h-20 w-20">
             <img
@@ -128,7 +173,7 @@ export const MinimalTemplate = memo(function MinimalTemplate({
           MAIN BODY: Clean Data & Horizontal Lines
           ========================================== */}
       <main className="flex min-h-0 flex-col overflow-hidden">
-        <div className="mb-6 flex justify-between font-sans text-sm">
+        <div className={`${density.sectionMb} flex justify-between font-sans text-sm`}>
           <div className="space-y-1.5">
             <p>
               <span className="text-xs font-bold tracking-wider text-gray-500 uppercase">
@@ -140,7 +185,7 @@ export const MinimalTemplate = memo(function MinimalTemplate({
               <span className="text-xs font-bold tracking-wider text-gray-500 uppercase">
                 Class:
               </span>{" "}
-              <span className="ml-2">{student.className}</span>
+              <span className="ml-2">{settings.className || student.className || settings.level}</span>
             </p>
             <p>
               <span className="text-xs font-bold tracking-wider text-gray-500 uppercase">
@@ -173,58 +218,58 @@ export const MinimalTemplate = memo(function MinimalTemplate({
           </div>
         </div>
 
-        <table className="mb-4 w-full border-collapse text-left font-sans text-[13px]">
+        <table className={`mb-4 w-full border-collapse text-left font-sans ${density.textSize}`}>
           <thead>
             <tr className={`border-y-2 ${tableBorder}`} style={customBorder}>
-              <th className="px-1 py-2.5 font-bold">Course / Subject</th>
+              <th className={`px-1 ${density.headerPy} font-bold`}>Course / Subject</th>
               {!isMock ? (
                 <>
-                  <th className="px-1 py-2.5 text-center font-bold">
+                  <th className={`px-1 ${density.headerPy} text-center font-bold`}>
                     Class ({settings.classScoreMax})
                   </th>
-                  <th className="px-1 py-2.5 text-center font-bold">
+                  <th className={`px-1 ${density.headerPy} text-center font-bold`}>
                     Exam ({settings.examScoreMax})
                   </th>
-                  <th className="px-1 py-2.5 text-center font-bold">Total (100)</th>
+                  <th className={`px-1 ${density.headerPy} text-center font-bold`}>Total (100)</th>
                 </>
               ) : (
-                <th className="px-1 py-2.5 text-center font-bold">Score (100)</th>
+                <th className={`px-1 ${density.headerPy} text-center font-bold`}>Score (100)</th>
               )}
-              <th className="px-1 py-2.5 text-center font-bold">Grade</th>
-              {showSubjectPosition && <th className="px-1 py-2.5 text-center font-bold">Pos</th>}
-              <th className="px-1 py-2.5 text-left font-bold">Remarks</th>
+              <th className={`px-1 ${density.headerPy} text-center font-bold`}>Grade</th>
+              {showSubjectPosition && <th className={`px-1 ${density.headerPy} text-center font-bold`}>Pos</th>}
+              <th className={`px-1 ${density.headerPy} text-left font-bold`}>Remarks</th>
             </tr>
           </thead>
           <tbody>
             {student.subjects.map((sub) => (
               <tr key={sub.id} className={`border-b ${tableRowDiv}`}>
-                <td className="px-1 py-2.5 font-medium">{sub.name}</td>
+                <td className={`px-1 ${density.rowPy} font-medium`}>{sub.name}</td>
                 {!isMock ? (
                   <>
-                    <td className="px-1 py-2.5 text-center">{sub.classScore}</td>
-                    <td className="px-1 py-2.5 text-center">{sub.examScore}</td>
-                    <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
+                    <td className={`px-1 ${density.rowPy} text-center`}>{sub.classScore}</td>
+                    <td className={`px-1 ${density.rowPy} text-center`}>{sub.examScore}</td>
+                    <td className={`px-1 ${density.rowPy} text-center font-bold`}>{sub.totalScore}</td>
                   </>
                 ) : (
-                  <td className="px-1 py-2.5 text-center font-bold">{sub.totalScore}</td>
+                  <td className={`px-1 ${density.rowPy} text-center font-bold`}>{sub.totalScore}</td>
                 )}
                 <td
-                  className={`px-1 py-2.5 text-center font-bold ${
+                  className={`px-1 ${density.rowPy} text-center font-bold ${
                     String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""
                   }`}
                 >
                   {sub.grade}
                 </td>
                 {showSubjectPosition && (
-                  <td className="px-1 py-2.5 text-center text-xs">{sub.subjectPosition || "-"}</td>
+                  <td className={`px-1 ${density.rowPy} text-center text-xs`}>{sub.subjectPosition || "-"}</td>
                 )}
-                <td className="px-1 py-2.5 text-left text-xs italic">{sub.remark}</td>
+                <td className={`px-1 ${density.rowPy} text-left text-xs italic`}>{sub.remark}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="mb-8 flex justify-end gap-6 font-sans text-sm">
+        <div className={`${density.sectionMb} flex justify-end gap-6 font-sans text-sm`}>
           <p>
             <span className={`mr-2 text-xs font-bold uppercase ${labelColor}`}>Total Score:</span>{" "}
             <strong className={summaryStrong}>{student.totalScore}</strong>
@@ -252,11 +297,11 @@ export const MinimalTemplate = memo(function MinimalTemplate({
           FOOTER: Signatures & Inline Remarks
           ========================================== */}
       <footer className="mt-auto font-sans text-sm">
-        <div className={`mb-6 border-t-2 ${footerBorder} pt-4`} style={customBorder}>
+        <div className={`${density.footerMb} border-t-2 ${footerBorder} pt-4`} style={customBorder}>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             <p>
               <strong className="text-xs tracking-wider uppercase">Attendance:</strong>{" "}
-              {student.attendancePresent || 0} out of {settings.totalAttendanceDays || "---"} days
+              {student.attendancePresent ?? "-"} out of {settings.totalAttendanceDays || "---"} days
             </p>
             <p>
               <strong className="text-xs tracking-wider uppercase">Conduct:</strong>{" "}
@@ -277,14 +322,12 @@ export const MinimalTemplate = memo(function MinimalTemplate({
           </div>
         </div>
 
-        <div className="mb-8 space-y-4">
+        <div className={`${density.footerMb} space-y-3`}>
           <p>
             <strong className="mr-2 text-xs tracking-wider uppercase">
               Class Teacher's Remark:
             </strong>{" "}
-            <span className="italic">
-              {student.teacherRemark || "Has shown consistent effort throughout the term."}
-            </span>
+            <span className="italic">{student.teacherRemark?.trim() || "\u00A0"}</span>
           </p>
           <p>
             <strong className="mr-2 text-xs tracking-wider uppercase">Headmaster's Remark:</strong>{" "}
@@ -303,21 +346,23 @@ export const MinimalTemplate = memo(function MinimalTemplate({
             {activeFees.map((fee, idx) => (
               <Fragment key={fee.id}>
                 {idx > 0 && <> &nbsp;|&nbsp; </>}
-                {fee.label}: GH₵{fee.amount.toFixed(2)}
+                {fee.label}
+                {fee.cycle ? ` (${fee.cycle})` : ""}: GH₵{fee.amount.toFixed(2)}
               </Fragment>
             ))}
             {showArrears && (
               <>
                 {activeFees.length > 0 && <> &nbsp;|&nbsp; </>}
-                <strong className="text-red-700">
+                <strong className={isBW ? "text-black underline" : "text-red-700"}>
                   Arrears: GH₵{student.feeArrears!.toFixed(2)}
                 </strong>
               </>
             )}
+            <p className="mt-1 text-[9px] text-gray-600">{paymentNote}</p>
           </div>
         )}
 
-        <div className="mt-8 flex items-end justify-between">
+        <div className="mt-4 flex items-end justify-between">
           <div className="w-48">
             <div className="mb-1 flex h-10 items-end justify-center">
               {settings.teacherSignature && (
@@ -338,9 +383,7 @@ export const MinimalTemplate = memo(function MinimalTemplate({
           <div className="text-center">
             <p className="mb-1 text-xs tracking-wider uppercase">Next Term Resumes</p>
             <p className="text-sm font-bold">
-              {settings.nextTermStarts
-                ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-                : "..................................."}
+              {formatReportDate(settings.nextTermStarts, "...................................")}
             </p>
           </div>
 

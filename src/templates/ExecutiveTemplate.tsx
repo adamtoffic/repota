@@ -2,6 +2,7 @@ import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
 import {
   DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
   getActivePrivateFeeItems,
   resolvePositionVisibility,
 } from "../utils/privateSchoolFees";
@@ -61,7 +62,7 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
 
   return (
     <div
-      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_auto_1fr_auto_auto] gap-2.5 bg-white p-[8mm] text-gray-900 print:h-[297mm] print:overflow-hidden ${
+      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_auto_1fr_auto_auto] gap-2.5 bg-white p-[8mm] text-gray-900 print:h-[296.5mm] print:overflow-hidden ${
         isIslamic ? "font-arabic" : "font-sans"
       }`}
     >
@@ -186,7 +187,7 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
             >
               <span className="block text-[8px] font-black text-gray-500 uppercase">Class</span>
               <span className="block text-sm leading-tight font-black">
-                {settings.className || student.className}
+                {settings.className || student.className || settings.level}
               </span>
             </div>
             <div className="px-2 py-1.5 text-center" style={borderStyle}>
@@ -212,7 +213,7 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
             <div className="flex items-center justify-between px-3 py-1" style={borderStyle}>
               <span className="text-[9px] font-black text-gray-500 uppercase">Attendance</span>
               <span className="font-mono font-bold">
-                {student.attendancePresent || 0}/{settings.totalAttendanceDays || "-"}
+                {student.attendancePresent ?? "-"}/{settings.totalAttendanceDays || "-"}
               </span>
             </div>
             <div className="flex items-center justify-between px-3 py-1" style={borderStyle}>
@@ -226,9 +227,7 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
             <div className="flex items-center justify-between px-3 py-1" style={borderStyle}>
               <span className="text-[9px] font-black text-gray-500 uppercase">Next Term</span>
               <span className="font-bold">
-                {settings.nextTermStarts
-                  ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-                  : "TBA"}
+                {formatReportDate(settings.nextTermStarts, "TBA")}
               </span>
             </div>
           </div>
@@ -436,7 +435,7 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
                 Class Teacher's Remark
               </span>
               <span className="text-[11px] font-semibold italic">
-                {student.teacherRemark || "Good progress this term."}
+                {student.teacherRemark?.trim() || "\u00A0"}
               </span>
             </div>
             <div className="px-2.5 py-1.5">

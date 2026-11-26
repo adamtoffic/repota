@@ -6,15 +6,22 @@ function showToast(
   message: string,
   type: ToastType = "success",
   action?: { label: string; onClick: () => void },
+  toastOptions?: { duration?: number },
 ) {
-  const options = action
-    ? {
-        action: {
-          label: action.label,
-          onClick: action.onClick,
-        },
-      }
-    : undefined;
+  const options =
+    action || toastOptions?.duration !== undefined
+      ? {
+          ...(action
+            ? {
+                action: {
+                  label: action.label,
+                  onClick: action.onClick,
+                },
+              }
+            : {}),
+          ...(toastOptions?.duration !== undefined ? { duration: toastOptions.duration } : {}),
+        }
+      : undefined;
 
   switch (type) {
     case "success":

@@ -1,6 +1,11 @@
 import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
-import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
+import {
+  DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
+  getActivePrivateFeeItems,
+  resolvePositionVisibility,
+} from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
@@ -9,6 +14,7 @@ export const ModernTemplate = memo(function ModernTemplate({
   settings,
   printMode,
 }: ReportTemplateProps) {
+  const isIslamic = settings.schoolType === "ISLAMIC";
   const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
@@ -20,6 +26,7 @@ export const ModernTemplate = memo(function ModernTemplate({
     Boolean(settings.showStudentFeeArrearsOnReport) &&
     typeof student.feeArrears === "number" &&
     student.feeArrears > 0;
+  const paymentNote = settings.feePaymentNote?.trim() || DEFAULT_PAYMENT_NOTE;
   const { showClassPositionSummary, showSubjectPosition } = resolvePositionVisibility(settings);
   const headmasterRemark = generateHeadmasterRemark(
     student.averageScore,
@@ -64,8 +71,38 @@ export const ModernTemplate = memo(function ModernTemplate({
   const customTextDark = useCustom ? { color: palette.primaryDark } : undefined;
   const customTextAccent = useCustom ? { color: palette.primary } : undefined;
 
+  const subjectCount = student.subjects.length;
+  const density =
+    subjectCount > 14
+      ? {
+          rootGap: "gap-2.5",
+          rowPy: "py-0.5",
+          headerPy: "py-1.5",
+          textSize: "text-[11px]",
+          remSize: "text-[10px]",
+        }
+      : subjectCount > 10
+        ? {
+            rootGap: "gap-3.5",
+            rowPy: "py-1",
+            headerPy: "py-2",
+            textSize: "text-xs",
+            remSize: "text-[10px]",
+          }
+        : {
+            rootGap: "gap-5",
+            rowPy: "py-2",
+            headerPy: "py-2.5",
+            textSize: "text-[13px]",
+            remSize: "text-[11px]",
+          };
+
   return (
-    <div className="relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] gap-5 bg-white p-[10mm] font-sans text-gray-800 print:h-[297mm] print:overflow-hidden print:border-none">
+    <div
+      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] ${density.rootGap} bg-white p-[10mm] text-gray-800 print:h-[296.5mm] print:overflow-hidden print:border-none ${
+        isIslamic ? "font-arabic" : "font-sans"
+      }`}
+    >
       {/* 🛡️ WATERMARK */}
       <div
         className={`pointer-events-none absolute inset-0 z-0 bg-[url('/assets/coat-of-arms.png')] bg-size-[50%] bg-center bg-no-repeat opacity-[0.04] ${isBW ? "grayscale" : ""}`}
@@ -73,7 +110,7 @@ export const ModernTemplate = memo(function ModernTemplate({
       {/* ==========================================
           HEADER
           ========================================== */}
-      <header className={`flex items-center justify-between border-b-2 ${brandBorder} pb-4`} style={customBorder}>
+      <header className={`relative z-10 flex items-center justify-between border-b-2 ${brandBorder} pb-4`} style={customBorder}>
         {/* School Logo */}
         {settings.logoUrl ? (
           <div
@@ -92,6 +129,11 @@ export const ModernTemplate = memo(function ModernTemplate({
 
         {/* School Details — centred */}
         <div className="flex-1 px-5 text-center">
+          {isIslamic && (
+            <p className="font-arabic mb-0.5 text-sm font-bold" style={customTextAccent}>
+              بسم الله الرحمن الرحيم
+            </p>
+          )}
           <h1 className={`text-2xl font-black tracking-tight uppercase ${brandTextDark}`} style={customTextDark}>
             {settings.schoolName}
           </h1>
@@ -115,7 +157,9 @@ export const ModernTemplate = memo(function ModernTemplate({
           </div>
           <div className="mt-2">
             <span
-              className={`inline-block rounded-md px-6 py-1 text-[11px] font-black tracking-[0.2em] text-white uppercase shadow-sm ${badgeBg}`}
+              className={`inline-block rounded-md px-6 py-1 text-[11px] font-black tracking-[0.2em] uppercase shadow-sm ${
+                useCustom ? "" : `text-white ${badgeBg}`
+              }`}
               style={customDarkBg}
             >
               {isMock ? "Mock Exam Report" : "Terminal Report"}
@@ -136,18 +180,18 @@ export const ModernTemplate = memo(function ModernTemplate({
       {/* ==========================================
           MAIN BODY: 70/30 Split
           ========================================== */}
-      <main className="flex items-start gap-6">
+      <main className="relative z-10 flex items-start gap-6">
         {/* LEFT COLUMN: Academic Table */}
         <div className="flex-[2.2]">
           <h3 className="mb-3 text-sm font-bold tracking-wider text-gray-900 uppercase">
             Academic Performance
           </h3>
           <div className={`overflow-hidden rounded-xl border ${brandBorder}`} style={customBorder}>
-            <table className="w-full text-left text-[13px]">
+            <table className={`w-full text-left ${density.textSize}`}>
               <thead className={`border-b-2 ${brandBorder} ${brandBgSolid}`} style={{ ...customBorder, ...customMediumBg }}>
                 <tr>
                   <th
-                    className={`w-[38%] px-3 py-2.5 text-left text-[10px] font-black uppercase ${brandTextDark}`}
+                    className={`w-[38%] px-3 ${density.headerPy} text-left text-[10px] font-black uppercase ${brandTextDark}`}
                     style={customTextDark}
                   >
                     Learning Area
@@ -155,7 +199,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                   {!isMock ? (
                     <>
                       <th
-                        className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                        className={`px-2 ${density.headerPy} text-center text-[10px] font-black uppercase ${brandTextDark}`}
                         style={customTextDark}
                       >
                         Class
@@ -165,7 +209,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                         </span>
                       </th>
                       <th
-                        className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                        className={`px-2 ${density.headerPy} text-center text-[10px] font-black uppercase ${brandTextDark}`}
                         style={customTextDark}
                       >
                         Exam
@@ -175,7 +219,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                         </span>
                       </th>
                       <th
-                        className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                        className={`px-2 ${density.headerPy} text-center text-[10px] font-black uppercase ${brandTextDark}`}
                         style={customTextDark}
                       >
                         Total
@@ -185,7 +229,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                     </>
                   ) : (
                     <th
-                      className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                      className={`px-2 ${density.headerPy} text-center text-[10px] font-black uppercase ${brandTextDark}`}
                       style={customTextDark}
                     >
                       Score
@@ -194,14 +238,14 @@ export const ModernTemplate = memo(function ModernTemplate({
                     </th>
                   )}
                   <th
-                    className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                    className={`px-2 ${density.headerPy} text-center text-[10px] font-black uppercase ${brandTextDark}`}
                     style={customTextDark}
                   >
                     Grade
                   </th>
                   {showSubjectPosition && (
                     <th
-                      className={`px-2 py-2.5 text-center text-[10px] font-black uppercase ${brandTextDark}`}
+                      className={`px-2 ${density.headerPy} text-center text-[10px] font-black uppercase ${brandTextDark}`}
                       style={customTextDark}
                     >
                       Pos
@@ -216,29 +260,29 @@ export const ModernTemplate = memo(function ModernTemplate({
                     className={idx % 2 === 1 ? brandBgLight : "bg-white"}
                     style={idx % 2 === 1 && useCustom ? { backgroundColor: palette.zebraBg } : undefined}
                   >
-                    <td className="px-3 py-2 font-semibold text-gray-800">{sub.name}</td>
+                    <td className={`px-3 ${density.rowPy} font-semibold text-gray-800`}>{sub.name}</td>
                     {!isMock ? (
                       <>
-                        <td className="px-2 py-2 text-center text-gray-600">{sub.classScore}</td>
-                        <td className="px-2 py-2 text-center text-gray-600">{sub.examScore}</td>
-                        <td className={`px-2 py-2 text-center font-bold ${brandTextDark}`} style={customTextDark}>
+                        <td className={`px-2 ${density.rowPy} text-center text-gray-600`}>{sub.classScore}</td>
+                        <td className={`px-2 ${density.rowPy} text-center text-gray-600`}>{sub.examScore}</td>
+                        <td className={`px-2 ${density.rowPy} text-center font-bold ${brandTextDark}`} style={customTextDark}>
                           {sub.totalScore}
                         </td>
                       </>
                     ) : (
-                      <td className={`px-2 py-2 text-center font-bold ${brandTextDark}`} style={customTextDark}>
+                      <td className={`px-2 ${density.rowPy} text-center font-bold ${brandTextDark}`} style={customTextDark}>
                         {sub.totalScore}
                       </td>
                     )}
                     <td
-                      className={`px-2 py-2 text-center font-bold ${
+                      className={`px-2 ${density.rowPy} text-center font-bold ${
                         String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""
                       }`}
                     >
                       {sub.grade}
                     </td>
                     {showSubjectPosition && (
-                      <td className="px-2 py-2 text-center text-xs text-gray-500">
+                      <td className={`px-2 ${density.rowPy} text-center text-xs text-gray-500`}>
                         {sub.subjectPosition || "-"}
                       </td>
                     )}
@@ -257,7 +301,7 @@ export const ModernTemplate = memo(function ModernTemplate({
             </h4>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               {student.subjects.map((sub) => (
-                <div key={`rem-${sub.id}`} className="flex items-baseline text-[11px]">
+                <div key={`rem-${sub.id}`} className={`flex items-baseline ${density.remSize}`}>
                   <span className={`w-24 truncate font-semibold ${brandTextAccent}`} style={customTextAccent}>
                     {sub.name}:
                   </span>
@@ -291,7 +335,9 @@ export const ModernTemplate = memo(function ModernTemplate({
               )}
             </div>
             <h2 className="text-lg leading-tight font-black text-gray-900">{student.name}</h2>
-            <p className={`mt-1 text-sm font-semibold ${brandTextAccent}`} style={customTextAccent}>{student.className}</p>
+            <p className={`mt-1 text-sm font-semibold ${brandTextAccent}`} style={customTextAccent}>
+              {settings.className || student.className || settings.level}
+            </p>
             <p className="mt-0.5 text-xs text-gray-500">Roll Size: {settings.classSize || "-"}</p>
           </div>
 
@@ -333,13 +379,13 @@ export const ModernTemplate = memo(function ModernTemplate({
             )}
             {!isKG && student.aggregate !== null && (
               <div
-                className={`col-span-2 flex items-center justify-between rounded-lg p-2.5 shadow-sm ${brandBgDark}`}
+                className={`col-span-2 flex items-center justify-between rounded-lg p-2.5 shadow-sm ${
+                  useCustom ? "" : `text-white ${brandBgDark}`
+                }`}
                 style={customDarkBg}
               >
-                <span className="text-[9px] font-black text-white uppercase opacity-80">
-                  Aggregate
-                </span>
-                <span className="text-lg font-black text-white">{student.aggregate}</span>
+                <span className="text-[9px] font-black uppercase opacity-80">Aggregate</span>
+                <span className="text-lg font-black">{student.aggregate}</span>
               </div>
             )}
           </div>
@@ -350,7 +396,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                 Attendance
               </span>
               <span className="text-sm font-semibold text-gray-800">
-                {student.attendancePresent || 0} / {settings.totalAttendanceDays || "-"} Days
+                {student.attendancePresent ?? "-"} / {settings.totalAttendanceDays || "-"} Days
               </span>
             </div>
             <div>
@@ -376,7 +422,7 @@ export const ModernTemplate = memo(function ModernTemplate({
       {/* ==========================================
           FOOTER
           ========================================== */}
-      <footer className="mt-auto space-y-4">
+      <footer className="relative z-10 mt-auto space-y-4">
         <div className="flex gap-6">
           <div className={`flex-1 rounded-lg border-2 ${brandBorder} bg-white p-3`} style={customBorder}>
             <h4
@@ -386,7 +432,7 @@ export const ModernTemplate = memo(function ModernTemplate({
               Class Teacher's Remark
             </h4>
             <p className="min-h-9 text-xs leading-relaxed text-gray-700 italic">
-              "{student.teacherRemark || "A good term's work."}"
+              {student.teacherRemark?.trim() ? `"${student.teacherRemark.trim()}"` : "\u00A0"}
             </p>
           </div>
           <div className={`flex-1 rounded-lg border-2 ${brandBorder} bg-white p-3`} style={customBorder}>
@@ -413,7 +459,9 @@ export const ModernTemplate = memo(function ModernTemplate({
                   Status:
                 </span>
                 <span
-                  className={`rounded-md px-3 py-1 text-sm font-black text-white uppercase ${brandBgDark}`}
+                  className={`rounded-md px-3 py-1 text-sm font-black uppercase ${
+                    useCustom ? "" : `text-white ${brandBgDark}`
+                  }`}
                   style={customDarkBg}
                 >
                   {student.promotionStatus || "Pending"}
@@ -422,21 +470,29 @@ export const ModernTemplate = memo(function ModernTemplate({
             )}
 
             {isPrivate && (hasAnyFee || showArrears) && (
-              <div className="flex flex-wrap gap-6 text-sm">
-                {activeFees.map((fee) => (
-                  <div key={fee.id}>
-                    <span className="text-xs text-gray-500">{fee.label}:</span>{" "}
-                    <span className="font-bold">GH₵{fee.amount.toFixed(2)}</span>
-                  </div>
-                ))}
-                {showArrears && (
-                  <div>
-                    <span className="text-xs font-bold text-red-600">Arrears:</span>{" "}
-                    <span className="font-bold text-red-700">
-                      GH₵{student.feeArrears!.toFixed(2)}
-                    </span>
-                  </div>
-                )}
+              <div className="flex flex-1 flex-wrap items-center justify-between gap-x-6 gap-y-1 text-sm">
+                <div className="flex flex-wrap gap-6">
+                  {activeFees.map((fee) => (
+                    <div key={fee.id}>
+                      <span className="text-xs text-gray-500">
+                        {fee.label}
+                        {fee.cycle ? ` (${fee.cycle})` : ""}:
+                      </span>{" "}
+                      <span className="font-bold">GH₵{fee.amount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  {showArrears && (
+                    <div>
+                      <span className={`text-xs font-bold ${isBW ? "text-black" : "text-red-600"}`}>
+                        Arrears:
+                      </span>{" "}
+                      <span className={`font-bold ${isBW ? "text-black underline" : "text-red-700"}`}>
+                        GH₵{student.feeArrears!.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="w-full text-[9px] text-gray-600">{paymentNote}</p>
               </div>
             )}
           </div>
@@ -452,7 +508,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                   className={`max-h-full object-contain ${imgFilter}`}
                 />
               ) : (
-                <div className={`w-full border-b-2 ${sigLine}`} style={customBorder}></div>
+                <div className="h-6 w-full" />
               )}
             </div>
             <div className={`border-t-2 ${sigLine} pt-1`} style={customBorder} />
@@ -465,9 +521,7 @@ export const ModernTemplate = memo(function ModernTemplate({
               Next Term Begins
             </p>
             <p className="text-sm font-black text-gray-800">
-              {settings.nextTermStarts
-                ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-                : "To be determined"}
+              {formatReportDate(settings.nextTermStarts, "To be determined")}
             </p>
           </div>
           <div className="w-48 text-center">
@@ -479,7 +533,7 @@ export const ModernTemplate = memo(function ModernTemplate({
                   className={`max-h-full object-contain ${imgFilter}`}
                 />
               ) : (
-                <div className={`w-full border-b-2 ${sigLine}`} style={customBorder}></div>
+                <div className="h-6 w-full" />
               )}
             </div>
             <div className={`border-t-2 ${sigLine} pt-1`} style={customBorder} />

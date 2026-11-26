@@ -1,6 +1,11 @@
 import { Fragment, memo } from "react";
 import type { ReportTemplateProps } from "../types";
-import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
+import {
+  DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
+  getActivePrivateFeeItems,
+  resolvePositionVisibility,
+} from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
@@ -20,6 +25,7 @@ export const OriginalTemplate = memo(function OriginalTemplate({
     Boolean(settings.showStudentFeeArrearsOnReport) &&
     typeof student.feeArrears === "number" &&
     student.feeArrears > 0;
+  const paymentNote = settings.feePaymentNote?.trim() || DEFAULT_PAYMENT_NOTE;
   const { showClassPositionHeader, showClassPositionSummary, showSubjectPosition } =
     resolvePositionVisibility(settings);
   const headmasterRemark = generateHeadmasterRemark(
@@ -87,7 +93,7 @@ export const OriginalTemplate = memo(function OriginalTemplate({
   return (
     // We use your exact grid-rows, but enforced A4 sizing
     <div
-      className={`mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_auto_1fr_auto_auto] gap-2 bg-white p-[8mm] text-gray-900 ${isIslamic ? "font-arabic" : "font-sans"}`}
+      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_auto_1fr_auto_auto] gap-2 bg-white p-[8mm] text-gray-900 print:h-[296.5mm] print:overflow-hidden ${isIslamic ? "font-arabic" : "font-sans"}`}
     >
       {/* 🛡️ WATERMARK */}
       <div
@@ -211,7 +217,7 @@ export const OriginalTemplate = memo(function OriginalTemplate({
             <div className={`${tableHeaderBg} p-2 text-center`} style={{ ...customBorderStyle, ...customHeaderBgStyle }}>
               <span className="block text-[9px] font-black text-gray-500 uppercase">Class</span>
               <span className="block text-lg leading-tight font-black">
-                {settings.className || student.className}
+                {settings.className || student.className || settings.level}
               </span>
             </div>
             <div className="p-2 text-center" style={customBorderStyle}>
@@ -236,7 +242,7 @@ export const OriginalTemplate = memo(function OriginalTemplate({
             <div className="flex items-center justify-between px-3 py-1.5">
               <span className="text-[10px] font-black text-gray-500 uppercase">Attendance</span>
               <span className="font-mono text-sm font-black">
-                {student.attendancePresent || "-"} / {settings.totalAttendanceDays || "-"}
+                {student.attendancePresent ?? "-"} / {settings.totalAttendanceDays || "-"}
               </span>
             </div>
             <div className="px-3 py-1.5">
@@ -251,9 +257,7 @@ export const OriginalTemplate = memo(function OriginalTemplate({
                       Next Term
                     </span>
                     <span className="text-sm font-bold">
-                      {settings.nextTermStarts
-                        ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-                        : "TBA"}
+                      {formatReportDate(settings.nextTermStarts, "TBA")}
                     </span>
                   </div>
                 </div>
@@ -261,9 +265,7 @@ export const OriginalTemplate = memo(function OriginalTemplate({
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-gray-500 uppercase">Next Term</span>
                   <span className="text-sm font-bold">
-                    {settings.nextTermStarts
-                      ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-                      : "TBA"}
+                    {formatReportDate(settings.nextTermStarts, "TBA")}
                   </span>
                 </div>
               )}
@@ -334,47 +336,47 @@ export const OriginalTemplate = memo(function OriginalTemplate({
             {student.subjects.map((sub, idx) => (
               <Fragment key={sub.id}>
                 <tr
-                  className={`divide-x-2 ${divideColor} ${density.padding} ${idx % 2 === 1 ? zebraBg : "bg-white"}`}
+                  className={`divide-x-2 ${divideColor} ${idx % 2 === 1 ? zebraBg : "bg-white"}`}
                   style={idx % 2 === 1 && useCustom ? { backgroundColor: palette.zebraBg } : undefined}
                 >
-                  <td className={`px-2 font-black uppercase ${density.textSize} truncate`}>
+                  <td className={`px-2 ${density.padding} font-black uppercase ${density.textSize} truncate`}>
                     {sub.name}
                   </td>
                   {!isMock ? (
                     <>
                       <td
-                        className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
+                        className={`${density.padding} text-center font-mono font-bold text-gray-700 ${density.textSize}`}
                       >
                         {sub.classScore || "-"}
                       </td>
                       <td
-                        className={`text-center font-mono font-bold text-gray-700 ${density.textSize}`}
+                        className={`${density.padding} text-center font-mono font-bold text-gray-700 ${density.textSize}`}
                       >
                         {sub.examScore || "-"}
                       </td>
-                      <td className={`text-center font-mono font-black ${density.textSize}`}>
+                      <td className={`${density.padding} text-center font-mono font-black ${density.textSize}`}>
                         {sub.totalScore}
                       </td>
                     </>
                   ) : (
-                    <td className={`text-center font-mono font-black ${density.textSize}`}>
+                    <td className={`${density.padding} text-center font-mono font-black ${density.textSize}`}>
                       {sub.totalScore}
                     </td>
                   )}
                   <td
-                    className={`text-center font-black ${density.textSize} ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
+                    className={`${density.padding} text-center font-black ${density.textSize} ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
                   >
                     {sub.grade}
                   </td>
                   {showSubjectPosition && (
                     <td
-                      className={`text-center font-mono font-black ${tableHeaderBg} ${density.textSize}`}
+                      className={`${density.padding} text-center font-mono font-black ${tableHeaderBg} ${density.textSize}`}
                       style={customHeaderBgStyle}
                     >
                       {sub.subjectPosition || "-"}
                     </td>
                   )}
-                  <td className={`truncate px-2 font-semibold uppercase ${density.textSize}`}>
+                  <td className={`truncate px-2 ${density.padding} font-semibold uppercase ${density.textSize}`}>
                     {sub.remark}
                   </td>
                 </tr>
@@ -457,10 +459,13 @@ export const OriginalTemplate = memo(function OriginalTemplate({
               </span>
             ))}
             {showArrears && (
-              <span className="text-xs font-black text-red-700">
+              <span className={`text-xs font-black ${isBW ? "text-black underline" : "text-red-700"}`}>
                 Arrears: GH₵{student.feeArrears!.toFixed(2)}
               </span>
             )}
+            <p className="w-full border-t border-gray-300 pt-1 text-[9px] font-medium text-gray-600">
+              {paymentNote}
+            </p>
           </div>
         )}
 
@@ -490,7 +495,9 @@ export const OriginalTemplate = memo(function OriginalTemplate({
             >
               Class Teacher's Remark
             </div>
-            <div className="p-2 text-xs font-semibold italic">{student.teacherRemark}</div>
+            <div className="p-2 text-xs font-semibold italic">
+              {student.teacherRemark?.trim() || "\u00A0"}
+            </div>
           </div>
           <div className="grid grid-cols-[130px_1fr]">
             <div

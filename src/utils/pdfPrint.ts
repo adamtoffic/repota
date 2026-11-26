@@ -3,6 +3,7 @@
 // Used on iOS 27+ Home Screen PWAs where window.print() is a silent no-op,
 // and as a fallback whenever window.print() fails to trigger print events.
 
+import { isIOSDevice, isIOSPWA } from "./iosInteraction";
 import { normalizeChartSvgForLightExport } from "./theme";
 
 export interface PdfGenerationProgress {
@@ -64,6 +65,22 @@ const freeCanvas = (canvas: HTMLCanvasElement | null): void => {
   canvas.width = 0;
   canvas.height = 0;
 };
+
+export const resolvePdfCaptureScale = (pageCount: number): number => {
+  if (isIOSDevice()) {
+    if (pageCount >= 25) return 1.25;
+    if (pageCount >= 12) return 1.5;
+    return 1.75;
+  }
+  return pageCount >= 30 ? 1.5 : 2;
+};
+
+export const buildStageIgnoreElements = (stage: HTMLElement) => (el: Element): boolean =>
+  el instanceof HTMLElement &&
+  el.parentElement === document.body &&
+  el !== stage &&
+  el.tagName !== "STYLE" &&
+  el.tagName !== "LINK";
 
 const loadPdfDependencies = async () => {
   const [{ jsPDF }, html2canvasModule] = await Promise.all([
@@ -146,18 +163,25 @@ export async function generateReportsPdfFile(
     let canvas: HTMLCanvasElement | null = null;
     try {
       await waitForImages(clone);
+      if (options.signal?.aborted) {
+        throw new DOMException("PDF generation cancelled", "AbortError");
+      }
 
       canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: resolvePdfCaptureScale(total),
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
         windowWidth: clone.scrollWidth || 794,
+        ignoreElements: buildStageIgnoreElements(stage),
         onclone: (clonedDoc) => {
           clonedDoc.documentElement.classList.remove("dark");
           clonedDoc.documentElement.style.colorScheme = "light";
         },
       });
+      if (options.signal?.aborted) {
+        throw new DOMException("PDF generation cancelled", "AbortError");
+      }
 
       if (i > 0) {
         pdf.addPage("a4", "portrait");
@@ -258,17 +282,25 @@ export async function generateBlocksPdfFile(
     let canvas: HTMLCanvasElement | null = null;
     try {
       await waitForImages(clone);
+      if (options.signal?.aborted) {
+        throw new DOMException("PDF generation cancelled", "AbortError");
+      }
+
       canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: resolvePdfCaptureScale(total),
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
         windowWidth: captureWidth,
+        ignoreElements: buildStageIgnoreElements(stage),
         onclone: (clonedDoc) => {
           clonedDoc.documentElement.classList.remove("dark");
           clonedDoc.documentElement.style.colorScheme = "light";
         },
       });
+      if (options.signal?.aborted) {
+        throw new DOMException("PDF generation cancelled", "AbortError");
+      }
 
       const blockHeightMm = (canvas.height * printableWidthMm) / canvas.width;
 
@@ -298,6 +330,9 @@ export async function generateBlocksPdfFile(
         const sliceHeightPx = Math.floor((printableHeightMm * canvas.width) / printableWidthMm);
         let offsetY = 0;
         while (offsetY < canvas.height) {
+          if (options.signal?.aborted) {
+            throw new DOMException("PDF generation cancelled", "AbortError");
+          }
           const currentSlicePx = Math.min(sliceHeightPx, canvas.height - offsetY);
           const sliceCanvas = document.createElement("canvas");
           sliceCanvas.width = canvas.width;
@@ -384,6 +419,23 @@ export async function sharePdfFile(file: File): Promise<SharePdfOutcome> {
 
 export function downloadPdfFile(file: File): void {
   const url = URL.createObjectURL(file);
+  if (isIOSPWA()) {
+    // Opening in a separate viewer sheet avoids trapping standalone iOS PWAs on a blob: URL with no back bar
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    }
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return;
+  }
+
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = file.name;
