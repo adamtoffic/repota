@@ -24,19 +24,32 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const handleComplete = useCallback(() => {
-    localStorage.setItem(storageKey, "true");
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch {
+      // Ignore restricted storage modes
+    }
     setIsVisible(false);
     onComplete();
   }, [storageKey, onComplete]);
 
   const handleSkip = useCallback(() => {
-    localStorage.setItem(storageKey, "true");
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch {
+      // Ignore restricted storage modes
+    }
     setIsVisible(false);
   }, [storageKey]);
 
   useEffect(() => {
     // Check if user has completed tour before
-    const hasCompletedTour = localStorage.getItem(storageKey);
+    let hasCompletedTour: string | null = null;
+    try {
+      hasCompletedTour = localStorage.getItem(storageKey);
+    } catch {
+      return;
+    }
     if (!hasCompletedTour) {
       // Small delay before showing tour for better UX
       const timer = window.setTimeout(() => setIsVisible(true), 800);
@@ -64,14 +77,14 @@ export function WelcomeTour({ steps, onComplete, storageKey = "welcome_tour_comp
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
       <div
         ref={dialogRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="welcome-tour-title"
-        className="animate-slide-in-up border-border bg-elevated w-full max-w-md rounded-2xl border p-5 shadow-2xl focus:outline-none sm:p-6"
+        className="animate-slide-in-up border-border bg-elevated my-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border p-5 shadow-2xl focus:outline-none sm:p-6"
       >
         {/* Progress indicator + non-overlapping Close button */}
         <div className="mb-5 flex items-center gap-3">

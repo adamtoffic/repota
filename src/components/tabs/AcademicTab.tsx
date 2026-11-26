@@ -370,7 +370,7 @@ export function AcademicTab({
                 <button
                   type="button"
                   onClick={() => setCleanModalOpen(true)}
-                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-amber-700 active:scale-95"
+                  className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-amber-800 active:scale-95"
                   data-record="true"
                 >
                   Remove Old

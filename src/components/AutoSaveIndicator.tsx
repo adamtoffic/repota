@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Loader2, Wifi, WifiOff } from "lucide-react";
+import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 
 interface Props {
   isSaving: boolean;
@@ -10,6 +11,7 @@ interface Props {
 export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [timeAgo, setTimeAgo] = useState("");
+  const isEditableFocused = useEditableInputFocused();
   const [dismissedSavedTime, setDismissedSavedTime] = useState<number | null>(() =>
     lastSaved && Date.now() - lastSaved.getTime() >= 3500 ? lastSaved.getTime() : null,
   );
@@ -72,10 +74,15 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
 
   if (!isVisible) return null;
 
+  const hideForKeyboard = isEditableFocused && !error;
+
   return (
     <div
+      aria-hidden={hideForKeyboard || undefined}
       data-hide-on-mobile-sheet="true"
-      className="animate-fade-in bottom-safe-nav pointer-events-none fixed left-4 z-30 md:left-72 print:hidden"
+      className={`animate-fade-in bottom-safe-nav pointer-events-none fixed left-4 z-30 transition-opacity duration-150 md:left-72 print:hidden ${
+        hideForKeyboard ? "invisible opacity-0" : ""
+      }`}
     >
       <div
         role={error ? "alert" : "status"}

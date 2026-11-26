@@ -2,7 +2,7 @@
 import { GraduationCap } from "lucide-react";
 
 export const PageLoader = () => (
-  <div className="bg-background flex min-h-screen items-center justify-center">
+  <div className="bg-background flex min-h-dvh items-center justify-center">
     <div className="animate-fade-in flex flex-col items-center gap-6">
       <div className="relative">
         {/* Spinning Ring */}

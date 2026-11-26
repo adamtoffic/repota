@@ -349,7 +349,7 @@ export function PrintPreview() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center focus:outline-none"
+        className="bg-background flex min-h-dvh flex-col items-center justify-center p-8 text-center focus:outline-none"
       >
         <h1 className="sr-only">Print Preview</h1>
         <div className="border-border bg-surface max-w-md rounded-xl border p-8 shadow-sm">
@@ -400,11 +400,11 @@ export function PrintPreview() {
   }
 
   return (
-    <div className="bg-subtle dark:bg-background min-h-screen font-sans print:m-0 print:h-auto print:min-h-0 print:bg-white print:p-0">
+    <div className="bg-subtle dark:bg-background min-h-dvh font-sans print:m-0 print:h-auto print:min-h-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
       <header
         data-testid="print-sticky-toolbar"
-        className="border-border bg-surface/85 sticky top-0 z-50 border-b p-3 backdrop-blur-md sm:p-4 print:hidden"
+        className="border-border bg-surface/85 sticky top-0 z-50 border-b p-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] backdrop-blur-md sm:p-4 sm:pt-[calc(1rem+env(safe-area-inset-top,0px))] print:hidden"
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           {/* LEFT: Back + Title */}
@@ -527,12 +527,16 @@ export function PrintPreview() {
                 Ink Mode
               </p>
               {/* Pill container */}
-              <div className="border-border bg-subtle relative flex min-h-10 items-center rounded-xl border p-0.5 shadow-inner sm:h-9 sm:min-h-0">
+              <div
+                role="group"
+                aria-label="Ink mode"
+                className="border-border bg-subtle relative grid min-h-10 grid-cols-2 items-center rounded-xl border p-0.5 shadow-inner sm:h-9 sm:min-h-0"
+              >
                 {/* Animated sliding background pill */}
                 <div
                   aria-hidden="true"
-                  className={`bg-elevated pointer-events-none absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-[10px] shadow-sm ring-1 ring-black/6 transition-transform duration-200 ease-in-out dark:ring-white/10 ${
-                    printMode === "bw" ? "translate-x-[calc(100%+4px)]" : "translate-x-0"
+                  className={`bg-elevated pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-[10px] shadow-sm ring-1 ring-black/6 transition-transform duration-200 ease-in-out dark:ring-white/10 ${
+                    printMode === "bw" ? "translate-x-full" : "translate-x-0"
                   }`}
                 />
 
@@ -542,7 +546,7 @@ export function PrintPreview() {
                   onClick={() => setPrintMode("color")}
                   aria-pressed={printMode === "color"}
                   title="Full color print"
-                  className={`relative z-10 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors duration-150 sm:px-3 ${
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors duration-150 sm:px-3 ${
                     printMode === "color"
                       ? "text-primary-text"
                       : "text-muted hover:text-main"
@@ -550,6 +554,7 @@ export function PrintPreview() {
                 >
                   {/* Color swatch dot */}
                   <span
+                    aria-hidden="true"
                     className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-linear-to-br from-blue-500 via-amber-400 to-rose-500 transition-opacity ${
                       printMode === "color" ? "opacity-100" : "opacity-40"
                     }`}
@@ -563,12 +568,13 @@ export function PrintPreview() {
                   onClick={() => setPrintMode("bw")}
                   aria-pressed={printMode === "bw"}
                   title="Black & white print"
-                  className={`relative z-10 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors duration-150 sm:px-3 ${
+                  className={`relative z-10 flex items-center justify-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors duration-150 sm:px-3 ${
                     printMode === "bw" ? "text-main" : "text-muted hover:text-main"
                   }`}
                 >
                   {/* Greyscale dot */}
                   <span
+                    aria-hidden="true"
                     className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-linear-to-br from-gray-300 to-gray-700 transition-opacity ${
                       printMode === "bw" ? "opacity-100" : "opacity-40"
                     }`}

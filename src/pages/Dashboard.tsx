@@ -339,7 +339,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="bg-background flex min-h-screen flex-col font-sans">
+    <div className="bg-background flex min-h-dvh flex-col font-sans">
       <div
         data-testid="dashboard-background-shell"
         className={editingStudent ? "flex flex-1 flex-col max-sm:hidden" : "flex flex-1 flex-col"}
