@@ -164,7 +164,7 @@ describe("NavigationShell and route exclusions", () => {
     const mobileBar = screen.getByLabelText("Mobile bottom navigation");
 
     expect(sidebar).toHaveClass("hidden", "md:flex", "print:hidden");
-    expect(mobileBar).toHaveClass("md:hidden", "print:hidden", "safe-bottom");
+    expect(mobileBar).toHaveClass("md:hidden", "print:hidden", "safe-bottom-floating");
 
     // Primary tabs appear in both landmarks
     expect(screen.getAllByRole("link", { name: "Home" }).length).toBe(2);
