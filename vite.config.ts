@@ -60,7 +60,7 @@ export default defineConfig({
         clientsClaim: true,
         // Precache essential files for offline functionality
         globPatterns: ["index.html", "**/*.{js,css,woff,woff2}", "assets/**/*.{png,svg}"],
-        globIgnores: ["og-image.png", "screenshot-*.png", "stats.html"],
+        globIgnores: ["og-image.png", "screenshot-*.png", "stats.html", "**/posthog-*.js"],
         // Maximum cache size
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
         // Navigation fallback for offline support

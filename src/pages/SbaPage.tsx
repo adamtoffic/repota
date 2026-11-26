@@ -314,7 +314,7 @@ function SbaPageContent() {
   const isMockMode = effectiveSettings.examType === "MOCK";
 
   return (
-    <div className="bg-background flex min-h-screen flex-col font-sans">
+    <div className="bg-background flex min-h-dvh flex-col font-sans">
       <PageHeader
         hideOnDesktop
         sticky={!isEditableFocused}
@@ -574,10 +574,9 @@ function SbaPageContent() {
                                 ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
                                 : "border-border-strong bg-surface text-secondary hover:bg-subtle"
                             }`}
-                            data-record="true"
                           >
                             <Filter className="h-3.5 w-3.5" />
-                            <span>Unscored only</span>
+                            <span data-record="true">Unscored only</span>
                             {unscoredCount > 0 && (
                               <span
                                 className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${

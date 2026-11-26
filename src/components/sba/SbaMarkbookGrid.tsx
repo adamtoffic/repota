@@ -467,9 +467,11 @@ export function SbaMarkbookGrid({
     <div className="border-border bg-surface overflow-x-clip rounded-xl border shadow-sm">
       {unscoredOnly && newlyScoredCount > 0 && onRefreshUnscoredFilter && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50/80 px-4 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
-          <span data-record="true">
+          <span>
             <strong>{newlyScoredCount}</strong>{" "}
-            {newlyScoredCount === 1 ? "student" : "students"} newly scored — rows stay pinned while typing
+            <span data-record="true">
+              {newlyScoredCount === 1 ? "student" : "students"} newly scored — rows stay pinned while typing
+            </span>
           </span>
           <button
             type="button"

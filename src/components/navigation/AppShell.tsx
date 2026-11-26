@@ -74,7 +74,7 @@ function MobileBottomNav({
       aria-label="Mobile bottom navigation"
       aria-hidden={isEditableFocused || undefined}
       data-hide-on-mobile-sheet="true"
-      className={`safe-bottom safe-bottom-floating pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 transition-all duration-150 md:hidden print:hidden ${
+      className={`safe-bottom-floating pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 transition-all duration-150 md:hidden print:hidden ${
         isEditableFocused ? "invisible translate-y-6 opacity-0" : "translate-y-0 opacity-100"
       }`}
     >
@@ -147,7 +147,7 @@ export function AppShell({ children }: AppShellProps) {
   const activePrimaryIndex = primaryItems.findIndex((item) => item.isActive);
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-dvh">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
@@ -264,17 +264,16 @@ export function AppShell({ children }: AppShellProps) {
           <Link
             to="/print"
             className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            data-record="true"
           >
             <Printer className="h-4 w-4 shrink-0" />
-            <span>Print Reports</span>
+            <span data-record="true">Print Reports</span>
             <SidebarStudentCountBadge />
           </Link>
         </div>
       </aside>
 
       {/* Main Content Viewport */}
-      <div className="pb-safe-nav flex min-h-screen flex-col md:pl-64 print:pb-0 print:pl-0">
+      <div className="pb-safe-nav flex min-h-dvh flex-col md:pl-64 print:pb-0 print:pl-0">
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </div>
 
