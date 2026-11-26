@@ -19,23 +19,28 @@ export const detectDataLoss = (storageSnapshot?: {
   studentsEmpty: boolean;
   settingsEmpty: boolean;
 }): boolean => {
-  const backupCheck = localStorage.getItem(BACKUP_CHECK_KEY);
-  const hadDataBefore = localStorage.getItem(HAD_DATA_BEFORE_KEY);
-
-  if (hadDataBefore !== "true" || !backupCheck) {
+  let backupCheck: string | null = null;
+  let hadDataBefore: string | null = null;
+  let hasStudents: string | null = null;
+  let hasSettings: string | null = null;
+  try {
+    backupCheck = localStorage.getItem(BACKUP_CHECK_KEY);
+    hadDataBefore = localStorage.getItem(HAD_DATA_BEFORE_KEY);
+    if (hadDataBefore !== "true" || !backupCheck) {
+      return false;
+    }
+    if (storageSnapshot) {
+      return storageSnapshot.studentsEmpty && storageSnapshot.settingsEmpty;
+    }
+    if (getStorageType() === "indexeddb") {
+      return false;
+    }
+    hasStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+    hasSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+  } catch {
     return false;
   }
 
-  if (storageSnapshot) {
-    return storageSnapshot.studentsEmpty && storageSnapshot.settingsEmpty;
-  }
-
-  if (getStorageType() === "indexeddb") {
-    return false;
-  }
-
-  const hasStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
-  const hasSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
   return !hasStudents || !hasSettings;
 };
 
@@ -44,32 +49,44 @@ export const detectDataLoss = (storageSnapshot?: {
  * Also marks that user has data (to detect future losses)
  */
 export const createBackupHeartbeat = (): void => {
-  localStorage.setItem(BACKUP_CHECK_KEY, Date.now().toString());
-  localStorage.setItem(HAD_DATA_BEFORE_KEY, "true"); // Mark that user has data
+  try {
+    localStorage.setItem(BACKUP_CHECK_KEY, Date.now().toString());
+    localStorage.setItem(HAD_DATA_BEFORE_KEY, "true"); // Mark that user has data
+  } catch {
+    // Ignore blocked or quota-full localStorage when primary IDB storage succeeded
+  }
 };
 
 /**
  * Store last successful backup timestamp
  */
 export const recordBackup = (): void => {
-  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+  try {
+    localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+  } catch {
+    // Ignore blocked or quota-full localStorage after backup export
+  }
 };
 
 /**
  * Get time since last backup
  */
 export const getTimeSinceBackup = (): string | null => {
-  const lastBackup = localStorage.getItem(LAST_BACKUP_KEY);
-  if (!lastBackup) return null;
+  try {
+    const lastBackup = localStorage.getItem(LAST_BACKUP_KEY);
+    if (!lastBackup) return null;
 
-  const date = new Date(lastBackup);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const date = new Date(lastBackup);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return "today";
-  if (diffDays === 1) return "yesterday";
-  return `${diffDays} days ago`;
+    if (diffDays === 0) return "today";
+    if (diffDays === 1) return "yesterday";
+    return `${diffDays} days ago`;
+  } catch {
+    return null;
+  }
 };
 
 /**

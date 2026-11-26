@@ -93,6 +93,26 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
     return () => clearTimeout(timer);
   }, [paused, checkAndPromptBiometric]);
 
+  const verifyTimerRef = useRef<number | null>(null);
+  const pausedRef = useRef(paused);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+    if (paused && verifyTimerRef.current !== null) {
+      window.clearTimeout(verifyTimerRef.current);
+      verifyTimerRef.current = null;
+    }
+  }, [paused]);
+
+  useEffect(() => {
+    return () => {
+      if (verifyTimerRef.current !== null) {
+        window.clearTimeout(verifyTimerRef.current);
+        verifyTimerRef.current = null;
+      }
+    };
+  }, []);
+
   // Focus input when ready (desktop/accessibility; mobile virtual keyboard stays suppressed via inputMode="none")
   useEffect(() => {
     if (!paused && inputReady && inputRef.current && !isUnlocking) {
@@ -104,6 +124,7 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
 
   const verifyPinCode = useCallback(
     async (pinToVerify: string) => {
+      if (pausedRef.current) return;
       const status = getPinLockoutStatus();
       if (status.isLockedOut) {
         setCooldownSeconds(Math.ceil(status.remainingMs / 1000));
@@ -147,6 +168,11 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
     (value: string) => {
       if (paused || cooldownSeconds > 0 || isVerifying || isUnlocking) return;
 
+      if (verifyTimerRef.current !== null) {
+        window.clearTimeout(verifyTimerRef.current);
+        verifyTimerRef.current = null;
+      }
+
       // Only allow numeric input
       const numericValue = value.replace(/\D/g, "").slice(0, 4);
       setPin(numericValue);
@@ -154,8 +180,11 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
 
       // Auto-verify when 4 digits entered
       if (numericValue.length === 4) {
-        setTimeout(() => {
-          void verifyPinCode(numericValue);
+        verifyTimerRef.current = window.setTimeout(() => {
+          verifyTimerRef.current = null;
+          if (!pausedRef.current) {
+            void verifyPinCode(numericValue);
+          }
         }, 100);
       }
     },

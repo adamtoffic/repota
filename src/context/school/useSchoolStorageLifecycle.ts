@@ -304,6 +304,7 @@ export function useSchoolStorageLifecycle({
   }, [loadAttempt]);
 
   // Cross-tab BroadcastChannel sync after initial hydration settles
+  const syncSeqRef = useRef(0);
   useEffect(() => {
     if (!isDataLoaded) return;
     let isCancelled = false;
@@ -314,10 +315,21 @@ export function useSchoolStorageLifecycle({
       const syncSettings = keys.includes(IDB_KEYS.SETTINGS);
       if (!syncStudents && !syncSettings) return;
 
+      const syncSeq = ++syncSeqRef.current;
+      const initialStudentsWriteSeq = studentsWriteSeqRef.current;
+      const initialSettingsWriteSeq = settingsWriteSeqRef.current;
+
       void (async () => {
         if (syncStudents) {
           const studentsResult = await loadFromStorageResult<StudentRecord[]>(IDB_KEYS.STUDENTS);
-          if (isCancelled || persistenceSuspendedRef.current) return;
+          if (
+            isCancelled ||
+            persistenceSuspendedRef.current ||
+            syncSeqRef.current !== syncSeq ||
+            studentsWriteSeqRef.current !== initialStudentsWriteSeq
+          ) {
+            return;
+          }
           if (studentsResult.status === "found") {
             const nextStudents = parseHydratedStudentsValue(studentsResult.value, true);
             if (nextStudents) {
@@ -341,7 +353,14 @@ export function useSchoolStorageLifecycle({
 
         if (syncSettings) {
           const settingsResult = await loadFromStorageResult<SchoolSettings>(IDB_KEYS.SETTINGS);
-          if (isCancelled || persistenceSuspendedRef.current) return;
+          if (
+            isCancelled ||
+            persistenceSuspendedRef.current ||
+            syncSeqRef.current !== syncSeq ||
+            settingsWriteSeqRef.current !== initialSettingsWriteSeq
+          ) {
+            return;
+          }
           if (settingsResult.status === "found") {
             const nextSettings = parseHydratedSettingsValue(
               settingsResult.value,
@@ -431,6 +450,20 @@ export function useSchoolStorageLifecycle({
       });
   }, [debouncedSettings, hasLoadError, isDataLoaded, loadStatus.settings, resumeGeneration, settings]);
 
+  const markIncompleteRollback = useCallback(() => {
+    writeIncompleteRollbackFlag(true);
+    suspendedUntilHydratedRef.current = true;
+    persistenceSuspendedRef.current = true;
+    setIsPersistenceSuspended(true);
+    setIsRollbackIncomplete(true);
+  }, []);
+
+  const clearIncompleteRollback = useCallback(() => {
+    writeIncompleteRollbackFlag(false);
+    setIsRollbackIncomplete(false);
+    suspendedUntilHydratedRef.current = false;
+  }, []);
+
   const flushPendingWrites = useCallback(async (): Promise<boolean> => {
     if (!isDataLoaded || persistenceSuspendedRef.current) {
       return false;
@@ -491,7 +524,10 @@ export function useSchoolStorageLifecycle({
         setSettingsSaveError("Changes couldn't be saved. Check device storage.");
       }
       return false;
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === "StorageBatchRollbackError") {
+        markIncompleteRollback();
+      }
       if (flushStudents && studentsWriteSeqRef.current === sSeq) {
         setStudentsSaveError("Changes couldn't be saved. Check device storage.");
       }
@@ -500,7 +536,7 @@ export function useSchoolStorageLifecycle({
       }
       return false;
     }
-  }, [hasLoadError, isDataLoaded, loadStatus.settings, loadStatus.students]);
+  }, [hasLoadError, isDataLoaded, loadStatus.settings, loadStatus.students, markIncompleteRollback]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -559,20 +595,6 @@ export function useSchoolStorageLifecycle({
     persistenceSuspendedRef.current = false;
     setIsPersistenceSuspended(false);
     setResumeGeneration((current) => current + 1);
-  }, []);
-
-  const markIncompleteRollback = useCallback(() => {
-    writeIncompleteRollbackFlag(true);
-    suspendedUntilHydratedRef.current = true;
-    persistenceSuspendedRef.current = true;
-    setIsPersistenceSuspended(true);
-    setIsRollbackIncomplete(true);
-  }, []);
-
-  const clearIncompleteRollback = useCallback(() => {
-    writeIncompleteRollbackFlag(false);
-    setIsRollbackIncomplete(false);
-    suspendedUntilHydratedRef.current = false;
   }, []);
 
   const waitForMigration = useCallback(async (): Promise<void> => {
@@ -653,6 +675,9 @@ export function useSchoolStorageLifecycle({
       setIsRollbackIncomplete(false);
       setResumeGeneration((current) => current + 1);
     } catch (error) {
+      if (error instanceof Error && error.name === "StorageBatchRollbackError") {
+        markIncompleteRollback();
+      }
       if (freshOpTokenRef.current === token) {
         showToastRef.current(
           error instanceof Error ? error.message : "Could not start fresh. Please try again.",
@@ -745,8 +770,12 @@ export function useSchoolStorageLifecycle({
       setIsPersistenceSuspended(false);
       return true;
     } catch (error) {
-      persistenceSuspendedRef.current = false;
-      setIsPersistenceSuspended(false);
+      if (error instanceof Error && error.name === "StorageBatchRollbackError") {
+        markIncompleteRollback();
+      } else {
+        persistenceSuspendedRef.current = false;
+        setIsPersistenceSuspended(false);
+      }
       showToastRef.current(
         error instanceof Error ? error.message : "Could not reset app data. Please try again.",
         "error",
@@ -757,7 +786,7 @@ export function useSchoolStorageLifecycle({
         freshWritesStartedRef.current = false;
       }
     }
-  }, [waitForMigration]);
+  }, [markIncompleteRollback, waitForMigration]);
 
   // Request persistent storage on mount (Android protection)
   useEffect(() => {

@@ -8,6 +8,9 @@ const PIN_STORAGE_KEY = "app_pin_hash";
 const RECOVERY_CODE_KEY = "recovery_code_hash";
 const SECURITY_QUESTIONS_KEY = "security_questions";
 const PIN_LOCKOUT_KEY = "app_pin_lockout";
+const RECOVERY_LOCKOUT_KEY = "app_recovery_lockout";
+
+export const PIN_CONFIG_CHANGED_EVENT = "repota:pin-config-changed";
 
 const PBKDF2_PREFIX = "v2:pbkdf2$";
 const PBKDF2_ITERATIONS = 100_000;
@@ -15,6 +18,13 @@ const SALT_BYTES = 16;
 const DERIVED_BITS = 256;
 const FREE_ATTEMPTS_BEFORE_COOLDOWN = 5;
 const MAX_COOLDOWN_MS = 5 * 60_000;
+const RECOVERY_MAX_COOLDOWN_MS = 15 * 60_000;
+
+function notifyPinConfigChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(PIN_CONFIG_CHANGED_EVENT));
+  }
+}
 
 export interface SecurityQuestionAnswer {
   questionId: string;
@@ -138,9 +148,9 @@ export function generateRecoveryCode(): string {
   return (100_000 + (value % range)).toString();
 }
 
-export function getPinLockoutStatus(): PinLockoutStatus {
+function readLockoutStatus(storageKey: string): PinLockoutStatus {
   try {
-    const raw = localStorage.getItem(PIN_LOCKOUT_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return { isLockedOut: false, remainingMs: 0, failedAttempts: 0 };
     const parsed = JSON.parse(raw) as { failedAttempts?: unknown; lockedUntil?: unknown };
     const failedAttempts = typeof parsed.failedAttempts === "number" ? parsed.failedAttempts : 0;
@@ -156,17 +166,17 @@ export function getPinLockoutStatus(): PinLockoutStatus {
   }
 }
 
-export function recordFailedPinAttempt(): PinLockoutStatus {
-  const current = getPinLockoutStatus();
+function recordLockoutAttempt(storageKey: string, maxCooldownMs: number): PinLockoutStatus {
+  const current = readLockoutStatus(storageKey);
   const failedAttempts = current.failedAttempts + 1;
   let lockedUntil = 0;
   if (failedAttempts >= FREE_ATTEMPTS_BEFORE_COOLDOWN) {
     const exponent = failedAttempts - FREE_ATTEMPTS_BEFORE_COOLDOWN;
-    const durationMs = Math.min(30_000 * 2 ** exponent, MAX_COOLDOWN_MS);
+    const durationMs = Math.min(30_000 * 2 ** exponent, maxCooldownMs);
     lockedUntil = Date.now() + durationMs;
   }
   try {
-    localStorage.setItem(PIN_LOCKOUT_KEY, JSON.stringify({ failedAttempts, lockedUntil }));
+    localStorage.setItem(storageKey, JSON.stringify({ failedAttempts, lockedUntil }));
   } catch {
     // Ignore storage quota issues for lockout tracking
   }
@@ -178,8 +188,36 @@ export function recordFailedPinAttempt(): PinLockoutStatus {
   };
 }
 
+function clearLockout(storageKey: string): void {
+  try {
+    localStorage.removeItem(storageKey);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getPinLockoutStatus(): PinLockoutStatus {
+  return readLockoutStatus(PIN_LOCKOUT_KEY);
+}
+
+export function recordFailedPinAttempt(): PinLockoutStatus {
+  return recordLockoutAttempt(PIN_LOCKOUT_KEY, MAX_COOLDOWN_MS);
+}
+
 export function clearPinLockout(): void {
-  localStorage.removeItem(PIN_LOCKOUT_KEY);
+  clearLockout(PIN_LOCKOUT_KEY);
+}
+
+export function getRecoveryLockoutStatus(): PinLockoutStatus {
+  return readLockoutStatus(RECOVERY_LOCKOUT_KEY);
+}
+
+export function recordFailedRecoveryAttempt(): PinLockoutStatus {
+  return recordLockoutAttempt(RECOVERY_LOCKOUT_KEY, RECOVERY_MAX_COOLDOWN_MS);
+}
+
+export function clearRecoveryLockout(): void {
+  clearLockout(RECOVERY_LOCKOUT_KEY);
 }
 
 /**
@@ -193,6 +231,8 @@ export async function setupPin(pin: string, recoveryCode: string): Promise<boole
     localStorage.setItem(PIN_STORAGE_KEY, pinHash);
     localStorage.setItem(RECOVERY_CODE_KEY, recoveryHash);
     clearPinLockout();
+    clearRecoveryLockout();
+    notifyPinConfigChanged();
 
     return true;
   } catch (error) {
@@ -205,7 +245,11 @@ export async function setupPin(pin: string, recoveryCode: string): Promise<boole
  * Check if PIN has been set up
  */
 export function isPinConfigured(): boolean {
-  return localStorage.getItem(PIN_STORAGE_KEY) !== null;
+  try {
+    return localStorage.getItem(PIN_STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -220,7 +264,11 @@ export async function verifyPin(pin: string): Promise<boolean> {
     if (matches) {
       clearPinLockout();
       if (needsUpgrade) {
-        localStorage.setItem(PIN_STORAGE_KEY, await hashSecret(pin));
+        try {
+          localStorage.setItem(PIN_STORAGE_KEY, await hashSecret(pin));
+        } catch {
+          // Never lock out a valid user because storage is full during legacy hash upgrade
+        }
       }
     }
     return matches;
@@ -255,8 +303,15 @@ export async function verifyRecoveryCode(code: string): Promise<boolean> {
     if (!storedHash) return false;
 
     const { matches, needsUpgrade } = await verifySecret(code, storedHash);
-    if (matches && needsUpgrade) {
-      localStorage.setItem(RECOVERY_CODE_KEY, await hashSecret(code));
+    if (matches) {
+      clearRecoveryLockout();
+      if (needsUpgrade) {
+        try {
+          localStorage.setItem(RECOVERY_CODE_KEY, await hashSecret(code));
+        } catch {
+          // Never reject a valid recovery code if localStorage is full during hash upgrade
+        }
+      }
     }
     return matches;
   } catch (error) {
@@ -279,6 +334,8 @@ export async function resetPinWithRecoveryCode(
     const pinHash = await hashSecret(newPin);
     localStorage.setItem(PIN_STORAGE_KEY, pinHash);
     clearPinLockout();
+    clearRecoveryLockout();
+    notifyPinConfigChanged();
 
     return true;
   } catch (error) {
@@ -295,10 +352,12 @@ export function disablePinLock(): void {
   localStorage.removeItem(RECOVERY_CODE_KEY);
   localStorage.removeItem(SECURITY_QUESTIONS_KEY);
   clearPinLockout();
+  clearRecoveryLockout();
 
   // Also disable biometric since it's tied to PIN
   localStorage.removeItem("biometric_credential_id");
   localStorage.removeItem("biometric_enabled");
+  notifyPinConfigChanged();
 }
 
 /**
@@ -369,11 +428,18 @@ export async function verifySecurityAnswers(
     }
 
     if (updatedAny) {
-      localStorage.setItem(SECURITY_QUESTIONS_KEY, JSON.stringify(savedQuestions));
+      try {
+        localStorage.setItem(SECURITY_QUESTIONS_KEY, JSON.stringify(savedQuestions));
+      } catch {
+        // Never reject valid answers when storage is full during legacy hash upgrade
+      }
     }
 
     // Require at least 2 out of 3 correct answers
     const verified = correctCount >= 2;
+    if (verified) {
+      clearRecoveryLockout();
+    }
     return { verified, correctCount };
   } catch (error) {
     console.error("Error verifying security answers:", error);
@@ -404,6 +470,8 @@ export async function resetPinWithSecurityQuestions(newPin: string): Promise<boo
     const pinHash = await hashSecret(newPin);
     localStorage.setItem(PIN_STORAGE_KEY, pinHash);
     clearPinLockout();
+    clearRecoveryLockout();
+    notifyPinConfigChanged();
     return true;
   } catch (error) {
     console.error("PIN reset error:", error);

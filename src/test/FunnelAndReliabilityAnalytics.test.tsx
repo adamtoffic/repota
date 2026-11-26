@@ -62,12 +62,14 @@ vi.mock("../utils/idbStorage", () => ({
   IDB_KEYS: { STUDENTS: "ges_v1_students", SETTINGS: "ges_v1_settings" },
   STORAGE_QUOTA_EXCEEDED_EVENT: "repota:storage-quota-exceeded",
   subscribeToStorageSync: vi.fn(() => () => {}),
+  flushStorageWriteQueue: vi.fn().mockResolvedValue(undefined),
   ...storageMock,
 }));
 
 vi.mock("../utils/dataProtection", () => dataProtectionMock);
 vi.mock("../utils/fileEncryption", () => fileEncryptionMock);
 vi.mock("../utils/pinSecurity", () => ({
+  PIN_CONFIG_CHANGED_EVENT: "repota:pin-config-changed",
   isPinConfigured: () => false,
 }));
 vi.mock("../components/OfflineDetector", () => ({ OfflineDetector: () => null }));

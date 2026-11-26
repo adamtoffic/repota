@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Key, AlertCircle, X, HelpCircle } from "lucide-react";
 import {
   verifyRecoveryCode,
@@ -8,6 +8,8 @@ import {
   getSavedSecurityQuestionIds,
   areSecurityQuestionsConfigured,
   isSameAsCurrentPin,
+  getRecoveryLockoutStatus,
+  recordFailedRecoveryAttempt,
 } from "../utils/pinSecurity";
 import { SECURITY_QUESTIONS } from "../constants/securityQuestions";
 import { useDialogA11y } from "../hooks/useDialogA11y";
@@ -25,6 +27,12 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(() => {
+    const status = getRecoveryLockoutStatus();
+    return status.isLockedOut ? Math.ceil(status.remainingMs / 1000) : 0;
+  });
   const dialogRef = useRef<HTMLDivElement>(null);
   const codeTabRef = useRef<HTMLButtonElement>(null);
   const questionsTabRef = useRef<HTMLButtonElement>(null);
@@ -36,6 +44,15 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
     onClose: onCancel,
     dialogRef,
   });
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      const status = getRecoveryLockoutStatus();
+      setCooldownSeconds(status.isLockedOut ? Math.ceil(status.remainingMs / 1000) : 0);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
 
   // Security questions state
   const [answers, setAnswers] = useState<string[]>(["", "", ""]);
@@ -63,77 +80,141 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
   };
 
   const handleVerifyRecovery = async () => {
+    if (submittingRef.current) return;
+    const lockoutStatus = getRecoveryLockoutStatus();
+    if (lockoutStatus.isLockedOut) {
+      const remaining = Math.ceil(lockoutStatus.remainingMs / 1000);
+      setCooldownSeconds(remaining);
+      setError(`Too many failed recovery attempts. Try again in ${remaining}s.`);
+      return;
+    }
+
     if (recoveryCode.length !== 6) {
       setError("Recovery code must be 6 digits");
       return;
     }
 
-    const isValid = await verifyRecoveryCode(recoveryCode);
-    if (!isValid) {
-      setError("Invalid recovery code. Please try again.");
-      return;
-    }
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const isValid = await verifyRecoveryCode(recoveryCode);
+      if (!isValid) {
+        const nextLockout = recordFailedRecoveryAttempt();
+        const remaining = Math.ceil(nextLockout.remainingMs / 1000);
+        if (nextLockout.isLockedOut && remaining > 0) {
+          setCooldownSeconds(remaining);
+          setError(`Too many failed recovery attempts. Try again in ${remaining}s.`);
+        } else {
+          setError("Invalid recovery code. Please try again.");
+        }
+        return;
+      }
 
-    setError("");
-    setStep("newPin");
+      setCooldownSeconds(0);
+      setError("");
+      setStep("newPin");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   const handleVerifySecurityQuestions = async () => {
+    if (submittingRef.current) return;
+    const lockoutStatus = getRecoveryLockoutStatus();
+    if (lockoutStatus.isLockedOut) {
+      const remaining = Math.ceil(lockoutStatus.remainingMs / 1000);
+      setCooldownSeconds(remaining);
+      setError(`Too many failed recovery attempts. Try again in ${remaining}s.`);
+      return;
+    }
+
     if (answers.some((a) => a.trim().length < 2)) {
       setError("Please answer all security questions");
       return;
     }
 
-    const questionsToVerify = savedQuestionIds.map((questionId, index) => ({
-      questionId,
-      answer: answers[index],
-    }));
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const questionsToVerify = savedQuestionIds.map((questionId, index) => ({
+        questionId,
+        answer: answers[index],
+      }));
 
-    const { verified, correctCount } = await verifySecurityAnswers(questionsToVerify);
+      const { verified } = await verifySecurityAnswers(questionsToVerify);
 
-    if (!verified) {
-      setError(`Only ${correctCount}/3 correct. You need at least 2 correct answers.`);
-      return;
+      if (!verified) {
+        const nextLockout = recordFailedRecoveryAttempt();
+        const remaining = Math.ceil(nextLockout.remainingMs / 1000);
+        if (nextLockout.isLockedOut && remaining > 0) {
+          setCooldownSeconds(remaining);
+          setError(`Too many failed recovery attempts. Try again in ${remaining}s.`);
+        } else {
+          setError("Security answers did not match. Please check your answers and try again.");
+        }
+        return;
+      }
+
+      setCooldownSeconds(0);
+      setError("");
+      setStep("newPin");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    setError("");
-    setStep("newPin");
   };
 
   const handleNewPin = async () => {
+    if (submittingRef.current) return;
     if (newPin.length !== 4) {
       setError("PIN must be 4 digits");
       return;
     }
 
-    // Check if trying to use the same PIN
-    const isSame = await isSameAsCurrentPin(newPin);
-    if (isSame) {
-      setError("New PIN must be different from your old PIN");
-      return;
-    }
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      // Check if trying to use the same PIN
+      const isSame = await isSameAsCurrentPin(newPin);
+      if (isSame) {
+        setError("New PIN must be different from your old PIN");
+        return;
+      }
 
-    setError("");
-    setStep("confirm");
+      setError("");
+      setStep("confirm");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   const handleConfirmPin = async () => {
+    if (submittingRef.current) return;
     if (confirmPin !== newPin) {
       setError("PINs do not match");
       return;
     }
 
-    let success: boolean;
-    if (method === "code") {
-      success = await resetPinWithRecoveryCode(recoveryCode, newPin);
-    } else {
-      success = await resetPinWithSecurityQuestions(newPin);
-    }
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      let success: boolean;
+      if (method === "code") {
+        success = await resetPinWithRecoveryCode(recoveryCode, newPin);
+      } else {
+        success = await resetPinWithSecurityQuestions(newPin);
+      }
 
-    if (success) {
-      onComplete();
-    } else {
-      setError("Failed to reset PIN. Please try again.");
+      if (success) {
+        onComplete();
+      } else {
+        setError("Failed to reset PIN. Please try again.");
+      }
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -320,12 +401,20 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
             onClick={method === "code" ? handleVerifyRecovery : handleVerifySecurityQuestions}
             className="w-full rounded-lg bg-amber-700 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-amber-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={
-              method === "code"
+              isSubmitting ||
+              cooldownSeconds > 0 ||
+              (method === "code"
                 ? recoveryCode.length !== 6
-                : answers.some((a) => a.trim().length < 2)
+                : answers.some((a) => a.trim().length < 2))
             }
           >
-            {method === "code" ? "Verify Code" : "Verify Answers"}
+            {cooldownSeconds > 0
+              ? `Try again in ${cooldownSeconds}s`
+              : isSubmitting
+                ? "Verifying..."
+                : method === "code"
+                  ? "Verify Code"
+                  : "Verify Answers"}
           </button>
         </div>
       </div>

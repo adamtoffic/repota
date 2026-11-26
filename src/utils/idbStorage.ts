@@ -68,6 +68,34 @@ interface StorageSyncMessage {
 let syncChannel: BroadcastChannel | null = null;
 let syncChannelCtor: typeof BroadcastChannel | null = null;
 
+function clearBlobCacheForKeys(keys: string[]): void {
+  for (const key of keys) {
+    const prefix =
+      key === IDB_KEYS.STUDENTS
+        ? STUDENT_PHOTO_PREFIX
+        : key === IDB_KEYS.SETTINGS
+          ? SETTINGS_MEDIA_PREFIX
+          : null;
+    if (!prefix) {
+      blobMemoryCache.clear();
+      return;
+    }
+    for (const cacheKey of Array.from(blobMemoryCache.keys())) {
+      if (cacheKey.startsWith(prefix)) {
+        blobMemoryCache.delete(cacheKey);
+      }
+    }
+  }
+}
+
+function hasMigratedToIndexedDB(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem(IDB_MIGRATED_MARKER_KEY) === "v2";
+  } catch {
+    return false;
+  }
+}
+
 function getSyncChannel(): BroadcastChannel | null {
   if (typeof BroadcastChannel === "undefined") {
     syncChannel = null;
@@ -81,7 +109,20 @@ function getSyncChannel(): BroadcastChannel | null {
       // ignore close errors on stale handles
     }
     try {
-      syncChannel = new BroadcastChannel(STORAGE_SYNC_CHANNEL);
+      const nextChannel = new BroadcastChannel(STORAGE_SYNC_CHANNEL);
+      nextChannel.addEventListener("message", (event: MessageEvent<StorageSyncMessage>) => {
+        const msg = event.data;
+        if (
+          msg &&
+          msg.type === "storage-updated" &&
+          msg.senderId !== TAB_SYNC_ID &&
+          Array.isArray(msg.keys)
+        ) {
+          // Evict cross-tab invalidated blob refs immediately so stale cache cannot skip IDB puts
+          clearBlobCacheForKeys(msg.keys);
+        }
+      });
+      syncChannel = nextChannel;
       syncChannelCtor = BroadcastChannel;
     } catch {
       syncChannel = null;
@@ -138,6 +179,16 @@ function enqueueWrite<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
+/**
+ * Waits for all queued storage writes or migrations to settle before snapshotting/importing.
+ */
+export function flushStorageWriteQueue(): Promise<void> {
+  return writeQueue.then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 function ensureStores(database: IDBPDatabase<RepotaDB>): void {
   if (!database.objectStoreNames.contains(STORE_NAME)) {
     database.createObjectStore(STORE_NAME);
@@ -157,7 +208,7 @@ function isInvalidStateReconnectable(error: unknown): boolean {
 /**
  * Initialize storage system (call on app startup). Coalesces concurrent init calls,
  * opens `repota-storage` once with lifecycle recovery handlers, and falls back to
- * `localStorage` when IndexedDB is blocked or unavailable.
+ * `localStorage` only on un-migrated fresh devices or Safari Private Mode.
  */
 export const initStorage = async (): Promise<void> => {
   if (initPromise) {
@@ -188,8 +239,8 @@ export const initStorage = async (): Promise<void> => {
         },
       });
 
-      await openedDb.put(STORE_NAME, "test", "idb_test");
-      await openedDb.delete(STORE_NAME, "idb_test");
+      // Read-only probe verifies IndexedDB queryability without failing on full-disk quota
+      await openedDb.get(STORE_NAME, "idb_test");
 
       isIndexedDBAvailable = true;
       blobMemoryCache.clear();
@@ -201,6 +252,14 @@ export const initStorage = async (): Promise<void> => {
         // ignore close errors
       }
       db = null;
+      if (hasMigratedToIndexedDB()) {
+        // Never silently boot an empty localStorage workspace if this device already migrated to IDB
+        isIndexedDBAvailable = true;
+        console.error("IndexedDB unavailable on migrated device:", error);
+        throw error instanceof Error
+          ? error
+          : new Error("IndexedDB unavailable on previously migrated device");
+      }
       isIndexedDBAvailable = false;
       console.warn("IndexedDB not available, falling back to localStorage:", error);
       console.warn("⚠️ Using localStorage fallback (Safari Private Mode detected)");
@@ -413,31 +472,42 @@ async function writeEntriesToIdb(
   }
 }
 
-async function hydrateValueFromIdb(
-  database: IDBPDatabase<RepotaDB>,
+interface ReadonlyMediaStore {
+  get: (key: string) => Promise<string | undefined>;
+}
+
+function evictUnreferencedBlobCacheKeys(prefix: string, referencedKeys: Set<string>): void {
+  for (const cacheKey of Array.from(blobMemoryCache.keys())) {
+    if (cacheKey.startsWith(prefix) && !referencedKeys.has(cacheKey)) {
+      blobMemoryCache.delete(cacheKey);
+    }
+  }
+}
+
+async function hydrateValueFromMediaStore(
+  mediaStore: ReadonlyMediaStore,
   key: string,
   rawValue: unknown,
 ): Promise<unknown> {
-  if (!rawValue || !database.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+  if (!rawValue) {
     return rawValue;
   }
 
   if (key === IDB_KEYS.STUDENTS && Array.isArray(rawValue)) {
     const refsNeeded: Array<{ index: number; blobKey: string }> = [];
+    const referencedKeys = new Set<string>();
     for (let i = 0; i < rawValue.length; i++) {
       const item = rawValue[i] as { pictureUrl?: unknown } | null | undefined;
       if (item && typeof item.pictureUrl === "string" && item.pictureUrl.startsWith(BLOB_REF_PREFIX)) {
-        refsNeeded.push({
-          index: i,
-          blobKey: item.pictureUrl.slice(BLOB_REF_PREFIX.length),
-        });
+        const blobKey = item.pictureUrl.slice(BLOB_REF_PREFIX.length);
+        referencedKeys.add(blobKey);
+        refsNeeded.push({ index: i, blobKey });
       }
     }
+    evictUnreferencedBlobCacheKeys(STUDENT_PHOTO_PREFIX, referencedKeys);
     if (refsNeeded.length === 0) return rawValue;
 
-    const tx = database.transaction(MEDIA_STORE_NAME, "readonly");
-    const blobs = await Promise.all(refsNeeded.map((ref) => tx.store.get(ref.blobKey)));
-    await tx.done;
+    const blobs = await Promise.all(refsNeeded.map((ref) => mediaStore.get(ref.blobKey)));
 
     const hydrated = [...rawValue];
     for (let i = 0; i < refsNeeded.length; i++) {
@@ -448,6 +518,7 @@ async function hydrateValueFromIdb(
         blobMemoryCache.set(blobKey, resolved);
         hydrated[index] = { ...student, pictureUrl: resolved };
       } else {
+        blobMemoryCache.delete(blobKey);
         hydrated[index] = { ...student, pictureUrl: undefined };
       }
     }
@@ -457,17 +528,19 @@ async function hydrateValueFromIdb(
   if (key === IDB_KEYS.SETTINGS && typeof rawValue === "object" && !Array.isArray(rawValue)) {
     const settingsObj = rawValue as Record<string, unknown>;
     const refsNeeded: Array<{ field: string; blobKey: string }> = [];
+    const referencedKeys = new Set<string>();
     for (const field of SETTINGS_MEDIA_FIELDS) {
       const val = settingsObj[field];
       if (typeof val === "string" && val.startsWith(BLOB_REF_PREFIX)) {
-        refsNeeded.push({ field, blobKey: val.slice(BLOB_REF_PREFIX.length) });
+        const blobKey = val.slice(BLOB_REF_PREFIX.length);
+        referencedKeys.add(blobKey);
+        refsNeeded.push({ field, blobKey });
       }
     }
+    evictUnreferencedBlobCacheKeys(SETTINGS_MEDIA_PREFIX, referencedKeys);
     if (refsNeeded.length === 0) return rawValue;
 
-    const tx = database.transaction(MEDIA_STORE_NAME, "readonly");
-    const blobs = await Promise.all(refsNeeded.map((ref) => tx.store.get(ref.blobKey)));
-    await tx.done;
+    const blobs = await Promise.all(refsNeeded.map((ref) => mediaStore.get(ref.blobKey)));
 
     const hydrated = { ...settingsObj };
     for (let i = 0; i < refsNeeded.length; i++) {
@@ -477,6 +550,7 @@ async function hydrateValueFromIdb(
         blobMemoryCache.set(blobKey, resolved);
         hydrated[field] = resolved;
       } else {
+        blobMemoryCache.delete(blobKey);
         hydrated[field] = "";
       }
     }
@@ -631,11 +705,19 @@ export const loadFromStorageResult = async <T>(key: string): Promise<StorageLoad
     const activeDb = await ensureDbConnection();
     if (activeDb) {
       return await runWithIdbReconnect(async (database) => {
-        const rawValue = await database.get(STORE_NAME, key);
+        const hasMediaStore = database.objectStoreNames.contains(MEDIA_STORE_NAME);
+        const storeNames = hasMediaStore ? [STORE_NAME, MEDIA_STORE_NAME] : [STORE_NAME];
+        const tx = database.transaction(storeNames as ("app-data" | "media-blobs")[], "readonly");
+        const rawValue = await tx.objectStore(STORE_NAME).get(key);
         if (rawValue == null) {
+          clearBlobCacheForKeys([key]);
+          await tx.done;
           return { status: "empty" } as const;
         }
-        const value = await hydrateValueFromIdb(database, key, rawValue);
+        const value = hasMediaStore
+          ? await hydrateValueFromMediaStore(tx.objectStore(MEDIA_STORE_NAME), key, rawValue)
+          : rawValue;
+        await tx.done;
         return { status: "found", value: value as T } as const;
       });
     } else {

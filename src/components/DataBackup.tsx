@@ -5,11 +5,13 @@ import { SettingsFormContext } from "../context/SettingsFormContextDefinition";
 import {
   useSchoolActions,
   useSchoolLifecycle,
+  useSchoolSettings,
   useSchoolStudents,
 } from "../hooks/useSchoolData";
 import { useToast } from "../hooks/useToast";
 import { captureEvent } from "../utils/analytics";
 import { IncompleteRollbackError, importBackupAtomically } from "../utils/backupValidation";
+import * as idbStorageApi from "../utils/idbStorage";
 import {
   IDB_KEYS,
   deleteFromStorage,
@@ -18,6 +20,8 @@ import {
   saveToStorage,
 } from "../utils/idbStorage";
 import { isIOSDevice } from "../utils/iosInteraction";
+import { setUnsavedChanges } from "../utils/preloadErrorHandler";
+import { stripDerivedStudentFields } from "../utils/studentSanitizer";
 import { BackupModals } from "./backup/BackupModals";
 import {
   buildEncryptedBackupArtifact,
@@ -42,6 +46,7 @@ export function DataBackup({
   const [message, setMessage] = useState("");
   const { showToast } = useToast();
   const students = useSchoolStudents();
+  const settings = useSchoolSettings();
   const {
     loadError,
     isStorageReady,
@@ -73,6 +78,7 @@ export function DataBackup({
   const [showReloadOverlay, setShowReloadOverlay] = useState(false);
   const isImportingRef = useRef(false);
   const activeReaderRef = useRef<FileReader | null>(null);
+  const statusTimerRef = useRef<number | null>(null);
   const isUnmountedRef = useRef(false);
   const decryptAttemptRef = useRef(0);
   const [isImporting, setIsImporting] = useState(false);
@@ -89,6 +95,10 @@ export function DataBackup({
     return () => {
       isUnmountedRef.current = true;
       ++attemptCounter.current;
+      if (statusTimerRef.current !== null) {
+        window.clearTimeout(statusTimerRef.current);
+        statusTimerRef.current = null;
+      }
       if (activeReaderRef.current) {
         try {
           activeReaderRef.current.abort();
@@ -197,15 +207,29 @@ export function DataBackup({
 
       // Flush any debounced settings or school edits before reading storage for export
       settingsFormCtx?.flushPendingSave();
-      await flushPendingWrites?.();
+      const flushed = flushPendingWrites ? await flushPendingWrites() : true;
 
-      const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
-      const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);
-      if (studentsResult.status === "error" || settingsResult.status === "error") {
-        throw new Error("Data could not be read. Please use Try again before exporting.");
+      let parsedStudents: unknown[];
+      let parsedSettings: Record<string, unknown>;
+      if (!flushed) {
+        // Storage quota full or write error: export live in-memory snapshot instead of stale IDB data
+        parsedStudents = students.map(stripDerivedStudentFields);
+        parsedSettings = (settingsFormCtx?.formData ??
+          settings ??
+          {}) as unknown as Record<string, unknown>;
+        showToast(
+          "Storage is full; exporting your latest unsaved changes directly from memory.",
+          "info",
+        );
+      } else {
+        const studentsResult = await loadFromStorageResult<unknown[]>(IDB_KEYS.STUDENTS);
+        const settingsResult = await loadFromStorageResult<Record<string, unknown>>(IDB_KEYS.SETTINGS);
+        if (studentsResult.status === "error" || settingsResult.status === "error") {
+          throw new Error("Data could not be read. Please use Try again before exporting.");
+        }
+        parsedStudents = studentsResult.status === "found" ? studentsResult.value : [];
+        parsedSettings = settingsResult.status === "found" ? settingsResult.value : {};
       }
-      const parsedStudents = studentsResult.status === "found" ? studentsResult.value : [];
-      const parsedSettings = settingsResult.status === "found" ? settingsResult.value : {};
       if (parsedStudents.length === 0 && !skipEmptyCheck) {
         setShowExportPasswordModal(false);
         setShowEmptyExportConfirm(true);
@@ -253,7 +277,13 @@ export function DataBackup({
       resetExportPasswordState();
       setShowEmptyExportConfirm(false);
 
-      setTimeout(() => setStatus("idle"), 5000);
+      if (statusTimerRef.current !== null) {
+        window.clearTimeout(statusTimerRef.current);
+      }
+      statusTimerRef.current = window.setTimeout(() => {
+        statusTimerRef.current = null;
+        if (!isUnmountedRef.current) setStatus("idle");
+      }, 5000);
     } catch (error) {
       setStatus("error");
       const errorMessage =
@@ -321,12 +351,17 @@ export function DataBackup({
           warningCount: validated.warningCount,
         });
         setShowImportModal(true);
-      } catch {
+      } catch (err) {
         if (isUnmountedRef.current || decryptAttemptRef.current !== attempt) return;
         setDecryptedBackupData(null);
         releaseImportRecoveryOwnership();
         setStatus("error");
-        showToast("Invalid file. Please select a valid Repota file.", "error");
+        showToast(
+          err instanceof Error && err.message
+            ? err.message
+            : "Invalid file. Please select a valid Repota file.",
+          "error",
+        );
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
@@ -439,6 +474,9 @@ export function DataBackup({
       }
 
       suspendPersistence();
+      if (Object.prototype.hasOwnProperty.call(idbStorageApi, "flushStorageWriteQueue")) {
+        await idbStorageApi.flushStorageWriteQueue?.();
+      }
       try {
         await importBackupAtomically(
           backup,
@@ -493,7 +531,8 @@ export function DataBackup({
         had_warnings: warningCount > 0,
       });
 
-      // Clean up
+      // Clear dirty unload flags so post-restore reload is never blocked by beforeunload prompts
+      setUnsavedChanges(false);
       setShowReloadOverlay(true);
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
