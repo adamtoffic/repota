@@ -406,41 +406,41 @@ export function Dashboard() {
           </>
         ) : (
           <>
-            {/* DESKTOP CONTEXT HEADER (h1 is max-md:sr-only until mobile strip is added; desktop controls use hidden md:... so no sr-only focusables exist on mobile) */}
-            <div className="md:mb-5 md:flex md:items-center md:justify-between md:gap-4">
+            {/* CLASS CONTEXT HEADER (responsive strip visible on both mobile and desktop) */}
+            <div className="mb-4 flex flex-col gap-3 sm:mb-5 md:flex-row md:items-center md:justify-between md:gap-4">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-main truncate text-2xl font-black tracking-tight max-md:sr-only">
+                  <h1 className="text-main truncate text-xl font-black tracking-tight sm:text-2xl">
                     {settings.className || "My Class"}
                   </h1>
                   {settings.examType === "MOCK" ? (
                     <Link
                       to="/settings/academic"
-                      className="hidden items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 md:inline-flex dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
+                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-950/90"
                       title="Change exam mode in Settings"
                     >
                       Mock Exam (0/100)
                     </Link>
                   ) : (
-                    <span className="hidden items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 md:inline-flex dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300">
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300">
                       Termly ({settings.classScoreMax}/{settings.examScoreMax})
                     </span>
                   )}
                 </div>
-                <p className="text-muted mt-0.5 hidden text-sm md:block">
+                <p className="text-muted mt-0.5 text-xs sm:text-sm">
                   {settings.term} &bull; {settings.academicYear} &bull;{" "}
                   {(settings.defaultSubjects || []).length} subjects
                 </p>
               </div>
 
-              <div className="hidden shrink-0 items-center gap-2 md:flex">
+              <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0 md:items-center">
                 <button
                   type="button"
                   onClick={() => {
                     setScoreImportPreset({});
                     setShowScoreImportModal(true);
                   }}
-                  className="border-border bg-surface text-secondary hover:bg-subtle inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold shadow-xs transition-colors active:scale-95"
+                  className="border-border bg-surface text-secondary hover:bg-subtle inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold shadow-xs transition-colors active:scale-95 md:min-h-0"
                   data-record="true"
                 >
                   <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -450,7 +450,7 @@ export function Dashboard() {
                   type="button"
                   onClick={handleOpenAddStudent}
                   aria-label="Quick add student"
-                  className="bg-primary hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-sm transition-all active:scale-95"
+                  className="bg-primary hover:bg-primary/90 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-sm transition-all active:scale-95 md:min-h-0"
                   data-record="true"
                 >
                   <Plus className="h-4 w-4" />

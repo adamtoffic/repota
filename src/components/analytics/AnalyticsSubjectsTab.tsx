@@ -63,6 +63,7 @@ export function AnalyticsSubjectsTab({
           height={320}
           showValues={true}
           gradient={true}
+          valueFormatter={(v) => `${v}%`}
         />
       </ChartCard>
 
@@ -113,12 +114,13 @@ export function AnalyticsSubjectsTab({
             height={260}
             showValues={true}
             gradient={true}
+            valueFormatter={(v) => `${v}%`}
           />
         </ChartCard>
       )}
 
       {/* Subject Insights Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
         <InsightCard
           title="Strongest Subjects"
           icon={TrendingUp}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Award, LayoutTemplate, Palette, Printer, RotateCcw } from "lucide-react";
 import { captureEvent } from "../../utils/analytics";
@@ -12,6 +13,8 @@ import {
 
 export function ReportTemplateSection() {
   const { formData, setFormData, isPersistenceSuspended } = useSettingsForm();
+  const [primaryHexDraft, setPrimaryHexDraft] = useState<string | null>(null);
+  const [accentHexDraft, setAccentHexDraft] = useState<string | null>(null);
 
   const { showClassPositionHeader, showSubjectPosition } = resolvePositionVisibility(formData);
   const useCustomColor = Boolean(formData.useCustomTemplateColor);
@@ -140,14 +143,16 @@ export function ReportTemplateSection() {
                   <button
                     key={preset.id}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setPrimaryHexDraft(null);
+                      setAccentHexDraft(null);
                       setFormData({
                         ...formData,
                         useCustomTemplateColor: true,
                         primaryColor: preset.primary,
                         accentColor: preset.accent,
-                      })
-                    }
+                      });
+                    }}
                     className={`flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 text-left text-xs font-bold transition-all active:scale-95 ${
                       isSelected
                         ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
@@ -180,21 +185,23 @@ export function ReportTemplateSection() {
                     id="school-primary-color"
                     type="color"
                     value={activePrimary}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setPrimaryHexDraft(null);
                       setFormData({
                         ...formData,
                         useCustomTemplateColor: true,
                         primaryColor: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                     className="border-border-strong bg-input h-10 w-12 cursor-pointer rounded border p-1"
                   />
                   <input
                     type="text"
                     aria-label="Primary hex color"
-                    value={activePrimary}
+                    value={primaryHexDraft ?? activePrimary}
                     onChange={(e) => {
                       const val = e.target.value;
+                      setPrimaryHexDraft(val);
                       if (isValidHexColor(val)) {
                         setFormData({
                           ...formData,
@@ -203,6 +210,7 @@ export function ReportTemplateSection() {
                         });
                       }
                     }}
+                    onBlur={() => setPrimaryHexDraft(null)}
                     className="border-border-strong bg-input text-main w-28 rounded-lg border px-2.5 py-2 font-mono text-xs font-bold uppercase"
                     maxLength={7}
                   />
@@ -221,21 +229,23 @@ export function ReportTemplateSection() {
                     id="school-accent-color"
                     type="color"
                     value={activeAccent}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setAccentHexDraft(null);
                       setFormData({
                         ...formData,
                         useCustomTemplateColor: true,
                         accentColor: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                     className="border-border-strong bg-input h-10 w-12 cursor-pointer rounded border p-1"
                   />
                   <input
                     type="text"
                     aria-label="Accent hex color"
-                    value={activeAccent}
+                    value={accentHexDraft ?? activeAccent}
                     onChange={(e) => {
                       const val = e.target.value;
+                      setAccentHexDraft(val);
                       if (isValidHexColor(val)) {
                         setFormData({
                           ...formData,
@@ -244,6 +254,7 @@ export function ReportTemplateSection() {
                         });
                       }
                     }}
+                    onBlur={() => setAccentHexDraft(null)}
                     className="border-border-strong bg-input text-main w-28 rounded-lg border px-2.5 py-2 font-mono text-xs font-bold uppercase"
                     maxLength={7}
                   />
@@ -253,12 +264,14 @@ export function ReportTemplateSection() {
               {useCustomColor && (
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setPrimaryHexDraft(null);
+                    setAccentHexDraft(null);
                     setFormData({
                       ...formData,
                       useCustomTemplateColor: false,
-                    })
-                  }
+                    });
+                  }}
                   className="text-muted hover:text-main inline-flex items-center gap-1.5 text-xs font-bold hover:underline"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -269,7 +282,7 @@ export function ReportTemplateSection() {
 
             {/* Live Header Preview (kept on paper-light surface matching printed reports) */}
             <div className="flex flex-col justify-center">
-              <p className="text-muted mb-1.5 text-[10px] font-bold tracking-wider uppercase">
+              <p className="text-muted mb-1.5 text-xs font-bold tracking-wider uppercase">
                 Report Header Preview {useCustomColor ? "(Custom Active)" : "(Preview Only)"}
               </p>
               <div

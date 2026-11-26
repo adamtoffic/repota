@@ -19,6 +19,8 @@ import {
 import { isStudentPending } from "../utils/studentValidation";
 
 const PRINT_TRIGGER_COOLDOWN_MS = 1500;
+const A4_WIDTH_PX = 794;
+const A4_HEIGHT_PX = 1123;
 
 export function PrintPreview() {
   const students = useSchoolStudents();
@@ -27,9 +29,17 @@ export function PrintPreview() {
 
   const [printMode, setPrintMode] = useState<PrintMode>("color");
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
+  const [previewZoom, setPreviewZoom] = useState<"fit" | "full">("fit");
+  const [containerWidth, setContainerWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1024,
+  );
   const [photoWarningDismissed, setPhotoWarningDismissed] = useState(false);
   const [activeCardIndex, setActiveCardIndex] = useState(1);
   const printAreaRef = useRef<HTMLElement>(null);
+
+  const fitScale = Math.min(1, Math.max(0.32, (containerWidth - 24) / A4_WIDTH_PX));
+  const effectiveScale = previewZoom === "full" ? 1 : fitScale;
+  const isCompactPreview = fitScale < 0.98;
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -62,6 +72,11 @@ export function PrintPreview() {
           page-break-after: auto !important;
         }
         
+        .report-scale-stage {
+          transform: none !important;
+          width: 210mm !important;
+        }
+
         .report-page {
           width: 210mm !important;
           height: 297mm !important;
@@ -102,6 +117,20 @@ export function PrintPreview() {
   const studentsWithMissingPhotos = printableStudents.filter((student) => !student.pictureUrl);
 
   const SelectedTemplate = getTemplateById(settings.templateId);
+
+  useEffect(() => {
+    const el = printAreaRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const updateWidth = () => {
+      if (el.clientWidth > 0) {
+        setContainerWidth(el.clientWidth);
+      }
+    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [printableStudents.length]);
 
   const contentKey = useMemo(
     () =>
@@ -406,11 +435,44 @@ export function PrintPreview() {
 
           {/* RIGHT ACTIONS: Style shortcut + Print button */}
           <div className="flex shrink-0 items-center gap-2 sm:order-3">
+            {isCompactPreview && (
+              <div
+                role="group"
+                aria-label="Preview zoom"
+                className="border-border bg-subtle flex min-h-10 items-center rounded-xl border p-0.5 shadow-inner sm:h-9 sm:min-h-0"
+              >
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom("fit")}
+                  aria-pressed={previewZoom === "fit"}
+                  className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                    previewZoom === "fit"
+                      ? "bg-elevated text-primary-text shadow-sm"
+                      : "text-muted hover:text-main"
+                  }`}
+                >
+                  Fit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom("full")}
+                  aria-pressed={previewZoom === "full"}
+                  className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                    previewZoom === "full"
+                      ? "bg-elevated text-main shadow-sm"
+                      : "text-muted hover:text-main"
+                  }`}
+                >
+                  100%
+                </button>
+              </div>
+            )}
+
             <Link
               to="/settings/templates"
               title="Customize report style & colors"
               aria-label="Customize report style"
-              className="border-border bg-surface text-secondary hover:bg-subtle inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold shadow-2xs transition-colors sm:px-3"
+              className="border-border bg-surface text-secondary hover:bg-subtle inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold shadow-2xs transition-colors sm:h-9 sm:min-h-0 sm:px-3"
             >
               <Palette className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden md:inline">Style</span>
@@ -420,7 +482,7 @@ export function PrintPreview() {
               type="button"
               onClick={handlePrint}
               disabled={isGenerating}
-              className="bg-primary hover:bg-primary/90 flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold text-white shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:gap-2 sm:px-5 sm:text-sm"
+              className="bg-primary hover:bg-primary/90 flex min-h-10 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold text-white shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:min-h-0 sm:gap-2 sm:px-5 sm:text-sm"
             >
               <Printer className="h-4 w-4 shrink-0" />
               <span>Print</span>
@@ -431,13 +493,13 @@ export function PrintPreview() {
           <div className="border-border-subtle flex w-full items-center justify-between gap-2 border-t pt-2 sm:order-2 sm:w-auto sm:justify-start sm:gap-3 sm:border-t-0 sm:pt-0">
             {!id && students.length > 0 && (
               <div className="flex flex-col items-start gap-0.5 sm:items-center">
-                <p className="text-muted hidden text-[9px] font-black tracking-widest uppercase sm:block">
+                <p className="text-muted hidden text-[11px] font-black tracking-widest uppercase sm:block">
                   Students
                 </p>
                 <div
                   role="group"
                   aria-label="Print readiness filter"
-                  className="border-border bg-subtle flex h-9 items-center rounded-xl border p-0.5 shadow-inner"
+                  className="border-border bg-subtle flex min-h-10 items-center rounded-xl border p-0.5 shadow-inner sm:h-9 sm:min-h-0"
                 >
                   <button
                     type="button"
@@ -469,11 +531,11 @@ export function PrintPreview() {
 
             {/* ── INK MODE TOGGLE ───────────────────────────────────── */}
             <div className="flex flex-col items-end gap-0.5 sm:items-center">
-              <p className="text-muted hidden text-[9px] font-black tracking-widest uppercase sm:block">
+              <p className="text-muted hidden text-[11px] font-black tracking-widest uppercase sm:block">
                 Ink Mode
               </p>
               {/* Pill container */}
-              <div className="border-border bg-subtle relative flex h-9 items-center rounded-xl border p-0.5 shadow-inner">
+              <div className="border-border bg-subtle relative flex min-h-10 items-center rounded-xl border p-0.5 shadow-inner sm:h-9 sm:min-h-0">
                 {/* Animated sliding background pill */}
                 <div
                   aria-hidden="true"
@@ -561,14 +623,30 @@ export function PrintPreview() {
         id="main-content"
         tabIndex={-1}
         ref={printAreaRef}
-        className="overflow-hidden py-4 focus:outline-none print:m-0 print:w-full print:overflow-visible print:p-0"
+        className={`py-4 focus:outline-none print:m-0 print:w-full print:overflow-visible print:p-0 ${
+          previewZoom === "full" && isCompactPreview ? "overflow-x-auto px-3" : "overflow-hidden"
+        }`}
       >
         {printableStudents.map((student) => (
           <div
             key={student.id}
-            className="report-wrapper ph-no-capture mb-3 flex h-[126mm] justify-center overflow-hidden sm:mb-4 sm:h-[225mm] lg:mb-6 lg:h-auto print:m-0 print:mb-0 print:block print:overflow-hidden print:p-0"
+            style={
+              effectiveScale < 1
+                ? { height: `${Math.ceil(A4_HEIGHT_PX * effectiveScale) + 12}px` }
+                : undefined
+            }
+            className={`report-wrapper ph-no-capture mb-3 flex overflow-hidden sm:mb-4 lg:mb-6 lg:h-auto print:m-0 print:mb-0 print:block print:h-[297mm] print:overflow-hidden print:p-0 ${
+              previewZoom === "full" && isCompactPreview
+                ? "w-max min-w-full justify-start"
+                : "justify-center"
+            }`}
           >
-            <div className="origin-top scale-[0.42] transform sm:scale-75 lg:scale-100 print:w-full print:scale-100 print:transform-none">
+            <div
+              style={
+                effectiveScale < 1 ? { transform: `scale(${effectiveScale})` } : undefined
+              }
+              className="report-scale-stage origin-top transform print:w-full print:scale-100 print:transform-none"
+            >
               <div
                 data-pdf-card="true"
                 data-paper-surface="true"

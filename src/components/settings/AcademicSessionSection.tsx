@@ -267,16 +267,17 @@ export function AcademicSessionSection() {
           </p>
         </div>
 
-        <div className="mb-4 flex gap-2">
-          <Input
-            type="text"
-            aria-label="New subject name"
-            value={newSubject}
-            onChange={(e) => setNewSubject(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSubject())}
-            className="flex-1"
-            placeholder="Type subject name..."
-          />
+        <div className="mb-4 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Input
+              type="text"
+              aria-label="New subject name"
+              value={newSubject}
+              onChange={(e) => setNewSubject(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSubject())}
+              placeholder="Type subject name..."
+            />
+          </div>
           <IconButton
             type="button"
             onClick={addSubject}

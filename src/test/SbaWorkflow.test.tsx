@@ -167,7 +167,7 @@ describe("SBA Markbook workflow end-to-end", () => {
       writable: true,
       configurable: true,
       value: vi.fn((query: string) => ({
-        matches: query === "(min-width: 768px)" ? isDesktop : false,
+        matches: query === "(min-width: 1024px)" ? isDesktop : false,
         media: query,
         onchange: null,
         addListener: vi.fn(),

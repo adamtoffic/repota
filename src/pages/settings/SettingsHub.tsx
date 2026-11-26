@@ -133,10 +133,10 @@ function SettingsHubContent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {sections.map((section, index) => {
             const Icon = section.icon;
-            const spanClass = index === sections.length - 1 ? "md:col-span-2" : "";
+            const spanClass = index === sections.length - 1 ? "lg:col-span-2" : "";
             return (
               <Link
                 key={section.to}

@@ -1,5 +1,5 @@
 // src/components/charts/BarChart.tsx
-import React from "react";
+import React, { useId } from "react";
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -17,10 +17,11 @@ import { getChartThemeColors } from "../../utils/theme";
 interface TooltipPayload {
   payload: {
     name: string;
+    fill?: string;
     [key: string]: unknown;
   };
   value: number;
-  fill: string;
+  fill?: string;
 }
 
 interface BarChartProps {
@@ -34,19 +35,29 @@ interface BarChartProps {
   showValues?: boolean;
   showLegend?: boolean;
   gradient?: boolean;
+  valueFormatter?: (value: number) => string;
 }
 
-const BarChartTooltip: React.FC<{ active?: boolean; payload?: TooltipPayload[] }> = ({
-  active,
-  payload,
-}) => {
+export const BarChartTooltip: React.FC<{
+  active?: boolean;
+  payload?: TooltipPayload[];
+  valueFormatter?: (value: number) => string;
+}> = ({ active, payload, valueFormatter = (value) => String(value) }) => {
   if (active && payload && payload.length) {
+    const swatchColor = payload[0].payload?.fill || "#3b82f6";
     return (
       <div className="border-border bg-elevated rounded-lg border p-3 shadow-lg">
         <p className="text-main text-sm font-bold">{payload[0].payload.name}</p>
-        <p className="text-lg font-black" style={{ color: payload[0].fill }}>
-          {payload[0].value}%
-        </p>
+        <div className="mt-0.5 flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: swatchColor }}
+          />
+          <p className="text-primary-text text-lg font-black tabular-nums">
+            {valueFormatter(payload[0].value)}
+          </p>
+        </div>
       </div>
     );
   }
@@ -59,9 +70,11 @@ export const BarChart: React.FC<BarChartProps> = ({
   showValues = true,
   showLegend = false,
   gradient = true,
+  valueFormatter = (value) => String(value),
 }) => {
   const { resolvedTheme } = useTheme();
   const chartColors = getChartThemeColors(resolvedTheme);
+  const chartId = useId().replace(/:/g, "");
 
   const getBarColor = (index: number, customColor?: string) => {
     if (customColor) return customColor;
@@ -92,8 +105,8 @@ export const BarChart: React.FC<BarChartProps> = ({
           <defs>
             {chartData.map((entry, index) => (
               <linearGradient
-                key={`gradient-${index}`}
-                id={`gradient-${index}`}
+                key={`${chartId}-gradient-${index}`}
+                id={`${chartId}-gradient-${index}`}
                 x1="0"
                 y1="0"
                 x2="0"
@@ -115,7 +128,10 @@ export const BarChart: React.FC<BarChartProps> = ({
           height={data.length > 8 ? 60 : 30}
         />
         <YAxis tick={{ fill: chartColors.axis, fontSize: 12 }} tickLine={false} axisLine={false} />
-        <Tooltip content={<BarChartTooltip />} cursor={{ fill: chartColors.cursor }} />
+        <Tooltip
+          content={<BarChartTooltip valueFormatter={valueFormatter} />}
+          cursor={{ fill: chartColors.cursor }}
+        />
         {showLegend && <Legend wrapperStyle={{ paddingTop: "20px" }} />}
         <Bar
           dataKey="value"
@@ -129,7 +145,10 @@ export const BarChart: React.FC<BarChartProps> = ({
           isAnimationActive={false}
         >
           {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={gradient ? `url(#gradient-${index})` : entry.fill} />
+            <Cell
+              key={`cell-${index}`}
+              fill={gradient ? `url(#${chartId}-gradient-${index})` : entry.fill}
+            />
           ))}
         </Bar>
       </RechartsBarChart>

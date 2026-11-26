@@ -69,7 +69,7 @@ export function SbaMarkbookGrid({
   disabled = false,
   isHeaderSticky = true,
 }: SbaMarkbookGridProps) {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const maxClassScore = settings.classScoreMax;
   const idPrefix = useId();
   const desktopInputRefs = useRef<Record<string, HTMLInputElement | null>>({});

@@ -231,7 +231,7 @@ export function SchoolIdentitySection() {
             {feeSlots.map((slot, index) => (
               <div
                 key={slot.id}
-                className={`grid grid-cols-1 gap-3 rounded-lg border p-3 transition-colors sm:grid-cols-[auto_1.4fr_1fr_1fr] sm:items-end ${
+                className={`grid grid-cols-1 gap-3 rounded-lg border p-3 transition-colors lg:grid-cols-[auto_1.4fr_1fr_1fr] lg:items-end ${
                   slot.enabled
                     ? "bg-surface border-purple-200 dark:border-purple-800/70"
                     : "border-border bg-subtle opacity-75"
@@ -245,7 +245,7 @@ export function SchoolIdentitySection() {
                     onChange={(e) => updateFeeSlot(index, { enabled: e.target.checked })}
                     className="border-border-strong h-4 w-4 rounded text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-secondary text-xs font-bold sm:hidden">
+                  <span className="text-secondary text-xs font-bold lg:hidden">
                     Item {index + 1} Active
                   </span>
                 </label>
@@ -275,10 +275,14 @@ export function SchoolIdentitySection() {
                 />
 
                 <div>
-                  <label className="text-muted mb-1 block text-xs font-bold uppercase">
+                  <label
+                    htmlFor={`${curriculumLabelId}-cycle-${slot.id}`}
+                    className="text-muted mb-1 block text-xs font-bold uppercase"
+                  >
                     Cycle
                   </label>
                   <select
+                    id={`${curriculumLabelId}-cycle-${slot.id}`}
                     aria-label={`Item ${index + 1} Cycle`}
                     value={slot.cycle}
                     onChange={(e) => updateFeeSlot(index, { cycle: e.target.value })}
@@ -333,7 +337,7 @@ export function SchoolIdentitySection() {
           </h2>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-2">
           <div className="space-y-4">
             <Input
               label="Head Teacher Name"
