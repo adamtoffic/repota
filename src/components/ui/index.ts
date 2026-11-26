@@ -15,9 +15,6 @@ export type { AlertProps } from "./Alert";
 export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
 
-export { Container } from "./Container";
-export type { ContainerProps } from "./Container";
-
 export { Input } from "./Input";
 export type { InputProps } from "./Input";
 
@@ -36,6 +33,4 @@ export { FormLabel } from "./FormLabel";
 export type { FormLabelProps } from "./FormLabel";
 
 export { Card } from "./Card";
-export { LoadingSpinner } from "./LoadingSpinner";
-export { Skeleton } from "./Skeleton";
 export { Tooltip } from "./Tooltip";
