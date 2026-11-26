@@ -92,8 +92,8 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-xl">
-      <div className="overflow-hidden">
-        <div className="border-border-subtle flex items-center justify-between border-b p-4">
+      <div className="flex max-h-[88dvh] flex-col overflow-hidden">
+        <div className="border-border-subtle flex shrink-0 items-center justify-between border-b p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
             <CalendarCheck className="text-primary-text h-5 w-5" />
             Bulk Attendance Entry
@@ -102,13 +102,13 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-2"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3 dark:border-blue-800/60 dark:bg-blue-950/35">
             <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
               Total Term Days: {maxDays}
@@ -121,12 +121,12 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
                 aria-label="Set all attendance days"
                 value={fillValue}
                 onChange={(e) => setFillValue(e.target.value)}
-                className="bg-input text-main w-20 rounded-lg border border-blue-200 px-2 py-1 text-center text-xs font-bold dark:border-blue-700"
+                className="bg-input text-main focus:border-primary-text w-20 rounded-lg border border-blue-200 px-2 py-1 text-center text-xs font-bold outline-none dark:border-blue-700"
               />
               <button
                 type="button"
                 onClick={handleSetAll}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-xs font-bold text-white"
               >
                 Set All
               </button>
@@ -171,7 +171,7 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
                           next?.select();
                         }
                       }}
-                      className="border-border-strong bg-input text-main w-20 rounded-lg border px-2 py-1.5 text-center text-sm font-bold outline-none focus:border-blue-500"
+                      className="border-border-strong bg-input text-main focus:border-primary-text w-20 rounded-lg border px-2 py-1.5 text-center text-sm font-bold outline-none"
                     />
                     <span className="text-muted text-xs font-medium">/ {maxDays}</span>
                   </div>
@@ -179,15 +179,15 @@ function BulkAttendanceModalContent({ onClose }: { onClose: () => void }) {
               );
             })}
           </div>
+        </div>
 
-          <div className="flex gap-3">
-            <Button type="button" variant="secondary" size="md" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="button" variant="primary" size="md" className="flex-1" onClick={handleSaveAll}>
-              Save Attendance
-            </Button>
-          </div>
+        <div className="border-border-subtle flex shrink-0 gap-3 border-t px-4 py-3 sm:px-5">
+          <Button type="button" variant="secondary" size="md" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="button" variant="primary" size="md" className="flex-1" onClick={handleSaveAll}>
+            Save Attendance
+          </Button>
         </div>
       </div>
     </Modal>

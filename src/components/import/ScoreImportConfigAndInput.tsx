@@ -116,7 +116,7 @@ export function ScoreImportConfigAndInput({
                 role="tab"
                 aria-selected={activeMode === tab.id}
                 onClick={() => onSelectMode(tab.id)}
-                className={`min-w-0 rounded-lg px-1.5 py-1.5 text-center text-[11px] leading-tight font-bold whitespace-normal transition-colors sm:px-2.5 sm:text-xs sm:whitespace-nowrap ${
+                className={`min-h-10 min-w-0 rounded-lg px-1.5 py-1.5 text-center text-[11px] leading-tight font-bold whitespace-normal transition-colors sm:min-h-0 sm:px-2.5 sm:text-xs sm:whitespace-nowrap ${
                   activeMode === tab.id
                     ? "bg-purple-700 text-white shadow-xs"
                     : "text-secondary hover:bg-purple-50 dark:hover:bg-purple-950/50"
@@ -188,14 +188,14 @@ export function ScoreImportConfigAndInput({
 
             {isCreatingSingleTask && (
               <div className="space-y-1.5 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5 dark:border-indigo-800/60 dark:bg-indigo-950/35">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.5fr_0.7fr_1fr]">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.5fr_0.7fr_1fr] sm:items-center">
                   <input
                     type="text"
                     aria-label="New SBA Task Name"
                     value={newSingleTaskName}
                     onChange={(e) => onNewSingleTaskNameChange(e.target.value)}
                     placeholder="e.g. English Summary Group Work"
-                    className="bg-input text-main rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 dark:border-indigo-700"
+                    className="bg-input text-main h-10 rounded-lg border border-indigo-200 px-2.5 text-xs font-bold outline-none focus:border-indigo-500 sm:h-9 dark:border-indigo-700"
                   />
                   <input
                     type="number"
@@ -205,7 +205,7 @@ export function ScoreImportConfigAndInput({
                     value={newSingleTaskMax}
                     onChange={(e) => onNewSingleTaskMaxChange(e.target.value)}
                     placeholder="Max (15)"
-                    className={`bg-input text-main rounded-lg border px-2.5 py-1.5 text-center text-xs font-bold outline-none focus:border-indigo-500 ${
+                    className={`bg-input text-main h-10 rounded-lg border px-2.5 text-center text-xs font-bold outline-none focus:border-indigo-500 sm:h-9 ${
                       isSingleTaskMaxValid
                         ? "border-indigo-200 dark:border-indigo-700"
                         : "border-red-400 text-red-700 dark:border-red-500 dark:text-red-400"
@@ -217,7 +217,7 @@ export function ScoreImportConfigAndInput({
                     onChange={(e) =>
                       onNewSingleTaskCategoryChange(e.target.value as AssessmentCategory)
                     }
-                    className="bg-input text-main rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold dark:border-indigo-700"
+                    className="bg-input text-main h-10 rounded-lg border border-indigo-200 px-2.5 text-xs font-semibold outline-none sm:h-9 dark:border-indigo-700"
                   >
                     <option value="CAT">CAT (Test)</option>
                     <option value="GROUP">Group Work</option>

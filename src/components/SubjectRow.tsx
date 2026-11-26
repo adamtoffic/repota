@@ -267,16 +267,16 @@ export function SubjectRow({
 
   return (
     <div
-      className={`border-border bg-surface rounded-xl border shadow-xs transition-colors focus-within:border-blue-400/80 dark:focus-within:border-blue-500/70 ${
+      className={`border-border bg-surface focus-within:border-primary-text/60 rounded-xl border shadow-xs transition-colors ${
         isObsolete ? "opacity-75" : ""
       }`}
     >
       {/* Main Responsive Row */}
       <div
-        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2.5 p-3 sm:items-center sm:gap-3 sm:px-4 sm:py-3 ${desktopGridColumns}`}
+        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2.5 p-3 sm:items-start sm:gap-3 sm:px-4 sm:py-3 ${desktopGridColumns}`}
       >
         {/* 1. Subject Identity & SBA Pill */}
-        <div className="min-w-0 max-sm:col-start-1 max-sm:row-start-1">
+        <div className="min-w-0 max-sm:col-start-1 max-sm:row-start-1 sm:flex sm:min-h-10 sm:items-center">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`h-2 w-2 shrink-0 rounded-full ${statusDotClass}`} aria-hidden="true" />
             <span className="text-main truncate text-sm font-semibold">{subject.name}</span>
@@ -379,7 +379,7 @@ export function SubjectRow({
                     className={`placeholder:text-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                       classScoreError
                         ? "bg-input text-main border-red-500 focus:border-red-500 focus:ring-red-500/25"
-                        : "border-border-strong bg-input text-main hover:border-muted focus:border-blue-500 focus:ring-blue-500/25"
+                        : "border-border-strong bg-input text-main hover:border-muted focus:border-primary-text focus:ring-primary-text/25"
                     }`}
                     placeholder={`/${maxClassScore}`}
                     title={`Enter class score (0-${maxClassScore})`}
@@ -429,7 +429,7 @@ export function SubjectRow({
               className={`bg-input text-main placeholder:text-muted hover:border-muted h-10 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-2 text-center text-base font-bold tabular-nums transition-colors outline-none focus:ring-2 sm:text-sm ${
                 examScoreError
                   ? "border-red-500 focus:border-red-500 focus:ring-red-500/25"
-                  : "border-border-strong focus:border-blue-500 focus:ring-blue-500/25"
+                  : "border-border-strong focus:border-primary-text focus:ring-primary-text/25"
               }`}
               placeholder="/100"
               title={
@@ -454,7 +454,7 @@ export function SubjectRow({
         {/* 3. Single-DOM Outcome (Total + Status/Grade + Optional Delete) */}
         <div className="flex items-center justify-end gap-2 max-sm:col-start-2 max-sm:row-start-1 sm:contents">
           {/* Single Total Node */}
-          <div className="flex items-baseline justify-end sm:justify-center">
+          <div className="flex items-baseline justify-end sm:flex sm:h-10 sm:items-center sm:justify-center">
             <span
               className={`text-sm font-bold tabular-nums ${
                 hasAnyScore ? "text-main" : "text-muted"
@@ -465,7 +465,7 @@ export function SubjectRow({
           </div>
 
           {/* Honest Status / Grade + Remark */}
-          <div className="flex flex-col items-end sm:items-center">
+          <div className="flex flex-col items-end sm:min-h-10 sm:items-center sm:justify-center">
             {status === "unscored" ? (
               <span
                 className="bg-subtle text-muted rounded-md px-2 py-0.5 text-[11px] font-semibold"
@@ -505,7 +505,7 @@ export function SubjectRow({
               type="button"
               onClick={onDelete}
               aria-label={`Remove ${subject.name}`}
-              className="text-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 active:scale-95 dark:hover:bg-red-950/50 dark:hover:text-red-400"
+              className="text-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 active:scale-95 sm:h-10 sm:w-9 dark:hover:bg-red-950/50 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>

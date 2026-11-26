@@ -60,7 +60,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               src="/developer.jpg"
               alt="Developer Profile"
               loading="lazy" // Lazy load for performance
-              className="bg-subtle h-14 w-14 rounded-full border-2 border-purple-100 object-cover shadow-sm dark:border-purple-900/60"
+              className="bg-subtle border-border h-14 w-14 shrink-0 rounded-full border-2 object-cover shadow-sm"
             />
             <div>
               <h3 className="text-main font-bold">Questions or Feedback?</h3>
@@ -118,7 +118,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="mt-8 w-full rounded-lg bg-slate-900 py-3 font-bold text-white transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+          className="bg-primary hover:bg-primary/90 mt-8 w-full rounded-lg py-3 font-bold text-white transition-colors"
         >
           Close
         </button>

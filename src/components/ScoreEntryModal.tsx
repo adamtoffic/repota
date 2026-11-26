@@ -424,7 +424,7 @@ export function ScoreEntryModal({
                   aria-label="Switch student"
                   value={student.id}
                   onChange={(e) => onNavigate(e.target.value)}
-                  className="border-border-strong bg-input text-main w-full max-w-xs truncate rounded-lg border px-2.5 py-1.5 text-base font-bold transition-colors outline-none hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
+                  className="border-border-strong bg-input text-main hover:border-muted focus:border-primary-text focus:ring-primary-text/25 w-full max-w-full truncate rounded-lg border px-2.5 py-1.5 text-base font-bold transition-colors outline-none focus:ring-2 sm:max-w-xs"
                 >
                   {allStudents.map((s, idx) => {
                     const counts = getScoredSubjectCounts(s, isMockExam);
@@ -455,8 +455,8 @@ export function ScoreEntryModal({
                 <span
                   className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${
                     isMockExam
-                      ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300"
-                      : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300"
+                      ? "border-amber-300/80 bg-amber-50 text-amber-900 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-300"
+                      : "border-border bg-subtle text-secondary font-semibold"
                   }`}
                 >
                   {isMockExam
@@ -508,7 +508,7 @@ export function ScoreEntryModal({
               onClick={onClose}
               aria-label="Close modal"
               title="Close (Esc)"
-              className="text-muted hover:bg-subtle hover:text-main flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+              className="text-muted hover:bg-subtle hover:text-main flex h-10 w-10 items-center justify-center rounded-lg transition-colors sm:h-9 sm:w-9"
             >
               <X className="h-5 w-5" />
             </button>
@@ -584,7 +584,7 @@ export function ScoreEntryModal({
         <div
           role="tablist"
           aria-label="Student editor sections"
-          className="border-border bg-surface flex shrink-0 gap-1 border-b px-4 sm:px-5"
+          className="border-border bg-surface no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b px-4 sm:px-5"
         >
           <button
             ref={academicTabRef}
@@ -596,7 +596,7 @@ export function ScoreEntryModal({
             tabIndex={activeTab === "ACADEMIC" ? 0 : -1}
             onClick={() => setActiveTab("ACADEMIC")}
             onKeyDown={handleEditorTabKeyDown}
-            className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold transition-colors ${
+            className={`flex h-11 shrink-0 items-center gap-2 border-b-2 px-2.5 text-xs font-bold whitespace-nowrap transition-colors sm:px-3 sm:text-sm ${
               activeTab === "ACADEMIC"
                 ? "border-primary-text text-primary-text"
                 : "text-muted hover:text-main border-transparent"
@@ -627,7 +627,7 @@ export function ScoreEntryModal({
             tabIndex={activeTab === "DETAILS" ? 0 : -1}
             onClick={() => setActiveTab("DETAILS")}
             onKeyDown={handleEditorTabKeyDown}
-            className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold transition-colors ${
+            className={`flex h-11 shrink-0 items-center gap-2 border-b-2 px-2.5 text-xs font-bold whitespace-nowrap transition-colors sm:px-3 sm:text-sm ${
               activeTab === "DETAILS"
                 ? "border-primary-text text-primary-text"
                 : "text-muted hover:text-main border-transparent"

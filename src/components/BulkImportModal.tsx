@@ -172,9 +172,9 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} closeOnBackdrop={false} className="max-w-2xl">
-      <div className="overflow-hidden">
+      <div className="flex max-h-[88dvh] flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-border-subtle flex items-center justify-between border-b p-4">
+        <div className="border-border-subtle flex shrink-0 items-center justify-between border-b p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
             <Upload className="text-primary-text h-5 w-5" />
             Bulk Import &amp; Setup Students
@@ -183,14 +183,14 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
             type="button"
             onClick={handleClose}
             aria-label="Close modal"
-            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-2"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {!isPreviewing ? (
             <div className="space-y-4">
               <div className="flex flex-col gap-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-800/60 dark:bg-blue-950/35">
@@ -210,7 +210,7 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
                     <Download className="h-3.5 w-3.5" />
                     Template (CSV)
                   </button>
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700">
+                  <label className="bg-primary hover:bg-primary/90 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white">
                     <FileSpreadsheet className="h-3.5 w-3.5" />
                     <span>Upload CSV</span>
                     <input
@@ -266,14 +266,14 @@ function BulkImportModalContent({ isOpen, onClose }: Props) {
               )}
 
               <div className="bg-background border-border max-h-64 overflow-x-auto overflow-y-auto rounded-lg border">
-                <table className="w-full text-left text-xs">
+                <table className="w-full min-w-[460px] text-left text-xs">
                   <thead className="bg-subtle text-secondary sticky top-0 text-[10px] font-bold uppercase">
                     <tr>
-                      <th className="px-3 py-2">#</th>
-                      <th className="px-3 py-2">Name</th>
-                      <th className="px-3 py-2">Gender</th>
-                      <th className="px-3 py-2">DOB / Att.</th>
-                      <th className="px-3 py-2">Status</th>
+                      <th scope="col" className="px-3 py-2">#</th>
+                      <th scope="col" className="px-3 py-2">Name</th>
+                      <th scope="col" className="px-3 py-2">Gender</th>
+                      <th scope="col" className="px-3 py-2">DOB / Att.</th>
+                      <th scope="col" className="px-3 py-2">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-border bg-surface divide-y">

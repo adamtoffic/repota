@@ -122,7 +122,7 @@ export function BackupModals({
         isOpen={showExportPasswordModal}
         onClose={onCloseExportPasswordModal}
         closeOnBackdrop={false}
-        className="max-w-md"
+        className="max-h-[90dvh] max-w-md overflow-y-auto"
       >
         <div className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -169,7 +169,7 @@ export function BackupModals({
                   type="button"
                   onClick={onToggleShowPassword}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2"
+                  className="text-muted hover:text-main absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -226,7 +226,7 @@ export function BackupModals({
         isOpen={showImportPasswordModal}
         onClose={onCancelImportPasswordModal}
         closeOnBackdrop={false}
-        className="max-w-md"
+        className="max-h-[90dvh] max-w-md overflow-y-auto"
       >
         <div className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -283,7 +283,7 @@ export function BackupModals({
                   type="button"
                   onClick={onToggleShowImportPassword}
                   aria-label={showImportPassword ? "Hide password" : "Show password"}
-                  className="text-muted hover:text-main absolute top-1/2 right-2 -translate-y-1/2"
+                  className="text-muted hover:text-main absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md"
                 >
                   {showImportPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -307,7 +307,7 @@ export function BackupModals({
               type="button"
               onClick={onDecryptAndImport}
               disabled={!importPassword || isDecrypting}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="bg-primary hover:bg-primary/90 flex-1 rounded-lg px-4 py-2.5 font-bold text-white disabled:opacity-50"
             >
               {isDecrypting ? "Decrypting..." : "Unlock File"}
             </button>

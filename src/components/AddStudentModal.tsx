@@ -61,7 +61,7 @@ function AddStudentModalContent({
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} className="max-w-sm">
+    <Modal isOpen={true} onClose={onClose} className="max-h-[90dvh] max-w-sm overflow-y-auto">
       <div className="space-y-4 p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
