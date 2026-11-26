@@ -145,9 +145,11 @@ describe("reportTheme", () => {
     expect(bwPalette.primarySoft).toBe("#f3f4f6");
     expect(bwPalette.bannerBg).toBe("#f3f4f6");
     expect(bwPalette.bannerText).toBe("#000000");
-    expect(bwPalette.highlightBg).toBe("#e5e7eb");
-    expect(bwPalette.highlightText).toBe("#000000");
-    expect(bwPalette.barFill).toBe("#374151");
+    expect(bwPalette.highlightBg).toBe("#111827");
+    expect(bwPalette.highlightText).toBe("#ffffff");
+    expect(bwPalette.tableHeaderBg).toBe("#e5e7eb");
+    expect(bwPalette.tableHeaderText).toBe("#000000");
+    expect(bwPalette.barFill).toBe("#111827");
   });
 
   it("uses school custom colors when enabled in color mode", () => {
@@ -168,6 +170,8 @@ describe("reportTheme", () => {
     expect(customPalette.bannerBg).toBe("#881337");
     expect(customPalette.bannerText).toBe("#ffffff");
     expect(customPalette.highlightBg).toBe("#881337");
+    expect(customPalette.tableHeaderBg).toBe("#881337");
+    expect(customPalette.tableHeaderText).toBe("#ffffff");
     expect(customPalette.barFill).toBe("#881337");
   });
 

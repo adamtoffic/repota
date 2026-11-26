@@ -89,10 +89,14 @@ export interface ReportPalette {
   bannerBg: string;
   /** Readable foreground ink paired with {@link bannerBg}. */
   bannerText: "#ffffff" | "#0f172a" | "#000000";
-  /** Ink-aware surface fill for KPI/position/aggregate highlight boxes. */
+  /** Ink-aware surface fill for KPI/position/aggregate highlight boxes and compact badges. */
   highlightBg: string;
   /** Readable foreground ink paired with {@link highlightBg}. */
   highlightText: "#ffffff" | "#0f172a" | "#000000";
+  /** Ink-aware surface fill for table column headers. */
+  tableHeaderBg: string;
+  /** Readable foreground ink paired with {@link tableHeaderBg}. */
+  tableHeaderText: "#ffffff" | "#0f172a" | "#000000";
   /** Foreground fill for mastery/progress bars (high-contrast grayscale in B&W). */
   barFill: string;
 }
@@ -124,9 +128,11 @@ export function getReportPalette({
       zebraBg: "#f9fafb",
       bannerBg: "#f3f4f6",
       bannerText: "#000000",
-      highlightBg: "#e5e7eb",
-      highlightText: "#000000",
-      barFill: "#374151",
+      highlightBg: "#111827",
+      highlightText: "#ffffff",
+      tableHeaderBg: "#e5e7eb",
+      tableHeaderText: "#000000",
+      barFill: "#111827",
     };
   }
 
@@ -155,6 +161,8 @@ export function getReportPalette({
     bannerText: onPrimary,
     highlightBg: primary,
     highlightText: onPrimary,
+    tableHeaderBg: primary,
+    tableHeaderText: onPrimary,
     barFill: primary,
   };
 }

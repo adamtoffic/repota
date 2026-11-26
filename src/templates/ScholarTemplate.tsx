@@ -103,12 +103,10 @@ export const ScholarTemplate = memo(function ScholarTemplate({
                 {settings.schoolName}
               </h1>
               <span
-                className={`rounded-sm px-2 py-0.5 text-[9px] font-black tracking-wider uppercase ${
-                  isBW ? "border border-black" : ""
-                }`}
+                className="rounded-sm px-2 py-0.5 text-[9px] font-black tracking-wider uppercase"
                 style={{
-                  backgroundColor: palette.bannerBg,
-                  color: palette.bannerText,
+                  backgroundColor: palette.highlightBg,
+                  color: palette.highlightText,
                 }}
               >
                 {isMock ? "Mock Assessment" : isKG ? "Early Years" : "Academic Record"}
@@ -256,16 +254,19 @@ export const ScholarTemplate = memo(function ScholarTemplate({
           3. SUBJECT PERFORMANCE TABLE WITH MASTERY BARS
          ===================================================================== */}
       <main className="relative z-10">
-        <div className="overflow-hidden rounded-md border" style={softBorderStyle}>
+        <div
+          className={`overflow-hidden rounded-md ${isBW ? "border-2 border-black" : "border"}`}
+          style={softBorderStyle}
+        >
           <table className="w-full border-collapse">
             <thead>
               <tr
-                className={`border-b text-left uppercase ${density.header} ${
-                  isBW ? "border-black" : ""
+                className={`text-left uppercase ${density.header} ${
+                  isBW ? "border-b-2 border-black" : "border-b"
                 }`}
                 style={{
-                  backgroundColor: palette.bannerBg,
-                  color: palette.bannerText,
+                  backgroundColor: palette.tableHeaderBg,
+                  color: palette.tableHeaderText,
                   borderColor: palette.primaryDark,
                 }}
               >
@@ -335,7 +336,11 @@ export const ScholarTemplate = memo(function ScholarTemplate({
                         <span className="w-7 text-right font-black text-gray-900 tabular-nums">
                           {sub.totalScore}
                         </span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                        <div
+                          className={`h-1.5 flex-1 overflow-hidden rounded-full ${
+                            isBW ? "bg-gray-300" : "bg-gray-200"
+                          }`}
+                        >
                           <div
                             className="h-full rounded-full"
                             style={{

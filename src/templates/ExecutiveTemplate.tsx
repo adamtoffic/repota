@@ -74,9 +74,11 @@ export const ExecutiveTemplate = memo(function ExecutiveTemplate({
           1. EXECUTIVE CREST HEADER BANNER
          ===================================================================== */}
       <header className="relative z-10 overflow-hidden rounded-lg border-2" style={borderStyle}>
-        {/* Top institutional color band (light bordered band in B&W to save toner) */}
+        {/* Top institutional color band (light bordered band in B&W to save toner while staying crisp) */}
         <div
-          className={`flex items-center justify-between gap-4 px-4 py-3 ${isBW ? "border-b-2 border-black" : ""}`}
+          className={`flex items-center justify-between gap-4 px-4 py-3 ${
+            isBW ? "border-t-4 border-b-2 border-black" : ""
+          }`}
           style={{ backgroundColor: palette.bannerBg, color: palette.bannerText }}
         >
           {/* Left: School Crest */}

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Award, LayoutTemplate, Palette, Printer, RotateCcw } from "lucide-react";
-import type { PrintMode } from "../../types";
+import type { ComponentType } from "react";
+import type { PrintMode, ReportTemplateProps, SchoolSettings } from "../../types";
 import { captureEvent } from "../../utils/analytics";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
@@ -11,197 +12,70 @@ import {
   isValidHexColor,
   SCHOOL_COLOR_PRESETS,
 } from "../../utils/reportTheme";
+import {
+  buildTemplatePreviewSettings,
+  TEMPLATE_PREVIEW_STUDENT,
+} from "../../utils/templatePreviewData";
 
-const TEMPLATE_DEFAULT_SWATCHES: Record<string, { primary: string; accent: string }> = {
-  original_v1: { primary: "#1f2937", accent: "#4b5563" },
-  classic_v1: { primary: "#1e3a8a", accent: "#2563eb" },
-  modern_v1: { primary: "#0f172a", accent: "#4f46e5" },
-  minimal_v1: { primary: "#111827", accent: "#6b7280" },
-  executive_v1: { primary: "#1e3a8a", accent: "#d97706" },
-  heritage_v1: { primary: "#78350f", accent: "#d97706" },
-  scholar_v1: { primary: "#0f766e", accent: "#1e3a8a" },
-};
+const A4_WIDTH_PX = 794;
 
-function TemplateThumbnail({
-  templateId,
-  primary,
-  accent,
+const ScaledTemplatePreview = memo(function ScaledTemplatePreview({
+  TemplateComponent,
+  previewSettings,
+  printMode,
 }: {
-  templateId: string;
-  primary: string;
-  accent: string;
+  TemplateComponent: ComponentType<ReportTemplateProps>;
+  previewSettings: SchoolSettings;
+  printMode: PrintMode;
 }) {
-  if (templateId === "heritage_v1") {
-    return (
-      <div
-        data-paper-surface="true"
-        aria-hidden="true"
-        className="mb-3 h-24 w-full overflow-hidden rounded-md bg-white p-1.5 shadow-2xs"
-      >
-        <div className="h-full w-full border-2 p-0.5" style={{ borderColor: primary }}>
-          <div
-            className="flex h-full w-full flex-col justify-between border p-1.5"
-            style={{ borderColor: accent }}
-          >
-            <div className="flex flex-col items-center gap-0.5">
-              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} />
-              <div className="h-1.5 w-20 rounded-xs" style={{ backgroundColor: primary }} />
-              <div className="h-1 w-12 rounded-xs opacity-75" style={{ backgroundColor: primary }} />
-            </div>
-            <div className="space-y-1">
-              <div className="h-1 w-full bg-gray-200" />
-              <div className="h-1 w-full bg-gray-100" />
-              <div className="h-1 w-full bg-gray-200" />
-            </div>
-            <div className="flex justify-between">
-              <div className="h-1 w-8 bg-gray-300" />
-              <div className="h-1 w-8 bg-gray-300" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(260);
 
-  if (templateId === "scholar_v1") {
-    return (
-      <div
-        data-paper-surface="true"
-        aria-hidden="true"
-        className="mb-3 flex h-24 w-full flex-col justify-between overflow-hidden rounded-md border border-gray-200 bg-white p-2 shadow-2xs"
-      >
-        <div className="flex items-center justify-between gap-2 border-b pb-1" style={{ borderColor: primary }}>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3.5 w-1 rounded-full" style={{ backgroundColor: primary }} />
-            <div className="space-y-0.5">
-              <div className="h-1.5 w-16 rounded-xs" style={{ backgroundColor: primary }} />
-              <div className="h-1 w-10 rounded-xs bg-gray-300" />
-            </div>
-          </div>
-          <div className="h-3 w-3 rounded-xs border border-gray-300 bg-gray-50" />
-        </div>
-        <div className="grid grid-cols-3 gap-1">
-          <div className="h-2.5 rounded-xs bg-gray-100" />
-          <div className="h-2.5 rounded-xs" style={{ backgroundColor: primary, opacity: 0.2 }} />
-          <div className="h-2.5 rounded-xs bg-gray-100" />
-        </div>
-        <div className="space-y-1">
-          {[82, 68, 90].map((pct) => (
-            <div key={pct} className="flex items-center gap-1.5">
-              <div className="h-1 w-10 rounded-xs bg-gray-300" />
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-200">
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: primary }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-  if (templateId === "executive_v1") {
-    return (
-      <div
-        data-paper-surface="true"
-        aria-hidden="true"
-        className="mb-3 flex h-24 w-full flex-col justify-between overflow-hidden rounded-md border-2 bg-white shadow-2xs"
-        style={{ borderColor: primary }}
-      >
-        <div
-          className="flex items-center justify-between px-2 py-1.5"
-          style={{ backgroundColor: primary }}
-        >
-          <div className="h-3 w-3 rounded-xs bg-white/90" />
-          <div className="h-1.5 w-20 rounded-xs bg-white/95" />
-          <div className="h-3 w-3 rounded-xs opacity-0" />
-        </div>
-        <div className="h-0.5 w-full" style={{ backgroundColor: accent }} />
-        <div className="flex flex-1 flex-col justify-between p-1.5">
-          <div className="grid grid-cols-4 gap-1">
-            <div className="col-span-3 h-2.5 rounded-xs bg-gray-100" />
-            <div className="h-2.5 rounded-xs" style={{ backgroundColor: primary }} />
-          </div>
-          <div className="space-y-1">
-            <div className="h-1 w-full bg-gray-200" />
-            <div className="h-1 w-full bg-gray-100" />
-            <div className="h-1 w-full bg-gray-200" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+    const initialWidth = el.clientWidth;
+    if (initialWidth > 0) {
+      setContainerWidth(initialWidth);
+    }
 
-  if (templateId === "modern_v1") {
-    return (
-      <div
-        data-paper-surface="true"
-        aria-hidden="true"
-        className="mb-3 flex h-24 w-full flex-col justify-between overflow-hidden rounded-md border border-gray-200 bg-white p-2 shadow-2xs"
-      >
-        <div className="flex items-center justify-between rounded-sm px-2 py-1.5" style={{ backgroundColor: primary }}>
-          <div className="h-1.5 w-14 rounded-xs bg-white" />
-          <div className="h-2 w-6 rounded-xs" style={{ backgroundColor: accent }} />
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="h-3 rounded-xs bg-gray-100" />
-          <div className="h-3 rounded-xs bg-gray-100" />
-        </div>
-        <div className="space-y-1">
-          <div className="h-1 w-full rounded-xs bg-gray-200" />
-          <div className="h-1 w-5/6 rounded-xs bg-gray-200" />
-        </div>
-      </div>
-    );
-  }
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const measured = entries[0]?.contentRect.width ?? el.clientWidth;
+      if (measured > 0) {
+        setContainerWidth(measured);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-  if (templateId === "minimal_v1") {
-    return (
-      <div
-        data-paper-surface="true"
-        aria-hidden="true"
-        className="mb-3 flex h-24 w-full flex-col justify-between overflow-hidden rounded-md border border-gray-200 bg-white p-2.5 shadow-2xs"
-      >
-        <div className="space-y-1 border-b border-gray-300 pb-1.5">
-          <div className="h-1.5 w-20 rounded-xs bg-gray-900" />
-          <div className="h-1 w-12 rounded-xs bg-gray-400" />
-        </div>
-        <div className="space-y-1.5">
-          <div className="h-px w-full bg-gray-200" />
-          <div className="h-px w-full bg-gray-200" />
-          <div className="h-px w-full bg-gray-200" />
-        </div>
-        <div className="flex justify-end gap-2">
-          <div className="h-1 w-8 bg-gray-300" />
-          <div className="h-1 w-8 bg-gray-300" />
-        </div>
-      </div>
-    );
-  }
+  const scale = containerWidth / A4_WIDTH_PX;
 
-  const isClassic = templateId === "classic_v1";
   return (
     <div
+      ref={containerRef}
       data-paper-surface="true"
       aria-hidden="true"
-      className={`mb-3 flex h-24 w-full flex-col justify-between overflow-hidden border bg-white p-2 shadow-2xs ${
-        isClassic ? "rounded-md" : "rounded-none border-gray-800"
-      }`}
-      style={isClassic ? { borderColor: primary } : undefined}
+      className="pointer-events-none relative mb-3 aspect-[210/297] w-full overflow-hidden rounded-lg border border-black/15 bg-white shadow-xs select-none"
     >
-      <div className="flex items-center justify-between border-b pb-1" style={{ borderColor: primary }}>
-        <div className="h-3 w-3 rounded-xs bg-gray-200" />
-        <div className="h-1.5 w-20 rounded-xs" style={{ backgroundColor: primary }} />
-        <div className="h-3 w-3 rounded-xs bg-gray-100" />
+      <div
+        className="absolute top-0 left-0 origin-top-left"
+        style={{
+          width: `${A4_WIDTH_PX}px`,
+          transform: `scale(${scale})`,
+        }}
+      >
+        <TemplateComponent
+          student={TEMPLATE_PREVIEW_STUDENT}
+          settings={previewSettings}
+          printMode={printMode}
+        />
       </div>
-      <div className="space-y-1">
-        <div className="h-1.5 w-full bg-gray-200" />
-        <div className="h-1.5 w-full bg-gray-100" />
-        <div className="h-1.5 w-full bg-gray-200" />
-      </div>
-      <div className="h-2 w-full border border-gray-300 bg-gray-50" />
     </div>
   );
-}
+});
 
 export function ReportTemplateSection() {
   const { formData, setFormData, isPersistenceSuspended } = useSettingsForm();
@@ -217,6 +91,33 @@ export function ReportTemplateSection() {
   const activeAccent = isValidHexColor(formData.accentColor)
     ? formData.accentColor
     : "#d97706";
+
+  const previewSettings = useMemo(
+    () => buildTemplatePreviewSettings(formData),
+    // Rebuild preview settings only when fields that affect report visuals change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      formData.useCustomTemplateColor,
+      formData.primaryColor,
+      formData.accentColor,
+      formData.showClassPosition,
+      formData.showSubjectPosition,
+      formData.examType,
+      formData.level,
+      formData.schoolType,
+      formData.classScoreMax,
+      formData.examScoreMax,
+      formData.logoUrl,
+      formData.schoolName,
+      formData.schoolMotto,
+      formData.address,
+      formData.academicYear,
+      formData.term,
+      formData.className,
+      formData.classSize,
+      formData.totalAttendanceDays,
+    ],
+  );
 
   const previewPalette = getReportPalette({
     settings: {
@@ -234,66 +135,92 @@ export function ReportTemplateSection() {
       <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 1: REPORT DESIGN TEMPLATE */}
       <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-lg bg-indigo-100 p-2.5 dark:bg-indigo-950/60">
-            <LayoutTemplate className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-indigo-100 p-2.5 dark:bg-indigo-950/60">
+              <LayoutTemplate className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-main text-lg font-bold" data-record="true">
+                Report Card Design
+              </h2>
+              <p className="text-muted text-xs">
+                Live scaled previews of your actual printed report layouts.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-main text-lg font-bold" data-record="true">
-              Report Card Design
-            </h2>
-            <p className="text-muted text-xs">
-              Choose the visual layout for your printed reports.
-            </p>
+
+          <div
+            role="group"
+            aria-label="Design preview print mode"
+            className="border-border bg-subtle inline-flex self-start rounded-lg border p-0.5 text-xs font-bold sm:self-auto"
+          >
+            <button
+              type="button"
+              aria-pressed={previewPrintMode === "color"}
+              onClick={() => setPreviewPrintMode("color")}
+              className={`rounded-md px-2.5 py-1 transition-colors ${
+                previewPrintMode === "color"
+                  ? "bg-indigo-600 text-white"
+                  : "text-muted hover:text-main"
+              }`}
+            >
+              Color
+            </button>
+            <button
+              type="button"
+              aria-pressed={previewPrintMode === "bw"}
+              onClick={() => setPreviewPrintMode("bw")}
+              className={`rounded-md px-2.5 py-1 transition-colors ${
+                previewPrintMode === "bw"
+                  ? "bg-slate-800 text-white"
+                  : "text-muted hover:text-main"
+              }`}
+            >
+              B&amp;W
+            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {TEMPLATE_REGISTRY.map((template) => {
-            const defaults =
-              TEMPLATE_DEFAULT_SWATCHES[template.id] || TEMPLATE_DEFAULT_SWATCHES.executive_v1;
-            const thumbPrimary = useCustomColor ? activePrimary : defaults.primary;
-            const thumbAccent = useCustomColor ? activeAccent : defaults.accent;
+          {TEMPLATE_REGISTRY.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => {
+                const currentTemplateId = formData.templateId || "original_v1";
+                if (currentTemplateId === template.id) return;
+                setFormData({ ...formData, templateId: template.id });
+                captureEvent("Template_Changed", {
+                  template_id: template.id,
+                  previous_template_id: currentTemplateId,
+                  school_level: formData.level || "unknown",
+                  school_type: formData.schoolType || "unknown",
+                  uses_custom_color: Boolean(formData.useCustomTemplateColor),
+                });
+              }}
+              className={`relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all active:scale-95 ${
+                (formData.templateId || "original_v1") === template.id
+                  ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
+                  : "border-border bg-surface hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30"
+              }`}
+            >
+              <ScaledTemplatePreview
+                TemplateComponent={template.component}
+                previewSettings={previewSettings}
+                printMode={previewPrintMode}
+              />
+              <span className="text-main mb-1 pr-6 font-bold">{template.name}</span>
+              <span className="text-muted text-xs leading-relaxed">{template.description}</span>
 
-            return (
-              <button
-                key={template.id}
-                type="button"
-                onClick={() => {
-                  const currentTemplateId = formData.templateId || "original_v1";
-                  if (currentTemplateId === template.id) return;
-                  setFormData({ ...formData, templateId: template.id });
-                  captureEvent("Template_Changed", {
-                    template_id: template.id,
-                    previous_template_id: currentTemplateId,
-                    school_level: formData.level || "unknown",
-                    school_type: formData.schoolType || "unknown",
-                    uses_custom_color: Boolean(formData.useCustomTemplateColor),
-                  });
-                }}
-                className={`relative flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all active:scale-95 ${
-                  (formData.templateId || "original_v1") === template.id
-                    ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-500 dark:bg-indigo-950/50 dark:ring-indigo-800/60"
-                    : "border-border bg-surface hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30"
-                }`}
-              >
-                <TemplateThumbnail
-                  templateId={template.id}
-                  primary={thumbPrimary}
-                  accent={thumbAccent}
-                />
-                <span className="text-main mb-1 pr-6 font-bold">{template.name}</span>
-                <span className="text-muted text-xs leading-relaxed">{template.description}</span>
-
-                {/* Active Checkmark */}
-                {(formData.templateId || "original_v1") === template.id && (
-                  <div className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
-                    ✓
-                  </div>
-                )}
-              </button>
-            );
-          })}
+              {/* Active Checkmark */}
+              {(formData.templateId || "original_v1") === template.id && (
+                <div className="absolute top-3 right-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
+                  ✓
+                </div>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -534,8 +461,8 @@ export function ReportTemplateSection() {
                 style={{ borderColor: previewPalette.primaryDark }}
               >
                 <div
-                  className={`px-3 py-2 text-center ${
-                    previewPalette.isBW ? "border-b border-black" : ""
+                  className={`flex items-center justify-between gap-2 px-3 py-2 ${
+                    previewPalette.isBW ? "border-t-4 border-b-2 border-black" : ""
                   }`}
                   style={{
                     backgroundColor: previewPalette.bannerBg,
@@ -545,6 +472,15 @@ export function ReportTemplateSection() {
                   <p className="truncate font-serif text-xs font-black uppercase">
                     {formData.schoolName || "Your School Name"}
                   </p>
+                  <span
+                    className="shrink-0 rounded-xs px-1.5 py-0.5 text-[9px] font-black uppercase"
+                    style={{
+                      backgroundColor: previewPalette.highlightBg,
+                      color: previewPalette.highlightText,
+                    }}
+                  >
+                    {previewPalette.isBW ? "B&W Ink" : "Color"}
+                  </span>
                 </div>
                 <div className="h-1 w-full" style={{ backgroundColor: previewPalette.accent }} />
                 <div

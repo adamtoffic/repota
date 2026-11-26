@@ -173,12 +173,10 @@ export const HeritageTemplate = memo(function HeritageTemplate({
 
             {/* Banner Title */}
             <div
-              className={`mt-2.5 inline-block rounded-sm px-5 py-1 text-[11px] font-black tracking-[0.2em] uppercase ${
-                isBW ? "border border-black" : ""
-              }`}
+              className="mt-2.5 inline-block rounded-sm px-5 py-1 text-[11px] font-black tracking-[0.2em] uppercase"
               style={{
-                backgroundColor: palette.bannerBg,
-                color: palette.bannerText,
+                backgroundColor: palette.highlightBg,
+                color: palette.highlightText,
               }}
             >
               {isMock
@@ -194,7 +192,9 @@ export const HeritageTemplate = memo(function HeritageTemplate({
              ================================================================= */}
           <section className="relative z-10 flex items-stretch gap-3">
             <div
-              className="grid flex-1 grid-cols-12 border text-[11px]"
+              className={`grid flex-1 grid-cols-12 text-[11px] ${
+                isBW ? "border-2 border-black" : "border"
+              }`}
               style={{ borderColor: palette.primaryBorder }}
             >
               <div
@@ -295,15 +295,15 @@ export const HeritageTemplate = memo(function HeritageTemplate({
              ================================================================= */}
           <main className="relative z-10 flex flex-col justify-start">
             <table
-              className="w-full border-collapse border"
+              className={`w-full border-collapse ${isBW ? "border-2 border-black" : "border"}`}
               style={{ borderColor: palette.primaryDark }}
             >
               <thead>
                 <tr
                   className={`border-b-2 uppercase ${density.header} ${isBW ? "border-black" : ""}`}
                   style={{
-                    backgroundColor: palette.bannerBg,
-                    color: palette.bannerText,
+                    backgroundColor: palette.tableHeaderBg,
+                    color: palette.tableHeaderText,
                     borderColor: palette.primaryDark,
                   }}
                 >

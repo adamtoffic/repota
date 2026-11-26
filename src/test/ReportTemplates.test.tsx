@@ -191,13 +191,16 @@ describe("Report Templates — Position Toggles, Private Fee Slots & Custom Colo
     { name: "HeritageTemplate", Component: HeritageTemplate },
     { name: "ScholarTemplate", Component: ScholarTemplate },
   ])(
-    "$name uses light gray B&W header/highlight surfaces (rgb(243, 244, 246)) instead of solid black toner slabs",
+    "$name balances light B&W headers with crisp #111827 accent badges",
     ({ Component }) => {
       const { container } = render(
         <Component student={baseStudent} settings={baseSettings} printMode="bw" />,
       );
 
-      expect(container.innerHTML).toMatch(/rgb\(243,\s*244,\s*246\)|#f3f4f6/i);
+      // Light banner or table-header surface instead of solid black toner slabs
+      expect(container.innerHTML).toMatch(/rgb\(243,\s*244,\s*246\)|rgb\(229,\s*231,\s*235\)|#f3f4f6|#e5e7eb/i);
+      // High-contrast #111827 ink for compact Position/Aggregate/title badges
+      expect(container.innerHTML).toMatch(/rgb\(17,\s*24,\s*39\)|#111827/i);
     },
   );
 
