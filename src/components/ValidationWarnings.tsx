@@ -163,7 +163,7 @@ export function ValidationWarnings({
                 <Icon className={`mt-0.5 h-4 w-4 shrink-0 sm:h-5 sm:w-5 ${colorStyles.icon}`} />
                 <div className="min-w-0">
                   <p className={`text-xs font-bold sm:text-sm ${colorStyles.text}`}>
-                    ⚠️ {warning.message}
+                    {warning.message}
                   </p>
                   {warning.subtitle && (
                     <p className="text-muted mt-0.5 hidden text-xs sm:block" data-record="true">

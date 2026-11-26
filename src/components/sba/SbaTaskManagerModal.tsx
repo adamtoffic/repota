@@ -547,19 +547,19 @@ function SbaTaskManagerModalContent({
                   if (isEditing) {
                     return (
                       <div key={task.name} className="bg-subtle/60 space-y-2 p-3">
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-[7.5rem_minmax(0,1fr)_5.5rem]">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-[7.5rem_minmax(0,1fr)_5.5rem] sm:items-center">
                           <input
                             type="text"
                             aria-label="Edit task name"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="border-border-strong bg-input text-main col-span-2 min-w-0 rounded-lg border px-2.5 py-1.5 text-xs font-bold sm:order-2 sm:col-span-1"
+                            className="border-border-strong bg-input text-main col-span-2 h-10 min-w-0 rounded-lg border px-2.5 text-xs font-bold sm:order-2 sm:col-span-1 sm:h-9"
                           />
                           <select
                             aria-label="Edit task category"
                             value={editCategory}
                             onChange={(e) => setEditCategory(e.target.value as AssessmentCategory)}
-                            className="border-border-strong bg-input text-main min-w-0 rounded-lg border px-2 py-1.5 text-xs font-semibold sm:order-1"
+                            className="border-border-strong bg-input text-main h-10 min-w-0 rounded-lg border px-2 text-xs font-semibold sm:order-1 sm:h-9"
                           >
                             {CATEGORY_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>
@@ -576,7 +576,7 @@ function SbaTaskManagerModalContent({
                             placeholder="Max"
                             value={editMax}
                             onChange={(e) => setEditMax(e.target.value)}
-                            className="border-border-strong bg-input text-main min-w-0 rounded-lg border px-2 py-1.5 text-center text-xs font-bold sm:order-3"
+                            className="border-border-strong bg-input text-main h-10 min-w-0 rounded-lg border px-2 text-center text-xs font-bold sm:order-3 sm:h-9"
                           />
                         </div>
                         {editError && (
@@ -670,7 +670,7 @@ function SbaTaskManagerModalContent({
             >
               Add New Task
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_5.5rem_auto]">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[8rem_minmax(0,1fr)_5.5rem_auto] sm:items-center">
               <input
                 ref={newNameInputRef}
                 type="text"
@@ -679,14 +679,14 @@ function SbaTaskManagerModalContent({
                 disabled={disabled}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Midterm Quiz"
-                className="bg-input text-main placeholder:text-muted col-span-2 min-w-0 rounded-lg border border-purple-200 px-3 py-2 text-sm font-medium outline-none focus:border-purple-500 sm:order-2 sm:col-span-1 dark:border-purple-700"
+                className="bg-input text-main placeholder:text-muted col-span-2 h-10 min-w-0 rounded-lg border border-purple-200 px-3 text-sm font-medium outline-none focus:border-purple-500 sm:order-2 sm:col-span-1 sm:h-9 dark:border-purple-700"
               />
               <select
                 aria-label="New task category"
                 value={newCategory}
                 disabled={disabled}
                 onChange={(e) => setNewCategory(e.target.value as AssessmentCategory)}
-                className="bg-input text-main min-w-0 rounded-lg border border-purple-200 px-2.5 py-2 text-xs font-semibold outline-none focus:border-purple-500 sm:order-1 dark:border-purple-700"
+                className="bg-input text-main h-10 min-w-0 rounded-lg border border-purple-200 px-2.5 text-xs font-semibold outline-none focus:border-purple-500 sm:order-1 sm:h-9 dark:border-purple-700"
               >
                 {CATEGORY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -704,14 +704,14 @@ function SbaTaskManagerModalContent({
                 disabled={disabled}
                 onChange={(e) => setNewMax(e.target.value)}
                 placeholder="Max (15)"
-                className="bg-input text-main placeholder:text-muted min-w-0 rounded-lg border border-purple-200 px-2.5 py-2 text-center text-sm font-bold outline-none focus:border-purple-500 sm:order-3 dark:border-purple-700"
+                className="bg-input text-main placeholder:text-muted h-10 min-w-0 rounded-lg border border-purple-200 px-2.5 text-center text-sm font-bold outline-none focus:border-purple-500 sm:order-3 sm:h-9 dark:border-purple-700"
               />
               <Button
                 type="submit"
                 variant="primary"
                 size="sm"
                 disabled={disabled}
-                className="col-span-2 w-full gap-1.5 sm:order-4 sm:col-span-1 sm:w-auto"
+                className="col-span-2 h-10 w-full gap-1.5 sm:order-4 sm:col-span-1 sm:h-9 sm:w-auto"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Task</span>

@@ -186,11 +186,11 @@ function SbaWeightsModalContent({
                         }}
                         className={`flex flex-col justify-center rounded-xl border px-1.5 py-2 text-center transition-all sm:px-2.5 ${
                           active
-                            ? "border-purple-500 bg-purple-50 text-purple-900 ring-2 ring-purple-500/20 dark:bg-purple-950/50 dark:text-purple-200"
+                            ? "border-primary-text bg-primary/10 text-primary-text ring-2 ring-primary/15 dark:bg-elevated dark:text-main"
                             : "border-border bg-surface text-main hover:bg-subtle"
                         }`}
                       >
-                        <span className="block text-sm font-black tabular-nums">
+                        <span className="block text-sm font-bold tabular-nums">
                           {preset.label}
                         </span>
                         <span className="text-muted mt-0.5 line-clamp-2 block text-[10px] leading-tight">

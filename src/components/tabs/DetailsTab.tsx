@@ -235,11 +235,12 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => handleImmediateSave({ dateOfBirth: e.target.value })}
+                className="h-11 sm:h-[42px] sm:text-sm"
               />
 
-              <div>
+              <div className="space-y-1.5">
                 <span
-                  className="text-secondary mb-1.5 block text-sm font-medium"
+                  className="text-secondary block text-sm font-medium"
                   data-record="true"
                 >
                   Gender
@@ -249,7 +250,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                     type="button"
                     aria-pressed={formData.gender === "Male"}
                     onClick={() => handleImmediateSave({ gender: "Male" })}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-colors sm:py-2.5 sm:text-sm ${
+                    className={`flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border-2 px-3 text-sm font-semibold transition-colors sm:h-[42px] ${
                       formData.gender === "Male"
                         ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:ring-blue-800/60"
                         : "border-border-strong bg-surface text-secondary hover:border-blue-300 dark:hover:border-blue-600"
@@ -263,7 +264,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                     type="button"
                     aria-pressed={formData.gender === "Female"}
                     onClick={() => handleImmediateSave({ gender: "Female" })}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-colors sm:py-2.5 sm:text-sm ${
+                    className={`flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border-2 px-3 text-sm font-semibold transition-colors sm:h-[42px] ${
                       formData.gender === "Female"
                         ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-200 dark:bg-pink-950/60 dark:text-pink-300 dark:ring-pink-800/60"
                         : "border-border-strong bg-surface text-secondary hover:border-pink-300 dark:hover:border-pink-600"
@@ -292,10 +293,10 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <div className="mb-1.5 flex items-center justify-between gap-2">
+            <div className="mb-1.5 flex min-h-5 items-center justify-between gap-2">
               <label
                 htmlFor={attendanceInputId}
-                className="text-secondary text-xs font-semibold"
+                className="text-secondary text-sm font-medium"
                 data-record="true"
               >
                 Days Present
@@ -323,7 +324,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                     e.currentTarget.select();
                   }
                 }}
-                className="border-border-strong bg-input text-main placeholder:text-muted w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-4 py-2.5 pr-16 font-mono text-base font-bold transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:text-sm"
+                className="border-border-strong bg-input text-main placeholder:text-muted focus:border-primary-text focus:ring-primary-text/30 h-11 w-full scroll-mt-24 scroll-mb-40 rounded-lg border px-3.5 pr-16 font-mono text-base font-bold transition-colors outline-none focus:ring-2 sm:h-[42px] sm:text-sm"
                 placeholder="0"
               />
               <span className="text-muted pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs tabular-nums">
@@ -338,18 +339,20 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
           </div>
 
           <div>
-            <label
-              htmlFor={promotionSelectId}
-              className="text-secondary mb-1.5 block text-xs font-semibold"
-              data-record="true"
-            >
-              Promotion Status
-            </label>
+            <div className="mb-1.5 flex min-h-5 items-center justify-between gap-2">
+              <label
+                htmlFor={promotionSelectId}
+                className="text-secondary text-sm font-medium"
+                data-record="true"
+              >
+                Promotion Status
+              </label>
+            </div>
             <select
               id={promotionSelectId}
               value={formData.promotionStatus}
               onChange={(e) => handleImmediateSave({ promotionStatus: e.target.value })}
-              className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-base outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:text-sm"
+              className="border-border-strong bg-input text-main focus:border-primary-text focus:ring-primary-text/30 h-11 w-full rounded-lg border px-3.5 text-base outline-none focus:ring-2 sm:h-[42px] sm:text-sm"
             >
               <option value="">-- Select Status --</option>
               <option value="Promoted to Next Class">Promoted</option>
@@ -403,7 +406,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                 onClick={() =>
                   handleImmediateSave({ conduct: getRandomConductTrait(formData.conduct) })
                 }
-                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                className="text-primary-text hover:bg-primary/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold active:scale-95"
               >
                 <RefreshCw className="h-3 w-3" /> Shuffle
               </button>
@@ -424,7 +427,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                 onClick={() =>
                   handleImmediateSave({ interest: getRandomInterest(formData.interest) })
                 }
-                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 active:scale-95 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                className="text-primary-text hover:bg-primary/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold active:scale-95"
               >
                 <RefreshCw className="h-3 w-3" /> Shuffle
               </button>
@@ -464,7 +467,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                     ? "Enter at least one score first"
                     : "Generate a remark matched to scores and attendance"
                 }
-                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-purple-600 hover:bg-purple-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 dark:text-purple-400 dark:hover:bg-purple-950/50"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 dark:text-amber-300 dark:hover:bg-amber-500/15"
                 data-record="true"
               >
                 <Wand2 className="h-3 w-3" /> Smart Generate
@@ -476,7 +479,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
               placeholder="Write a custom remark..."
               value={formData.teacherRemark}
               onChange={(e) => handleImmediateSave({ teacherRemark: e.target.value })}
-              className="border-border-strong bg-input text-main placeholder:text-muted w-full resize-none rounded-lg border px-4 py-2.5 text-base transition-colors outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:text-sm"
+              className="border-border-strong bg-input text-main placeholder:text-muted focus:border-primary-text focus:ring-primary-text/30 w-full resize-none rounded-lg border px-4 py-2.5 text-base transition-colors outline-none focus:ring-2 sm:text-sm"
             />
             {isUnscored && (
               <p className="text-muted mt-1 text-[11px]" data-record="true">
@@ -519,10 +522,10 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
               placeholder="e.g. 024 000 0000"
             />
 
-            <div>
+            <div className="space-y-1.5">
               <label
                 htmlFor={feeStatusSelectId}
-                className="text-secondary mb-1.5 block text-sm font-medium"
+                className="text-secondary block text-sm font-medium"
                 data-record="true"
               >
                 Fee Payment Status
@@ -532,7 +535,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                 aria-label="Fee Payment Status"
                 value={formData.feeStatus}
                 onChange={(e) => handleImmediateSave({ feeStatus: e.target.value })}
-                className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-base outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 sm:text-sm"
+                className="border-border-strong bg-input text-main focus:border-primary-text focus:ring-primary-text/30 h-11 w-full rounded-lg border px-3.5 text-base outline-none focus:ring-2 sm:h-[42px] sm:text-sm"
               >
                 <option value="">-- Not Tracked --</option>
                 <option value="PAID">Paid in Full</option>
@@ -556,6 +559,7 @@ export function DetailsTab({ student, onUpdate, onNestedModalChange }: Props) {
                 });
               }}
               placeholder="0.00"
+              className="h-11 sm:h-[42px] sm:text-sm"
             />
           </div>
         </div>

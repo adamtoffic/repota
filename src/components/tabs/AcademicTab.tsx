@@ -326,7 +326,7 @@ export function AcademicTab({
                 <button
                   type="button"
                   onClick={() => syncSubjectComponentsFromSettings()}
-                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-blue-700 active:scale-95"
+                  className="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors active:scale-95"
                   data-record="true"
                 >
                   Sync SBA
@@ -348,7 +348,7 @@ export function AcademicTab({
                 <button
                   type="button"
                   onClick={handleAddMissing}
-                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-blue-700 active:scale-95"
+                  className="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors active:scale-95"
                   data-record="true"
                 >
                   Add Missing
@@ -452,7 +452,7 @@ export function AcademicTab({
                 onChange={(e) =>
                   onFilterSubjectChange(e.target.value === "all" ? null : e.target.value)
                 }
-                className="border-border-strong bg-input text-main h-9 max-w-44 rounded-lg border px-2.5 text-base font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 sm:h-8 sm:text-xs"
+                className="border-border-strong bg-input text-main focus:border-primary-text focus:ring-primary-text/25 h-9 max-w-44 rounded-lg border px-2.5 text-base font-semibold outline-none focus:ring-2 sm:h-8 sm:text-xs"
               >
                 <option value="all">All subjects</option>
                 {subjectOptions.map((subj) => (

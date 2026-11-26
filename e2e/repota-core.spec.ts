@@ -210,12 +210,12 @@ test.describe("Repota Real-Browser Core Flows", () => {
     await expect(page.getByText(/Saved just now/i)).toBeVisible({ timeout: 5000 });
 
     await page.getByLabel("Sidebar navigation").getByRole("link", { name: /Analytics/i }).click();
-    await expect(page.getByRole("button", { name: /^Overview$/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("tab", { name: /^Overview$/i })).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole("button", { name: /^Subjects$/i }).click();
-    await page.getByRole("button", { name: /^Demographics$/i }).click();
-    await page.getByRole("button", { name: /^AI Insights$/i }).click();
-    await expect(page.getByRole("button", { name: /^AI Insights$/i })).toBeVisible();
+    await page.getByRole("tab", { name: /^Subjects$/i }).click();
+    await page.getByRole("tab", { name: /^Demographics$/i }).click();
+    await page.getByRole("tab", { name: /^AI Insights$/i }).click();
+    await expect(page.getByRole("tab", { name: /^AI Insights$/i })).toBeVisible();
 
     expect(errors).toEqual([]);
   });

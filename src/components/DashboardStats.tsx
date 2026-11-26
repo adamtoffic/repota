@@ -80,7 +80,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
               className={
                 stats.isOverCapacity
                   ? "h-5 w-5 text-red-600 dark:text-red-400"
-                  : "text-primary-text h-5 w-5"
+                  : "text-secondary h-5 w-5"
               }
             />
           }
@@ -92,7 +92,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           iconWellClass={
             stats.isOverCapacity
               ? "bg-red-100/80 border-red-200 dark:bg-red-500/15 dark:border-red-500/25"
-              : "bg-blue-50 border-blue-100 dark:bg-blue-500/12 dark:border-blue-500/20"
+              : "bg-subtle border-border-subtle"
           }
           alert={stats.isOverCapacity}
           alertColor="red"
@@ -102,9 +102,19 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
         <StatCard
           label="Pending Entry"
           value={stats.pending}
-          icon={<Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
+          icon={
+            <Clock
+              className={`h-5 w-5 ${
+                stats.pending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted"
+              }`}
+            />
+          }
           colorClass="bg-surface border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-          iconWellClass="bg-orange-50 border-orange-100 dark:bg-orange-500/12 dark:border-orange-500/20"
+          iconWellClass={
+            stats.pending > 0
+              ? "bg-amber-50 border-amber-200/80 dark:bg-amber-500/12 dark:border-amber-500/25"
+              : "bg-subtle border-border-subtle"
+          }
           alert={stats.pending > 0}
           alertColor="orange"
           isActive={activeFilter === "PENDING"}
@@ -120,9 +130,9 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
         <StatCard
           label="Class Average"
           value={`${stats.classAverage}%`}
-          icon={<BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
+          icon={<BarChart3 className="text-primary-text h-5 w-5" />}
           colorClass="bg-surface border-border dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-          iconWellClass="bg-purple-50 border-purple-100 dark:bg-purple-500/12 dark:border-purple-500/20"
+          iconWellClass="bg-subtle border-border-subtle"
         />
 
         {/* CARD 4: PASS RATE (Success Metric / Actionable Failing Filter) */}
@@ -143,7 +153,7 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
           }
           iconWellClass={
             stats.passRate >= 50
-              ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-500/12 dark:border-emerald-500/20"
+              ? "bg-subtle border-border-subtle"
               : "bg-red-100/80 border-red-200 dark:bg-red-500/15 dark:border-red-500/25"
           }
           alert={stats.failing > 0}
@@ -189,11 +199,9 @@ function StatCard({
 }: StatCardProps) {
   const alertColors = {
     orange: {
-      ping: "bg-orange-400",
-      dot: "bg-orange-500",
+      dot: "bg-amber-500",
     },
     red: {
-      ping: "bg-red-400",
       dot: "bg-red-500",
     },
   };
@@ -202,23 +210,18 @@ function StatCard({
   const content = (
     <>
       <div className="min-w-0 flex-1">
-        <p className="text-muted text-[11px] font-bold tracking-wide uppercase sm:text-xs" data-record="true">
+        <p className="text-muted text-[11px] font-semibold tracking-wider uppercase sm:text-xs" data-record="true">
           {label}
         </p>
         <div className="mt-1 flex items-center gap-2 sm:mt-1.5">
           <p
             data-stat-value="true"
-            className="text-main text-xl font-black tabular-nums sm:text-2xl"
+            className="text-main text-xl font-bold tracking-tight tabular-nums sm:text-2xl"
           >
             {value}
           </p>
           {alert && (
-            <span className="relative flex h-2 w-2">
-              <span
-                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${colors.ping}`}
-              ></span>
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${colors.dot}`}></span>
-            </span>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
           )}
         </div>
       </div>

@@ -28,6 +28,17 @@ const observeMobileElementRect = (
     cb(rect.height > 0 ? rect : { width: 390, height: 800 });
   });
 
+function isTopThreePosition(position: string): boolean {
+  return /^[123](st|nd|rd)\b/i.test(position.trim());
+}
+
+function getPositionBadgeClass(position: string): string {
+  if (isTopThreePosition(position)) {
+    return "border-amber-300/90 bg-amber-100/90 text-amber-900 font-bold dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300";
+  }
+  return "border-border bg-subtle text-secondary font-semibold";
+}
+
 interface MobileStudentCardProps {
   student: ProcessedStudent;
   isMockExam: boolean;
@@ -79,7 +90,9 @@ function MobileStudentCard({
           </p>
         </div>
         {student.classPosition.toLowerCase() !== "pending..." && (
-          <span className="inline-flex h-7 shrink-0 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2.5 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
+          <span
+            className={`inline-flex h-7 shrink-0 items-center justify-center rounded-full border px-2.5 text-xs tabular-nums ${getPositionBadgeClass(student.classPosition)}`}
+          >
             {student.classPosition}
           </span>
         )}
@@ -112,7 +125,7 @@ function MobileStudentCard({
             to="/print"
             search={{ id: student.id }}
             aria-label={`Print report for ${student.name}`}
-            className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100 dark:border-purple-800/70 dark:bg-purple-950/50 dark:text-purple-300 dark:hover:bg-purple-950/80"
+            className="border-border bg-subtle text-secondary hover:bg-subtle/80 hover:text-main flex min-h-11 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition-colors"
             title="Print Report"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -223,8 +236,8 @@ export function StudentList({
     // Removed 'overflow-hidden' to prevent any CSS clipping issues with modals
     <div className="border-border bg-surface relative rounded-xl border shadow-sm">
       {/* HEADER */}
-      <div className="bg-background border-border flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <h2 className="text-main text-lg font-bold" data-record="true">
+      <div className="bg-surface border-border-subtle flex flex-col gap-3 border-b px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+        <h2 className="text-main text-lg font-bold tracking-tight" data-record="true">
           Student Records
         </h2>
 
@@ -309,7 +322,7 @@ export function StudentList({
         }}
       >
         <table className="w-full min-w-176 text-left text-sm">
-          <thead className="bg-subtle text-secondary sticky top-0 z-10 text-xs font-bold uppercase shadow-sm">
+          <thead className="bg-subtle/85 text-secondary border-border sticky top-0 z-10 border-b text-xs font-semibold tracking-wider uppercase">
             <tr>
               <th scope="col" className="px-4 py-3 sm:px-6 sm:py-4" data-record="true">
                 Name
@@ -362,7 +375,7 @@ export function StudentList({
                     <tr
                       key={student.id}
                       onClick={() => onEditStudent(student)}
-                      className="group cursor-pointer transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/35"
+                      className="group hover:bg-subtle/70 cursor-pointer transition-colors"
                       data-index={virtualRow.index}
                       ref={rowVirtualizer.measureElement}
                     >
@@ -383,7 +396,7 @@ export function StudentList({
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                          <span className="bg-subtle text-secondary inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
                             {student.subjects.length} Subjects
                           </span>
                           <ScoreProgressBadge student={student} isMockExam={isMockExam} />
@@ -394,7 +407,9 @@ export function StudentList({
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         {student.classPosition.toLowerCase() !== "pending..." ? (
-                          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-yellow-200 bg-yellow-100 px-2 text-xs font-bold text-yellow-700 tabular-nums dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300">
+                          <span
+                            className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full border px-2 text-xs tabular-nums ${getPositionBadgeClass(student.classPosition)}`}
+                          >
                             {student.classPosition}
                           </span>
                         ) : (
@@ -410,7 +425,7 @@ export function StudentList({
                               onEditStudent(student);
                             }}
                             aria-label={`Edit scores for ${student.name}`}
-                            className="rounded-lg p-2 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950/60"
+                            className="text-primary-text hover:bg-primary/10 rounded-lg p-2 transition-colors"
                             title="Edit Student"
                           >
                             <Edit2 className="h-4 w-4" />
@@ -422,7 +437,7 @@ export function StudentList({
                               search={{ id: student.id }}
                               onClick={(e) => e.stopPropagation()}
                               aria-label={`Print report for ${student.name}`}
-                              className="rounded-lg p-2 text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-950/60"
+                              className="text-secondary hover:bg-subtle hover:text-main rounded-lg p-2 transition-colors"
                               title="Print Report"
                             >
                               <Printer className="h-4 w-4" />

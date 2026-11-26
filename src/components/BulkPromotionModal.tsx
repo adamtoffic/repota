@@ -93,8 +93,8 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal isOpen={true} onClose={onClose} closeOnBackdrop={false} className="max-w-2xl">
-      <div className="overflow-hidden">
-        <div className="border-border-subtle flex items-center justify-between border-b p-4">
+      <div className="flex max-h-[88dvh] flex-col overflow-hidden">
+        <div className="border-border-subtle flex shrink-0 items-center justify-between border-b p-4">
           <h3 className="text-main flex items-center gap-2 text-lg font-bold" data-record="true">
             <GraduationCap className="text-primary-text h-5 w-5" />
             Bulk Promotion Status
@@ -103,13 +103,13 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-1"
+            className="text-muted hover:bg-subtle hover:text-main rounded-lg p-2"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
           {settings.term !== "Third Term" && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
               Note: Promotion status is printed on report cards during <strong>Third Term</strong>{" "}
@@ -127,14 +127,14 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
                 aria-label="Pass Mark Threshold"
                 value={threshold}
                 onChange={(e) => setThreshold(Math.min(Math.max(Number(e.target.value) || 0, 0), 100))}
-                className="bg-input text-main w-16 rounded-lg border border-indigo-200 px-2 py-1 text-center font-bold dark:border-indigo-700"
+                className="bg-input text-main focus:border-primary-text w-16 rounded-lg border border-indigo-200 px-2 py-1 text-center font-bold outline-none dark:border-indigo-700"
               />
               <span>%</span>
             </div>
             <button
               type="button"
               onClick={handleAutoAssignAll}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700"
+              className="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-xs font-bold text-white"
             >
               Auto-Assign by Average
             </button>
@@ -165,7 +165,7 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setOverrides((prev) => ({ ...prev, [student.id]: e.target.value }))
                     }
-                    className="border-border-strong bg-input text-main rounded-lg border px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-indigo-500"
+                    className="border-border-strong bg-input text-main focus:border-primary-text h-10 w-full rounded-lg border px-2.5 text-xs font-semibold outline-none sm:h-9 sm:w-44"
                   >
                     <option value="Promoted to Next Class">Promoted</option>
                     <option value={`Repeated ${student.className}`}>Repeated</option>
@@ -176,15 +176,15 @@ function BulkPromotionModalContent({ onClose }: { onClose: () => void }) {
               );
             })}
           </div>
+        </div>
 
-          <div className="flex gap-3">
-            <Button type="button" variant="secondary" size="md" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="button" variant="primary" size="md" className="flex-1" onClick={handleApply}>
-              Apply Promotion Status
-            </Button>
-          </div>
+        <div className="border-border-subtle flex shrink-0 gap-3 border-t px-4 py-3 sm:px-5">
+          <Button type="button" variant="secondary" size="md" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="button" variant="primary" size="md" className="flex-1" onClick={handleApply}>
+            Apply Promotion Status
+          </Button>
         </div>
       </div>
     </Modal>

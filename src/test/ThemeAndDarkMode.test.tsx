@@ -281,7 +281,7 @@ describe("Theme system and Dark Mode invariants", () => {
 
     it("persists device-local repota_theme only and syncs document + theme-color meta", () => {
       expect(LIGHT_THEME_COLOR).toBe("#FFFFFF");
-      expect(DARK_THEME_COLOR).toBe("#090C12");
+      expect(DARK_THEME_COLOR).toBe("#0B101B");
 
       const meta = document.createElement("meta");
       meta.setAttribute("name", "theme-color");
@@ -295,7 +295,7 @@ describe("Theme system and Dark Mode invariants", () => {
       expect(document.documentElement.classList.contains("dark")).toBe(true);
       expect(document.documentElement.style.colorScheme).toBe("dark");
       expect(document.documentElement.dataset.theme).toBe("dark");
-      expect(meta.getAttribute("content")).toBe("#090C12");
+      expect(meta.getAttribute("content")).toBe("#0B101B");
 
       applyThemeToDocument("light");
       expect(document.documentElement.classList.contains("dark")).toBe(false);
@@ -415,11 +415,11 @@ describe("Theme system and Dark Mode invariants", () => {
     it("normalizes dark-mode chart SVG colors back to light ink for PNG/PDF exports", () => {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      gridLine.setAttribute("stroke", "#20293a");
+      gridLine.setAttribute("stroke", "#222e44");
       const legacyGrid = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      legacyGrid.setAttribute("stroke", "#334155");
+      legacyGrid.setAttribute("stroke", "#20293a");
       const axisText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      axisText.setAttribute("fill", "#8b98b0");
+      axisText.setAttribute("fill", "#93a3bd");
       const legendLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
       legendLabel.style.fill = "#e2e8f0";
       const dataBar = document.createElementNS("http://www.w3.org/2000/svg", "rect");

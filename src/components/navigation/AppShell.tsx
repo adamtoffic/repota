@@ -81,12 +81,12 @@ function MobileBottomNav({
       <div
         className={`${
           isEditableFocused ? "pointer-events-none" : "pointer-events-auto"
-        } relative mx-auto grid h-[60px] max-w-[380px] transform-gpu grid-cols-4 items-center rounded-full border border-white/80 bg-[var(--surface-dock)] p-1.5 shadow-[0_8px_32px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.06),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-1px_1px_rgba(15,23,42,0.05)] backdrop-blur-2xl backdrop-saturate-[180%] dark:border-white/[0.14] dark:shadow-[0_12px_36px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.18),inset_0_-1px_1px_rgba(0,0,0,0.35)]`}
+        } relative mx-auto grid h-[60px] max-w-[380px] transform-gpu grid-cols-4 items-center rounded-full border border-border/90 bg-[var(--surface-dock)] p-1.5 shadow-[0_8px_24px_rgba(20,24,31,0.10),0_1px_3px_rgba(20,24,31,0.06)] backdrop-blur-xl dark:border-white/[0.10] dark:shadow-[0_12px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]`}
       >
         {activeIndex >= 0 && (
           <div className="pointer-events-none absolute inset-1.5" aria-hidden="true">
             <div
-              className="h-full w-1/4 rounded-full bg-slate-900/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_1px_3px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/[0.05] transition-transform duration-300 ease-[cubic-bezier(0.32,1.18,0.42,1)] motion-reduce:transition-none dark:bg-white/[0.12] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.22),0_2px_8px_rgba(0,0,0,0.25)] dark:ring-white/[0.10]"
+              className="h-full w-1/4 rounded-full bg-primary/10 ring-1 ring-primary/15 transition-transform duration-300 ease-[cubic-bezier(0.32,1.18,0.42,1)] motion-reduce:transition-none dark:bg-elevated dark:ring-white/10"
               style={{ transform: `translateX(${activeIndex * 100}%)` }}
             />
           </div>
@@ -167,7 +167,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
             <div className="min-w-0 flex-1">
               <span
-                className="text-main block text-lg leading-none font-black tracking-tight"
+                className="text-main block text-lg leading-none font-extrabold tracking-tight"
                 data-record="true"
               >
                 REPOTA
@@ -178,7 +178,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
           {settings.className && (
-            <div className="mt-3 inline-flex max-w-full items-center rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/50 dark:text-blue-300">
+            <div className="mt-3 inline-flex max-w-full items-center rounded-full border border-amber-300/70 bg-amber-50/90 px-2.5 py-0.5 text-xs font-semibold text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
               <span className="truncate">{settings.className}</span>
             </div>
           )}
@@ -218,7 +218,7 @@ export function AppShell({ children }: AppShellProps) {
                   aria-current={isSubActive ? "page" : undefined}
                   className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text ${
                     isSubActive
-                      ? "bg-blue-50 font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                      ? "bg-primary/10 text-primary-text font-semibold dark:bg-elevated dark:text-main"
                       : "text-muted hover:bg-subtle hover:text-main font-medium"
                   }`}
                   data-record="true"
