@@ -243,7 +243,10 @@ export default defineConfig({
           if (id.includes("node_modules/@tanstack/react-router")) {
             return "router";
           }
-          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
+          if (id.includes("node_modules/d3-") || id.includes("node_modules/victory-vendor")) {
+            return "d3";
+          }
+          if (id.includes("node_modules/recharts")) {
             return "recharts";
           }
           if (id.includes("node_modules/lucide-react")) {

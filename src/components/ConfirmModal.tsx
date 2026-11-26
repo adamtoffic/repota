@@ -17,6 +17,8 @@ interface Props {
   isLoading?: boolean;
   /** Keeps the modal open when confirm is clicked so async handlers control closing. */
   keepOpenOnConfirm?: boolean;
+  /** Allow static non-PII modal titles to appear unmasked in session replay. */
+  recordTitle?: boolean;
   onConfirm: () => void;
   onClose: () => void;
   onCancel?: () => void; // Optional callback for cancel action
@@ -37,6 +39,7 @@ function ConfirmModalContent({
   confirmKeyword,
   isLoading = false,
   keepOpenOnConfirm = false,
+  recordTitle = false,
   onConfirm,
   onClose,
   onCancel,
@@ -86,7 +89,7 @@ function ConfirmModalContent({
             <h2
               id={titleId}
               className="text-main text-lg leading-tight font-bold"
-              data-record="true"
+              data-record={recordTitle ? "true" : undefined}
             >
               {title}
             </h2>

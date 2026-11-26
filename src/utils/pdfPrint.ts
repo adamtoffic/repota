@@ -66,6 +66,10 @@ const freeCanvas = (canvas: HTMLCanvasElement | null): void => {
   canvas.height = 0;
 };
 
+/**
+ * Caps html2canvas pixel density by device class and batch length so multi-page
+ * PDF captures stay crisp without triggering iOS Safari WebKit OOM crashes.
+ */
 export const resolvePdfCaptureScale = (pageCount: number): number => {
   if (isIOSDevice()) {
     if (pageCount >= 25) return 1.25;
@@ -75,6 +79,10 @@ export const resolvePdfCaptureScale = (pageCount: number): number => {
   return pageCount >= 30 ? 1.5 : 2;
 };
 
+/**
+ * Excludes `#root` and sibling `document.body` nodes during off-screen stage capture
+ * (reducing cloning work from quadratic to linear) while retaining `<style>` and `<link>` tags.
+ */
 export const buildStageIgnoreElements = (stage: HTMLElement) => (el: Element): boolean =>
   el instanceof HTMLElement &&
   el.parentElement === document.body &&

@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { DashboardFilter, StudentSortOption } from "../utils/studentValidation";
 
 export interface DashboardFilterCounts {
@@ -88,6 +90,7 @@ export function DashboardToolbar({
   const [showMenu, setShowMenu] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isMobileSheet = useMediaQuery("(max-width: 767px)", false);
 
   const closeMenu = useCallback((restoreFocus = false) => {
     setShowMenu(false);
@@ -96,12 +99,36 @@ export function DashboardToolbar({
     }
   }, []);
 
+  const closeMobileSheet = useCallback(() => {
+    closeMenu(true);
+  }, [closeMenu]);
+
+  useDialogA11y({
+    isOpen: showMenu && isMobileSheet,
+    onClose: closeMobileSheet,
+    dialogRef: menuRef,
+    closeOnEscape: true,
+    lockScroll: true,
+    trapFocus: true,
+  });
+
+  useEffect(() => {
+    if (!showMenu || !isMobileSheet) return;
+    document.documentElement.dataset.mobileSheetOpen = "true";
+    return () => {
+      delete document.documentElement.dataset.mobileSheetOpen;
+    };
+  }, [isMobileSheet, showMenu]);
+
   useEffect(() => {
     if (!showMenu) return;
     const focusTimer = requestAnimationFrame(() => {
       const firstItem = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
       firstItem?.focus();
     });
+    if (isMobileSheet) {
+      return () => cancelAnimationFrame(focusTimer);
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -113,7 +140,7 @@ export function DashboardToolbar({
       cancelAnimationFrame(focusTimer);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [closeMenu, showMenu]);
+  }, [closeMenu, isMobileSheet, showMenu]);
 
   const handleMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const items = Array.from(
@@ -276,10 +303,12 @@ export function DashboardToolbar({
               />
               <div
                 ref={menuRef}
+                tabIndex={-1}
                 role="menu"
                 aria-label="Class Tools"
+                aria-modal={isMobileSheet ? "true" : undefined}
                 onKeyDown={handleMenuKeyDown}
-                className="border-border bg-elevated fixed inset-x-0 bottom-0 z-50 max-h-[82dvh] overflow-y-auto rounded-t-3xl border-t p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl md:absolute md:inset-auto md:top-full md:right-0 md:z-40 md:mt-2 md:max-h-[75dvh] md:w-72 md:rounded-2xl md:border md:p-1.5 md:pb-1.5 md:shadow-xl"
+                className="border-border bg-elevated fixed inset-x-0 bottom-0 z-50 max-h-[82dvh] overflow-y-auto rounded-t-3xl border-t p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] shadow-2xl focus:outline-none md:absolute md:inset-auto md:top-full md:right-0 md:z-40 md:mt-2 md:max-h-[75dvh] md:w-72 md:rounded-2xl md:border md:p-1.5 md:pb-1.5 md:shadow-xl"
               >
                 {/* Mobile Drag Handle & Header */}
                 <div className="mb-3 flex flex-col items-center md:hidden">
