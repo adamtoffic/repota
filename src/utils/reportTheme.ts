@@ -70,7 +70,7 @@ export function getContrastTextColor(bgHex: string): "#ffffff" | "#0f172a" {
     return srgb <= 0.03928 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
   };
   const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-  return luminance > 0.36 ? "#0f172a" : "#ffffff";
+  return luminance > 0.179 ? "#0f172a" : "#ffffff";
 }
 
 export interface ReportPalette {

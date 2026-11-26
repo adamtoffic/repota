@@ -2,6 +2,7 @@ import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
 import {
   DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
   getActivePrivateFeeItems,
   resolvePositionVisibility,
 } from "../utils/privateSchoolFees";
@@ -59,13 +60,11 @@ export const HeritageTemplate = memo(function HeritageTemplate({
   const outerFrameStyle = { borderColor: palette.primaryDark };
   const innerFrameStyle = { borderColor: palette.accent };
   const cornerStyle = { borderColor: palette.accent };
-  const nextTermLabel = settings.nextTermStarts
-    ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-    : "To Be Announced";
+  const nextTermLabel = formatReportDate(settings.nextTermStarts, "To Be Announced");
 
   return (
     <div
-      className={`report-page relative mx-auto box-border flex min-h-[297mm] w-[210mm] flex-col bg-white p-[7mm] text-gray-900 print:h-[297mm] print:overflow-hidden ${
+      className={`report-page relative mx-auto box-border flex min-h-[297mm] w-[210mm] flex-col bg-white p-[7mm] text-gray-900 print:h-[296.5mm] print:overflow-hidden ${
         isIslamic ? "font-arabic" : "font-sans"
       }`}
     >
@@ -216,7 +215,7 @@ export const HeritageTemplate = memo(function HeritageTemplate({
                   Class / Level
                 </span>
                 <span className="font-bold text-gray-900">
-                  {student.className || settings.className || settings.level}
+                  {settings.className || student.className || settings.level}
                 </span>
               </div>
               <div
@@ -517,14 +516,13 @@ export const HeritageTemplate = memo(function HeritageTemplate({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div className="border px-2.5 py-1.5" style={{ borderColor: palette.primaryBorder }}>
                 <span className="block text-[9px] font-bold text-gray-500 uppercase">
                   Class Teacher&apos;s Remark
                 </span>
                 <p className="mt-0.5 font-medium text-gray-800 italic">
-                  {student.teacherRemark ||
-                    "A diligent learner who participates actively in classwork."}
+                  {student.teacherRemark?.trim() || "\u00A0"}
                 </p>
               </div>
               <div className="border px-2.5 py-1.5" style={{ borderColor: palette.primaryBorder }}>
@@ -567,10 +565,13 @@ export const HeritageTemplate = memo(function HeritageTemplate({
                 </div>
 
                 {hasAnyFee && (
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] sm:grid-cols-3">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
                     {activeFees.map((item) => (
                       <div key={item.id} className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-gray-700">{item.label}:</span>
+                        <span className="font-medium text-gray-700">
+                          {item.label}
+                          {item.cycle ? ` (${item.cycle})` : ""}:
+                        </span>
                         <span className="font-bold text-gray-900 tabular-nums">
                           GH₵{item.amount.toFixed(2)}
                         </span>

@@ -2,7 +2,7 @@ import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "re
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Award, LayoutTemplate, Palette, Printer, RotateCcw } from "lucide-react";
 import type { ComponentType } from "react";
-import type { PrintMode, ReportTemplateProps, SchoolSettings } from "../../types";
+import type { ProcessedStudent, PrintMode, ReportTemplateProps, SchoolSettings } from "../../types";
 import { captureEvent } from "../../utils/analytics";
 import { TEMPLATE_REGISTRY } from "../../templates/registry";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
@@ -14,17 +14,19 @@ import {
 } from "../../utils/reportTheme";
 import {
   buildTemplatePreviewSettings,
-  TEMPLATE_PREVIEW_STUDENT,
+  buildTemplatePreviewStudent,
 } from "../../utils/templatePreviewData";
 
 const A4_WIDTH_PX = 794;
 
 const ScaledTemplatePreview = memo(function ScaledTemplatePreview({
   TemplateComponent,
+  previewStudent,
   previewSettings,
   printMode,
 }: {
   TemplateComponent: ComponentType<ReportTemplateProps>;
+  previewStudent: ProcessedStudent;
   previewSettings: SchoolSettings;
   printMode: PrintMode;
 }) {
@@ -68,7 +70,7 @@ const ScaledTemplatePreview = memo(function ScaledTemplatePreview({
         }}
       >
         <TemplateComponent
-          student={TEMPLATE_PREVIEW_STUDENT}
+          student={previewStudent}
           settings={previewSettings}
           printMode={printMode}
         />
@@ -131,9 +133,17 @@ export function ReportTemplateSection() {
       formData.className,
       formData.classSize,
       formData.totalAttendanceDays,
+      formData.showFeeSchedule,
+      formData.privateFeeItems,
+      formData.feePaymentNote,
     ],
   );
+  const previewStudent = useMemo(
+    () => buildTemplatePreviewStudent(previewSettings),
+    [previewSettings],
+  );
   const deferredPreviewSettings = useDeferredValue(previewSettings);
+  const deferredPreviewStudent = useDeferredValue(previewStudent);
   const deferredPreviewPrintMode = useDeferredValue(previewPrintMode);
 
   const previewPalette = getReportPalette({
@@ -239,6 +249,7 @@ export function ReportTemplateSection() {
                 <ScaledTemplatePreview
                   TemplateComponent={template.component}
                   previewSettings={deferredPreviewSettings}
+                  previewStudent={deferredPreviewStudent}
                   printMode={deferredPreviewPrintMode}
                 />
                 <span className="text-main mb-1 pr-6 font-bold">{template.name}</span>

@@ -1,6 +1,11 @@
 import { memo } from "react";
 import type { ReportTemplateProps } from "../types";
-import { getActivePrivateFeeItems, resolvePositionVisibility } from "../utils/privateSchoolFees";
+import {
+  DEFAULT_PAYMENT_NOTE,
+  formatReportDate,
+  getActivePrivateFeeItems,
+  resolvePositionVisibility,
+} from "../utils/privateSchoolFees";
 import { generateHeadmasterRemark } from "../utils/remarkGenerator";
 import { getReportPalette } from "../utils/reportTheme";
 
@@ -9,6 +14,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
   settings,
   printMode,
 }: ReportTemplateProps) {
+  const isIslamic = settings.schoolType === "ISLAMIC";
   const isKG = settings.level === "KG";
   const isMock = settings.examType === "MOCK";
   const isThirdTerm = settings.term === "Third Term";
@@ -20,6 +26,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
     Boolean(settings.showStudentFeeArrearsOnReport) &&
     typeof student.feeArrears === "number" &&
     student.feeArrears > 0;
+  const paymentNote = settings.feePaymentNote?.trim() || DEFAULT_PAYMENT_NOTE;
   const { showClassPositionHeader, showClassPositionSummary, showSubjectPosition } =
     resolvePositionVisibility(settings);
   const headmasterRemark = generateHeadmasterRemark(
@@ -66,9 +73,19 @@ export const ClassicTemplate = memo(function ClassicTemplate({
     : undefined;
   const customText = useCustom ? { color: palette.primaryDark } : undefined;
 
+  const subjectCount = student.subjects.length;
+  const density =
+    subjectCount > 14
+      ? { rowPy: "py-0.5", headerPy: "py-1", textSize: "text-[10px]", headerMb: "mb-2" }
+      : subjectCount > 10
+        ? { rowPy: "py-1", headerPy: "py-1.5", textSize: "text-[11px]", headerMb: "mb-3" }
+        : { rowPy: "py-1.5", headerPy: "py-2", textSize: "text-[13px]", headerMb: "mb-4" };
+
   return (
     <div
-      className={`relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] bg-white p-[10mm] font-sans text-gray-900 print:h-[297mm] print:overflow-hidden print:border-none`}
+      className={`report-page relative mx-auto box-border grid min-h-[297mm] w-[210mm] grid-rows-[auto_1fr_auto] bg-white p-[10mm] text-gray-900 print:h-[296.5mm] print:overflow-hidden print:border-none ${
+        isIslamic ? "font-arabic" : "font-sans"
+      }`}
     >
       {/* 🛡️ WATERMARK */}
       <div
@@ -77,8 +94,13 @@ export const ClassicTemplate = memo(function ClassicTemplate({
       {/* ==========================================
           ROW 1: HEADER & STUDENT PROFILE
           ========================================== */}
-      <header className={`mb-1 border-b-2 ${borderColor} pb-1`} style={customBorder}>
-        <div className="mb-4 flex items-center justify-between">
+      <header className={`relative z-10 mb-1 border-b-2 ${borderColor} pb-1`} style={customBorder}>
+        {isIslamic && (
+          <div className="mb-1 text-center">
+            <p className="font-arabic text-sm font-bold">بسم الله الرحمن الرحيم</p>
+          </div>
+        )}
+        <div className={`${density.headerMb} flex items-center justify-between`}>
           <div className="flex h-24 w-24 items-center justify-center" aria-hidden={!settings.logoUrl}>
             {settings.logoUrl ? (
               <img
@@ -150,7 +172,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
           </div>
           <div className={`flex justify-between border-b ${infoRowBorder} pb-1`} style={customInfoBorder}>
             <span className="font-semibold text-gray-600">Class:</span>
-            <span className="font-bold">{settings.className || student.className}</span>
+            <span className="font-bold">{settings.className || student.className || settings.level}</span>
           </div>
           <div className={`flex justify-between border-b ${infoRowBorder} pb-1`} style={customInfoBorder}>
             <span className="font-semibold text-gray-600">Term:</span>
@@ -175,41 +197,41 @@ export const ClassicTemplate = memo(function ClassicTemplate({
       {/* ==========================================
           ROW 2: ACADEMIC TABLE
           ========================================== */}
-      <main className="mb-1 min-h-0 overflow-hidden">
-        <table className={`w-full border-collapse border-2 ${borderColor} text-[13px]`} style={customBorder}>
+      <main className="relative z-10 mb-1 min-h-0 overflow-hidden">
+        <table className={`w-full border-collapse border-2 ${borderColor} ${density.textSize}`} style={customBorder}>
           <thead>
             <tr className={`border-b-2 ${borderColor} ${tableHeaderBg}`} style={{ ...customBorder, ...customHeaderBg }}>
-              <th className={`w-1/3 border ${borderColor} px-2 py-2 text-left`} style={customBorder}>Subject</th>
+              <th className={`w-1/3 border ${borderColor} px-2 ${density.headerPy} text-left`} style={customBorder}>Subject</th>
               {!isMock ? (
                 <>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
+                  <th className={`w-16 border ${borderColor} px-1 ${density.headerPy} text-center leading-tight`} style={customBorder}>
                     Class
                     <br />
                     <span className="text-[10px]">({settings.classScoreMax}%)</span>
                   </th>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
+                  <th className={`w-16 border ${borderColor} px-1 ${density.headerPy} text-center leading-tight`} style={customBorder}>
                     Exam
                     <br />
                     <span className="text-[10px]">({settings.examScoreMax}%)</span>
                   </th>
-                  <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
+                  <th className={`w-16 border ${borderColor} px-1 ${density.headerPy} text-center leading-tight`} style={customBorder}>
                     Total
                     <br />
                     <span className="text-[10px]">(100%)</span>
                   </th>
                 </>
               ) : (
-                <th className={`w-16 border ${borderColor} px-1 py-2 text-center leading-tight`} style={customBorder}>
+                <th className={`w-16 border ${borderColor} px-1 ${density.headerPy} text-center leading-tight`} style={customBorder}>
                   Score
                   <br />
                   <span className="text-[10px]">(100%)</span>
                 </th>
               )}
-              <th className={`w-16 border ${borderColor} px-2 py-2 text-center`} style={customBorder}>Grade</th>
+              <th className={`w-16 border ${borderColor} px-2 ${density.headerPy} text-center`} style={customBorder}>Grade</th>
               {showSubjectPosition && (
-                <th className={`w-16 border ${borderColor} px-2 py-2 text-center`} style={customBorder}>Pos</th>
+                <th className={`w-16 border ${borderColor} px-2 ${density.headerPy} text-center`} style={customBorder}>Pos</th>
               )}
-              <th className={`border ${borderColor} px-2 py-2 text-left`} style={customBorder}>Remarks</th>
+              <th className={`border ${borderColor} px-2 ${density.headerPy} text-left`} style={customBorder}>Remarks</th>
             </tr>
           </thead>
           <tbody className={`divide-y ${divideColor}`}>
@@ -219,36 +241,36 @@ export const ClassicTemplate = memo(function ClassicTemplate({
                 className={idx % 2 === 1 ? zebraBg : "bg-white"}
                 style={idx % 2 === 1 && useCustom ? { backgroundColor: palette.zebraBg } : undefined}
               >
-                <td className={`border ${borderColor} px-2 py-1.5 font-medium`} style={customBorder}>{sub.name}</td>
+                <td className={`border ${borderColor} px-2 ${density.rowPy} font-medium`} style={customBorder}>{sub.name}</td>
                 {!isMock ? (
                   <>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center`} style={customBorder}>
+                    <td className={`border ${borderColor} px-2 ${density.rowPy} text-center`} style={customBorder}>
                       {sub.classScore}
                     </td>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center`} style={customBorder}>
+                    <td className={`border ${borderColor} px-2 ${density.rowPy} text-center`} style={customBorder}>
                       {sub.examScore}
                     </td>
-                    <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`} style={customBorder}>
+                    <td className={`border ${borderColor} px-2 ${density.rowPy} text-center font-bold`} style={customBorder}>
                       {sub.totalScore}
                     </td>
                   </>
                 ) : (
-                  <td className={`border ${borderColor} px-2 py-1.5 text-center font-bold`} style={customBorder}>
+                  <td className={`border ${borderColor} px-2 ${density.rowPy} text-center font-bold`} style={customBorder}>
                     {sub.totalScore}
                   </td>
                 )}
                 <td
-                  className={`border ${borderColor} px-2 py-1.5 text-center font-bold ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
+                  className={`border ${borderColor} px-2 ${density.rowPy} text-center font-bold ${String(sub.grade).includes("9") || sub.grade === "F9" ? redText : ""}`}
                   style={customBorder}
                 >
                   {sub.grade}
                 </td>
                 {showSubjectPosition && (
-                  <td className={`border ${borderColor} px-2 py-1.5 text-center text-xs`} style={customBorder}>
+                  <td className={`border ${borderColor} px-2 ${density.rowPy} text-center text-xs`} style={customBorder}>
                     {sub.subjectPosition || "-"}
                   </td>
                 )}
-                <td className={`border ${borderColor} px-2 py-1.5 text-left text-xs italic`} style={customBorder}>
+                <td className={`border ${borderColor} px-2 ${density.rowPy} text-left text-xs italic`} style={customBorder}>
                   {sub.remark}
                 </td>
               </tr>
@@ -294,12 +316,12 @@ export const ClassicTemplate = memo(function ClassicTemplate({
       {/* ==========================================
           ROW 3: FOOTER
           ========================================== */}
-      <footer className="space-y-2 text-sm">
+      <footer className="relative z-10 space-y-2 text-sm">
         <div className="flex flex-wrap gap-4">
           <div className={`flex-1 rounded border ${borderColor} p-2`} style={customBorder}>
             <span className="block text-xs font-semibold text-gray-600 uppercase">Attendance</span>
             <div className="text-sm font-bold">
-              {student.attendancePresent || 0} out of {settings.totalAttendanceDays || "-"} days
+              {student.attendancePresent ?? "-"} out of {settings.totalAttendanceDays || "-"} days
             </div>
           </div>
           <div className={`flex-2 rounded border ${borderColor} p-2`} style={customBorder}>
@@ -325,7 +347,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
               Class Teacher's Remark
             </span>
             <p className="mt-2 min-h-10 text-[13px] italic">
-              {student.teacherRemark || "Good performance."}
+              {student.teacherRemark?.trim() || "\u00A0"}
             </p>
           </div>
           <div className={`rounded border ${borderColor} ${remarkBg} p-3`} style={{ ...customBorder, ...customSoftBg }}>
@@ -340,7 +362,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
         </div>
 
         {(isThirdTerm || (isPrivate && (hasAnyFee || showArrears))) && (
-          <div className={`flex gap-2 rounded border ${borderColor} p-1`} style={customBorder}>
+          <div className={`flex flex-wrap gap-2 rounded border ${borderColor} p-1.5`} style={customBorder}>
             {isThirdTerm && (
               <div className={`flex-1 ${isPrivate && (hasAnyFee || showArrears) ? `border-r ${borderColor}` : ""} pr-4`} style={customBorder}>
                 <span className="text-xs font-bold text-gray-600 uppercase">Promotion Status:</span>
@@ -355,18 +377,24 @@ export const ClassicTemplate = memo(function ClassicTemplate({
                   <div key={fee.id} className="text-center">
                     <span className="text-[10px] font-bold text-gray-500 uppercase">
                       {fee.label}
+                      {fee.cycle ? ` (${fee.cycle})` : ""}
                     </span>
                     <p className="text-sm font-bold">GH₵ {fee.amount.toFixed(2)}</p>
                   </div>
                 ))}
                 {showArrears && (
                   <div className="text-center">
-                    <span className="text-[10px] font-bold text-red-600 uppercase">Arrears</span>
-                    <p className="text-sm font-bold text-red-700">
+                    <span className={`text-[10px] font-bold uppercase ${isBW ? "text-black" : "text-red-600"}`}>
+                      Arrears
+                    </span>
+                    <p className={`text-sm font-bold ${isBW ? "text-black underline" : "text-red-700"}`}>
                       GH₵ {student.feeArrears!.toFixed(2)}
                     </p>
                   </div>
                 )}
+                <p className="w-full border-t border-gray-200 pt-1 text-[9px] text-gray-600">
+                  {paymentNote}
+                </p>
               </div>
             )}
           </div>
@@ -382,7 +410,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
                   className={`max-h-full max-w-full object-contain ${imgFilter}`}
                 />
               ) : (
-                <div className={`mb-2 w-full border-b-2 ${sigLine}`} style={customBorder}></div>
+                <div className="h-6 w-full" />
               )}
             </div>
             <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`} style={customBorder}>
@@ -392,9 +420,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
           <div className="text-center">
             <p className="mb-1 text-xs font-bold text-gray-500">Next Term Begins On</p>
             <p className="min-w-30 border-b border-gray-400 pb-1 font-black">
-              {settings.nextTermStarts
-                ? new Date(settings.nextTermStarts).toLocaleDateString("en-GB")
-                : "........................"}
+              {formatReportDate(settings.nextTermStarts, "........................")}
             </p>
           </div>
           <div className="w-48 text-center">
@@ -406,7 +432,7 @@ export const ClassicTemplate = memo(function ClassicTemplate({
                   className={`max-h-full max-w-full object-contain ${imgFilter}`}
                 />
               ) : (
-                <div className={`mb-2 w-full border-b-2 ${sigLine}`} style={customBorder}></div>
+                <div className="h-6 w-full" />
               )}
             </div>
             <p className={`border-t-2 ${sigLine} pt-1 text-xs font-black uppercase`} style={customBorder}>
