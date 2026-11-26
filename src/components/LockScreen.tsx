@@ -202,17 +202,16 @@ export function LockScreen({ onUnlock, onForgotPin, paused = false }: Props) {
   return (
     <div
       aria-hidden={paused || undefined}
-      className={`safe-y animate-fade-in fixed inset-0 z-90 flex items-center justify-center overflow-y-auto bg-[#0F1D3A] p-4 ${
+      className={`safe-y animate-fade-in fixed inset-0 z-90 flex items-center justify-center overflow-y-auto bg-slate-100 bg-linear-to-br from-slate-100 via-blue-50 to-indigo-100 p-4 dark:bg-[#0B152B] dark:from-[#0B152B] dark:via-[#0F1D3A] dark:to-[#162647] ${
         paused ? "pointer-events-none" : ""
       }`}
       style={{
-        backgroundImage: "linear-gradient(160deg, #0B152B 0%, #0F1D3A 55%, #162647 100%)",
         minHeight: "-webkit-fill-available",
         touchAction: "manipulation",
       }}
     >
       <div
-        className={`animate-sheet-up bg-surface dark:border-border relative my-auto w-full max-w-sm rounded-3xl px-6 py-7 shadow-[0_24px_64px_-16px_rgba(2,6,23,0.55)] ring-1 ring-white/10 transition-all duration-300 sm:px-8 sm:py-8 dark:border ${
+        className={`animate-sheet-up bg-surface border-border/80 dark:border-border relative my-auto w-full max-w-sm rounded-3xl border px-6 py-7 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.16)] ring-1 ring-slate-900/5 transition-all duration-300 sm:px-8 sm:py-8 dark:shadow-[0_24px_64px_-16px_rgba(2,6,23,0.65)] dark:ring-white/10 ${
           isUnlocking ? "scale-[0.98] opacity-0" : "scale-100 opacity-100"
         }`}
       >

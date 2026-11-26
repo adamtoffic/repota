@@ -1,3 +1,4 @@
+import React from "react";
 import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -61,6 +62,21 @@ vi.mock("jspdf", () => ({
     return instance;
   }),
 }));
+
+vi.mock("recharts", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("recharts")>();
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: React.ReactElement<Record<string, unknown>> }) =>
+      React.cloneElement(children, { width: 320, height: 200 }),
+  };
+});
+
+import { ImageUploader } from "../components/ImageUploader";
+import { LockScreen } from "../components/LockScreen";
+import { PinSetup } from "../components/PinSetup";
+import { PieChart, PieChartTooltip } from "../components/charts/PieChart";
+import { PageHeader } from "../components/ui/PageHeader";
 
 import { SchoolProvider } from "../context/SchoolContext";
 import { ThemeProvider } from "../context/ThemeContext";
@@ -498,6 +514,133 @@ describe("Theme system and Dark Mode invariants", () => {
 
       // Live dark mode on the main document remains active after off-screen export
       expect(document.documentElement.classList.contains("dark")).toBe(true);
+    });
+  });
+
+  describe("Branch 4 theme parity & polish", () => {
+    it("PageHeader renders a mobile quick theme toggle that switches themes with data-record", () => {
+      const { mockFn } = createControllableMatchMedia(false);
+      window.matchMedia = mockFn;
+
+      render(
+        <ThemeProvider>
+          <PageHeader schoolName="Parity Academy" />
+        </ThemeProvider>,
+      );
+
+      const toDarkBtn = screen.getByRole("button", { name: "Switch to dark theme" });
+      expect(toDarkBtn).toHaveAttribute("data-record", "true");
+      expect(toDarkBtn.className).toContain("md:hidden");
+
+      fireEvent.click(toDarkBtn);
+      expect(document.documentElement.classList.contains("dark")).toBe(true);
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+
+      const toLightBtn = screen.getByRole("button", { name: "Switch to light theme" });
+      fireEvent.click(toLightBtn);
+      expect(document.documentElement.classList.contains("dark")).toBe(false);
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
+    });
+
+    it("LockScreen and PinSetup use theme-aware light and dark backdrops without hardcoded navy inline gradient", () => {
+      const lockRender = render(<LockScreen onUnlock={vi.fn()} onForgotPin={vi.fn()} />);
+      const lockOuter = lockRender.container.firstElementChild as HTMLElement;
+      expect(lockOuter.className).toContain("from-slate-100");
+      expect(lockOuter.className).toContain("dark:from-[#0B152B]");
+      expect(lockOuter.className).not.toContain("bg-[#0F1D3A]");
+      expect(lockOuter.style.backgroundImage).toBe("");
+      lockRender.unmount();
+
+      const setupRender = render(<PinSetup onComplete={vi.fn()} />);
+      const setupOuter = setupRender.container.firstElementChild as HTMLElement;
+      expect(setupOuter.className).toContain("from-slate-100");
+      expect(setupOuter.className).toContain("dark:from-[#0B152B]");
+      expect(setupOuter.className).not.toContain("bg-[#0F1D3A]");
+      expect(setupOuter.style.backgroundImage).toBe("");
+      setupRender.unmount();
+    });
+
+    it("ImageUploader keeps paper backing for signatures/crests and dark-friendly surface for student photos", () => {
+      const { unmount } = render(
+        <ImageUploader
+          label="Head Teacher Signature"
+          value="data:image/png;base64,sig"
+          onChange={vi.fn()}
+        />,
+      );
+      const sigDropzone = screen.getByRole("button", { name: "Upload Head Teacher Signature" });
+      expect(sigDropzone).toHaveAttribute("data-paper-surface", "true");
+      expect(sigDropzone.className).toContain("bg-white");
+      unmount();
+
+      render(
+        <ImageUploader
+          label="Student Photo"
+          value="data:image/png;base64,photo"
+          onChange={vi.fn()}
+        />,
+      );
+      const photoDropzone = screen.getByRole("button", { name: "Upload Student Photo" });
+      expect(photoDropzone).not.toHaveAttribute("data-paper-surface");
+      expect(photoDropzone.className).toContain("bg-subtle");
+      expect(photoDropzone.className).toContain("dark:bg-elevated");
+    });
+
+    it("PieChart uses theme-aware SVG label colors and PieChartTooltip uses high-contrast theme tokens", () => {
+      const { mockFn } = createControllableMatchMedia(false);
+      window.matchMedia = mockFn;
+      saveThemePreference("dark");
+
+      const { container, rerender } = render(
+        <ThemeProvider>
+          <PieChart
+            data={[
+              { label: "Male (60%)", value: 12, color: "#3b82f6" },
+              { label: "Female (40%)", value: 8, color: "#ec4899" },
+            ]}
+            size={200}
+          />
+        </ThemeProvider>,
+      );
+
+      const darkLabels = Array.from(container.querySelectorAll("svg text")).filter((el) =>
+        el.textContent?.includes("%"),
+      );
+      expect(darkLabels.length).toBeGreaterThanOrEqual(2);
+      darkLabels.forEach((label) => {
+        expect(label.getAttribute("fill")).toBe("#e2e8f0");
+      });
+
+      act(() => {
+        saveThemePreference("light");
+      });
+      rerender(
+        <ThemeProvider>
+          <PieChart
+            data={[
+              { label: "Male (60%)", value: 12, color: "#3b82f6" },
+              { label: "Female (40%)", value: 8, color: "#ec4899" },
+            ]}
+            size={200}
+          />
+        </ThemeProvider>,
+      );
+
+      const lightLabels = Array.from(container.querySelectorAll("svg text")).filter((el) =>
+        el.textContent?.includes("%"),
+      );
+      expect(lightLabels.length).toBeGreaterThanOrEqual(2);
+      lightLabels.forEach((label) => {
+        expect(label.getAttribute("fill")).toBe("#374151");
+      });
+
+      render(
+        <PieChartTooltip
+          active={true}
+          payload={[{ name: "Male (60%)", value: 12, payload: { name: "Male (60%)", color: "#3b82f6" } }]}
+        />,
+      );
+      expect(screen.getByText("12")).toHaveClass("text-primary-text");
     });
   });
 });

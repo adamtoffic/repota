@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "../../hooks/useTheme";
 import { RepotaLogo } from "./RepotaLogo";
 
 interface PageHeaderProps {
@@ -21,10 +23,12 @@ export function PageHeader({
   hideOnDesktop = false,
   sticky = true,
 }: PageHeaderProps) {
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const bgClass =
     variant === "transparent"
-      ? "bg-white/80 backdrop-blur-xl backdrop-saturate-[160%] dark:bg-[#111620]/80"
-      : "bg-white/85 backdrop-blur-xl backdrop-saturate-[160%] dark:bg-[#111620]/85";
+      ? "bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-[160%]"
+      : "bg-[var(--surface-glass)] backdrop-blur-xl backdrop-saturate-[160%]";
 
   return (
     <header
@@ -52,8 +56,24 @@ export function PageHeader({
             </div>
           </div>
 
-          {/* RIGHT SIDE: Actions */}
-          {actions && <div className="flex items-center gap-2 pl-2">{actions}</div>}
+          {/* RIGHT SIDE: Mobile Quick Theme Toggle + Actions */}
+          <div className="flex items-center gap-2 pl-2">
+            <button
+              type="button"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              data-record="true"
+              className="border-border bg-subtle/80 text-secondary hover:bg-subtle hover:text-main inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-text md:hidden"
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4 text-amber-400" aria-hidden="true" />
+              ) : (
+                <Moon className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+            {actions}
+          </div>
         </div>
       </div>
     </header>

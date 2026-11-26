@@ -23,6 +23,7 @@ export function ImageUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast(); // ✅ Hook
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const isPaperAsset = /signature|logo|crest/i.test(label);
 
   const onConfirmOpenChangeRef = useRef(onConfirmOpenChange);
   useEffect(() => {
@@ -97,8 +98,13 @@ export function ImageUploader({
             inputRef.current?.click();
           }
         }}
+        data-paper-surface={value && isPaperAsset ? "true" : undefined}
         className={`w-full ${maxHeight} group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed transition-colors hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none ${
-          value ? "border-border-strong bg-white" : "border-border-strong bg-background"
+          value
+            ? isPaperAsset
+              ? "border-border-strong bg-white dark:bg-slate-100"
+              : "border-border-strong bg-subtle dark:bg-elevated"
+            : "border-border-strong bg-background"
         }`}
       >
         {value ? (
@@ -118,7 +124,7 @@ export function ImageUploader({
         </div>
       </div>
 
-      <p className="text-muted text-[10px]">
+      <p className="text-muted text-xs">
         {label.includes("Signature")
           ? "Tip: Sign on plain white paper and crop closely."
           : "Tip: Auto-compressed for performance."}
@@ -138,7 +144,7 @@ export function ImageUploader({
         <button
           type="button"
           onClick={handleRemove}
-          className="inline-flex items-center gap-1 self-start rounded-md px-2 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
+          className="inline-flex items-center gap-1 self-start rounded-md px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
         >
           <X className="h-3.5 w-3.5" /> Remove Image
         </button>

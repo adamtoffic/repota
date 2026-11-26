@@ -4,6 +4,42 @@ import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip }
 import { useTheme } from "../../hooks/useTheme";
 import { getChartThemeColors } from "../../utils/theme";
 
+const RADIAN = Math.PI / 180;
+
+interface PieTooltipPayload {
+  name?: string;
+  value?: number;
+  payload?: {
+    name?: string;
+    color?: string;
+  };
+}
+
+export const PieChartTooltip: React.FC<{
+  active?: boolean;
+  payload?: PieTooltipPayload[];
+}> = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const item = payload[0];
+    const swatchColor = item.payload?.color || "#3b82f6";
+    const label = item.payload?.name || item.name || "";
+    return (
+      <div className="border-border bg-elevated rounded-lg border px-3 py-2 shadow-lg">
+        <p className="text-main text-xs font-bold">{label}</p>
+        <div className="mt-0.5 flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: swatchColor }}
+          />
+          <p className="text-primary-text text-sm font-black tabular-nums">{item.value}</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 interface PieChartProps {
   data: {
     label: string;
@@ -39,22 +75,48 @@ export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend
     color: item.color || getColor(index),
   }));
 
-  const renderCustomLabel = (props: { percent?: number }) => {
+  const outerRadius = size / 2.6;
+
+  const renderCustomLabel = (props: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    percent?: number;
+  }) => {
     if (!props.percent || props.percent < 0.05) return null;
-    return `${(props.percent * 100).toFixed(0)}%`;
+    const cx = props.cx ?? size / 2;
+    const cy = props.cy ?? size / 2;
+    const midAngle = props.midAngle ?? 0;
+    const radius = outerRadius + 12;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill={chartColors.label}
+        textAnchor={x >= cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight={700}
+      >
+        {`${(props.percent * 100).toFixed(0)}%`}
+      </text>
+    );
   };
 
   return (
     <div className="flex flex-col gap-4">
       <ResponsiveContainer width="100%" height={size} debounce={50} className="chart-gpu-pie">
-        <RechartsPieChart>
+        <RechartsPieChart margin={{ top: 12, right: 24, bottom: 12, left: 24 }}>
           <Pie
             data={chartData}
             cx="50%"
             cy="50%"
             labelLine={false}
             label={renderCustomLabel}
-            outerRadius={size / 2.5}
+            outerRadius={outerRadius}
             innerRadius={size / 5}
             paddingAngle={2}
             dataKey="value"
@@ -64,17 +126,7 @@ export const PieChart: React.FC<PieChartProps> = ({ data, size = 200, showLegend
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              backgroundColor: chartColors.tooltipBg,
-              border: `1px solid ${chartColors.tooltipBorder}`,
-              borderRadius: "8px",
-              padding: "8px 12px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-              color: chartColors.tooltipText,
-            }}
-            itemStyle={{ color: chartColors.tooltipText }}
-          />
+          <Tooltip content={<PieChartTooltip />} />
         </RechartsPieChart>
       </ResponsiveContainer>
 
