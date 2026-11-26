@@ -154,9 +154,9 @@ export function AnalyticsSubjectsTab({
       {/* Subject Variance/Consistency Analysis */}
       {subjectVariance.length > 0 && (
         <Card>
-          <h3 data-record="true" className="text-main mb-4 text-base font-bold sm:text-lg">
+          <h2 data-record="true" className="text-main mb-4 text-base font-bold sm:text-lg">
             Subject Performance Consistency
-          </h3>
+          </h2>
           <p data-record="true" className="text-muted mb-4 text-sm">
             Measures how consistent student scores are within each subject. Low variance = students
             perform similarly. High variance = wide performance gap.
@@ -166,24 +166,28 @@ export function AnalyticsSubjectsTab({
               <thead className="bg-subtle">
                 <tr className="border-border border-b">
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
                     Subject
                   </th>
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
                     Std. Deviation
                   </th>
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
                     Consistency
                   </th>
                   <th
+                    scope="col"
                     data-record="true"
                     className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                   >
@@ -231,44 +235,50 @@ export function AnalyticsSubjectsTab({
 
       {/* Subject Details Table */}
       <Card>
-        <h3 data-record="true" className="text-main mb-4 text-base font-bold sm:text-lg">
+        <h2 data-record="true" className="text-main mb-4 text-base font-bold sm:text-lg">
           Detailed Subject Statistics
-        </h3>
+        </h2>
         <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg">
           <table className="w-full min-w-150">
             <thead className="bg-subtle">
               <tr className="border-border border-b">
                 <th
+                  scope="col"
                   data-record="true"
                   className="text-main px-4 py-2 text-left text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                 >
                   Subject
                 </th>
                 <th
+                  scope="col"
                   data-record="true"
                   className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                 >
                   Average
                 </th>
                 <th
+                  scope="col"
                   data-record="true"
                   className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                 >
                   High
                 </th>
                 <th
+                  scope="col"
                   data-record="true"
                   className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                 >
                   Low
                 </th>
                 <th
+                  scope="col"
                   data-record="true"
                   className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                 >
                   Pass Rate
                 </th>
                 <th
+                  scope="col"
                   data-record="true"
                   className="text-main px-4 py-2 text-center text-xs font-bold tracking-wide uppercase sm:py-3 sm:text-sm"
                 >

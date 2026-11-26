@@ -56,9 +56,9 @@ export function DashboardStats({ students, settings, activeFilter, onFilterChang
             <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-1 text-sm font-bold text-red-900 dark:text-red-200">
+            <h2 className="mb-1 text-sm font-bold text-red-900 dark:text-red-200">
               <span data-record="true">Class Over Capacity</span> ({stats.total} / {stats.classSize})
-            </h3>
+            </h2>
             <p className="text-xs leading-relaxed text-red-700 dark:text-red-300">
               You have {stats.total - stats.classSize} more student
               {stats.total - stats.classSize > 1 ? "s" : ""}{" "}
@@ -206,7 +206,12 @@ function StatCard({
           {label}
         </p>
         <div className="mt-1 flex items-center gap-2 sm:mt-1.5">
-          <h3 className="text-main text-xl font-black tabular-nums sm:text-2xl">{value}</h3>
+          <p
+            data-stat-value="true"
+            className="text-main text-xl font-black tabular-nums sm:text-2xl"
+          >
+            {value}
+          </p>
           {alert && (
             <span className="relative flex h-2 w-2">
               <span

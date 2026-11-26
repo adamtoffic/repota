@@ -59,7 +59,7 @@ export function SecurityBackupSection() {
                 onClick={() => setShowPinSetup(true)}
                 variant="primary"
                 size="sm"
-                className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
+                className="w-full bg-green-700 hover:bg-green-800 sm:w-auto"
               >
                 {isPinConfigured() ? "Change PIN" : "Enable PIN Lock"}
               </Button>

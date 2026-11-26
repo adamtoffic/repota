@@ -161,7 +161,7 @@ export function DashboardToolbar({
             label={counts ? `Incomplete (${counts.pending})` : "Incomplete"}
             isActive={activeFilter === "PENDING"}
             onClick={() => onFilterChange(activeFilter === "PENDING" ? "ALL" : "PENDING")}
-            activeColor="bg-orange-500"
+            activeColor="bg-orange-700"
           />
           {((counts?.missingPhotos ?? 0) > 0 || activeFilter === "MISSING_PHOTOS") && (
             <FilterButton
@@ -170,14 +170,14 @@ export function DashboardToolbar({
               onClick={() =>
                 onFilterChange(activeFilter === "MISSING_PHOTOS" ? "ALL" : "MISSING_PHOTOS")
               }
-              activeColor="bg-yellow-600"
+              activeColor="bg-amber-700"
             />
           )}
           <FilterButton
             label={counts ? `Failing (${counts.failing})` : "Failing"}
             isActive={activeFilter === "FAILING"}
             onClick={() => onFilterChange(activeFilter === "FAILING" ? "ALL" : "FAILING")}
-            activeColor="bg-red-500"
+            activeColor="bg-red-600"
           />
           {activeFilter === "NO_SCORES" && (
             <FilterButton
@@ -196,7 +196,7 @@ export function DashboardToolbar({
               }
               isActive={true}
               onClick={() => onFilterChange("ALL")}
-              activeColor="bg-orange-600"
+              activeColor="bg-orange-700"
             />
           )}
         </div>
@@ -468,6 +468,8 @@ function FilterButton({
 
   return (
     <button
+      type="button"
+      aria-pressed={isActive}
       onClick={onClick}
       className={`flex items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
         isActive ? activeStyle : `border-border bg-surface text-secondary ${hoverColor}`

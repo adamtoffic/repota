@@ -897,7 +897,7 @@ describe("Phase 3 Teacher UX & Score Entry", () => {
           </SchoolContext.Provider>,
         );
 
-        const headerNav = container.querySelector("nav");
+        const headerNav = container.querySelector("header");
         expect(headerNav?.className).toContain("sticky");
         expect(screen.getByText(/1 student has no scores entered/i)).toBeInTheDocument();
 

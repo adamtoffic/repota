@@ -197,8 +197,8 @@ export function AnalyticsOverviewTab({
                     <span
                       className={
                         Math.abs(genderAnalysis.maleAverage - genderAnalysis.femaleAverage) > 5
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-green-600 dark:text-emerald-400"
+                          ? "text-amber-700 dark:text-amber-400"
+                          : "text-green-700 dark:text-emerald-400"
                       }
                     >
                       {Math.abs(genderAnalysis.maleAverage - genderAnalysis.femaleAverage).toFixed(
@@ -228,12 +228,12 @@ export function AnalyticsOverviewTab({
                 <div
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white sm:h-8 sm:w-8 ${
                     index === 0
-                      ? "bg-linear-to-br from-yellow-400 to-yellow-600"
+                      ? "bg-linear-to-br from-amber-600 to-amber-800"
                       : index === 1
-                        ? "bg-linear-to-br from-gray-300 to-gray-500"
+                        ? "bg-linear-to-br from-slate-600 to-slate-800"
                         : index === 2
-                          ? "bg-linear-to-br from-orange-400 to-orange-600"
-                          : "bg-linear-to-br from-blue-400 to-blue-600"
+                          ? "bg-linear-to-br from-orange-700 to-orange-800"
+                          : "bg-linear-to-br from-blue-600 to-blue-800"
                   }`}
                 >
                   {index + 1}
@@ -259,13 +259,13 @@ export function AnalyticsOverviewTab({
       {(coreVsElective.coreAverage > 0 || coreVsElective.aggregateBands.length > 0) && (
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
           <Card>
-            <h3
+            <h2
               data-record="true"
               className="text-main mb-3 flex items-center gap-2 text-base font-bold"
             >
               <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               Core vs. Elective Health
-            </h3>
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3 dark:border-blue-800/70 dark:bg-blue-950/50">
                 <p
@@ -300,13 +300,13 @@ export function AnalyticsOverviewTab({
 
           {coreVsElective.aggregateBands.length > 0 && (
             <Card>
-              <h3
+              <h2
                 data-record="true"
                 className="text-main mb-3 flex items-center gap-2 text-base font-bold"
               >
                 <Award className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 Aggregate Distribution Bands
-              </h3>
+              </h2>
               <div className="space-y-2">
                 {coreVsElective.aggregateBands.map((band) => (
                   <div key={band.band} className="flex items-center justify-between text-xs">
@@ -330,13 +330,13 @@ export function AnalyticsOverviewTab({
         (privateFeeSummary.trackedCount > 0 || privateFeeSummary.totalArrears > 0) && (
           <Card>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h3
+              <h2
                 data-record="true"
                 className="text-main flex items-center gap-2 text-base font-bold"
               >
                 <Wallet className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Private School Fee Tracking
-              </h3>
+              </h2>
               <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800 dark:bg-red-950/60 dark:text-red-300">
                 Total Arrears: GH₵{privateFeeSummary.totalArrears.toFixed(2)}
               </span>

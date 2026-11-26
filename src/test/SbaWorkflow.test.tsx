@@ -712,13 +712,13 @@ describe("SBA Markbook workflow end-to-end", () => {
       expect(screen.getByLabelText("Ama Mensah CAT 1 Score")).toBeInTheDocument();
     });
 
-    const nav = container.querySelector("nav");
-    expect(nav).not.toBeNull();
-    expect(nav).toHaveClass("sticky", "top-0", "z-30");
+    const header = container.querySelector("header");
+    expect(header).not.toBeNull();
+    expect(header).toHaveClass("sticky", "top-0", "z-30");
 
     // Focusing an editable score input temporarily unsticks PageHeader for iOS keyboard hit-testing
     fireEvent.focusIn(screen.getByLabelText("Ama Mensah CAT 1 Score"));
-    expect(nav).toHaveClass("relative");
-    expect(nav).not.toHaveClass("sticky");
+    expect(header).toHaveClass("relative");
+    expect(header).not.toHaveClass("sticky");
   });
 });

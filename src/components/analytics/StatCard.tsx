@@ -47,7 +47,7 @@ export const StatCard: React.FC<StatCardProps> = ({
               <span
                 className={`text-xs font-bold tabular-nums ${
                   trend.isPositive
-                    ? "text-green-600 dark:text-emerald-400"
+                    ? "text-green-700 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"
                 }`}
               >

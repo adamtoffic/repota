@@ -10,7 +10,7 @@
   --brand-accent-foreground: #1e3a8a;
   --status-danger: #dc2626;
   --status-danger-foreground: #ffffff;
-  --status-success: #16a34a;
+  --status-success: #15803d;
   --status-success-foreground: #ffffff;
   --surface-canvas: #f1f5f9;
   --surface-card: #ffffff;
@@ -19,23 +19,23 @@
   --surface-input: #ffffff;
   --border-default: #e2e8f0;
   --border-subtle: #edf2f7;
-  --border-strong: #cbd5e1;
+  --border-strong: #8492a6;
   --text-primary: #0f172a;
   --text-secondary: #334155;
-  --text-muted: #64748b;
+  --text-muted: #475569;
   --font-serif: "Times New Roman", Times, serif;
 }
 
 :root.dark {
-  --brand-primary: #2f6feb;
+  --brand-primary: #2563eb;
   --brand-primary-foreground: #ffffff;
   --brand-primary-text: #60a5fa;
   --brand-accent: #f59e0b;
   --brand-accent-foreground: #090c12;
-  --status-danger: #ef4444;
+  --status-danger: #dc2626;
   --status-danger-foreground: #ffffff;
   --status-success: #22c55e;
-  --status-success-foreground: #ffffff;
+  --status-success-foreground: #090c12;
   --surface-canvas: #090c12;
   --surface-card: #111620;
   --surface-subtle: #171e2b;
@@ -43,7 +43,7 @@
   --surface-input: #0c1018;
   --border-default: #20293a;
   --border-subtle: #18202e;
-  --border-strong: #2f3c54;
+  --border-strong: #556888;
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #8b98b0;
@@ -83,6 +83,15 @@
   body {
     background-color: var(--surface-canvas);
     color: var(--text-primary);
+  }
+
+  :where(a, button) {
+    touch-action: manipulation;
+  }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--brand-primary-text);
+    outline-offset: 2px;
   }
 
   :root.dark {

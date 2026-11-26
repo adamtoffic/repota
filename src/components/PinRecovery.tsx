@@ -240,7 +240,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={method === "code" ? handleVerifyRecovery : handleVerifySecurityQuestions}
-            className="w-full rounded-lg bg-yellow-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-amber-700 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-amber-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={
               method === "code"
                 ? recoveryCode.length !== 6
@@ -373,7 +373,7 @@ export function PinRecovery({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={handleConfirmPin}
-            className="flex-1 rounded-lg bg-green-600 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded-lg bg-green-700 px-4 py-3 font-bold text-white shadow-md transition-all hover:bg-green-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={confirmPin.length !== 4}
           >
             Reset PIN

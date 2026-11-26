@@ -594,6 +594,7 @@ export function DataBackup({
       <div className="grid gap-3 sm:grid-cols-2">
         {!recoveryOnly && (
           <button
+            type="button"
             onClick={initiateExport}
             disabled={loadError || isRollbackIncomplete || isImporting || isRecoveryBusy}
             className="bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold text-white shadow-sm transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50"

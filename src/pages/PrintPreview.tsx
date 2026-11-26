@@ -29,7 +29,7 @@ export function PrintPreview() {
   const [printFilter, setPrintFilter] = useState<"all" | "ready">("all");
   const [photoWarningDismissed, setPhotoWarningDismissed] = useState(false);
   const [activeCardIndex, setActiveCardIndex] = useState(1);
-  const printAreaRef = useRef<HTMLDivElement>(null);
+  const printAreaRef = useRef<HTMLElement>(null);
 
   // Inject AGGRESSIVE print styles to FORCE zero margins
   useEffect(() => {
@@ -340,7 +340,12 @@ export function PrintPreview() {
   if (printableStudents.length === 0) {
     const isFilteredToReady = !id && printFilter === "ready" && students.length > 0;
     return (
-      <div className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="bg-background flex min-h-screen flex-col items-center justify-center p-8 text-center focus:outline-none"
+      >
+        <h1 className="sr-only">Print Preview</h1>
         <div className="border-border bg-surface max-w-md rounded-xl border p-8 shadow-sm">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-orange-500" />
           <h2 className="text-main mb-2 text-xl font-bold">
@@ -369,14 +374,14 @@ export function PrintPreview() {
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
     <div className="bg-subtle dark:bg-background min-h-screen font-sans print:m-0 print:bg-white print:p-0">
       {/* 1. TOOLBAR (Hidden when printing) */}
-      <div
+      <header
         data-testid="print-sticky-toolbar"
         className="border-border bg-surface/85 sticky top-0 z-50 border-b p-3 backdrop-blur-md sm:p-4 print:hidden"
       >
@@ -521,7 +526,7 @@ export function PrintPreview() {
             {/* ──────────────────────────────────────────────────────── */}
           </div>
         </div>
-      </div>
+      </header>
 
       {/* VALIDATION WARNING FOR MISSING PHOTOS (Outside sticky toolbar so it scrolls naturally) */}
       {studentsWithMissingPhotos.length > 0 && !photoWarningDismissed && (
@@ -552,9 +557,11 @@ export function PrintPreview() {
       )}
 
       {/* 2. THE PREVIEW AREA - All rendered upfront for fast printing */}
-      <div
+      <main
+        id="main-content"
+        tabIndex={-1}
         ref={printAreaRef}
-        className="overflow-hidden py-4 print:m-0 print:w-full print:overflow-visible print:p-0"
+        className="overflow-hidden py-4 focus:outline-none print:m-0 print:w-full print:overflow-visible print:p-0"
       >
         {printableStudents.map((student) => (
           <div
@@ -572,7 +579,7 @@ export function PrintPreview() {
             </div>
           </div>
         ))}
-      </div>
+      </main>
 
       {/* SCROLL BUTTON */}
       {printableStudents.length >= 3 && (

@@ -443,7 +443,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             </div>
           </div>
 
-          <p className="mb-1 text-center text-xs font-bold tracking-wider text-amber-600 uppercase dark:text-amber-400">
+          <p className="mb-1 text-center text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400">
             Step 3 of 4
           </p>
           <h2 className="text-main mb-2 text-center text-xl font-bold">
@@ -632,7 +632,7 @@ export function PinSetup({ onComplete, onCancel }: Props) {
             <button
               type="button"
               onClick={handleSaveSecurityQuestions}
-              className="flex-1 rounded-lg bg-green-600 px-3 py-3 font-semibold text-white transition-colors hover:bg-green-700"
+              className="flex-1 rounded-lg bg-green-700 px-3 py-3 font-semibold text-white transition-colors hover:bg-green-800"
             >
               {biometricAvailable ? "Next" : "Complete Setup"}
             </button>
