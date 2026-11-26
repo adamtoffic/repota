@@ -45,14 +45,14 @@ Target: Resolve all 12 **P0 Blockers**, 27 **P1 High** items, and high-value P2/
 - [x] **P2-19..24** Fix decimal input swallowing (`SubjectRow`, `QuickGradebookRow`, `SbaMarkbookGrid`), floating-point sum display, stale `examRawScore` in `clamp` mode, `normalizeTaskKey` / `examRawScore` in `QuickGradebook`, Analytics KPI/quartile/age-chart polish, and CSV parser quote/TSV hardening
 
 ## Wave 3 — Print Engine, PDF Memory & Cross-Template Parity (`fix/release-print-templates`)
-- [ ] **P0-6** Pass `ignoreElements` + dynamic scale cap + cancellation awareness in `pdfPrint.ts` ($O(N^2)$ cloning & iOS OOM fix)
-- [ ] **P0-7** Add `relative` to `OriginalTemplate` root so watermarks stay scoped per A4 page
-- [ ] **P0-8** Add 3-tier A4 density scaling to `ClassicTemplate`, `ModernTemplate`, and `MinimalTemplate`
-- [ ] **P0-9** Move `.report-page` screen/print rules into clean `@layer` without overriding padding or forcing serif font on `font-sans` templates (`src/index.css`, `src/pages/PrintPreview.tsx`)
-- [ ] **P0-10** Fix exact `297mm` blank-page subpixel overflow and reset `min-h-screen`/`100dvh` inside `@media print`
-- [ ] **P0-11** Move `OriginalTemplate` `density.padding` from `<tr>` to `<td>` cells
-- [ ] **P0-12** Harden iOS 27+ standalone PWA fallback detection (including `navigator.standalone` without `Version/`), `visibilitychange` watchdog, and persistent recovery fallback (`iosInteraction.ts`, `usePdfShareFlow.ts`, `useToast.ts`)
-- [ ] **P1-23 / P2-1..8** Fix `nextTermStarts` UTC off-by-one formatter, `attendancePresent` `?? "-"` across all templates, `bw` red arrears leaks, `Heritage`/`Scholar` fixed A4 columns (remove `sm:`), `isIslamic` & Arabic font fallback, blank `teacherRemark` (no fake praise), `fee.cycle` + `feePaymentNote` + `className` parity, KG header position gating, `reportTheme` `0.179` WCAG luminance + `ModernTemplate` `text-white`, `PrintPreview` `contentKey`/`markPrintStarted`/invalid `?id=`/`blob:` iOS download trap, double signature lines, watermark z-index, and `templatePreviewData` live weights/fees
+- [x] **P0-6** Pass `ignoreElements` + dynamic scale cap + cancellation awareness in `pdfPrint.ts` ($O(N^2)$ cloning & iOS OOM fix)
+- [x] **P0-7** Add `relative` to `OriginalTemplate` root so watermarks stay scoped per A4 page
+- [x] **P0-8** Add 3-tier A4 density scaling to `ClassicTemplate`, `ModernTemplate`, and `MinimalTemplate`
+- [x] **P0-9** Move `.report-page` screen/print rules into clean `@layer` without overriding padding or forcing serif font on `font-sans` templates (`src/index.css`, `src/pages/PrintPreview.tsx`)
+- [x] **P0-10** Fix exact `297mm` blank-page subpixel overflow and reset `min-h-screen`/`100dvh` inside `@media print`
+- [x] **P0-11** Move `OriginalTemplate` `density.padding` from `<tr>` to `<td>` cells
+- [x] **P0-12** Harden iOS 27+ standalone PWA fallback detection (including `navigator.standalone` without `Version/`), `visibilitychange` watchdog, and persistent recovery fallback (`iosInteraction.ts`, `usePdfShareFlow.ts`, `useToast.ts`)
+- [x] **P1-23 / P2-1..8** Fix `nextTermStarts` UTC off-by-one formatter, `attendancePresent` `?? "-"` across all templates, `bw` red arrears leaks, `Heritage`/`Scholar` fixed A4 columns (remove `sm:`), `isIslamic` & Arabic font fallback, blank `teacherRemark` (no fake praise), `fee.cycle` + `feePaymentNote` + `className` parity, KG header position gating, `reportTheme` `0.179` WCAG luminance + `ModernTemplate` `text-white`, `PrintPreview` `contentKey`/`markPrintStarted`/invalid `?id=`/`blob:` iOS download trap, double signature lines, watermark z-index, and `templatePreviewData` live weights/fees
 
 ## Wave 4 — Privacy, Mobile/iOS Polish, A11y & Hosting Cleanup (`fix/release-a11y-mobile-polish`)
 - [ ] **P1-24** Fail CLOSED to `"preview"` for unknown hosts in `analyticsEnv.ts:88`
