@@ -86,7 +86,7 @@ export function useDialogA11y({
     const dialog = dialogRef.current;
     if (dialog && !dialog.contains(document.activeElement)) {
       const focusable = getFocusableElements(dialog);
-      (focusable[0] ?? dialog).focus();
+      (focusable[0] ?? dialog).focus({ preventScroll: true });
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -143,7 +143,7 @@ export function useDialogA11y({
       }
 
       if (!hasNewerDialogAbove && previouslyFocused?.isConnected) {
-        previouslyFocused.focus();
+        previouslyFocused.focus({ preventScroll: true });
       }
     };
   }, [isOpen, dialogRef, lockScroll]);

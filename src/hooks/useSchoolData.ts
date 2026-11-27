@@ -71,3 +71,13 @@ export function useSchoolLifecycle(): SchoolLifecycleType {
   if (fallback !== undefined) return fallback;
   throw new Error("useSchoolLifecycle must be used within a SchoolProvider");
 }
+
+/**
+ * Optionally reads storage/loading lifecycle state without throwing when rendered outside `SchoolProvider`
+ * (used by shared UI chrome such as `PageHeader` in standalone tests).
+ */
+export function useOptionalSchoolLifecycle(): SchoolLifecycleType | undefined {
+  const slice = useContext(SchoolLifecycleContext);
+  const fallback = useContext(SchoolContext);
+  return slice ?? fallback;
+}

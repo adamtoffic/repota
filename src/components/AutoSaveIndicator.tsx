@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, Wifi, WifiOff } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Wifi, WifiOff } from "lucide-react";
 import { useEditableInputFocused } from "../hooks/useEditableInputFocused";
 
 interface Props {
   isSaving: boolean;
   lastSaved?: Date;
   error?: string;
+  variant?: "floating" | "header" | "sidebar";
+  compact?: boolean;
+  className?: string;
 }
 
-export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
+export function AutoSaveIndicator({
+  isSaving,
+  lastSaved,
+  error,
+  variant = "floating",
+  compact = false,
+  className = "",
+}: Props) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [timeAgo, setTimeAgo] = useState("");
   const isEditableFocused = useEditableInputFocused();
@@ -73,6 +83,86 @@ export function AutoSaveIndicator({ isSaving, lastSaved, error }: Props) {
   }, [lastSaved]);
 
   if (!isVisible) return null;
+
+  if (variant === "header" || variant === "sidebar") {
+    const statusTitle = error
+      ? error
+      : isSaving
+        ? "Saving changes..."
+        : isSavedRecentlyVisible
+          ? lastSaved
+            ? `Saved ${timeAgo}`
+            : "All changes saved"
+          : "Offline · Saved locally";
+
+    const colorClass = error
+      ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800/70 dark:bg-red-950/60 dark:text-red-300"
+      : isSaving
+        ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/60 dark:text-blue-300"
+        : isSavedRecentlyVisible
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/60 dark:text-emerald-300"
+          : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/70 dark:bg-amber-950/60 dark:text-amber-300";
+
+    const statusIcon = error ? (
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+    ) : isSaving ? (
+      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+    ) : isSavedRecentlyVisible ? (
+      <Check className="h-3.5 w-3.5 shrink-0" />
+    ) : (
+      <WifiOff className="h-3.5 w-3.5 shrink-0" />
+    );
+
+    if (variant === "header") {
+      const headerLabel = error
+        ? "Save failed"
+        : isSaving
+          ? "Saving..."
+          : isSavedRecentlyVisible
+            ? "Saved"
+            : "Offline";
+
+      return (
+        <div
+          role={error ? "alert" : "status"}
+          aria-live={error ? "assertive" : "polite"}
+          aria-atomic="true"
+          title={statusTitle}
+          className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold ${colorClass} ${className}`}
+        >
+          {statusIcon}
+          <span className={compact ? "sr-only sm:not-sr-only" : ""} data-record="true">
+            {headerLabel}
+          </span>
+        </div>
+      );
+    }
+
+    const sidebarLabel = error
+      ? "Save failed"
+      : isSaving
+        ? "Saving..."
+        : isSavedRecentlyVisible
+          ? lastSaved
+            ? `Saved ${timeAgo}`
+            : "All changes saved"
+          : "Offline · Saved locally";
+
+    return (
+      <div
+        role={error ? "alert" : "status"}
+        aria-live={error ? "assertive" : "polite"}
+        aria-atomic="true"
+        title={statusTitle}
+        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${colorClass} ${className}`}
+      >
+        {statusIcon}
+        <span className="truncate" data-record="true">
+          {sidebarLabel}
+        </span>
+      </div>
+    );
+  }
 
   const hideForKeyboard = isEditableFocused && !error;
 
