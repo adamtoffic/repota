@@ -63,7 +63,7 @@ chore: update dependencies
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ (see `.nvmrc`) and npm
 - Modern browser (Chrome, Firefox, Safari, Edge)
 - Git
 
@@ -77,7 +77,7 @@ cd repota
 # Install dependencies
 npm install
 
-# Copy environment template (optional)
+# Copy optional environment template (only needed for optional analytics keys)
 cp .env.example .env
 
 # Start development server
@@ -89,16 +89,18 @@ npm run dev
 ```
 repota/
 ├── src/
-│   ├── api/              # API layer
-│   ├── components/       # React components
-│   ├── context/          # React Context providers
-│   ├── hooks/            # Custom hooks
-│   ├── pages/            # Route pages
-│   ├── types/            # TypeScript types
-│   ├── utils/            # Utility functions
-│   └── constants/        # App constants
-├── public/               # Static assets
-└── docs/                 # Documentation
+│   ├── components/       # React UI, forms, modals, settings sections, and charts
+│   ├── context/          # Split React Context providers (SchoolContext, SettingsFormContext, ThemeContext)
+│   ├── hooks/            # Custom hooks for storage slices, auto-lock, and debouncing
+│   ├── pages/            # Route pages (Dashboard, SBA, Analytics, PrintPreview, Settings)
+│   ├── schemas/          # Zod schemas for student, settings, and backup validation
+│   ├── templates/        # Printable A4 GES report card templates
+│   ├── types/            # Core TypeScript contracts
+│   ├── utils/            # Storage (IDB v2), grading, encryption, PDF/print, and zero-PII analytics
+│   └── constants/        # App constants (grade scales, classes, remark banks)
+├── e2e/                  # Playwright real-browser E2E suites
+├── public/               # Static icons, emblems, and PWA assets
+└── docs/                 # Engineering docs, analytics contract, and task reports
 ```
 
 ### Code Style
@@ -141,7 +143,7 @@ All features must work offline. IndexedDB is our primary storage.
 
 ### 2. **Privacy-First**
 
-No user data leaves their device. No tracking, no analytics (except anonymous Vercel analytics).
+No student, score, photo, or school data leaves the device. Anonymous zero-PII PostHog analytics run only on production hosts with session masking enabled (see [docs/analytics-events.md](docs/analytics-events.md)).
 
 ### 3. **Ghana-Focused**
 
@@ -164,7 +166,7 @@ Design for mobile, enhance for desktop. PWA features are critical.
 ### High Priority 🔥
 
 - **Accessibility improvements** (ARIA labels, keyboard navigation)
-- **Test coverage** (currently low, needs improvement)
+- **Cross-device & E2E coverage** (especially physical iOS Safari & Android WebView)
 - **Documentation** (code comments, guides for teachers)
 - **Performance optimization** (bundle size, lazy loading)
 - **Bug fixes** (check GitHub issues)
