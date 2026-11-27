@@ -47,9 +47,16 @@ function SidebarStudentCountBadge() {
   );
 }
 
-function ConnectedAutoSaveIndicator() {
+function SidebarSaveStatus() {
   const { isSaving, lastSaved, saveError } = useSchoolLifecycle();
-  return <AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} error={saveError ?? undefined} />;
+  return (
+    <AutoSaveIndicator
+      variant="sidebar"
+      isSaving={isSaving}
+      lastSaved={lastSaved}
+      error={saveError ?? undefined}
+    />
+  );
 }
 
 interface PrimaryNavItem {
@@ -232,6 +239,7 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         <div className="border-border space-y-3 border-t p-4">
+          <SidebarSaveStatus />
           <div
             role="group"
             aria-label="Theme preference"
@@ -276,9 +284,6 @@ export function AppShell({ children }: AppShellProps) {
       <div className="pb-safe-nav flex min-h-dvh flex-col md:pl-64 print:pb-0 print:pl-0">
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </div>
-
-      {/* Persistent Auto-Save Indicator (isolated leaf so save ticks never re-render AppShell) */}
-      <ConnectedAutoSaveIndicator />
 
       {/* Mobile Floating Liquid Glass Bottom Navigation Bar */}
       <MobileBottomNav items={primaryItems} activeIndex={activePrimaryIndex} />

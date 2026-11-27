@@ -1,7 +1,24 @@
 import type { ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
+import { useOptionalSchoolLifecycle } from "../../hooks/useSchoolData";
 import { useTheme } from "../../hooks/useTheme";
+import { AutoSaveIndicator } from "../AutoSaveIndicator";
 import { RepotaLogo } from "./RepotaLogo";
+
+function HeaderSaveStatus({ compact }: { compact: boolean }) {
+  const lifecycle = useOptionalSchoolLifecycle();
+  if (!lifecycle) return null;
+  return (
+    <AutoSaveIndicator
+      variant="header"
+      compact={compact}
+      className="md:hidden"
+      isSaving={lifecycle.isSaving}
+      lastSaved={lifecycle.lastSaved}
+      error={lifecycle.saveError ?? undefined}
+    />
+  );
+}
 
 interface PageHeaderProps {
   schoolName?: string;
@@ -52,8 +69,9 @@ export function PageHeader({
             </div>
           </div>
 
-          {/* RIGHT SIDE: Mobile Quick Theme Toggle + Actions */}
+          {/* RIGHT SIDE: Mobile Save Status, Quick Theme Toggle & Actions */}
           <div className="flex items-center gap-2 pl-2">
+            <HeaderSaveStatus compact={Boolean(actions)} />
             <button
               type="button"
               onClick={() => setTheme(isDark ? "light" : "dark")}
