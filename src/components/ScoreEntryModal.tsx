@@ -128,6 +128,26 @@ function ModalSaveStatus() {
   );
 }
 
+/**
+ * Sticky mobile header wrapper isolated as a leaf component so focus transitions switch
+ * `sticky top-0` -> `relative` for iOS keyboard hit-testing without re-rendering form rows,
+ * while baking `env(safe-area-inset-top)` directly into header top padding.
+ */
+function MobileModalHeader({ children }: { children: ReactNode }) {
+  const isEditableFocused = useEditableInputFocused();
+
+  return (
+    <div
+      data-testid="score-modal-header"
+      className={`bg-surface border-border flex items-center justify-between gap-3 border-b px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3 sm:px-5 sm:py-3.5 ${
+        isEditableFocused ? "relative" : "max-sm:sticky max-sm:top-0 max-sm:z-20"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 interface MobileModalFooterProps {
   hasNavigation: boolean;
   hasPrevious: boolean;
@@ -288,6 +308,10 @@ export function ScoreEntryModal({
     }
     if (window.matchMedia?.("(max-width: 639px)")?.matches) {
       window.scrollTo?.(0, 0);
+      const rafId = window.requestAnimationFrame?.(() => window.scrollTo?.(0, 0));
+      return () => {
+        if (rafId !== undefined) window.cancelAnimationFrame?.(rafId);
+      };
     }
   }, [isOpen, student.id, activeTab]);
 
@@ -401,10 +425,8 @@ export function ScoreEntryModal({
         className="bg-surface sm:border-border sm:animate-sheet-up flex min-h-dvh w-full max-w-4xl flex-col focus:outline-none sm:h-[min(86dvh,780px)] sm:max-h-[90dvh] sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:shadow-2xl dark:sm:shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.07)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="safe-top bg-surface shrink-0 sm:hidden" />
-
         {/* UNIFIED HEADER */}
-        <div className="bg-surface border-border flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-5 sm:py-3.5">
+        <MobileModalHeader>
           {/* Student Avatar + Identity / Switcher */}
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="border-border bg-subtle h-9 w-9 shrink-0 overflow-hidden rounded-full border">
@@ -517,7 +539,7 @@ export function ScoreEntryModal({
               <X className="h-5 w-5" />
             </button>
           </div>
-        </div>
+        </MobileModalHeader>
 
         {/* LIVE STUDENT PULSE STRIP */}
         <div
