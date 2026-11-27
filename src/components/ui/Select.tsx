@@ -23,14 +23,14 @@ export const Select = ({
   const errorId = `${selectId}-error`;
   const describedBy = [ariaDescribedBy, error ? errorId : undefined].filter(Boolean).join(" ") || undefined;
 
-  const selectClasses = `bg-input text-main w-full rounded-lg border px-4 py-2.5 outline-none transition-all ${
+  const selectClasses = `bg-input text-main w-full min-w-0 max-w-full rounded-lg border px-4 py-2.5 outline-none transition-all ${
     error
       ? "border-red-500 focus:ring-2 focus:ring-red-500"
       : "border-border-strong focus:border-primary-text focus:ring-2 focus:ring-primary-text/30"
   } ${className}`;
 
   return (
-    <div className="space-y-1.5">
+    <div className="min-w-0 space-y-1.5">
       {label && (
         <label
           htmlFor={selectId}
@@ -38,7 +38,7 @@ export const Select = ({
           {...(recordLabel ? { "data-record": "true" } : {})}
         >
           {label}
-          {props.required && <span className="ml-1 text-red-500">*</span>}
+          {props.required && <span aria-hidden="true" className="ml-1 text-red-500">*</span>}
         </label>
       )}
       <select

@@ -113,7 +113,7 @@ function SettingsHubContent() {
   ];
 
   return (
-    <div className="bg-background flex min-h-screen flex-col font-sans">
+    <div className="bg-background flex min-h-dvh flex-col font-sans">
       <PageHeader schoolName={committedSchoolName} />
 
       <main
