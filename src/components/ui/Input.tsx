@@ -29,7 +29,9 @@ export const Input = ({
       .filter(Boolean)
       .join(" ") || undefined;
 
-  const inputClasses = `bg-input text-main placeholder:text-muted w-full rounded-lg border px-4 py-2.5 outline-none transition-all ${
+  const inputClasses = `bg-input text-main placeholder:text-muted block w-full min-w-0 max-w-full rounded-lg border px-4 py-2.5 outline-none transition-all ${
+    props.type === "date" ? "appearance-none text-left " : ""
+  }${
     error
       ? "border-red-500 focus:ring-2 focus:ring-red-500"
       : "border-border-strong focus:border-primary-text focus:ring-2 focus:ring-primary-text/30"
@@ -42,12 +44,12 @@ export const Input = ({
       {...(recordLabel ? { "data-record": "true" } : {})}
     >
       {label}
-      {props.required && <span className="ml-1 text-red-500">*</span>}
+      {props.required && <span aria-hidden="true" className="ml-1 text-red-500">*</span>}
     </label>
   );
 
   return (
-    <div className="space-y-1.5">
+    <div className="min-w-0 space-y-1.5">
       {labelElement &&
         (labelAction ? (
           <div className="flex items-center justify-between gap-2">

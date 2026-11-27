@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Plus, Users, X } from "lucide-react";
 import type { AcademicPeriod, ExamType, SchoolLevel } from "../../types";
-import { IconButton, Input } from "../ui";
+import { IconButton, Input, Select } from "../ui";
 import { SbaWeightsModal } from "../sba/SbaWeightsModal";
 import { useSettingsForm } from "../../hooks/useSettingsForm";
 import { useSchoolActions, useSchoolStudents } from "../../hooks/useSchoolData";
@@ -47,7 +47,7 @@ export function AcademicSessionSection() {
     <>
       <fieldset disabled={isPersistenceSuspended} className="m-0 min-w-0 space-y-6 border-0 p-0">
       {/* CARD 2: ACADEMIC SESSION */}
-      <div className="border-border bg-surface rounded-xl border p-5 shadow-sm sm:p-6">
+      <div className="border-border bg-surface min-w-0 rounded-xl border p-5 shadow-sm sm:p-6">
         <div className="mb-6 flex items-center gap-3">
           <div className="rounded-lg bg-orange-100 p-2.5 dark:bg-orange-950/60">
             <BookOpen className="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -57,7 +57,7 @@ export function AcademicSessionSection() {
           </h2>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           {/* LEVEL SELECTOR */}
           <div>
             <span
@@ -100,15 +100,16 @@ export function AcademicSessionSection() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="min-w-0 space-y-1.5">
               <label
                 htmlFor={`${sectionId}-class-name`}
-                className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase"
+                className="text-secondary block text-sm font-medium"
+                data-record="true"
               >
                 Class Name
               </label>
-              <div className="relative">
+              <div className="relative min-w-0">
                 <Input
                   id={`${sectionId}-class-name`}
                   type="text"
@@ -143,7 +144,7 @@ export function AcademicSessionSection() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Total Attendance Days"
               type="number"
@@ -166,7 +167,7 @@ export function AcademicSessionSection() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Academic Year"
               type="text"
@@ -176,26 +177,19 @@ export function AcademicSessionSection() {
               className="font-bold"
               placeholder="e.g. 2025/2026"
             />
-            <div>
-              <label
-                htmlFor={`${sectionId}-term`}
-                className="text-muted mb-1 block text-xs font-bold tracking-wide uppercase"
-              >
-                Term / Semester
-              </label>
-              <select
-                id={`${sectionId}-term`}
-                value={formData.term}
-                onChange={(e) =>
-                  setFormData({ ...formData, term: e.target.value as AcademicPeriod })
-                }
-                className="border-border-strong bg-input text-main w-full rounded-lg border p-2.5 text-sm font-bold transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-              >
-                <option value="First Term">First Term</option>
-                <option value="Second Term">Second Term</option>
-                <option value="Third Term">Third Term</option>
-              </select>
-            </div>
+            <Select
+              id={`${sectionId}-term`}
+              label="Term / Semester"
+              value={formData.term}
+              onChange={(e) =>
+                setFormData({ ...formData, term: e.target.value as AcademicPeriod })
+              }
+              className="font-bold"
+            >
+              <option value="First Term">First Term</option>
+              <option value="Second Term">Second Term</option>
+              <option value="Third Term">Third Term</option>
+            </Select>
           </div>
 
           {/* EXAM TYPE SELECTOR */}

@@ -69,7 +69,17 @@ test.describe("Responsive Modals, Input Alignment & Self-Hosted Font (E2E)", () 
     });
     expect(fontLoaded).toBe(true);
 
-    const routes = ["/", "/sba", "/analytics", "/settings", "/print"] as const;
+    const routes = [
+      "/",
+      "/sba",
+      "/analytics",
+      "/settings",
+      "/settings/school",
+      "/settings/academic",
+      "/settings/templates",
+      "/settings/security",
+      "/print",
+    ] as const;
 
     // Desktop Light Mode
     for (const route of routes) {
@@ -83,13 +93,27 @@ test.describe("Responsive Modals, Input Alignment & Self-Hosted Font (E2E)", () 
     await page.getByRole("button", { name: "Use dark theme" }).click();
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
 
-    // Mobile Dark Mode across all routes
+    // Mobile Dark Mode across all routes + explicit Next Term Begins date box alignment
     await page.setViewportSize({ width: 390, height: 844 });
     for (const route of routes) {
       await page.goto(route);
       await expect(page.locator("main#main-content")).toBeVisible({ timeout: 10000 });
       await expect(page.locator("html")).toHaveClass(/\bdark\b/);
       await expectNoHorizontalOverflow(page, `Mobile dark ${route}`);
+
+      if (route === "/settings/academic") {
+        const attendanceInput = page.getByLabel("Total Attendance Days");
+        const nextTermInput = page.getByLabel("Next Term Begins");
+        await expect(nextTermInput).toBeVisible();
+        const attendanceBox = await attendanceInput.boundingBox();
+        const nextTermBox = await nextTermInput.boundingBox();
+        expect(attendanceBox).not.toBeNull();
+        expect(nextTermBox).not.toBeNull();
+        expect(nextTermBox!.x).toBeGreaterThanOrEqual(0);
+        expect(nextTermBox!.x + nextTermBox!.width).toBeLessThanOrEqual(391);
+        expect(Math.abs(nextTermBox!.x - attendanceBox!.x)).toBeLessThanOrEqual(2);
+        expect(Math.abs(nextTermBox!.width - attendanceBox!.width)).toBeLessThanOrEqual(2);
+      }
     }
 
     expect(errors).toEqual([]);
@@ -156,6 +180,14 @@ test.describe("Responsive Modals, Input Alignment & Self-Hosted Font (E2E)", () 
     expect(Math.abs(mobileClassBox!.y - mobileExamBox!.y)).toBeLessThanOrEqual(2);
     expect(Math.abs(mobileClassBox!.height - mobileExamBox!.height)).toBeLessThanOrEqual(2);
     expect(mobileExamBox!.x + mobileExamBox!.width).toBeLessThanOrEqual(391);
+
+    await page.getByRole("tab", { name: /Student Details/i }).click();
+    await expect(dobInput).toBeVisible();
+    const mobileDobBox = await dobInput.boundingBox();
+    expect(mobileDobBox).not.toBeNull();
+    expect(mobileDobBox!.x).toBeGreaterThanOrEqual(0);
+    expect(mobileDobBox!.x + mobileDobBox!.width).toBeLessThanOrEqual(391);
+    await expectNoHorizontalOverflow(page, "Mobile ScoreEntryModal Details tab");
 
     expect(errors).toEqual([]);
   });

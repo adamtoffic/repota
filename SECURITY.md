@@ -6,7 +6,8 @@ We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
+| 2.x.x   | :white_check_mark: |
+| 1.x.x   | :x:                |
 | < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
@@ -53,11 +54,10 @@ Please include as much of the following information as possible:
 
 Repota is designed with **privacy-first** principles:
 
-- ✅ **No backend** - All data stays on user's device
-- ✅ **No authentication** - No user accounts or passwords to compromise
-- ✅ **No tracking** - Zero telemetry or analytics (except anonymous Vercel stats)
-- ✅ **Local storage** - IndexedDB with optional PIN protection
-- ✅ **No network requests** - Works 100% offline
+- ✅ **Zero student-data backend** - Student names, scores, photos, and school records stay on-device in IndexedDB (`repota-storage`)
+- ✅ **Zero-PII telemetry** - Anonymous product analytics and privacy-masked session replay (PostHog: all inputs/text masked, images blocked, zero PII) run **only** on production hosts (`repota.app`, `www.repota.app`, `repota.vercel.app`) — see [docs/analytics-events.md](docs/analytics-events.md)
+- ✅ **Local protection & backups** - Optional salted PBKDF2 PIN + WebAuthn biometric lock and password-encrypted `.repota` AES-GCM archives
+- ✅ **Offline-first PWA** - Full score entry, grading, analytics, and report printing work offline after install
 
 ### Known Limitations
 
@@ -105,8 +105,8 @@ Repota is designed with **privacy-first** principles:
 
 Security updates will be released as:
 
-- **Patch versions** (1.0.x) for minor fixes
-- **Minor versions** (1.x.0) for moderate vulnerabilities
+- **Patch versions** (2.0.x) for minor fixes
+- **Minor versions** (2.x.0) for moderate vulnerabilities
 - **Major versions** (x.0.0) for critical breaking changes
 
 Updates will be announced via:
