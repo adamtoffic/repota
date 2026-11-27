@@ -76,7 +76,9 @@ test.describe("Repota Real-Browser Core Flows", () => {
     await page.goto("/");
 
     await addStudentOnDashboard(page, "Ama Mobile", true);
-    await expect(page.getByText(/Saved just now/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("header").getByTitle(/Saved just now/i)).toBeVisible({
+      timeout: 5000,
+    });
 
     await page.goto("/sba");
 
