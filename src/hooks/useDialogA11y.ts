@@ -42,6 +42,11 @@ export interface UseDialogA11yOptions {
   lockScroll?: boolean;
   /** Trap Tab / Shift+Tab cycling within `dialogRef.current`. */
   trapFocus?: boolean;
+  /**
+   * Controls initial focus target when opened: `"first"` skips `<select>` controls so mobile
+   * browsers do not auto-open native pickers; `"dialog"` focuses `dialogRef.current` directly.
+   */
+  initialFocus?: "first" | "dialog";
 }
 
 /**
@@ -55,6 +60,7 @@ export function useDialogA11y({
   closeOnEscape = true,
   lockScroll = true,
   trapFocus = true,
+  initialFocus = "first",
 }: UseDialogA11yOptions): void {
   const onCloseRef = useRef(onClose);
   const closeOnEscapeRef = useRef(closeOnEscape);
@@ -85,8 +91,13 @@ export function useDialogA11y({
 
     const dialog = dialogRef.current;
     if (dialog && !dialog.contains(document.activeElement)) {
-      const focusable = getFocusableElements(dialog);
-      (focusable[0] ?? dialog).focus({ preventScroll: true });
+      if (initialFocus === "dialog") {
+        dialog.focus({ preventScroll: true });
+      } else {
+        const focusable = getFocusableElements(dialog);
+        const firstSafeTarget = focusable.find((el) => el.tagName !== "SELECT");
+        (firstSafeTarget ?? dialog).focus({ preventScroll: true });
+      }
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -146,5 +157,5 @@ export function useDialogA11y({
         previouslyFocused.focus({ preventScroll: true });
       }
     };
-  }, [isOpen, dialogRef, lockScroll]);
+  }, [isOpen, dialogRef, lockScroll, initialFocus]);
 }

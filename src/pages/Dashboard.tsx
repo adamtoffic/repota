@@ -23,6 +23,7 @@ import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { ScrollButton } from "../components/ScrollButton";
 import { ValidationWarnings } from "../components/ValidationWarnings";
 import { ProgressModal } from "../components/ProgressModal";
+import { needsClassSubjectsOrSbaSync } from "../context/school/schoolStudentMutations";
 
 const WelcomeTour = lazyWithRetry(() =>
   import("../components/WelcomeTour").then((module) => ({ default: module.WelcomeTour })),
@@ -266,6 +267,11 @@ export function Dashboard() {
     }
   };
 
+  const needsClassSync = useMemo(
+    () => needsClassSubjectsOrSbaSync(students, settings),
+    [students, settings],
+  );
+
   const handleSyncClassSubjectsAndTasks = () => {
     if (syncClassSubjectsAndSba) {
       syncClassSubjectsAndSba();
@@ -502,7 +508,7 @@ export function Dashboard() {
               onImport={() => setShowImportModal(true)}
               onImportScores={() => setShowScoreImportModal(true)}
               onBulkAttendance={() => setShowBulkAttendanceModal(true)}
-              onSyncClassSubjects={handleSyncClassSubjectsAndTasks}
+              onSyncClassSubjects={needsClassSync ? handleSyncClassSubjectsAndTasks : undefined}
               onBulkPromotion={() => setShowBulkPromotionModal(true)}
               onDeletePending={() => setConfirmCleanModal(true)}
               onAutoRemarks={handleAutoRemarksAction}

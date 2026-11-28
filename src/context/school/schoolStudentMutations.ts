@@ -133,6 +133,27 @@ export function detectStudentComponentMismatches(
   return { hasOutdated, hasMissing };
 }
 
+/**
+ * Returns `true` when at least one student is missing a subject from `settings.defaultSubjects`
+ * or has SBA task definitions out of sync with `settings.subjectComponentMap`.
+ */
+export function needsClassSubjectsOrSbaSync(
+  students: StudentRecord[],
+  settings: SchoolSettings,
+): boolean {
+  if (students.length === 0) return false;
+  const masterList = settings.defaultSubjects || [];
+
+  for (const student of students) {
+    if (masterList.some((name) => !student.subjects.some((sub) => sub.name === name))) {
+      return true;
+    }
+  }
+
+  const { hasOutdated, hasMissing } = detectStudentComponentMismatches(students, settings);
+  return hasOutdated || hasMissing;
+}
+
 export function syncClassSubjectsAndSbaData(
   students: StudentRecord[],
   settings: SchoolSettings,
