@@ -322,6 +322,7 @@ export function ScoreEntryModal({
     dialogRef: modalContentRef,
     closeOnEscape: !hasNestedModal,
     lockScroll: false,
+    initialFocus: "dialog",
   });
 
   useEffect(() => {
