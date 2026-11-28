@@ -418,8 +418,11 @@ export function DashboardToolbar({
                         className="hover:bg-subtle text-secondary flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium sm:py-2.5"
                         data-record="true"
                       >
-                        <RefreshCw size={16} className="shrink-0 text-teal-600 dark:text-teal-400" /> Sync Subjects
-                        &amp; SBA Tasks
+                        <RefreshCw size={16} className="shrink-0 text-teal-600 dark:text-teal-400" />{" "}
+                        <span>Sync Subjects &amp; SBA Tasks</span>
+                        <span className="ml-auto rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-800 dark:bg-teal-950/70 dark:text-teal-300">
+                          Update
+                        </span>
                       </button>
                     )}
                     {onBulkPromotion && (
